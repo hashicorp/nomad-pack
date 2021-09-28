@@ -43,12 +43,12 @@ The directory should have the following contents:
 
 The `metadata.hcl` file contains important key value information regarding the pack. It contains the following blocks and their associated fields:
 
-"pack {name}" - The name of the pack.
-"pack {description}" - A small overview of the application that is deployed by the pack.
-"app {url}" - The HTTP(S) url to the homepage of the application to provide a quick reference to the documentation and help pages.
-"pack {type}" - The type of resource that is built by the pack. This currently has only one valid option of "job".
-"app {author}" - An identifier to the author and maintainer of the pack.
-"pack {depedancy: {name, source}}" - The dependencies that the pack has on other packs. Multiple dependencies can be supplied.
+- "pack {name}" - The name of the pack.
+- "pack {description}" - A small overview of the application that is deployed by the pack.
+- "app {url}" - The HTTP(S) url to the homepage of the application to provide a quick reference to the documentation and help pages.
+- "pack {type}" - The type of resource that is built by the pack. This currently has only one valid option of "job".
+- "app {author}" - An identifier to the author and maintainer of the pack.
+- "pack {depedancy: {name, source}}" - The dependencies that the pack has on other packs. Multiple dependencies can be supplied.
 
 An example `metadata.hcl` file:
 
@@ -119,7 +119,7 @@ This is an optional file and can also be overridden from the CLI to provide a cu
 
 No specific format is required for the `README.md` or `CHANGELOG.md` files.
 
-## Step Three: Write the Pack Templates
+## Step Three: Write the Templates
 
 Each file at the top level of the `templates` directory that uses the extension ".nomad.tpl" defines a resource (such as a job) that will be applied to Noamd. Thesee files can use any UTF8 encoded prefix as the name.
 
