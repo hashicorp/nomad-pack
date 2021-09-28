@@ -37,6 +37,7 @@ var (
 		"render",
 		"run",
 		"destroy",
+		"info",
 	}
 )
 
@@ -163,6 +164,11 @@ func Commands(
 		},
 		"plan": func() (cli.Command, error) {
 			return &PlanCommand{
+				baseCommand: baseCommand,
+			}, nil
+		},
+		"info": func() (cli.Command, error) {
+			return &InfoCommand{
 				baseCommand: baseCommand,
 			}, nil
 		},

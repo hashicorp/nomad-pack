@@ -73,7 +73,7 @@ func (v *Variable) merge(new *Variable) hcl.Diagnostics {
 // ParsedVariables wraps the parsed variables returned by parser.Parse and
 // provides functionality to access them.
 type ParsedVariables struct {
-	vars map[string]map[string]*Variable
+	Vars map[string]map[string]*Variable
 }
 
 // ConvertVariablesToMapInterface translates the parsed variables into their
@@ -94,7 +94,7 @@ func (p *ParsedVariables) ConvertVariablesToMapInterface() (map[string]interface
 	var diags hcl.Diagnostics
 
 	// Iterate each set of pack variable.
-	for packName, variables := range p.vars {
+	for packName, variables := range p.Vars {
 
 		// packVar collects all variables associated to a pack.
 		packVar := map[string]interface{}{}
