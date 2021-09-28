@@ -13,6 +13,7 @@ import (
 	v1client "github.com/hashicorp/nomad-openapi/clients/go/v1"
 	v1 "github.com/hashicorp/nomad-openapi/v1"
 	"github.com/hashicorp/nomad/helper"
+	"github.com/posener/complete"
 )
 
 type RunCommand struct {
@@ -58,7 +59,6 @@ func (c *RunCommand) Run(args []string) int {
 	c.repoName = repoName
 	errorContext.Add(errors.UIContextPrefixPackName, c.packName)
 	errorContext.Add(errors.UIContextPrefixPackName, c.repoName)
-
 
 	repoPath, err := getRepoPath(repoName, c.ui, errorContext)
 	if err != nil {
@@ -432,6 +432,14 @@ func (c *RunCommand) Flags() *flag.Sets {
                        to attempt to rollback the entire deployment.`,
 		})
 	})
+}
+
+func (c *RunCommand) AutocompleteArgs() complete.Predictor {
+	return complete.PredictNothing
+}
+
+func (c *RunCommand) AutocompleteFlags() complete.Flags {
+	return c.Flags().Completions()
 }
 
 func (c *RunCommand) Help() string {

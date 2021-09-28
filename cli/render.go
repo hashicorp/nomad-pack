@@ -5,6 +5,7 @@ import (
 	"github.com/hashicorp/nom/internal/pkg/errors"
 	v1 "github.com/hashicorp/nomad-openapi/v1"
 	"github.com/mitchellh/go-glint"
+	"github.com/posener/complete"
 )
 
 // RenderCommand is a command that allows users to render the templates within
@@ -23,7 +24,7 @@ func (r *RenderCommand) Run(args []string) int {
 
 	r.cmdKey = "render"
 
-	if err := r.Init(WithExactArgs(1, args), WithFlags(r.flags()), WithNoConfig()); err != nil {
+	if err := r.Init(WithExactArgs(1, args), WithFlags(r.Flags()), WithNoConfig()); err != nil {
 		return 1
 	}
 
@@ -112,7 +113,7 @@ func addRenderToDoc(doc *glint.Document, name, tpl string) {
 	doc.Append(glint.Layout(glint.Style(glint.Text(tpl))).Row())
 }
 
-func (r *RenderCommand) flags() *flag.Sets {
+func (r *RenderCommand) Flags() *flag.Sets {
 	return r.flagSet(flagSetOperation, func(set *flag.Sets) {
 
 		f := set.NewSet("Render Options")
@@ -125,6 +126,14 @@ func (r *RenderCommand) flags() *flag.Sets {
                       pack is rendered and displayed.`,
 		})
 	})
+}
+
+func (r *RenderCommand) AutocompleteArgs() complete.Predictor {
+	return complete.PredictNothing
+}
+
+func (r *RenderCommand) AutocompleteFlags() complete.Flags {
+	return r.Flags().Completions()
 }
 
 // Help satisfies the Help function of the cli.Command interface.
@@ -147,7 +156,7 @@ func (r *RenderCommand) Help() string {
 
 	Render the specified Nomad Pack and view the results.
 
-` + r.GetExample() + r.flags().Help())
+` + r.GetExample() + r.Flags().Help())
 }
 
 // Synopsis satisfies the Synopsis function of the cli.Command interface.

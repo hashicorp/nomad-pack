@@ -3,6 +3,7 @@ package cli
 import (
 	"github.com/hashicorp/nom/flag"
 	"github.com/hashicorp/nom/internal/pkg/errors"
+	"github.com/posener/complete"
 )
 
 type InitCommand struct {
@@ -53,14 +54,13 @@ func (c *InitCommand) Run(args []string) int {
 	return 0
 }
 
-
 func (c *InitCommand) Synopsis() string {
-	return ""
+	return "Initialize local environment and download a registry of packs"
 }
 
 // Flags defines the flag.Sets for the operation.
 func (c *InitCommand) Flags() *flag.Sets {
-	return c.flagSet(flagSetOperation, func(set *flag.Sets) {
+	return c.flagSet(0, func(set *flag.Sets) {
 		f := set.NewSet("Init Options")
 
 		// TODO: validation that it has both from & into flags
@@ -82,11 +82,19 @@ func (c *InitCommand) Flags() *flag.Sets {
 	})
 }
 
+func (c *InitCommand) AutocompleteArgs() complete.Predictor {
+	return complete.PredictNothing
+}
+
+func (c *InitCommand) AutocompleteFlags() complete.Flags {
+	return c.Flags().Completions()
+}
+
 func (c *InitCommand) Help() string {
 	return formatHelp(`
-	Usage: nom run <pack-name> [options]
+	Usage: nomad-pack init <pack-name> [options]
 
-	Install the specified NOM pack to a configured Nomad cluster.
+	Install the specified Nomad pack to a configured Nomad cluster.
 	
-	` + c.Flags().Help())
+` + c.Flags().Help())
 }

@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/mitchellh/go-wordwrap"
+	"github.com/posener/complete"
 
 	flag "github.com/hashicorp/nom/flag"
 	"github.com/hashicorp/nom/terminal"
@@ -236,6 +237,8 @@ func (c *baseCommand) flagSet(bit flagSetBit, f func(*flag.Sets)) *flag.Sets {
 				Default: make([]string, 0),
 				Usage: `Specifies the path to a variable override file. This can be provided 
 				multiple times on a single command to result in a list of files.`,
+				// TODO: this is what's in nomad. Do we want to modify this so it accepts .hcl?
+				Completion: complete.PredictFiles("*.var"),
 			},
 			Shorthand: "f",
 		})
