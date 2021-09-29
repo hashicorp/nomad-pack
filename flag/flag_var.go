@@ -88,7 +88,7 @@ func (f *Set) VarFlagP(i *VarFlagP) {
 	}
 
 	f.VarP(i.Value, i.Name, i.Shorthand, usage)
-	f.completions["-"+i.Name] = i.Completion
+	f.completions["--"+i.Name] = i.Completion
 }
 
 // Var is a lower-level API for adding something to the flags. It should be used

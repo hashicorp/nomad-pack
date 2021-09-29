@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/nom/internal/pkg/version"
 	v1client "github.com/hashicorp/nomad-openapi/clients/go/v1"
 	v1 "github.com/hashicorp/nomad-openapi/v1"
+	"github.com/posener/complete"
 )
 
 type DestroyCommand struct {
@@ -222,6 +223,14 @@ func (c *DestroyCommand) Flags() *flag.Sets {
 					destroy will destroy only a single region at a time. Ignored for single-region jobs.`,
 		})
 	})
+}
+
+func (c *DestroyCommand) AutocompleteArgs() complete.Predictor {
+	return complete.PredictNothing
+}
+
+func (c *DestroyCommand) AutocompleteFlags() complete.Flags {
+	return c.Flags().Completions()
 }
 
 func (c *DestroyCommand) Help() string {
