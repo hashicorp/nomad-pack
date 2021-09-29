@@ -16,7 +16,7 @@ type InfoCommand struct {
 }
 
 func (c *InfoCommand) Run(args []string) int {
-	c.cmdKey = "run" // Add cmd key here so help text is available in Init
+	c.cmdKey = "info" // Add cmd key here so help text is available in Init
 	// Initialize. If we fail, we just exit since Init handles the UI.
 	if err := c.Init(
 		WithExactArgs(1, args),
@@ -29,15 +29,16 @@ func (c *InfoCommand) Run(args []string) int {
 
 	// Generate our UI error context.
 	errorContext := errors.NewUIErrorContext()
-
 	repoName, packName, err := parseRepoFromPackName(packRepoName)
+
 	if err != nil {
-		c.ui.ErrorWithContext(err, "unable to parse pack name", errorContext.GetAll()...)
+		c.ui.ErrorWithContext(err, "failed to parse pack name", errorContext.GetAll()...)
+		return 1
 	}
 	c.packName = packName
 	c.repoName = repoName
 	errorContext.Add(errors.UIContextPrefixPackName, c.packName)
-	errorContext.Add(errors.UIContextPrefixPackName, c.repoName)
+	errorContext.Add(errors.UIContextPrefixRegistry, c.repoName)
 
 	repoPath, err := getRepoPath(repoName, c.ui, errorContext)
 	if err != nil {
@@ -54,16 +55,21 @@ func (c *InfoCommand) Run(args []string) int {
 
 	packPath, err := getPackPath(repoName, packName)
 	if err != nil {
+		c.ui.ErrorWithContext(err, "failed to get path directory", errorContext.GetAll()...)
 		return 1
 	}
 
 	pack, err := loader.Load(packPath)
+	if err != nil {
+		c.ui.ErrorWithContext(err, "failed to load pack from local directory", errorContext.GetAll()...)
+		return 1
+	}
 
-	fmt.Println("----------------------")
-	fmt.Println("Pack Name:", pack.Metadata.Pack.Name)
-	fmt.Println("Description:", pack.Metadata.Pack.Description)
-	fmt.Println("Application URL:", pack.Metadata.App.URL)
-	fmt.Println("Application Author:", pack.Metadata.App.Author)
+	c.ui.Info("----------------------")
+	c.ui.Info(fmt.Sprintf("Pack Name: %q", pack.Metadata.Pack.Name))
+	c.ui.Info(fmt.Sprintf("Description: %q", pack.Metadata.Pack.Description))
+	c.ui.Info(fmt.Sprintf("Application URL: %q", pack.Metadata.App.URL))
+	c.ui.Info(fmt.Sprintf("Application Author: %q", pack.Metadata.App.Author))
 
 	variableParser, err := variable.NewParser(&variable.ParserConfig{
 		ParentName:        path.Base(packPath),
@@ -75,17 +81,18 @@ func (c *InfoCommand) Run(args []string) int {
 
 	parsedVars, diags := variableParser.Parse()
 	if diags != nil && diags.HasErrors() {
+		c.ui.Info(diags.Error())
 		return 1
 	}
 
 	for _, variables := range parsedVars.Vars {
 		for _, v := range variables {
-			fmt.Println("-----------")
-			fmt.Println("Variable Name: ", v.Name)
-			fmt.Println("Type: ", v.Type.FriendlyName())
+			c.ui.Info("-----------")
+			c.ui.Info(fmt.Sprintf("Variable Name: %q", v.Name))
+			c.ui.Info(fmt.Sprintf("Type: %q", v.Type.FriendlyName()))
 		}
 	}
-	fmt.Println("----------------------")
+	c.ui.Info("----------------------")
 
 	return 0
 }

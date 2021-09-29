@@ -34,7 +34,8 @@ func (r *RenderCommand) Run(args []string) int {
 
 	repo, pack, err := parseRepoFromPackName(packRepoName)
 	if err != nil {
-		r.ui.ErrorWithContext(err, "unable to parse pack name", errorContext.GetAll()...)
+		r.ui.ErrorWithContext(err, "failed to parse pack name", errorContext.GetAll()...)
+		return 1
 	}
 	errorContext.Add(errors.UIContextPrefixPackName, pack)
 	errorContext.Add(errors.UIContextPrefixPackName, repo)

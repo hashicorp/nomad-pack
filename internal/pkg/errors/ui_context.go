@@ -13,6 +13,7 @@ var ErrNoTemplatesRendered = stdErrors.New("no templates were rendered by the re
 const (
 	UIContextPrefixPackName       = "Pack Name: "
 	UIContextPrefixPackPath       = "Pack Path: "
+	UIContextPrefixRegistry       = "Pack Registry: "
 	UIContextPrefixPackVersion    = "Pack Version: "
 	UIContextPrefixTemplateName   = "Template Name: "
 	UIContextPrefixJobName        = "Job Name: "

@@ -52,13 +52,13 @@ func (c *RunCommand) Run(args []string) int {
 
 	repoName, packName, err := parseRepoFromPackName(packRepoName)
 	if err != nil {
-		c.ui.ErrorWithContext(err, "unable to parse pack name", errorContext.GetAll()...)
+		c.ui.ErrorWithContext(err, "failed to parse pack name", errorContext.GetAll()...)
+		return 1
 	}
 	c.packName = packName
 	c.repoName = repoName
 	errorContext.Add(errors.UIContextPrefixPackName, c.packName)
 	errorContext.Add(errors.UIContextPrefixPackName, c.repoName)
-
 
 	repoPath, err := getRepoPath(repoName, c.ui, errorContext)
 	if err != nil {
