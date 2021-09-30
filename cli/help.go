@@ -229,17 +229,17 @@ in the run command.
 		`
 Plan invokes a dry-run of the scheduler to determine the effects of submitting
 either a new or updated version of a job. The plan will not result in any changes 
-to the cluster but gives insight into whether the job could be run successfully 
+to the cluster but gives insight into whether the pack could be run successfully 
 and how it would affect existing allocations.
 `,
 	},
-	"destroy": {
-		"Destroy stops a running job",
+	"stop": {
+		"Stop a running pack",
 		`
-Destroy stops a running job. Purge is used to stop the job and purge it from the system.
- If not set, the job will still be queryable and will be purged by the garbage collector. 
-Global will stop a multi-region job in all its regions. By default, job stop will stop 
-only a single region at a time. Ignored for single-region jobs. After the deregister 
+The stop command stops a running pack. Purge is used to stop the pack and purge it from the system.
+ If not set, the job(s) in the pack will still be queryable and will be purged by the garbage collector. 
+Global will stop a multi-region job in all its regions. By default, stop will stop 
+only a single region at a time. Ignored for single-region packs. After the deregister 
 command is submitted, a new evaluation ID is printed to the screen, which can be 
 used to examine the evaluation.
 `,
@@ -249,6 +249,13 @@ used to examine the evaluation.
 		`
 Info reads from a pack's metadata.hcl and variables.hcl files and prints out the details
 of a pack.
+`,
+	},
+	"destroy": {
+		"Delete an existing pack",
+		`
+Destroy stops a running pack and purges it from the system. If the pack is already stopped, destroy
+will delete it from the cluster. This is the equivalent of using the stop command with the purge option.
 `,
 	},
 }

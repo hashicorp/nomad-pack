@@ -20,6 +20,7 @@ const (
 	UIContextPrefixJobName        = "Job Name: "
 	UIContextPrefixDeploymentName = "Deployment Name: "
 	UIContextPrefixRegion         = "Region: "
+	UIContextPrefixRegistryName   = "Registry Name: "
 )
 
 // UIErrorContext is used to store and manipulate error context strings used
