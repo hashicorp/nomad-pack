@@ -115,7 +115,7 @@ func (p *Parser) Parse() (*ParsedVariables, hcl.Diagnostics) {
 		}
 	}
 
-	return &ParsedVariables{vars: p.rootVars}, diags
+	return &ParsedVariables{Vars: p.rootVars}, diags
 }
 
 func (p *Parser) loadOverrideFile(file string) (hcl.Body, hcl.Diagnostics) {

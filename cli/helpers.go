@@ -1,11 +1,11 @@
 package cli
 
 import (
+	stdErrors "errors"
 	"fmt"
 	"os"
 	"path"
 	"strings"
-	stdErrors "errors"
 
 	gg "github.com/hashicorp/go-getter"
 	"github.com/hashicorp/nom/internal/pkg/errors"
@@ -15,6 +15,7 @@ import (
 	v1client "github.com/hashicorp/nomad-openapi/clients/go/v1"
 	v1 "github.com/hashicorp/nomad-openapi/v1"
 )
+
 const NOMAD_CACHE = ".nomad/packs"
 const DEFAULT_REGISTRY_NAME = "default"
 const DEFAULT_REGISTRY_SOURCE = "git@github.com:hashicorp/nomad-pack-registry.git"
@@ -94,7 +95,7 @@ func parseRepoFromPackName(packName string) (string, string, error) {
 }
 
 func getRepoPath(repoName string, ui terminal.UI, errCtx *errors.UIErrorContext) (string, error) {
-	homedir, err:= os.UserHomeDir()
+	homedir, err := os.UserHomeDir()
 	if err != nil {
 		ui.ErrorWithContext(err, fmt.Sprintf("cannot determine user home directory"), errCtx.GetAll()...)
 		return "", err
@@ -112,7 +113,7 @@ func getRepoPath(repoName string, ui terminal.UI, errCtx *errors.UIErrorContext)
 }
 
 func getPackPath(repoName string, packName string) (string, error) {
-	homedir, err:= os.UserHomeDir()
+	homedir, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
 	}
@@ -123,7 +124,7 @@ func getPackPath(repoName string, packName string) (string, error) {
 func verifyPackExist(ui terminal.UI, packName, repoPath string, errCtx *errors.UIErrorContext) error {
 	packPath := path.Join(repoPath, packName)
 	if _, err := os.Stat(packPath); os.IsNotExist(err) {
-		ui.ErrorWithContext(err, "failed to initialize client", errCtx.GetAll()...)
+		ui.ErrorWithContext(err, "failed to find pack", errCtx.GetAll()...)
 		return err
 	}
 

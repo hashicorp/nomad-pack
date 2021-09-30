@@ -233,7 +233,7 @@ to the cluster but gives insight into whether the job could be run successfully
 and how it would affect existing allocations.
 `,
 	},
-	"Destroy": {
+	"destroy": {
 		"Destroy stops a running job",
 		`
 Destroy stops a running job. Purge is used to stop the job and purge it from the system.
@@ -242,6 +242,13 @@ Global will stop a multi-region job in all its regions. By default, job stop wil
 only a single region at a time. Ignored for single-region jobs. After the deregister 
 command is submitted, a new evaluation ID is printed to the screen, which can be 
 used to examine the evaluation.
+`,
+	},
+	"info": {
+		"Info gets information on a pack",
+		`
+Info reads from a pack's metadata.hcl and variables.hcl files and prints out the details
+of a pack.
 `,
 	},
 }
