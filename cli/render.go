@@ -38,7 +38,7 @@ func (r *RenderCommand) Run(args []string) int {
 		r.ui.ErrorWithContext(err, "unable to parse pack name", errorContext.GetAll()...)
 	}
 	errorContext.Add(errors.UIContextPrefixPackName, pack)
-	errorContext.Add(errors.UIContextPrefixPackName, repo)
+	errorContext.Add(errors.UIContextPrefixRepoName, repo)
 
 	// TODO: Refactor to context.nomad file in next phase.
 	tempRepoPath, err := getRepoPath(repo, r.ui, errorContext)
