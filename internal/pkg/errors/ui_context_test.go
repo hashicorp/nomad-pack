@@ -40,6 +40,44 @@ func TestUIErrorContext_Add(t *testing.T) {
 	}
 }
 
+func TestUIErrorContext_Append(t *testing.T) {
+	testCases := []struct {
+		inputUIErrorContext *UIErrorContext
+		inputAppendContext  *UIErrorContext
+		expectedOutput      []string
+		name                string
+	}{
+		{
+			inputUIErrorContext: NewUIErrorContext(),
+			inputAppendContext: &UIErrorContext{
+				contexts: []string{"Pack Path: /go/src/github/why/"},
+			},
+			expectedOutput: []string{"Pack Path: /go/src/github/why/"},
+			name:           "empty input context",
+		},
+		{
+			inputUIErrorContext: &UIErrorContext{
+				contexts: []string{"Pack Name: what is going on"},
+			},
+			inputAppendContext: &UIErrorContext{
+				contexts: []string{"Pack Path: /go/src/github/why/"},
+			},
+			expectedOutput: []string{
+				"Pack Path: /go/src/github/why/",
+				"Pack Name: what is going on",
+			},
+			name: "empty input context",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			tc.inputUIErrorContext.Append(tc.inputAppendContext)
+			assert.ElementsMatch(t, tc.expectedOutput, tc.inputUIErrorContext.GetAll(), tc.name)
+		})
+	}
+}
+
 func TestUIErrorContext_Copy(t *testing.T) {
 	testCases := []struct {
 		inputUIErrorContext *UIErrorContext

@@ -1,13 +1,15 @@
 package cli
 
 import (
+	stdErrors "errors"
 	"fmt"
 	"os"
 	"path"
 	"strings"
-	stdErrors "errors"
 
 	gg "github.com/hashicorp/go-getter"
+	"github.com/hashicorp/nom/internal/deploy"
+	"github.com/hashicorp/nom/internal/deploy/job"
 	"github.com/hashicorp/nom/internal/pkg/errors"
 	"github.com/hashicorp/nom/internal/pkg/manager"
 	"github.com/hashicorp/nom/internal/pkg/renderer"
@@ -15,6 +17,7 @@ import (
 	v1client "github.com/hashicorp/nomad-openapi/clients/go/v1"
 	v1 "github.com/hashicorp/nomad-openapi/v1"
 )
+
 const NOMAD_CACHE = ".nomad/packs"
 const DEFAULT_REGISTRY_NAME = "default"
 const DEFAULT_REGISTRY_SOURCE = "git@github.com:hashicorp/nomad-pack-registry.git"
@@ -94,7 +97,7 @@ func parseRepoFromPackName(packName string) (string, string, error) {
 }
 
 func getRepoPath(repoName string, ui terminal.UI, errCtx *errors.UIErrorContext) (string, error) {
-	homedir, err:= os.UserHomeDir()
+	homedir, err := os.UserHomeDir()
 	if err != nil {
 		ui.ErrorWithContext(err, fmt.Sprintf("cannot determine user home directory"), errCtx.GetAll()...)
 		return "", err
@@ -112,7 +115,7 @@ func getRepoPath(repoName string, ui terminal.UI, errCtx *errors.UIErrorContext)
 }
 
 func getPackPath(repoName string, packName string) (string, error) {
-	homedir, err:= os.UserHomeDir()
+	homedir, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
 	}
@@ -241,4 +244,35 @@ func newQueryOptsFromJob(job *v1client.Job) *v1.QueryOpts {
 		opts.Namespace = *job.Namespace
 	}
 	return opts
+}
+
+func generateDeployer(client *v1.Client, packType, cliCfg interface{}, depCfg *deploy.DeployerConfig) (deploy.Deployer, error) {
+
+	var (
+		err          error
+		deployerImpl deploy.Deployer
+	)
+
+	// Depending on the type of pack we are dealing with, generate the correct
+	// implementation.
+	switch packType {
+	case "job":
+		jobConfig, ok := cliCfg.(*job.CLIConfig)
+		if !ok {
+			return nil, fmt.Errorf("failed to assert correct config, unsiutable type %T", cliCfg)
+		}
+		deployerImpl = job.NewDeployer(client, jobConfig)
+	default:
+		err = fmt.Errorf("unsupported pack type %q", packType)
+	}
+
+	// Return the error if you got one.
+	if err != nil {
+		return nil, err
+	}
+
+	// Set the deployment config; this means commands do not have to do this,
+	// and it's done in a single place.
+	deployerImpl.SetDeploymentConfig(depCfg)
+	return deployerImpl, nil
 }

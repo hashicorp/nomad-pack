@@ -2,37 +2,23 @@ package cli
 
 import (
 	"fmt"
-	"os"
-	"regexp"
-	"strings"
-	"time"
+	"path"
 
 	"github.com/hashicorp/nom/flag"
+	"github.com/hashicorp/nom/internal/deploy"
+	"github.com/hashicorp/nom/internal/deploy/job"
 	"github.com/hashicorp/nom/internal/pkg/errors"
 	"github.com/hashicorp/nom/internal/pkg/version"
-	v1client "github.com/hashicorp/nomad-openapi/clients/go/v1"
 	v1 "github.com/hashicorp/nomad-openapi/v1"
-	"github.com/hashicorp/nomad/helper"
 	"github.com/posener/complete"
 )
 
 type RunCommand struct {
 	*baseCommand
-	packName          string
-	repoName          string
-	deploymentName    string
-	checkIndex        uint64
-	consulToken       string
-	consulNamespace   string
-	vaultToken        string
-	vaultNamespace    string
-	enableRollback    bool
-	hcl1              bool
-	preserveCounts    bool
-	policyOverride    bool
-	deploymentExists  bool
-	processedPackJobs []*v1client.Job
-	Validation        ValidationFn
+	packName     string
+	registryName string
+	jobConfig    *job.CLIConfig
+	Validation   ValidationFn
 }
 
 func (c *RunCommand) Run(args []string) int {
@@ -55,10 +41,11 @@ func (c *RunCommand) Run(args []string) int {
 	if err != nil {
 		c.ui.ErrorWithContext(err, "unable to parse pack name", errorContext.GetAll()...)
 	}
+
 	c.packName = packName
-	c.repoName = repoName
+	c.registryName = repoName
 	errorContext.Add(errors.UIContextPrefixPackName, c.packName)
-	errorContext.Add(errors.UIContextPrefixPackName, c.repoName)
+	errorContext.Add(errors.UIContextPrefixRegistryName, c.registryName)
 
 	repoPath, err := getRepoPath(repoName, c.ui, errorContext)
 	if err != nil {
@@ -96,88 +83,62 @@ func (c *RunCommand) Run(args []string) int {
 
 	packManager := generatePackManager(c.baseCommand, client, repoPath, c.packName)
 
-	// render the pack
+	// Render the pack now, before creating the deployer. If we get an error
+	// we won't make it to the deployer.
 	r, err := renderPack(packManager, c.baseCommand.ui, errorContext)
 	if err != nil {
 		return 255
 	}
 
-	// Commands that render templates are required to render at least one
-	// parent template.
-	if r.LenParentRenders() < 1 {
-		c.ui.ErrorWithContext(errors.ErrNoTemplatesRendered, "no templates rendered", errorContext.GetAll()...)
+	renderedParents := r.ParentRenders()
+
+	depConfig := deploy.DeployerConfig{
+		PackName:       c.packName,
+		PathPath:       path.Join(repoPath, c.packName),
+		PackVersion:    packVersion,
+		DeploymentName: c.deploymentName,
+	}
+
+	// TODO(jrasell) come up with a better way to pass the appropriate config.
+	runDeployer, err := generateDeployer(client, "job", c.jobConfig, &depConfig)
+	if err != nil {
+		c.ui.ErrorWithContext(err, "failed to generate deployer", errorContext.GetAll()...)
 		return 1
 	}
 
-	// set a timestamp to be set on all pack elements
-	timestamp := time.Now().UTC().String()
+	// Set the rendered templates on the job deployer.
+	runDeployer.SetTemplates(renderedParents)
 
-	// set a local variable to the JobsApi
-	jobsApi := client.Jobs()
-
-	for tplName, tpl := range r.ParentRenders() {
-
-		// tplErrorContext forms the basis for error output context as is
-		// appended to when new information becomes available.
-		tplErrorContext := errorContext.Copy()
-		tplErrorContext.Add(errors.UIContextPrefixTemplateName, tplName)
-
-		// get job struct from template
-		// TODO: Should we add an hcl1 flag?
-		job, err := parseJob(c.ui, tpl, false, tplErrorContext)
-		if err != nil {
-			c.rollback(jobsApi)
-			return 1
+	// Parse the templates. If we have any error, output this and exit.
+	if validateErrs := runDeployer.ParseTemplates(); validateErrs != nil {
+		for _, validateErr := range validateErrs {
+			validateErr.Contexts.Append(errorContext)
+			c.ui.ErrorWithContext(validateErr.Err, validateErr.Subject, validateErr.Contexts.GetAll()...)
 		}
+		return 1
+	}
 
-		// Add the jobID to the error context.
-		tplErrorContext.Add(errors.UIContextPrefixJobName, job.GetName())
-
-		// check to see if job already exists
-		err = c.checkForConflict(jobsApi, job)
-		if err != nil {
-			c.ui.ErrorWithContext(err, "job conflict", tplErrorContext.GetAll()...)
-			c.rollback(jobsApi)
-			return 1
+	// Canonicalize the templates. If we have any error, output this and exit.
+	if canonicalizeErrs := runDeployer.CanonicalizeTemplates(); canonicalizeErrs != nil {
+		for _, canonicalizeErr := range canonicalizeErrs {
+			canonicalizeErr.Contexts.Append(errorContext)
+			c.ui.ErrorWithContext(canonicalizeErr.Err, canonicalizeErr.Subject, canonicalizeErr.Contexts.GetAll()...)
 		}
+		return 1
+	}
 
-		// Set Consul and Vault tokens
-		c.handleConsulAndVault(job)
-
-		// Set job metadata
-		c.setJobMeta(job, timestamp, packVersion)
-
-		// Submit the job
-		result, _, err := jobsApi.Register(newWriteOptsFromJob(job).Ctx(), job, &v1.RegisterOpts{
-			EnforceIndex:   c.checkIndex > 0,
-			ModifyIndex:    c.checkIndex,
-			PolicyOverride: c.policyOverride,
-			PreserveCounts: c.preserveCounts,
-		})
-		if err != nil {
-			i, done := c.handleRegisterError(err, tplErrorContext)
-			if done {
-				c.rollback(jobsApi)
-				return i
-			}
-			c.rollback(jobsApi)
-			return 1
+	if conflictErrs := runDeployer.CheckForConflicts(errorContext); conflictErrs != nil {
+		for _, conflictErr := range conflictErrs {
+			c.ui.ErrorWithContext(conflictErr.Err, conflictErr.Subject, conflictErr.Contexts.GetAll()...)
 		}
+		return 1
+	}
 
-		// Print any warnings if there are any
-		if result.Warnings != nil && *result.Warnings != "" {
-			c.ui.Warning(fmt.Sprintf("Job Warnings:\n%s[reset]\n", *result.Warnings))
-		}
-
-		// Handle output formatting based on job configuration
-		if jobsApi.IsPeriodic(job) && !jobsApi.IsParameterized(job) {
-			c.handlePeriodicJobResponse(jobsApi, job)
-		} else if !jobsApi.IsParameterized(job) {
-			c.ui.Info(fmt.Sprintf("Evaluation ID: %s", *result.EvalID))
-		}
-
-		c.processedPackJobs = append(c.processedPackJobs, job)
-		c.ui.Info(fmt.Sprintf("Job '%s' in pack deployment '%s' registered successfully", *job.ID, c.deploymentName))
+	// Deploy the rendered template. If we have any error, output this and
+	// exit.
+	if deployErr := runDeployer.Deploy(c.ui, errorContext); deployErr != nil {
+		c.ui.ErrorWithContext(deployErr.Err, deployErr.Subject, deployErr.Contexts.GetAll()...)
+		return 1
 	}
 
 	c.ui.Success(fmt.Sprintf("Pack successfully deployed. Use --name=%s to manage this this deployed instance with run, plan, or destroy", c.deploymentName))
@@ -194,160 +155,18 @@ func (c *RunCommand) Run(args []string) int {
 	return 0
 }
 
-// rollback begins a thought experiment about how to handle failures. It is not
-// targeted for the initial release, but will be plumbed for experimentation. The
-// flag is currently hidden and defaults to false.
-func (c *RunCommand) rollback(jobsApi *v1.Jobs) {
-	if !c.enableRollback {
-		return
-	}
-
-	c.ui.Info("attempting rollback...")
-
-	for _, job := range c.processedPackJobs {
-		c.ui.Info(fmt.Sprintf("attempting rollback of job '%s'", *job.ID))
-		_, _, err := jobsApi.Delete(newWriteOptsFromJob(job).Ctx(), *job.ID, true, true)
-		if err != nil {
-			c.ui.ErrorWithContext(err, fmt.Sprintf("rollback failed for job '%s'", *job.ID))
-		} else {
-			c.ui.Info(fmt.Sprintf("rollback of job '%s' succeeded", *job.ID))
-		}
-	}
-}
-
-func (c *RunCommand) checkForConflict(jobsApi *v1.Jobs, job *v1client.Job) error {
-	existing, _, err := getJob(jobsApi, *job.Name, newQueryOptsFromJob(job))
-	if err != nil {
-		openAPIErr, ok := err.(v1client.GenericOpenAPIError)
-		if !ok || string(openAPIErr.Body()) != "job not found" {
-			return fmt.Errorf("error checking if job '%s' already exists: %s", *job.ID, err)
-		}
-	}
-
-	// If no existing job, no possible error condition.
-	if existing == nil {
-		return nil
-	}
-
-	// if there is a job with this name, that has no meta, it was
-	// created by something other than the package manager and this
-	// process should fail.
-	if existing.Meta == nil {
-		return fmt.Errorf("job with id '%s' already exists and is not manage by nomad pack", *existing.ID)
-	}
-
-	meta := *existing.Meta
-	existingDeploymentName, ok := meta[packDeploymentNameKey]
-	// if there is a job with this ID, that has no pack-deployment-name meta, it was
-	// created by something other than the package manager and this process should abort.
-	if !ok {
-		return fmt.Errorf("job with id '%s' already exists and is not manage by nomad pack", *existing.ID)
-	}
-
-	// If there is a job with this ID, and a different deployment name, this process should abort.
-	if existingDeploymentName != c.deploymentName {
-		return fmt.Errorf("job with id '%s' already exists and is part of deployment '%s'", *existing.ID, existingDeploymentName)
-	}
-
-	// If the job exists with the same deployment name, inform the user that
-	// existing allocations will be cycled.
-	c.ui.Info(fmt.Sprintf("Updating job with id '%s' . Existing job allocations will be updated. No new job created.", *existing.ID))
-
-	return nil
-}
-
-// determines next launch time and outputs to terminal
-func (c *RunCommand) handlePeriodicJobResponse(jobsApi *v1.Jobs, job *v1client.Job) {
-	loc, err := jobsApi.GetLocation(job)
-	if err == nil {
-		now := time.Now().In(loc)
-		next, err := jobsApi.Next(job.Periodic, now)
-		if err != nil {
-			c.ui.ErrorWithContext(err, "error determining next launch time")
-		} else {
-			c.ui.Warning(fmt.Sprintf("Approximate next launch time: %s (%s from now)",
-				formatTime(&next), formatTimeDifference(now, next, time.Second)))
-		}
-	}
-}
-
-// formats and prints registration error output
-func (c *RunCommand) handleRegisterError(err error, errCtx *errors.UIErrorContext) (int, bool) {
-	if strings.Contains(err.Error(), v1.RegisterEnforceIndexErrPrefix) {
-		// Format the error specially if the error is due to index
-		// enforcement
-		matches := enforceIndexRegex.FindStringSubmatch(err.Error())
-		if len(matches) == 2 {
-			c.ui.Warning(matches[1]) // The matched group
-			c.ui.Warning("Job not updated")
-			return 1, true
-		}
-	}
-
-	c.ui.ErrorWithContext(err, "failed to register job", errCtx.GetAll()...)
-	return 0, false
-}
-
-// add metadata to the job for in cluster querying and management
-func (c *RunCommand) setJobMeta(job *v1client.Job, timestamp string, packVersion string) {
-	jobMeta := make(map[string]string)
-
-	// If current job meta isn't nil, use that instead
-	if job.Meta != nil {
-		jobMeta = *job.Meta
-	}
-
-	// Add the Nomad Pack custom metadata.
-	jobMeta[packKey], _ = getPackPath(c.repoName, c.packName)
-	jobMeta[packDeploymentNameKey] = c.deploymentName
-	jobMeta[packJobKey] = *job.Name
-	jobMeta[packDeploymentTimestampKey] = timestamp
-	jobMeta[packVersionKey] = packVersion
-
-	// Replace the job metadata with our modified version.
-	job.Meta = &jobMeta
-}
-
-// handles resolving Consul and Vault options overrides with environment variables,
-// if present, and then set the values on the job instance.
-func (c *RunCommand) handleConsulAndVault(job *v1client.Job) {
-	// Parse the Consul token
-	if c.consulToken == "" {
-		// Check the environment variable
-		c.consulToken = os.Getenv("CONSUL_HTTP_TOKEN")
-	}
-
-	if c.consulToken != "" {
-		job.ConsulToken = helper.StringToPtr(c.consulToken)
-	}
-
-	if c.consulNamespace != "" {
-		job.ConsulNamespace = helper.StringToPtr(c.consulNamespace)
-	}
-
-	// Parse the Vault token
-	if c.vaultToken == "" {
-		// Check the environment variable
-		c.vaultToken = os.Getenv("VAULT_TOKEN")
-	}
-
-	if c.vaultToken != "" {
-		job.VaultToken = helper.StringToPtr(c.vaultToken)
-	}
-
-	if c.vaultNamespace != "" {
-		job.VaultNamespace = helper.StringToPtr(c.vaultNamespace)
-	}
-}
-
 // Flags defines the flag.Sets for the operation.
 func (c *RunCommand) Flags() *flag.Sets {
 	return c.flagSet(flagSetOperation, func(set *flag.Sets) {
 		f := set.NewSet("Run Options")
 
+		c.jobConfig = &job.CLIConfig{
+			RunConfig: &job.RunCLIConfig{},
+		}
+
 		f.Uint64Var(&flag.Uint64Var{
 			Name:    "check-index",
-			Target:  &c.checkIndex,
+			Target:  &c.jobConfig.RunConfig.CheckIndex,
 			Default: 0,
 			Usage: `If set, the job is only registered or updated if the passed 
                    job modify index matches the server side version. If a check-index
@@ -359,7 +178,7 @@ func (c *RunCommand) Flags() *flag.Sets {
 
 		f.StringVar(&flag.StringVar{
 			Name:    "consul-token",
-			Target:  &c.consulToken,
+			Target:  &c.jobConfig.RunConfig.ConsulToken,
 			Default: "",
 			Usage: `If set, the passed Consul token is stored in the job before
                       sending to the Nomad servers. This allows passing the Consul
@@ -370,7 +189,7 @@ func (c *RunCommand) Flags() *flag.Sets {
 
 		f.StringVar(&flag.StringVar{
 			Name:    "consul-namespace",
-			Target:  &c.consulNamespace,
+			Target:  &c.jobConfig.RunConfig.ConsulNamespace,
 			Default: "",
 			Usage: `If set, any services in the job will be registered into the 
                     specified Consul namespace. Any template stanza reading from 
@@ -383,7 +202,7 @@ func (c *RunCommand) Flags() *flag.Sets {
 
 		f.StringVar(&flag.StringVar{
 			Name:    "vault-token",
-			Target:  &c.vaultToken,
+			Target:  &c.jobConfig.RunConfig.VaultToken,
 			Default: "",
 			Usage: `If set, the passed Vault token is stored in the job before
                       sending to the Nomad servers. This allows passing the Vault 
@@ -394,7 +213,7 @@ func (c *RunCommand) Flags() *flag.Sets {
 
 		f.StringVar(&flag.StringVar{
 			Name:    "vault-namespace",
-			Target:  &c.vaultNamespace,
+			Target:  &c.jobConfig.RunConfig.VaultNamespace,
 			Default: "",
 			Usage: `If set, the passed Vault namespace is stored in the job before 
                     sending to the Nomad servers.`,
@@ -402,7 +221,7 @@ func (c *RunCommand) Flags() *flag.Sets {
 
 		f.BoolVar(&flag.BoolVar{
 			Name:    "policy-override",
-			Target:  &c.policyOverride,
+			Target:  &c.jobConfig.RunConfig.PolicyOverride,
 			Default: false,
 			Usage: `Sets the flag to force override any soft mandatory Sentinel 
                       policies.`,
@@ -410,7 +229,7 @@ func (c *RunCommand) Flags() *flag.Sets {
 
 		f.BoolVar(&flag.BoolVar{
 			Name:    "preserve-counts",
-			Target:  &c.preserveCounts,
+			Target:  &c.jobConfig.RunConfig.PreserveCounts,
 			Default: false,
 			Usage: `If set, the existing task group counts will be preserved 
                       when updating a job.`,
@@ -418,7 +237,7 @@ func (c *RunCommand) Flags() *flag.Sets {
 
 		f.BoolVar(&flag.BoolVar{
 			Name:    "hcl1",
-			Target:  &c.hcl1,
+			Target:  &c.jobConfig.RunConfig.HCL1,
 			Default: false,
 			Usage:   `If set, the hcl V1 parser will be used to parse the job file.`,
 		})
@@ -426,7 +245,7 @@ func (c *RunCommand) Flags() *flag.Sets {
 		f.BoolVar(&flag.BoolVar{
 			Name:    "rollback",
 			Hidden:  true,
-			Target:  &c.enableRollback,
+			Target:  &c.jobConfig.RunConfig.EnableRollback,
 			Default: false,
 			Usage: `EXPERIMENTAL. If set, any pack failure will cause nomad pack
                        to attempt to rollback the entire deployment.`,
@@ -473,14 +292,5 @@ func (c *RunCommand) Synopsis() string {
 }
 
 var (
-	// enforceIndexRegex is a regular expression which extracts the enforcement error
-	enforceIndexRegex = regexp.MustCompile(`\((Enforcing job modify index.*)\)`)
-)
-
-var (
-	packKey                    = "pack"
-	packDeploymentNameKey      = "pack-deployment-name"
-	packJobKey                 = "pack-job"
-	packDeploymentTimestampKey = "pack-deployment-timestamp"
-	packVersionKey             = "pack-version"
+	packDeploymentNameKey = "pack-deployment-name"
 )

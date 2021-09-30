@@ -18,6 +18,7 @@ const (
 	UIContextPrefixJobName        = "Job Name: "
 	UIContextPrefixDeploymentName = "Deployment Name: "
 	UIContextPrefixRegion         = "Region: "
+	UIContextPrefixRegistryName   = "Registry Name: "
 )
 
 // UIErrorContext is used to store and manipulate error context strings used
@@ -32,6 +33,12 @@ func NewUIErrorContext() *UIErrorContext { return &UIErrorContext{} }
 // Add formats and appends the passed prefix and value onto the error contexts.
 func (u *UIErrorContext) Add(prefix, val string) {
 	u.contexts = append(u.contexts, prefix+val)
+}
+
+// Append takes an existing UIErrorContext and appends any context into the
+// current.
+func (u *UIErrorContext) Append(context *UIErrorContext) {
+	u.contexts = append(u.contexts, context.GetAll()...)
 }
 
 // Copy to currently stored contexts into a new UIErrorContext.
