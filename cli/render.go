@@ -3,6 +3,7 @@ package cli
 import (
 	v1 "github.com/hashicorp/nomad-openapi/v1"
 	"github.com/hashicorp/nomad-pack/flag"
+	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/mitchellh/go-glint"
 	"github.com/posener/complete"
@@ -13,59 +14,43 @@ import (
 // debugging packs.
 type RenderCommand struct {
 	*baseCommand
-
+	packConfig *cache.PackConfig
 	// renderOutputTemplate is a boolean flag to control whether the outpu
 	// template is rendered.
 	renderOutputTemplate bool
 }
 
 // Run satisfies the Run function of the cli.Command interface.
-func (r *RenderCommand) Run(args []string) int {
-	r.cmdKey = "render" // Add cmdKey here to print out helpUsageMessage on Init error
+func (c *RenderCommand) Run(args []string) int {
+	c.cmdKey = "render" // Add cmdKey here to print out helpUsageMessage on Init error
 
-	if err := r.Init(WithExactArgs(1, args), WithFlags(r.Flags()), WithNoConfig()); err != nil {
-		r.ui.ErrorWithContext(err, ErrParsingArgsOrFlags)
-		r.ui.Info(r.helpUsageMessage())
+	if err := c.Init(
+		WithExactArgs(1, args),
+		WithFlags(c.Flags()),
+		WithNoConfig()); err != nil {
+
+		c.ui.ErrorWithContext(err, ErrParsingArgsOrFlags)
+		c.ui.Info(c.helpUsageMessage())
+
 		return 1
 	}
 
-	packFullPath := r.args[0]
+	// Set defaults and initialize the error context.
+	errorContext := initPackCommand(c.packConfig)
 
-	// Generate our UI error context.
-	errorContext := errors.NewUIErrorContext()
-
-	registryName, packName, err := parseRegistryAndPackName(packFullPath)
-	if err != nil {
-		r.ui.ErrorWithContext(err, "failed to parse pack name", errorContext.GetAll()...)
-		return 1
-	}
-
-	errorContext.Add(errors.UIContextPrefixPackName, packName)
-	errorContext.Add(errors.UIContextPrefixRegistryName, registryName)
-
-	// TODO: Refactor to context.nomad file in next phase.
-	registryPath, err := getRegistryPath(registryName, r.ui, errorContext)
-	if err != nil {
-		return 1
-	}
-
-	// Add the path to the error context, so this can be viewed when displaying
-	// an error.
-	errorContext.Add(errors.UIContextPrefixPackPath, registryPath)
-
-	if err = verifyPackExist(r.ui, packName, registryPath, errorContext); err != nil {
+	if err := cache.VerifyPackExists(c.packConfig, errorContext, c.ui); err != nil {
 		return 1
 	}
 
 	client, err := v1.NewClient()
 	if err != nil {
-		r.ui.ErrorWithContext(err, "failed to initialize client", errorContext.GetAll()...)
+		c.ui.ErrorWithContext(err, "failed to initialize client", errorContext.GetAll()...)
 		return 1
 	}
 
-	packManager := generatePackManager(r.baseCommand, client, registryPath, packName)
+	packManager := generatePackManager(c.baseCommand, client, c.packConfig)
 
-	renderOutput, err := renderPack(packManager, r.baseCommand.ui, errorContext)
+	renderOutput, err := renderPack(packManager, c.baseCommand.ui, errorContext)
 	if err != nil {
 		return 1
 	}
@@ -73,7 +58,7 @@ func (r *RenderCommand) Run(args []string) int {
 	// The render command should at least render one parent, or one dependant
 	// pack template.
 	if renderOutput.LenParentRenders() < 1 && renderOutput.LenDependentRenders() < 1 {
-		r.ui.ErrorWithContext(errors.ErrNoTemplatesRendered, "no templates rendered", errorContext.GetAll()...)
+		c.ui.ErrorWithContext(errors.ErrNoTemplatesRendered, "no templates rendered", errorContext.GetAll()...)
 		return 1
 	}
 
@@ -94,10 +79,10 @@ func (r *RenderCommand) Run(args []string) int {
 	// not exit. The render can fail due to template function errors, but we
 	// can still display the pack templates from above. The error will be
 	// displayed before the template renders, so the UI looks OK.
-	if r.renderOutputTemplate {
+	if c.renderOutputTemplate {
 		outputRender, err := packManager.ProcessOutputTemplate()
 		if err != nil {
-			r.ui.ErrorWithContext(err, "failed to render output template", errorContext.GetAll()...)
+			c.ui.ErrorWithContext(err, "failed to render output template", errorContext.GetAll()...)
 		} else {
 			addRenderToDoc(d, "outputs.tpl", outputRender)
 		}
@@ -115,14 +100,33 @@ func addRenderToDoc(doc *glint.Document, name, tpl string) {
 	doc.Append(glint.Layout(glint.Style(glint.Text(tpl))).Row())
 }
 
-func (r *RenderCommand) Flags() *flag.Sets {
-	return r.flagSet(flagSetOperation, func(set *flag.Sets) {
+func (c *RenderCommand) Flags() *flag.Sets {
+	return c.flagSet(flagSetOperation, func(set *flag.Sets) {
+		c.packConfig = &cache.PackConfig{}
 
 		f := set.NewSet("Render Options")
 
+		f.StringVar(&flag.StringVar{
+			Name:    "registry",
+			Target:  &c.packConfig.Registry,
+			Default: "",
+			Usage: `Specific registry name containing the pack to be rendered.
+If not specified, the default registry will be used.`,
+		})
+
+		f.StringVar(&flag.StringVar{
+			Name:    "ref",
+			Target:  &c.packConfig.Ref,
+			Default: "",
+			Usage: `Specific git ref of the pack to be rendered. 
+Supports tags, SHA, and latest. If no ref is specified, defaults to latest.
+
+Using ref with a file path is not supported.`,
+		})
+
 		f.BoolVar(&flag.BoolVar{
 			Name:    "render-output-template",
-			Target:  &r.renderOutputTemplate,
+			Target:  &c.renderOutputTemplate,
 			Default: false,
 			Usage: `Controls whether or not the output template file within the
                       pack is rendered and displayed.`,
@@ -130,18 +134,18 @@ func (r *RenderCommand) Flags() *flag.Sets {
 	})
 }
 
-func (r *RenderCommand) AutocompleteArgs() complete.Predictor {
+func (c *RenderCommand) AutocompleteArgs() complete.Predictor {
 	return complete.PredictNothing
 }
 
-func (r *RenderCommand) AutocompleteFlags() complete.Flags {
-	return r.Flags().Completions()
+func (c *RenderCommand) AutocompleteFlags() complete.Flags {
+	return c.Flags().Completions()
 }
 
 // Help satisfies the Help function of the cli.Command interface.
-func (r *RenderCommand) Help() string {
+func (c *RenderCommand) Help() string {
 
-	r.Example = `
+	c.Example = `
 	# Render an example pack with override variables in a variable file.
 	nomad-pack render example --var-file="./overrides.hcl"
 
@@ -158,10 +162,10 @@ func (r *RenderCommand) Help() string {
 
 	Render the specified Nomad Pack and view the results.
 
-` + r.GetExample() + r.Flags().Help())
+` + c.GetExample() + c.Flags().Help())
 }
 
 // Synopsis satisfies the Synopsis function of the cli.Command interface.
-func (r *RenderCommand) Synopsis() string {
+func (c *RenderCommand) Synopsis() string {
 	return "Render the templates within a pack"
 }

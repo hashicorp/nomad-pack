@@ -20,7 +20,7 @@ func TestDeployer_setJobMeta(t *testing.T) {
 				runnerCfg: &runner.Config{
 					PackName:       "foobar",
 					PathPath:       "/opt/src/foobar",
-					PackVersion:    "123456",
+					PackRef:        "123456",
 					DeploymentName: "foobar@123456",
 					RegistryName:   "default",
 				},
@@ -36,7 +36,7 @@ func TestDeployer_setJobMeta(t *testing.T) {
 					PackRegistryKey:       "default",
 					PackDeploymentNameKey: "foobar@123456",
 					PackJobKey:            "foobar",
-					PackVersionKey:        "123456",
+					PackRefKey:            "123456",
 				}),
 			},
 			name: "nil input meta",

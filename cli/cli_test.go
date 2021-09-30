@@ -25,14 +25,6 @@ func TestVersion(t *testing.T) {
 	os.Setenv("NOMAD_ADDR", nomadAddr)
 }
 
-//func TestRepoList(t *testing.T) {
-//	req := require.New(t)
-//
-//	exitCode := Main([]string{"nom", "repo", "list"})
-//
-//	req.Equal(0, exitCode)
-//}
-
 func TestJobRun(t *testing.T) {
 	// TODO: Integrate test agent and solve envar dependency
 	// this currently requires nomad agent -dev to be running and the

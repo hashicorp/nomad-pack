@@ -119,11 +119,6 @@ func Commands(
 
 	// start building our commands
 	commands := map[string]cli.CommandFactory{
-		"init": func() (cli.Command, error) {
-			return &InitCommand{
-				baseCommand: baseCommand,
-			}, nil
-		},
 		"render": func() (cli.Command, error) {
 			return &RenderCommand{
 				baseCommand: baseCommand,

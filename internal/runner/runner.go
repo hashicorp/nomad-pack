@@ -12,7 +12,7 @@ type Config struct {
 	DeploymentName string
 	PackName       string
 	PathPath       string
-	PackVersion    string
+	PackRef        string
 	RegistryName   string
 }
 

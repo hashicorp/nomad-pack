@@ -295,6 +295,11 @@ func (ui *glintUI) Table(tbl *Table, opts ...Option) {
 	ui.d.Append(glint.Finalize(glint.Text(buf.String())))
 }
 
+// Debug implements UI
+func (ui *glintUI) Debug(msg string) {
+	ui.Output(msg, WithDebugStyle())
+}
+
 // Error implements UI
 func (ui *glintUI) Error(msg string) {
 	ui.Output(msg, WithErrorStyle())
@@ -358,6 +363,11 @@ func (ui *glintUI) Info(msg string) {
 // Success implements UI
 func (ui *glintUI) Success(msg string) {
 	ui.Output(msg, WithSuccessStyle())
+}
+
+// Trace implements UI
+func (ui *glintUI) Trace(msg string) {
+	ui.Output(msg, WithTraceStyle())
 }
 
 // Warning implements UI

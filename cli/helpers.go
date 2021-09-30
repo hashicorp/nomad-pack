@@ -1,41 +1,52 @@
 package cli
 
 import (
-	stdErrors "errors"
 	"fmt"
 	"os"
 	"path"
-	"strings"
 
 	gg "github.com/hashicorp/go-getter"
 	v1client "github.com/hashicorp/nomad-openapi/clients/go/v1"
 	v1 "github.com/hashicorp/nomad-openapi/v1"
+	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/manager"
-	"github.com/hashicorp/nomad-pack/internal/pkg/registry"
 	"github.com/hashicorp/nomad-pack/internal/pkg/renderer"
 	"github.com/hashicorp/nomad-pack/internal/runner"
 	"github.com/hashicorp/nomad-pack/internal/runner/job"
 	"github.com/hashicorp/nomad-pack/terminal"
 )
 
+// TODO: Delete or replace these with pkg cache constants. Need to see how the
+// init PR lands.
 const (
 	NomadCache            = ".nomad/packs"
 	DefaultRegistryName   = "default"
 	DefaultRegistrySource = "git@github.com:hashicorp/nomad-pack-registry.git"
 )
 
-// log is returns an injectable log function that allows lower level packages to
-// report publish log information without creating a dependency on the terminal.UI
-// in lower level packages.
-func log(ui terminal.UI) func(string) {
-	l := func(message string) {
-		ui.Info(message)
+// get an initialized error context for a command that accepts pack args.
+func initPackCommand(cfg *cache.PackConfig) *errors.UIErrorContext {
+	// Set defaults on pack config
+	if cfg.Registry == "" {
+		cfg.Registry = cache.DefaultRegistryName
 	}
 
-	return l
+	if cfg.Ref == "" {
+		cfg.Ref = cache.DefaultRef
+	}
+
+	// Generate our UI error context.
+	errorContext := errors.NewUIErrorContext()
+	errorContext.Add(errors.UIContextPrefixRegistryName, cfg.Registry)
+	errorContext.Add(errors.UIContextPrefixPackName, cfg.Name)
+	errorContext.Add(errors.UIContextPrefixPackRef, cfg.Ref)
+
+	return errorContext
 }
 
+// TODO: Needs code review. This seems like it should get moved to the registry
+// package, in which case all of the dependent functions likely need to get moved.
 // get the global cache directory
 func globalCacheDir() (string, error) {
 	homeDir, err := os.UserHomeDir()
@@ -46,120 +57,60 @@ func globalCacheDir() (string, error) {
 	return path.Join(homeDir, NomadCache), nil
 }
 
-func addRegistry(cacheDir, from, alias, target string, ui terminal.UI) error {
-	// Add the registry or registry target to the global cache
-	newRegistry, err := registry.AddFromGitURL(cacheDir, from, alias, target, log(ui))
+// TODO: Move to registry package.
+func createGlobalCache(ui terminal.UI, errCtx *errors.UIErrorContext) error {
+	cacheDir, err := globalCacheDir()
 	if err != nil {
+		ui.ErrorWithContext(err, "error accessing home directory", errCtx.GetAll()...)
 		return err
 	}
-
-	// If subprocess fails to add any packs, report this to the user.
-	if len(newRegistry.Packs) == 0 {
-		// TODO: Should this be an error?
-		ui.Info("no packs added - see output for reason")
-		return nil
-	}
-
-	// Initialize output table
-	table := registryTable()
-	var successfulPack *registry.CachedPack
-	// If only targeting a single pack, only output a single row
-	if target != "" {
-		// It is safe to target pack 0 here because registry.AddFromGitURL will
-		// ensure only the target pack is returned.
-		tableRow := registryPackRow(newRegistry, newRegistry.Packs[0])
-		table.Rows = append(table.Rows, tableRow)
-	} else {
-		for _, registryPack := range newRegistry.Packs {
-			tableRow := registryPackRow(newRegistry, registryPack)
-			table.Rows = append(table.Rows, tableRow)
-			// Grab a successful pack to show extra help text.
-			if successfulPack == nil &&
-				!strings.Contains(strings.ToLower(registryPack.CacheVersion), "invalid") {
-				successfulPack = registryPack
-			}
-		}
-	}
-
-	ui.Info("CachedRegistry successfully added")
-	ui.Table(table)
-
-	if successfulPack != nil {
-		ui.Info(fmt.Sprintf("Try running one the packs you just added liked this:  nomad-pack run %s:%s@%s", newRegistry.Name, successfulPack.Name(), successfulPack.CacheVersion))
-	}
-
-	return nil
+	return createDir(cacheDir, "global cache", ui, errCtx)
 }
 
-func deleteRegistry(cacheDir, name, target string, ui terminal.UI) error {
-	err := registry.DeleteFromCache(cacheDir, name, target, log(ui))
+// TODO: Move to registry package and decouple from UI with Logger interface.
+func getRegistryPath(repoName string, ui terminal.UI, errCtx *errors.UIErrorContext) (string, error) {
+	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		ui.ErrorWithContext(err, "error deleting registry")
+		ui.ErrorWithContext(err, fmt.Sprintf("cannot determine user home directory"), errCtx.GetAll()...)
+		return "", err
 	}
 
-	return nil
+	cacheDir := path.Join(homeDir, NomadCache)
+	registryPath := path.Join(cacheDir, repoName)
+
+	if _, err := os.Stat(registryPath); os.IsNotExist(err) {
+		ui.ErrorWithContext(err, fmt.Sprintf("registry %s does not exist at path: %s", repoName, registryPath), errCtx.GetAll()...)
+	} else if err != nil {
+		// some other error
+		ui.ErrorWithContext(err, fmt.Sprintf("cannot read registry %s at path: %s", repoName, registryPath), errCtx.GetAll()...)
+	}
+	return registryPath, nil
 }
 
-// lists the currently configured global cache registries and their packs
-func listRegistries(ui terminal.UI) error {
-	// Get the global cache dir - may be configurable in the future, so using this
-	// helper function rather than a direct reference to the CONST.
-	globalCache, err := globalCacheDir()
+// TODO: Move to registry package.
+func getPackPath(registryName string, packName string) (string, error) {
+	cacheDir, err := globalCacheDir()
 	if err != nil {
-		ui.ErrorWithContext(err, "error resolving global cache directory")
-		return err
+		return "", err
 	}
-
-	// Initialize a table for a nice glint UI rendering
-	table := registryTable()
-
-	// Load the list of registries.
-	registries, err := registry.LoadAllFromCache(globalCache)
-	if err != nil {
-		ui.ErrorWithContext(err, "error listing registries")
-		return err
-	}
-
-	// Iterate over the registries and build a table row for each cachedRegistry/pack
-	// entry at each version. Hierarchically, this should equate to the default
-	// cachedRegistry and all its peers.
-	for _, cachedRegistry := range registries {
-		// If no packs, just show registry.
-		if cachedRegistry.Packs == nil || len(cachedRegistry.Packs) == 0 {
-			tableRow := emptyRegistryTableRow(cachedRegistry)
-			// append table row
-			table.Rows = append(table.Rows, tableRow)
-		} else {
-			// Show registry/pack combo for each pack.
-			for _, registryPack := range cachedRegistry.Packs {
-				tableRow := registryPackRow(cachedRegistry, registryPack)
-				// append table row
-				table.Rows = append(table.Rows, tableRow)
-			}
-		}
-	}
-
-	// Display output table
-	ui.Table(table)
-
-	return nil
+	return path.Join(cacheDir, registryName, packName), nil
 }
 
 func registryTable() *terminal.Table {
-	return terminal.NewTable("PACK NAME", "CACHE_VERSION", "METADATA VERSION", "REGISTRY", "REGISTRY_URL")
+	return terminal.NewTable("PACK NAME", "REF", "METADATA VERSION", "REGISTRY", "REGISTRY_URL")
 }
 
-func emptyRegistryTableRow(cachedRegistry *registry.CachedRegistry) []terminal.TableEntry {
+func emptyRegistryTableRow(cachedRegistry *cache.Registry) []terminal.TableEntry {
 	return []terminal.TableEntry{
 		// blank pack name
 		{
 			Value: "",
 		},
-		// blank pack version
+		// blank revision
 		{
 			Value: "",
 		},
-		// blank cache version
+		// blank metadata version
 		{
 			Value: "",
 		},
@@ -169,7 +120,7 @@ func emptyRegistryTableRow(cachedRegistry *registry.CachedRegistry) []terminal.T
 		},
 		// The cachedRegistry URL from where the registryPack was cloned
 		{
-			Value: cachedRegistry.URL,
+			Value: cachedRegistry.Source,
 		},
 		//// TODO: The app version
 		//{
@@ -178,17 +129,17 @@ func emptyRegistryTableRow(cachedRegistry *registry.CachedRegistry) []terminal.T
 	}
 }
 
-func registryPackRow(cachedRegistry *registry.CachedRegistry, cachedPack *registry.CachedPack) []terminal.TableEntry {
+func registryPackRow(cachedRegistry *cache.Registry, cachedPack *cache.Pack) []terminal.TableEntry {
 	return []terminal.TableEntry{
 		// The Name of the registryPack
 		{
-			Value: cachedPack.CacheName,
+			Value: cachedPack.Name(),
 		},
-		// The cachedRegistry Version from where the registryPack was cloned
+		// The revision from where the registryPack was cloned
 		{
-			Value: cachedPack.CacheVersion,
+			Value: cachedPack.Ref,
 		},
-		// The registryPack version
+		// The metadata version
 		{
 			Value: cachedPack.Metadata.Pack.Version,
 		},
@@ -198,7 +149,7 @@ func registryPackRow(cachedRegistry *registry.CachedRegistry, cachedPack *regist
 		},
 		// The cachedRegistry URL from where the registryPack was cloned
 		{
-			Value: cachedRegistry.URL,
+			Value: cachedRegistry.Source,
 		},
 		//// TODO: The app version
 		//{
@@ -207,6 +158,7 @@ func registryPackRow(cachedRegistry *registry.CachedRegistry, cachedPack *regist
 	}
 }
 
+// TODO: Delete after merging init changes.
 func installRegistry(source string, destination string,
 	ui terminal.UI, errCtx *errors.UIErrorContext) error {
 	ui.Info("Initializing registry...")
@@ -219,6 +171,7 @@ func installRegistry(source string, destination string,
 	return err
 }
 
+// TODO: Move to filesystem package and decouple from UI with Logger interface.
 func createDir(dir string, dirName string,
 	ui terminal.UI, errCtx *errors.UIErrorContext) error {
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
@@ -236,115 +189,46 @@ func createDir(dir string, dirName string,
 	return nil
 }
 
-func createGlobalCache(ui terminal.UI, errCtx *errors.UIErrorContext) error {
-	homedir, err := os.UserHomeDir()
-	if err != nil {
-		ui.ErrorWithContext(err, "error accessing home directory", errCtx.GetAll()...)
-		return err
-	}
-	globalCacheDir := path.Join(homedir, NomadCache)
-	return createDir(globalCacheDir, "global cache", ui, errCtx)
-}
-
+// TODO: Delete after init refactor merge.
 func installDefaultRegistry(ui terminal.UI, errCtx *errors.UIErrorContext) error {
 	// Create default registry, if not exist
-	homedir, err := os.UserHomeDir()
+	cacheDir, err := globalCacheDir()
 	if err != nil {
-		ui.ErrorWithContext(err, "error accessing home directory", errCtx.GetAll()...)
+		ui.ErrorWithContext(err, "error accessing global cache", errCtx.GetAll()...)
 		return err
 	}
-	defaultRegistryDir := path.Join(homedir, NomadCache, DefaultRegistryName)
+	defaultRegistryDir := path.Join(cacheDir, DefaultRegistryName)
 	return installRegistry(DefaultRegistrySource, defaultRegistryDir, ui, errCtx)
 }
 
+// TODO: Delete after init refactor merge.
 func installUserRegistry(source string, name string, ui terminal.UI, errCtx *errors.UIErrorContext) error {
-	homedir, err := os.UserHomeDir()
+	cacheDir, err := globalCacheDir()
 	if err != nil {
-		ui.ErrorWithContext(err, "error accessing home directory", errCtx.GetAll()...)
+		ui.ErrorWithContext(err, "error accessing global cache", errCtx.GetAll()...)
 		return err
 	}
-	userRegistryDir := path.Join(homedir, NomadCache, name)
+	userRegistryDir := path.Join(cacheDir, name)
 	return installRegistry(source, userRegistryDir, ui, errCtx)
 }
 
-func parseRegistryAndPackName(packName string) (string, string, error) {
-	if len(packName) == 0 {
-		return "", "", stdErrors.New("invalid pack name: pack name cannot be empty")
-	}
-
-	s := strings.Split(packName, ":")
-
-	if len(s) == 1 {
-		return DefaultRegistryName, packName, nil
-	}
-
-	if len(s) > 2 {
-		return "", "", fmt.Errorf("invalid pack name %s, pack name must be formatted 'registry:pack'", packName)
-	}
-
-	return s[0], s[1], nil
-}
-
-func getRegistryPath(repoName string, ui terminal.UI, errCtx *errors.UIErrorContext) (string, error) {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		ui.ErrorWithContext(err, fmt.Sprintf("cannot determine user home directory"), errCtx.GetAll()...)
-		return "", err
-	}
-
-	cacheDir := path.Join(homeDir, NomadCache)
-	registryPath := path.Join(cacheDir, repoName)
-
-	errCtx.Add(errors.UIContextPrefixRegistryPath, registryPath)
-
-	// Attempt to stat the path. If we get an error, ensure we return this but
-	// output specific errors to help debugging.
-	_, err = os.Stat(registryPath)
-	if err != nil {
-		switch os.IsNotExist(err) {
-		case true:
-			ui.ErrorWithContext(err, "registry does not exist", errCtx.GetAll()...)
-		default:
-			ui.ErrorWithContext(err, "failed to read registry", errCtx.GetAll()...)
-		}
-		return "", err
-	}
-
-	return registryPath, nil
-}
-
-func getPackPath(repoName string, packName string) (string, error) {
-	homedir, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
-	}
-	return path.Join(homedir, NomadCache, repoName, packName), nil
-}
-
-// Returns an error if the pack doesn't exist in the specified repo
-func verifyPackExist(ui terminal.UI, packName, registryPath string, errCtx *errors.UIErrorContext) error {
-	packPath := path.Join(registryPath, packName)
-	if _, err := os.Stat(packPath); os.IsNotExist(err) {
-		ui.ErrorWithContext(err, "failed to find pack", errCtx.GetAll()...)
-		return err
-	}
-
-	return nil
-}
-
-// generatePackManager is used to generate the pack manager for this Nomad Pack
-// run.
-func generatePackManager(c *baseCommand, client *v1.Client, registryName, pack string) *manager.PackManager {
+// TODO: This needs some code review. Lots of coupling going on here.
+// generatePackManager is used to generate the pack manager for this Nomad Pack run.
+func generatePackManager(c *baseCommand, client *v1.Client, packCfg *cache.PackConfig) *manager.PackManager {
+	// TODO: Refactor to have manager use cache.
 	cfg := manager.Config{
-		Path:            path.Join(registryName, pack),
+		Path:            cache.BuildPackPath(packCfg),
 		VariableFiles:   c.varFiles,
 		VariableCLIArgs: c.vars,
 	}
 	return manager.NewPackManager(&cfg, client)
 }
 
-// renderPack uses the pack manager to parse the templates, override template
-// variables with var files and cli vars as applicable
+// TODO: This needs to be on a domain specific pkg rather than a UI helpers file.
+// This will be possible once we create a logger interface that can be passed
+// between layers.
+// Uses the pack manager to parse the templates, override template variables with var files
+// and cli vars as applicable
 func renderPack(manager *manager.PackManager, ui terminal.UI, errCtx *errors.UIErrorContext) (*renderer.Rendered, error) {
 	r, err := manager.ProcessTemplates()
 	if err != nil {
@@ -357,6 +241,9 @@ func renderPack(manager *manager.PackManager, ui terminal.UI, errCtx *errors.UIE
 	return r, nil
 }
 
+// TODO: This needs to be on a domain specific pkg rather than a UI helpers file.
+// This will be possible once we create a logger interface that can be passed
+// between layers.
 // Uses open api client to parse rendered hcl templates to
 // open api jobs to send to nomad
 func parseJob(ui terminal.UI, hcl string, hclV1 bool, errCtx *errors.UIErrorContext) (*v1client.Job, error) {
@@ -368,22 +255,23 @@ func parseJob(ui terminal.UI, hcl string, hclV1 bool, errCtx *errors.UIErrorCont
 	}
 
 	opts := &v1.QueryOpts{}
-	job, err := c.Jobs().Parse(opts.Ctx(), hcl, true, hclV1)
+	parsedJob, err := c.Jobs().Parse(opts.Ctx(), hcl, true, hclV1)
 	if err != nil {
 		ui.ErrorWithContext(err, "failed to parse job specification", errCtx.GetAll()...)
 		return nil, err
 	}
-	return job, nil
+	return parsedJob, nil
 }
 
 // Generates a deployment name if not specified. Default is pack@version.
-func getDeploymentName(c *baseCommand, packName string, packVersion string) string {
+func getDeploymentName(c *baseCommand, cfg *cache.PackConfig) string {
 	if c.deploymentName == "" {
-		return fmt.Sprintf("%s@%s", packName, packVersion)
+		return cache.AppendRef(cfg.Name, cfg.Ref)
 	}
 	return c.deploymentName
 }
 
+// TODO: Move to a domain specific package.
 // using jobsApi to get a job by job name
 func getJob(jobsApi *v1.Jobs, jobName string, queryOpts *v1.QueryOpts) (*v1client.Job, *v1.QueryMeta, error) {
 	result, meta, err := jobsApi.GetJob(queryOpts.Ctx(), jobName)
@@ -393,11 +281,12 @@ func getJob(jobsApi *v1.Jobs, jobName string, queryOpts *v1.QueryOpts) (*v1clien
 	return result, meta, nil
 }
 
-func getPackJobsByDeploy(jobsApi *v1.Jobs, packName, deploymentName, registryName string) ([]*v1client.Job, error) {
+// TODO: Move to a domain specific package.
+func getPackJobsByDeploy(jobsApi *v1.Jobs, cfg *cache.PackConfig, deploymentName string) ([]*v1client.Job, error) {
 	opts := &v1.QueryOpts{}
 	jobs, _, err := jobsApi.GetJobs(opts.Ctx())
 	if err != nil {
-		return nil, fmt.Errorf("error finding jobs for pack %s: %s", packName, err)
+		return nil, fmt.Errorf("error finding jobs for pack %s: %s", cfg.Name, err)
 	}
 	if len(jobs) == 0 {
 		return nil, fmt.Errorf("no job(s) found")
@@ -408,7 +297,7 @@ func getPackJobsByDeploy(jobsApi *v1.Jobs, packName, deploymentName, registryNam
 	for _, jobStub := range jobs {
 		nomadJob, _, err := jobsApi.GetJob(opts.Ctx(), *jobStub.ID)
 		if err != nil {
-			return nil, fmt.Errorf("error retrieving job %s for pack %s: %s", *nomadJob.ID, packName, err)
+			return nil, fmt.Errorf("error retrieving job %s for pack %s: %s", *nomadJob.ID, cfg.Name, err)
 		}
 
 		if nomadJob.Meta != nil {
@@ -425,7 +314,7 @@ func getPackJobsByDeploy(jobsApi *v1.Jobs, packName, deploymentName, registryNam
 					// registry and pack names both match
 					jobRegistry, registryOk := jobMeta[job.PackRegistryKey]
 					jobPack, packOk := jobMeta[job.PackNameKey]
-					if registryOk && packOk && jobRegistry == registryName && jobPack == packName {
+					if registryOk && packOk && jobRegistry == cfg.Registry && jobPack == cfg.Name {
 						hasOtherDeploys = true
 					}
 				}
@@ -436,12 +325,14 @@ func getPackJobsByDeploy(jobsApi *v1.Jobs, packName, deploymentName, registryNam
 			// TODO: the aesthetics here could be better. This error line is very long.
 			return nil, fmt.Errorf(
 				"pack %q running but not in deployment %q. Run \"nomad-pack status %s\" for more information",
-				packName, deploymentName, packName)
+				cfg.Name, deploymentName, cfg.Name)
 		}
 	}
 	return packJobs, nil
 }
 
+// TODO: Needs code review. Will likely move if we decide to move client management
+// out of CLI commands.
 // generate write options for openapi based on the nomad job.
 // This just sets namespace and region, but we might want to
 // extend it to include tokens, etc later
@@ -456,6 +347,8 @@ func newWriteOptsFromJob(job *v1client.Job) *v1.WriteOpts {
 	return opts
 }
 
+// TODO: Needs code review. Will likely move if we decide to move client management
+// out of CLI commands.
 func newQueryOptsFromJob(job *v1client.Job) *v1.QueryOpts {
 	opts := &v1.QueryOpts{}
 	if job.Region != nil {
@@ -467,6 +360,8 @@ func newQueryOptsFromJob(job *v1client.Job) *v1.QueryOpts {
 	return opts
 }
 
+// TODO: Needs code review. Will likely move if we decide to move client management
+// out of CLI commands.
 func generateRunner(client *v1.Client, packType, cliCfg interface{}, runnerCfg *runner.Config) (runner.Runner, error) {
 
 	var (
@@ -498,10 +393,13 @@ func generateRunner(client *v1.Client, packType, cliCfg interface{}, runnerCfg *
 	return deployerImpl, nil
 }
 
+// TODO: Not all commands use vars or varFiles. These fields should be abstracted
+// away from the baseCommand and then this function can get moved where appropriate.
 func hasVarOverrides(c *baseCommand) bool {
 	return len(c.varFiles) > 0 || len(c.vars) > 0
 }
 
+// TODO: Move to a domain specific package.
 func getDeployedPacks(jobsApi *v1.Jobs) (map[string]map[string]struct{}, error) {
 	opts := &v1.QueryOpts{}
 	jobStubs, _, err := jobsApi.GetJobs(opts.Ctx())
@@ -540,6 +438,9 @@ func getDeployedPacks(jobsApi *v1.Jobs) (map[string]map[string]struct{}, error) 
 	return packRegistryMap, nil
 }
 
+// TODO: Move to a domain specific package.
+
+// JobStatusInfo encapsulates status information about a running job.
 type JobStatusInfo struct {
 	packName       string
 	registryName   string
@@ -548,16 +449,21 @@ type JobStatusInfo struct {
 	status         string
 }
 
+// TODO: Move to a domain specific package.
+
+// JobStatusError encapsulates error information related to trying to retrieve
+// status information about a running job.
 type JobStatusError struct {
 	jobID    string
 	jobError error
 }
 
-func getDeployedPackJobs(jobsApi *v1.Jobs, packName, registryName, deploymentName string) ([]JobStatusInfo, []JobStatusError, error) {
+// TODO: Move to a domain specific package.
+func getDeployedPackJobs(jobsApi *v1.Jobs, cfg *cache.PackConfig, deploymentName string) ([]JobStatusInfo, []JobStatusError, error) {
 	opts := &v1.QueryOpts{}
 	jobs, _, err := jobsApi.GetJobs(opts.Ctx())
 	if err != nil {
-		return nil, nil, fmt.Errorf("error finding jobs for pack %s: %s", packName, err)
+		return nil, nil, fmt.Errorf("error finding jobs for pack %s: %s", cfg.Name, err)
 	}
 
 	var packJobs []JobStatusInfo
@@ -575,7 +481,7 @@ func getDeployedPackJobs(jobsApi *v1.Jobs, packName, registryName, deploymentNam
 		if nomadJob.Meta != nil {
 			jobMeta := *nomadJob.Meta
 			jobPackName, ok := jobMeta[job.PackNameKey]
-			if ok && jobPackName == packName {
+			if ok && jobPackName == cfg.Name {
 				// Filter by deployment name if specified
 				if deploymentName != "" {
 					jobDeployName, deployOk := jobMeta[packDeploymentNameKey]
@@ -584,8 +490,8 @@ func getDeployedPackJobs(jobsApi *v1.Jobs, packName, registryName, deploymentNam
 					}
 				}
 				packJobs = append(packJobs, JobStatusInfo{
-					packName:       packName,
-					registryName:   registryName,
+					packName:       cfg.Name,
+					registryName:   cfg.Registry,
 					deploymentName: jobMeta[packDeploymentNameKey],
 					jobID:          *nomadJob.ID,
 					status:         *nomadJob.Status,

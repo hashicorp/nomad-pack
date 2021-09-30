@@ -5,6 +5,7 @@ import (
 	"path"
 	"testing"
 
+	"github.com/hashicorp/nomad-pack/internal/pkg/logging"
 	"github.com/stretchr/testify/require"
 )
 
@@ -20,11 +21,9 @@ func TestRenameAll(t *testing.T) {
 	err = os.WriteFile(path.Join(oldDir, "test", "test.txt"), []byte("test"), 0755)
 	require.NoError(t, err)
 
-	log := func(message string) {
-		t.Log(message)
-	}
+	logger := logging.TestLogger{}
 
-	err = CopyDir(oldDir, path.Join(newDir, "test"), log)
+	err = CopyDir(oldDir, path.Join(newDir, "test"), &logger)
 	require.NoError(t, err)
 
 	dirEntries, err := os.ReadDir(newDir)

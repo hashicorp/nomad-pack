@@ -28,7 +28,7 @@ The directory structure is as follows:
 └── packs
     ├── <REGISTRY>
         ├── <PACK-NAME>
-            ├── <PACK-VERSION>
+            ├── <PACK-REF>
                 ├── ...files containing pack contents...
 ```
 

@@ -5,72 +5,73 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+
+	"github.com/hashicorp/nomad-pack/internal/pkg/logging"
 )
 
 // CopyFile copies a file from one path to another
-func CopyFile(sourcePath, destinationPath string, log func(string)) error {
-	var err error
-
+func CopyFile(sourcePath, destinationPath string, logger logging.Logger) (err error) {
 	// Open the source file
 	sourceFile, err := os.Open(sourcePath)
 	if err != nil {
-		log(fmt.Sprintf("error opening source file: %s", err))
-		return err
+		logger.Debug(fmt.Sprintf("error opening source file: %s", err))
+		return
 	}
+
 	// Set up a deferred close handler
 	defer func() {
 		if err = sourceFile.Close(); err != nil {
-			log(fmt.Sprintf("error closing source file: %s", err))
+			logger.Debug(fmt.Sprintf("error closing source file: %s", err))
 		}
 	}()
 
 	// Open the destination file
 	destinationFile, err := os.Create(destinationPath)
 	if err != nil {
-		log(fmt.Sprintf("error opening destination file: %s", err))
-		return err
+		logger.Debug(fmt.Sprintf("error opening destination file: %s", err))
+		return
 	}
 	// Set up a deferred close handler
 	defer func() {
 		if err = destinationFile.Close(); err != nil {
-			log(fmt.Sprintf("error closing destination file: %s", err))
+			logger.Debug(fmt.Sprintf("error closing destination file: %s", err))
 		}
 	}()
 
 	// Copy the file
 	_, err = io.Copy(destinationFile, sourceFile)
 	if err != nil {
-		log(fmt.Sprintf("error copying file: %s", err))
-		return err
+		logger.Debug(fmt.Sprintf("error copying file: %s", err))
+		return
 	}
 
 	// Sync the file contents
 	err = destinationFile.Sync()
 	if err != nil {
-		log(fmt.Sprintf("error syncing destination file: %s", err))
-		return err
+		logger.Debug(fmt.Sprintf("error syncing destination file: %s", err))
+		return
 	}
 
 	// Get the source file info so we can copy the permissions
 	sourceFileInfo, err := os.Stat(sourcePath)
 	if err != nil {
-		log(fmt.Sprintf("error getting source file info: %s", err))
-		return err
+		logger.Debug(fmt.Sprintf("error getting source file info: %s", err))
+		return
 	}
 
 	// Set the destination file permissions from the source file mode
 	err = os.Chmod(destinationPath, sourceFileInfo.Mode())
 	if err != nil {
-		log(fmt.Sprintf("error getting setting destination file permissions: %s", err))
-		return err
+		logger.Debug(fmt.Sprintf("error getting setting destination file permissions: %s", err))
+		return
 	}
 
 	// Give the defer functions a chance to set this variable
-	return err
+	return
 }
 
 // CopyDir recursively copies a directory.
-func CopyDir(sourceDir string, destinationDir string, log func(string)) error {
+func CopyDir(sourceDir string, destinationDir string, logger logging.Logger) (err error) {
 	// Clean the directory paths
 	sourceDir = filepath.Clean(sourceDir)
 	destinationDir = filepath.Clean(destinationDir)
@@ -78,38 +79,43 @@ func CopyDir(sourceDir string, destinationDir string, log func(string)) error {
 	// Get the source directory info to validate that it is a directory
 	sourceDirInfo, err := os.Stat(sourceDir)
 	if err != nil {
-		log(fmt.Sprintf("error getting source directory info: %s", err))
-		return err
+		logger.Debug(fmt.Sprintf("error getting source directory info: %s", err))
+		return
 	}
 
 	// Throw error if not a directory
+	// TODO: Might need to handle symlinks.
 	if !sourceDirInfo.IsDir() {
-		return fmt.Errorf("source is not a directory")
+		err = fmt.Errorf("source is not a directory")
+		logger.Debug(err.Error())
+		return
 	}
 
 	// Make sure the destination directory doesn't already exist
 	_, err = os.Stat(destinationDir)
 	if err != nil && !os.IsNotExist(err) {
-		log(fmt.Sprintf("error getting destination file info: %s", err))
-		return err
+		logger.Debug(fmt.Sprintf("error getting destination file info: %s", err))
+		return
 	}
 	// throw error if it does exist
 	if err == nil {
-		return fmt.Errorf("destination already exists")
+		err = fmt.Errorf("destination already exists")
+		logger.Debug(err.Error())
+		return
 	}
 
 	// Make the destination direction and copy the file permissions
 	err = os.MkdirAll(destinationDir, sourceDirInfo.Mode())
 	if err != nil {
-		log(fmt.Sprintf("error creating destination directory: %s", err))
-		return err
+		logger.Debug(fmt.Sprintf("error creating destination directory: %s", err))
+		return
 	}
 
 	// Read the contents of the source directory
 	sourceEntries, err := os.ReadDir(sourceDir)
 	if err != nil {
-		log(fmt.Sprintf("error reading source directory entries: %s", err))
-		return err
+		logger.Debug(fmt.Sprintf("error reading source directory entries: %s", err))
+		return
 	}
 
 	// Iterate over all the directory entries and copy them
@@ -120,9 +126,9 @@ func CopyDir(sourceDir string, destinationDir string, log func(string)) error {
 
 		// If a directory, then recurse, else copy all files
 		if sourceEntry.IsDir() {
-			err = CopyDir(sourcePath, destinationPath, log)
+			err = CopyDir(sourcePath, destinationPath, logger)
 			if err != nil {
-				return err
+				return
 			}
 		} else {
 			// Skip symlinks.
@@ -131,9 +137,9 @@ func CopyDir(sourceDir string, destinationDir string, log func(string)) error {
 			}
 
 			// Copy file from source directory to destination directory
-			err = CopyFile(sourcePath, destinationPath, log)
+			err = CopyFile(sourcePath, destinationPath, logger)
 			if err != nil {
-				return err
+				return
 			}
 		}
 	}

@@ -2,6 +2,7 @@ package cli
 
 import (
 	"github.com/hashicorp/nomad-pack/flag"
+	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"github.com/posener/complete"
 )
 
@@ -14,7 +15,6 @@ type RegistryListCommand struct {
 
 func (c *RegistryListCommand) Run(args []string) int {
 	c.cmdKey = "registry list"
-
 	// Initialize. If we fail, we just exit since Init handles the UI.
 	if err := c.Init(
 		WithNoArgs(args),
@@ -24,15 +24,46 @@ func (c *RegistryListCommand) Run(args []string) int {
 		return 1
 	}
 
-	return c.run()
-}
-
-func (c *RegistryListCommand) run() int {
-	c.cmdKey = "registry list"
-	if err := listRegistries(c.ui); err != nil {
-		c.ui.ErrorWithContext(err, "error listing registries")
+	// Get the global cache dir - may be configurable in the future, so using this
+	// helper function rather than a direct reference to the CONST.
+	globalCache, err := cache.NewCache(&cache.CacheConfig{
+		Path:   cache.DefaultCachePath(),
+		Logger: c.ui,
+	})
+	if err != nil {
 		return 1
 	}
+
+	// Load the list of registries.
+	err = globalCache.Load()
+	if err != nil {
+		return 1
+	}
+
+	// Initialize a table for a nice glint UI rendering
+	table := registryTable()
+
+	// Iterate over the registries and build a table row for each cachedRegistry/pack
+	// entry at each ref. Hierarchically, this should equate to the default
+	// cachedRegistry and all its peers.
+	for _, cachedRegistry := range globalCache.Registries() {
+		// If no packs, just show registry.
+		if cachedRegistry.Packs == nil || len(cachedRegistry.Packs) == 0 {
+			tableRow := emptyRegistryTableRow(cachedRegistry)
+			// append table row
+			table.Rows = append(table.Rows, tableRow)
+		} else {
+			// Show registry/pack combo for each pack.
+			for _, registryPack := range cachedRegistry.Packs {
+				tableRow := registryPackRow(cachedRegistry, registryPack)
+				// append table row
+				table.Rows = append(table.Rows, tableRow)
+			}
+		}
+	}
+
+	// Display output table
+	c.ui.Table(table)
 
 	return 0
 }
