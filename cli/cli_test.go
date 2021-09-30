@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/exec"
 	"testing"
@@ -78,8 +79,8 @@ func TestJobRunConflictingDeployment(t *testing.T) {
 	require.Equal(t, 0, exitCode)
 
 	// Delete the pack
-	destroyCommand := DestroyCommand{baseCommand: baseCommand}
-	exitCode = destroyCommand.Run([]string{runCommand.deploymentName, "--purge=true"})
+	stopCommand := StopCommand{baseCommand: baseCommand}
+	exitCode = stopCommand.Run([]string{runCommand.deploymentName, "--purge=true"})
 	require.Equal(t, 0, exitCode)
 
 	os.Setenv("NOMAD_ADDR", nomadAddr)
@@ -209,8 +210,8 @@ func TestJobPlanConflictingDeployment(t *testing.T) {
 	require.Equal(t, 255, exitCode)
 
 	// Delete the pack
-	destroyCommand := DestroyCommand{baseCommand: baseCommand}
-	exitCode = destroyCommand.Run([]string{runCommand.deploymentName, "--purge=true"})
+	stopCommand := StopCommand{baseCommand: baseCommand}
+	exitCode = stopCommand.Run([]string{runCommand.deploymentName, "--purge=true"})
 	require.Equal(t, 0, exitCode)
 
 	os.Setenv("NOMAD_ADDR", nomadAddr)
@@ -280,7 +281,7 @@ func TestJobPlanConflictingJobWithMetaButNoDeploymentKey(t *testing.T) {
 	os.Setenv("NOMAD_ADDR", nomadAddr)
 }
 
-func TestJobDestroy(t *testing.T) {
+func TestJobStop(t *testing.T) {
 	// TODO: Integrate test agent and solve envar dependency
 	// this currently requires nomad agent -dev to be running and the
 	// NOMAD_ADDR envar to be set.
@@ -296,17 +297,14 @@ func TestJobDestroy(t *testing.T) {
 
 	require.Equal(t, 0, exitCode)
 
-	d := &DestroyCommand{baseCommand: baseCommand}
-	exitCode = d.Run([]string{runCommand.deploymentName, "--purge=true"})
+	d := &StopCommand{baseCommand: baseCommand}
+	exitCode = d.Run([]string{runCommand.packName, "--purge=true"})
 	require.Equal(t, 0, exitCode)
 
 	os.Setenv("NOMAD_ADDR", nomadAddr)
 }
 
-func TestJobDestroyConflicts(t *testing.T) {
-	// TODO: Integrate test agent and solve envar dependency
-	// this currently requires nomad agent -dev to be running and the
-	// NOMAD_ADDR envar to be set.
+func TestJobStopConflicts(t *testing.T) {
 	nomadAddr := os.Getenv("NOMAD_ADDR")
 	os.Setenv("NOMAD_ADDR", "http://127.0.0.1:4646")
 
@@ -314,14 +312,109 @@ func TestJobDestroyConflicts(t *testing.T) {
 		Ctx: context.Background(),
 	}
 
-	runCommand := &RunCommand{baseCommand: baseCommand}
-	exitCode := runCommand.Run([]string{"example"})
+	cases := []struct {
+		name           string
+		nonPackJob     bool
+		packName       string
+		deploymentName string
+		jobName        string
+	}{
+		// Give these each different job names so there's no conflicts
+		// between the different tests cases when running
+		{
+			name:           "non-pack-job",
+			nonPackJob:     true,
+			packName:       "nomad_example",
+			deploymentName: "",
+			jobName:        "nomad_example",
+		},
+		{
+			name:           "same-pack-diff-deploy",
+			nonPackJob:     false,
+			packName:       "nomad_example",
+			deploymentName: "foo",
+			jobName:        "job2",
+		},
+	}
 
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			// Create job
+			nomadPath, err := exec.LookPath("nomad")
+			require.NoError(t, err)
+
+			if c.nonPackJob {
+				nomadCommand := exec.Command(nomadPath, "run", "../fixtures/example.nomad")
+				err = nomadCommand.Run()
+				require.NoError(t, err)
+			} else {
+				r := &RunCommand{baseCommand: baseCommand}
+				deploymentName := fmt.Sprintf("--name=%s", c.deploymentName)
+				varJobName := fmt.Sprintf("--var=job_name=%s", c.jobName)
+				exitCode := r.Run([]string{c.packName, deploymentName, varJobName})
+				require.Equal(t, 0, exitCode)
+			}
+
+			// Try to stop job
+			s := &StopCommand{baseCommand: baseCommand}
+			exitCode := s.Run([]string{c.packName})
+			require.Equal(t, 1, exitCode)
+
+			// Purge job. Use nomad command since it'll work for all jobs
+			nomadCommand := exec.Command(nomadPath, "stop", "-purge", c.jobName)
+			err = nomadCommand.Run()
+			require.NoError(t, err)
+		})
+	}
+	os.Setenv("NOMAD_ADDR", nomadAddr)
+}
+
+// Destroy is just an alias for stop --purge so we only need to
+// test that specific functionality
+func TestJobDestroy(t *testing.T) {
+	nomadAddr := os.Getenv("NOMAD_ADDR")
+	os.Setenv("NOMAD_ADDR", "http://127.0.0.1:4646")
+
+	baseCommand := &baseCommand{
+		Ctx: context.Background(),
+		Log: hclog.Default(),
+	}
+
+	r := &RunCommand{baseCommand: baseCommand}
+	r.Run([]string{"nomad_example"})
+
+	d := &DestroyCommand{&StopCommand{baseCommand: baseCommand}}
+	d.Run([]string{"nomad_example"})
+
+	// Assert job no longer queryable
+	nomadPath, err := exec.LookPath("nomad")
+	require.NoError(t, err)
+
+	nomadCommand := exec.Command(nomadPath, "status", "nomad_example")
+	err = nomadCommand.Run()
+	require.NoError(t, err)
+
+	os.Setenv("NOMAD_ADDR", nomadAddr)
+}
+
+func TestJobDestroyFails(t *testing.T) {
+	// Check you can't pass --purge flag to destroy command since
+	// that doesn't make sense
+	nomadAddr := os.Getenv("NOMAD_ADDR")
+	os.Setenv("NOMAD_ADDR", "http://127.0.0.1:4646")
+
+	baseCommand := &baseCommand{
+		Ctx: context.Background(),
+		Log: hclog.Default(),
+	}
+
+	r := &RunCommand{baseCommand: baseCommand}
+	exitCode := r.Run([]string{"nomad_example"})
 	require.Equal(t, 0, exitCode)
 
-	d := &DestroyCommand{baseCommand: baseCommand}
-	exitCode = d.Run([]string{runCommand.deploymentName, "--purge=true"})
-	require.Equal(t, 0, exitCode)
+	d := &DestroyCommand{&StopCommand{baseCommand: baseCommand}}
+	exitCode = d.Run([]string{"nomad_example", "destroy", "--purge"})
+	require.Equal(t, 1, exitCode)
 
 	os.Setenv("NOMAD_ADDR", nomadAddr)
 }

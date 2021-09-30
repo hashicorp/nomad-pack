@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"sort"
 	"text/tabwriter"
 
 	flag "github.com/hashicorp/nomad-pack/flag"
@@ -19,13 +20,16 @@ var (
 	// commonCommands are the commands that are deemed "common" and shown first
 	// in the CLI help output.
 	commonCommands = []string{
-		"init",
 		"plan",
 		"render",
 		"run",
 		"destroy",
 		"info",
 	}
+
+	// Initialize hidden commands. Anything we add here will be ignored when
+	// we print out the full list of commands
+	hiddenCommands = map[string]struct{}{}
 )
 
 // Main runs the CLI with the given arguments and returns the exit code.
@@ -144,9 +148,16 @@ func Commands(
 				baseCommand: baseCommand,
 			}, nil
 		},
+		"stop": func() (cli.Command, error) {
+			return &StopCommand{
+				baseCommand: baseCommand,
+			}, nil
+		},
 		"destroy": func() (cli.Command, error) {
 			return &DestroyCommand{
-				baseCommand: baseCommand,
+				StopCommand: &StopCommand{
+					baseCommand: baseCommand,
+				},
 			}, nil
 		},
 	}
@@ -207,26 +218,26 @@ func GroupedHelpFunc(f cli.HelpFunc) cli.HelpFunc {
 		helpCommandsSection(d, "Common commands", commonCommands, commands)
 
 		// // Make our other commands
-		// ignoreMap := map[string]struct{}{}
-		// for k := range hiddenCommands {
-		// 	ignoreMap[k] = struct{}{}
-		// }
-		// for _, k := range commonCommands {
-		// 	ignoreMap[k] = struct{}{}
-		// }
+		ignoreMap := map[string]struct{}{}
+		for k := range hiddenCommands {
+			ignoreMap[k] = struct{}{}
+		}
+		for _, k := range commonCommands {
+			ignoreMap[k] = struct{}{}
+		}
 
-		// var otherCommands []string
-		// for k := range commands {
-		// 	if _, ok := ignoreMap[k]; ok {
-		// 		continue
-		// 	}
+		var otherCommands []string
+		for k := range commands {
+			if _, ok := ignoreMap[k]; ok {
+				continue
+			}
 
-		// 	otherCommands = append(otherCommands, k)
-		// }
-		// sort.Strings(otherCommands)
+			otherCommands = append(otherCommands, k)
+		}
+		sort.Strings(otherCommands)
 
-		// // Add other commands
-		// helpCommandsSection(d, "Other commands", otherCommands, commands)
+		// Add other commands
+		helpCommandsSection(d, "Other commands", otherCommands, commands)
 
 		d.RenderFrame()
 		return buf.String()
