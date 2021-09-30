@@ -126,7 +126,7 @@ func getPackPath(repoName string, packName string) (string, error) {
 func verifyPackExist(ui terminal.UI, packName, repoPath string, errCtx *errors.UIErrorContext) error {
 	packPath := path.Join(repoPath, packName)
 	if _, err := os.Stat(packPath); os.IsNotExist(err) {
-		ui.ErrorWithContext(err, "failed to initialize client", errCtx.GetAll()...)
+		ui.ErrorWithContext(err, "failed to find pack", errCtx.GetAll()...)
 		return err
 	}
 
