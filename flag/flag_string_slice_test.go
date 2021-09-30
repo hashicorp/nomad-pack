@@ -7,8 +7,6 @@ import (
 )
 
 func TestStringSlice(t *testing.T) {
-	require := require.New(t)
-
 	var valA, valB []string
 	sets := NewSets()
 	{
@@ -28,11 +26,11 @@ func TestStringSlice(t *testing.T) {
 	}
 
 	err := sets.Parse([]string{
-		"-b", "somevalueB",
-		"-a", "somevalueA,somevalueB",
+		"--b", "somevalueB",
+		"--a", "somevalueA,somevalueB",
 	})
-	require.NoError(err)
+	require.NoError(t, err)
 
-	require.Equal([]string{"somevalueB"}, valB)
-	require.Equal([]string{"somevalueA", "somevalueB"}, valA)
+	require.Equal(t, []string{"somevalueB"}, valB)
+	require.Equal(t, []string{"somevalueA", "somevalueB"}, valA)
 }

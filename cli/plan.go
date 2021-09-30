@@ -11,7 +11,7 @@ import (
 	v1 "github.com/hashicorp/nomad-openapi/v1"
 	"github.com/hashicorp/nomad-pack/flag"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
-	"github.com/hashicorp/nomad-pack/internal/pkg/version"
+	"github.com/hashicorp/nomad-pack/internal/pkg/registry"
 	"github.com/hashicorp/nomad-pack/terminal"
 	"github.com/hashicorp/nomad/scheduler"
 	"github.com/posener/complete"
@@ -35,13 +35,15 @@ type PlanCommand struct {
 	diff           bool
 	hcl1           bool
 	packName       string
-	repoName       string
+	packVersion    string
+	registryName   string
 	jobName        string
 	policyOverride bool
 	verbose        bool
 }
 
 func (c *PlanCommand) Run(args []string) int {
+	var err error
 	c.cmdKey = "plan"
 	// Initialize. If we fail, we just exit since Init handles the UI.
 	if err := c.Init(
@@ -58,42 +60,41 @@ func (c *PlanCommand) Run(args []string) int {
 	// Generate our UI error context.
 	errorContext := errors.NewUIErrorContext()
 
-	repoName, packName, err := parseRepoFromPackName(packRepoName)
+	c.registryName, c.packName, err = parseRegistryAndPackName(packRepoName)
 	if err != nil {
 		c.ui.ErrorWithContext(err, "failed to parse pack name", errorContext.GetAll()...)
 		return 1
 	}
-	c.packName = packName
-	c.repoName = repoName
-	errorContext.Add(errors.UIContextPrefixPackName, c.packName)
-	errorContext.Add(errors.UIContextPrefixRegistryName, c.repoName)
 
-	repoPath, err := getRepoPath(repoName, c.ui, errorContext)
+	errorContext.Add(errors.UIContextPrefixPackName, c.packName)
+	errorContext.Add(errors.UIContextPrefixRegistry, c.registryName)
+
+	registryPath, err := getRegistryPath(c.registryName, c.ui, errorContext)
 	if err != nil {
 		c.ui.ErrorWithContext(err, "failed to identify repository path")
 		return 255
 	}
 
 	// Add the path to the pack on the error context.
-	errorContext.Add(errors.UIContextPrefixPackPath, repoPath)
+	errorContext.Add(errors.UIContextPrefixPackPath, registryPath)
 
 	// verify packs exist before planning jobs
-	if err = verifyPackExist(c.ui, c.packName, repoPath, errorContext); err != nil {
+	if err = verifyPackExist(c.ui, c.packName, registryPath, errorContext); err != nil {
 		return 255
 	}
 
-	// get pack git version
+	// split pack name and version
 	// TODO: Get this from pack metadata.
-	packVersion, err := version.PackVersion(repoPath)
+	c.packName, c.packVersion, err = registry.ParsePackNameAndVersion(c.packName)
 	if err != nil {
 		c.ui.ErrorWithContext(err, "failed to determine pack version", errorContext.GetAll()...)
 	}
 
 	// Add the path to the pack on the error context.
-	errorContext.Add(errors.UIContextPrefixPackVersion, packVersion)
+	errorContext.Add(errors.UIContextPrefixPackVersion, c.packVersion)
 
 	// If no deploymentName set default to pack@version
-	c.deploymentName = getDeploymentName(c.baseCommand, c.packName, packVersion)
+	c.deploymentName = getDeploymentName(c.baseCommand, c.packName, c.packVersion)
 	errorContext.Add(errors.UIContextPrefixDeploymentName, c.deploymentName)
 
 	exitCodes := make([]int, 0)
@@ -104,7 +105,7 @@ func (c *PlanCommand) Run(args []string) int {
 		return 255
 	}
 
-	packManager := generatePackManager(c.baseCommand, client, repoPath, c.packName)
+	packManager := generatePackManager(c.baseCommand, client, registryPath, fmt.Sprintf("%s@%s", c.packName, c.packVersion))
 
 	// load pack
 	r, err := renderPack(packManager, c.baseCommand.ui, errorContext)

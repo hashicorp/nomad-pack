@@ -56,10 +56,10 @@ func (r *Runner) checkForConflict(jobName string) error {
 
 	meta := *existing.Meta
 
-	// if there is a job with this ID, that has no pack-deployment-name meta,
+	// if there is a job with this ID, that has no pack_deployment_name meta,
 	// it was created by something other than the package manager and this
 	// process should abort.
-	existingDeploymentName, ok := meta["pack-deployment-name"]
+	existingDeploymentName, ok := meta[PackDeploymentNameKey]
 	if !ok {
 		return fmt.Errorf("job with id %q already exists and is not manage by nomad pack", *existing.ID)
 	}

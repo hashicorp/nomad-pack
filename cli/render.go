@@ -33,7 +33,7 @@ func (r *RenderCommand) Run(args []string) int {
 
 	packRepoName := args[0]
 
-	repo, pack, err := parseRepoFromPackName(packRepoName)
+	repo, pack, err := parseRegistryAndPackName(packRepoName)
 	if err != nil {
 		r.ui.ErrorWithContext(err, "failed to parse pack name", errorContext.GetAll()...)
 		return 1
@@ -42,7 +42,7 @@ func (r *RenderCommand) Run(args []string) int {
 	errorContext.Add(errors.UIContextPrefixRepoName, repo)
 
 	// TODO: Refactor to context.nomad file in next phase.
-	tempRepoPath, err := getRepoPath(repo, r.ui, errorContext)
+	registryPath, err := getRegistryPath(repo, r.ui, errorContext)
 	if err != nil {
 		r.ui.ErrorWithContext(err, "failed to identify repository path", errorContext.GetAll()...)
 		return 1
@@ -50,9 +50,9 @@ func (r *RenderCommand) Run(args []string) int {
 
 	// Add the path to the error context, so this can be viewed when displaying
 	// an error.
-	errorContext.Add(errors.UIContextPrefixPackPath, tempRepoPath)
+	errorContext.Add(errors.UIContextPrefixPackPath, registryPath)
 
-	if err = verifyPackExist(r.ui, pack, tempRepoPath, errorContext); err != nil {
+	if err = verifyPackExist(r.ui, pack, registryPath, errorContext); err != nil {
 		return 1
 	}
 
@@ -62,7 +62,7 @@ func (r *RenderCommand) Run(args []string) int {
 		return 1
 	}
 
-	packManager := generatePackManager(r.baseCommand, client, tempRepoPath, pack)
+	packManager := generatePackManager(r.baseCommand, client, registryPath, pack)
 
 	renderOutput, err := renderPack(packManager, r.baseCommand.ui, errorContext)
 	if err != nil {

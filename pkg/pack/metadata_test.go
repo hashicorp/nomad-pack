@@ -21,6 +21,8 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 				Pack: &MetadataPack{
 					Name:        "Example",
 					Description: "The most basic, yet awesome, example",
+					URL:         "https://example.com",
+					Version:     "v0.0.1",
 				},
 			},
 			expectedOutput: map[string]interface{}{
@@ -32,6 +34,8 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 					"pack": map[string]interface{}{
 						"name":        "Example",
 						"description": "The most basic, yet awesome, example",
+						"url":         "https://example.com",
+						"version":     "v0.0.1",
 					},
 				},
 			},
@@ -43,7 +47,9 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 					URL: "https://example.com",
 				},
 				Pack: &MetadataPack{
-					Name: "Example",
+					Name:    "Example",
+					URL:     "https://example.com",
+					Version: "v0.0.1",
 				},
 			},
 			expectedOutput: map[string]interface{}{
@@ -55,6 +61,8 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 					"pack": map[string]interface{}{
 						"name":        "Example",
 						"description": "",
+						"url":         "https://example.com",
+						"version":     "v0.0.1",
 					},
 				},
 			},

@@ -13,6 +13,14 @@ import (
 	"github.com/mitchellh/go-glint"
 )
 
+const (
+	// EnvLogLevel is the env var to set with the log level.
+	EnvLogLevel = "NOMAD_PACK_LOG_LEVEL"
+
+	// EnvPlain is the env var that can be set to force plain output mode.
+	EnvPlain = "NOMAD_PACK_PLAIN"
+)
+
 var (
 	// cliName is the name of this CLI.
 	cliName = "nomad-pack"
@@ -25,6 +33,9 @@ var (
 		"run",
 		"destroy",
 		"info",
+		"registry add",
+		"registry delete",
+		"registry list",
 	}
 
 	// Initialize hidden commands. Anything we add here will be ignored when
@@ -118,11 +129,6 @@ func Commands(
 				help:     helpText["repo"][1],
 			}, nil
 		},
-		"list": func() (cli.Command, error) {
-			return &ListCommand{
-				baseCommand: baseCommand,
-			}, nil
-		},
 		"render": func() (cli.Command, error) {
 			return &RenderCommand{
 				baseCommand: baseCommand,
@@ -162,6 +168,26 @@ func Commands(
 		},
 		"status": func() (cli.Command, error) {
 			return &StatusCommand{
+				baseCommand: baseCommand,
+			}, nil
+		},
+		"registry": func() (cli.Command, error) {
+			return &RegistryHelpCommand{
+				baseCommand: baseCommand,
+			}, nil
+		},
+		"registry add": func() (cli.Command, error) {
+			return &RegistryAddCommand{
+				baseCommand: baseCommand,
+			}, nil
+		},
+		"registry delete": func() (cli.Command, error) {
+			return &RegistryDeleteCommand{
+				baseCommand: baseCommand,
+			}, nil
+		},
+		"registry list": func() (cli.Command, error) {
+			return &RegistryListCommand{
 				baseCommand: baseCommand,
 			}, nil
 		},

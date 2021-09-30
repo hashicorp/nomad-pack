@@ -12,6 +12,7 @@ import (
 	v1 "github.com/hashicorp/nomad-openapi/v1"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/manager"
+	"github.com/hashicorp/nomad-pack/internal/pkg/registry"
 	"github.com/hashicorp/nomad-pack/internal/pkg/renderer"
 	"github.com/hashicorp/nomad-pack/internal/runner"
 	"github.com/hashicorp/nomad-pack/internal/runner/job"
@@ -23,6 +24,189 @@ const (
 	DefaultRegistryName   = "default"
 	DefaultRegistrySource = "git@github.com:hashicorp/nomad-pack-registry.git"
 )
+
+// log is returns an injectable log function that allows lower level packages to
+// report publish log information without creating a dependency on the terminal.UI
+// in lower level packages.
+func log(ui terminal.UI) func(string) {
+	l := func(message string) {
+		ui.Info(message)
+	}
+
+	return l
+}
+
+// get the global cache directory
+func globalCacheDir() (string, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+
+	return path.Join(homeDir, NomadCache), nil
+}
+
+func addRegistry(cacheDir, from, alias, target string, ui terminal.UI) error {
+	// Add the registry or registry target to the global cache
+	newRegistry, err := registry.AddFromGitURL(cacheDir, from, alias, target, log(ui))
+	if err != nil {
+		ui.ErrorWithContext(err, "error adding registry")
+		return err
+	}
+
+	// If subprocess fails to add any packs, report this to the user.
+	if len(newRegistry.Packs) == 0 {
+		// TODO: Should this be an error?
+		ui.Info("no packs added - see output for reason")
+		return nil
+	}
+
+	// Initialize output table
+	table := registryTable()
+	var successfulPack *registry.CachedPack
+	// If only targeting a single pack, only output a single row
+	if target != "" {
+		// It is safe to target pack 0 here because registry.AddFromGitURL will
+		// ensure only the target pack is returned.
+		tableRow := registryPackRow(newRegistry, newRegistry.Packs[0])
+		table.Rows = append(table.Rows, tableRow)
+	} else {
+		for _, registryPack := range newRegistry.Packs {
+			tableRow := registryPackRow(newRegistry, registryPack)
+			table.Rows = append(table.Rows, tableRow)
+			// Grab a successful pack to show extra help text.
+			if successfulPack == nil &&
+				!strings.Contains(strings.ToLower(registryPack.CacheVersion), "invalid") {
+				successfulPack = registryPack
+			}
+		}
+	}
+
+	ui.Info("CachedRegistry successfully added")
+	ui.Table(table)
+
+	if successfulPack != nil {
+		ui.Info(fmt.Sprintf("Try running one the packs you just added liked this:  nomad-pack run %s:%s@%s", newRegistry.Name, successfulPack.Name(), successfulPack.CacheVersion))
+	}
+
+	return nil
+}
+
+func deleteRegistry(cacheDir, name, target string, ui terminal.UI) error {
+	err := registry.DeleteFromCache(cacheDir, name, target, log(ui))
+	if err != nil {
+		ui.ErrorWithContext(err, "error deleting registry")
+	}
+
+	return nil
+}
+
+// lists the currently configured global cache registries and their packs
+func listRegistries(ui terminal.UI) error {
+	// Get the global cache dir - may be configurable in the future, so using this
+	// helper function rather than a direct reference to the CONST.
+	globalCache, err := globalCacheDir()
+	if err != nil {
+		ui.ErrorWithContext(err, "error resolving global cache directory")
+		return err
+	}
+
+	// Initialize a table for a nice glint UI rendering
+	table := registryTable()
+
+	// Load the list of registries.
+	registries, err := registry.LoadAllFromCache(globalCache)
+	if err != nil {
+		ui.ErrorWithContext(err, "error listing registries")
+		return err
+	}
+
+	// Iterate over the registries and build a table row for each cachedRegistry/pack
+	// entry at each version. Hierarchically, this should equate to the default
+	// cachedRegistry and all its peers.
+	for _, cachedRegistry := range registries {
+		// If no packs, just show registry.
+		if cachedRegistry.Packs == nil || len(cachedRegistry.Packs) == 0 {
+			tableRow := emptyRegistryTableRow(cachedRegistry)
+			// append table row
+			table.Rows = append(table.Rows, tableRow)
+		} else {
+			// Show registry/pack combo for each pack.
+			for _, registryPack := range cachedRegistry.Packs {
+				tableRow := registryPackRow(cachedRegistry, registryPack)
+				// append table row
+				table.Rows = append(table.Rows, tableRow)
+			}
+		}
+	}
+
+	// Display output table
+	ui.Table(table)
+
+	return nil
+}
+
+func registryTable() *terminal.Table {
+	return terminal.NewTable("PACK NAME", "CACHE_VERSION", "METADATA VERSION", "REGISTRY", "REGISTRY_URL")
+}
+
+func emptyRegistryTableRow(cachedRegistry *registry.CachedRegistry) []terminal.TableEntry {
+	return []terminal.TableEntry{
+		// blank pack name
+		{
+			Value: "",
+		},
+		// blank pack version
+		{
+			Value: "",
+		},
+		// blank cache version
+		{
+			Value: "",
+		},
+		// CachedRegistry name - user defined alias or registry URL slug
+		{
+			Value: cachedRegistry.Name,
+		},
+		// The cachedRegistry URL from where the registryPack was cloned
+		{
+			Value: cachedRegistry.URL,
+		},
+		//// TODO: The app version
+		//{
+		//	Value: registryPack.Metadata.App.Version,
+		//},
+	}
+}
+
+func registryPackRow(cachedRegistry *registry.CachedRegistry, cachedPack *registry.CachedPack) []terminal.TableEntry {
+	return []terminal.TableEntry{
+		// The Name of the registryPack
+		{
+			Value: cachedPack.CacheName,
+		},
+		// The cachedRegistry Version from where the registryPack was cloned
+		{
+			Value: cachedPack.CacheVersion,
+		},
+		// The registryPack version
+		{
+			Value: cachedPack.Metadata.Pack.Version,
+		},
+		// CachedRegistry name - user defined alias or registry URL slug
+		{
+			Value: cachedRegistry.Name,
+		},
+		// The cachedRegistry URL from where the registryPack was cloned
+		{
+			Value: cachedRegistry.URL,
+		},
+		//// TODO: The app version
+		//{
+		//	Value: registryPack.Metadata.App.Version,
+		//},
+	}
+}
 
 func installRegistry(source string, destination string,
 	ui terminal.UI, errCtx *errors.UIErrorContext) error {
@@ -62,6 +246,7 @@ func createGlobalCache(ui terminal.UI, errCtx *errors.UIErrorContext) error {
 	globalCacheDir := path.Join(homedir, NomadCache)
 	return createDir(globalCacheDir, "global cache", ui, errCtx)
 }
+
 func installDefaultRegistry(ui terminal.UI, errCtx *errors.UIErrorContext) error {
 	// Create default registry, if not exist
 	homedir, err := os.UserHomeDir()
@@ -82,38 +267,42 @@ func installUserRegistry(source string, name string, ui terminal.UI, errCtx *err
 	userRegistryDir := path.Join(homedir, NomadCache, name)
 	return installRegistry(source, userRegistryDir, ui, errCtx)
 }
-func parseRepoFromPackName(packName string) (string, string, error) {
+
+func parseRegistryAndPackName(packName string) (string, string, error) {
 	if len(packName) == 0 {
 		return "", "", stdErrors.New("invalid pack name: pack name cannot be empty")
 	}
+
 	s := strings.Split(packName, ":")
+
 	if len(s) == 1 {
 		return DefaultRegistryName, packName, nil
 	}
+
 	if len(s) > 2 {
 		return "", "", fmt.Errorf("invalid pack name %s, pack name must be formatted 'registry:pack'", packName)
 	}
-	repo := s[0]
-	pack := s[1]
-	return repo, pack, nil
+
+	return s[0], s[1], nil
 }
 
-func getRepoPath(repoName string, ui terminal.UI, errCtx *errors.UIErrorContext) (string, error) {
-	homedir, err := os.UserHomeDir()
+func getRegistryPath(repoName string, ui terminal.UI, errCtx *errors.UIErrorContext) (string, error) {
+	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		ui.ErrorWithContext(err, fmt.Sprintf("cannot determine user home directory"), errCtx.GetAll()...)
 		return "", err
 	}
-	globalCacheDir := path.Join(homedir, NomadCache)
-	repoPath := path.Join(globalCacheDir, repoName)
 
-	if _, err := os.Stat(repoPath); os.IsNotExist(err) {
-		ui.ErrorWithContext(err, fmt.Sprintf("registry %s does not exist at path: %s", repoName, repoPath), errCtx.GetAll()...)
+	cacheDir := path.Join(homeDir, NomadCache)
+	registryPath := path.Join(cacheDir, repoName)
+
+	if _, err := os.Stat(registryPath); os.IsNotExist(err) {
+		ui.ErrorWithContext(err, fmt.Sprintf("registry %s does not exist at path: %s", repoName, registryPath), errCtx.GetAll()...)
 	} else if err != nil {
 		// some other error
-		ui.ErrorWithContext(err, fmt.Sprintf("cannot read registry %s at path: %s", repoName, repoPath), errCtx.GetAll()...)
+		ui.ErrorWithContext(err, fmt.Sprintf("cannot read registry %s at path: %s", repoName, registryPath), errCtx.GetAll()...)
 	}
-	return repoPath, nil
+	return registryPath, nil
 }
 
 func getPackPath(repoName string, packName string) (string, error) {
@@ -125,8 +314,8 @@ func getPackPath(repoName string, packName string) (string, error) {
 }
 
 // Returns an error if the pack doesn't exist in the specified repo
-func verifyPackExist(ui terminal.UI, packName, repoPath string, errCtx *errors.UIErrorContext) error {
-	packPath := path.Join(repoPath, packName)
+func verifyPackExist(ui terminal.UI, packName, registryPath string, errCtx *errors.UIErrorContext) error {
+	packPath := path.Join(registryPath, packName)
 	if _, err := os.Stat(packPath); os.IsNotExist(err) {
 		ui.ErrorWithContext(err, "failed to find pack", errCtx.GetAll()...)
 		return err
@@ -137,9 +326,9 @@ func verifyPackExist(ui terminal.UI, packName, repoPath string, errCtx *errors.U
 
 // generatePackManager is used to generate the pack manager for this Nomad Pack
 // run.
-func generatePackManager(c *baseCommand, client *v1.Client, repoPath, pack string) *manager.PackManager {
+func generatePackManager(c *baseCommand, client *v1.Client, registryName, pack string) *manager.PackManager {
 	cfg := manager.Config{
-		Path:            path.Join(repoPath, pack),
+		Path:            path.Join(registryName, pack),
 		VariableFiles:   c.varFiles,
 		VariableCLIArgs: c.vars,
 	}

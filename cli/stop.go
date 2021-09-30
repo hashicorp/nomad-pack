@@ -9,13 +9,14 @@ import (
 	v1 "github.com/hashicorp/nomad-openapi/v1"
 	"github.com/hashicorp/nomad-pack/flag"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
-	"github.com/hashicorp/nomad-pack/internal/pkg/version"
+	"github.com/hashicorp/nomad-pack/internal/pkg/registry"
 	"github.com/posener/complete"
 )
 
 type StopCommand struct {
 	*baseCommand
 	packName     string
+	packVersion  string
 	registryName string
 	purge        bool
 	global       bool
@@ -23,9 +24,10 @@ type StopCommand struct {
 }
 
 func (c *StopCommand) Run(args []string) int {
+	var err error
 	c.cmdKey = "stop" // Add cmd key here so help text is available in Init
 	// Initialize. If we fail, we just exit since Init handles the UI.
-	if err := c.Init(
+	if err = c.Init(
 		WithExactArgs(1, args),
 		WithFlags(c.Flags()),
 		WithNoConfig(),
@@ -51,12 +53,11 @@ func (c *StopCommand) Run(args []string) int {
 	// Generate our UI error context.
 	errorContext := errors.NewUIErrorContext()
 
-	registryName, packName, err := parseRepoFromPackName(packRegistryName)
+	c.registryName, c.packName, err = parseRegistryAndPackName(packRegistryName)
 	if err != nil {
 		c.ui.ErrorWithContext(err, "unable to parse pack name", errorContext.GetAll()...)
 	}
-	c.packName = packName
-	c.registryName = registryName
+
 	errorContext.Add(errors.UIContextPrefixPackName, c.packName)
 	errorContext.Add(errors.UIContextPrefixRegistryName, c.registryName)
 
@@ -69,27 +70,27 @@ func (c *StopCommand) Run(args []string) int {
 	// set a local variable to the JobsApi
 	jobsApi := client.Jobs()
 
-	repoPath, err := getRepoPath(c.registryName, c.ui, errorContext)
+	registryPath, err := getRegistryPath(c.registryName, c.ui, errorContext)
 	if err != nil {
 		return 1
 	}
 
 	if c.deploymentName == "" {
 		// Add the path to the pack on the error context.
-		errorContext.Add(errors.UIContextPrefixPackPath, repoPath)
+		errorContext.Add(errors.UIContextPrefixPackPath, registryPath)
 
-		// get pack git version
-		// TODO: Get this from pack metadata.
-		packVersion, err := version.PackVersion(repoPath)
+		// split pack name and version
+		// TODO: Move this to a shared parse package.
+		c.packName, c.packVersion, err = registry.ParsePackNameAndVersion(c.packName)
 		if err != nil {
 			c.ui.ErrorWithContext(err, "failed to determine pack version", errorContext.GetAll()...)
 		}
 
 		// Add the path to the pack on the error context.
-		errorContext.Add(errors.UIContextPrefixPackVersion, packVersion)
+		errorContext.Add(errors.UIContextPrefixPackVersion, c.packVersion)
 
 		// If no deploymentName set default to pack@version
-		c.deploymentName = getDeploymentName(c.baseCommand, c.packName, packVersion)
+		c.deploymentName = getDeploymentName(c.baseCommand, c.packName, c.packVersion)
 	}
 	errorContext.Add(errors.UIContextPrefixDeploymentName, c.deploymentName)
 
@@ -97,7 +98,7 @@ func (c *StopCommand) Run(args []string) int {
 
 	// Get job names if var overrides are passed
 	if hasVarOverrides(c.baseCommand) {
-		packManager := generatePackManager(c.baseCommand, client, repoPath, c.packName)
+		packManager := generatePackManager(c.baseCommand, client, registryPath, fmt.Sprintf("%s@%s", c.packName, c.packVersion))
 		// render the pack
 		r, err := renderPack(packManager, c.baseCommand.ui, errorContext)
 		if err != nil {
@@ -132,7 +133,7 @@ func (c *StopCommand) Run(args []string) int {
 		}
 	} else {
 		// If no job names are specified, get all jobs belonging to the pack and deployment
-		jobs, err = getPackJobsByDeploy(jobsApi, c.packName, c.deploymentName, registryName)
+		jobs, err = getDeployedPackJobs(jobsApi, c.packName, c.deploymentName, c.registryName)
 		if err != nil {
 			c.ui.ErrorWithContext(err, "failed to find jobs for pack", errorContext.GetAll()...)
 			return 1

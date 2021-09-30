@@ -7,7 +7,7 @@ import (
 	v1 "github.com/hashicorp/nomad-openapi/v1"
 	"github.com/hashicorp/nomad-pack/flag"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
-	"github.com/hashicorp/nomad-pack/internal/pkg/version"
+	"github.com/hashicorp/nomad-pack/internal/pkg/registry"
 	"github.com/hashicorp/nomad-pack/internal/runner"
 	"github.com/hashicorp/nomad-pack/internal/runner/job"
 	"github.com/posener/complete"
@@ -16,12 +16,14 @@ import (
 type RunCommand struct {
 	*baseCommand
 	packName     string
+	packVersion  string
 	registryName string
 	jobConfig    *job.CLIConfig
 	Validation   ValidationFn
 }
 
 func (c *RunCommand) Run(args []string) int {
+	var err error
 	c.cmdKey = "run" // Add cmd key here so help text is available in Init
 	// Initialize. If we fail, we just exit since Init handles the UI.
 	if err := c.Init(
@@ -37,42 +39,40 @@ func (c *RunCommand) Run(args []string) int {
 	// Generate our UI error context.
 	errorContext := errors.NewUIErrorContext()
 
-	repoName, packName, err := parseRepoFromPackName(packRepoName)
+	c.registryName, c.packName, err = parseRegistryAndPackName(packRepoName)
 	if err != nil {
 		c.ui.ErrorWithContext(err, "failed to parse pack name", errorContext.GetAll()...)
 		return 1
 	}
 
-	c.packName = packName
-	c.registryName = repoName
 	errorContext.Add(errors.UIContextPrefixPackName, c.packName)
 	errorContext.Add(errors.UIContextPrefixRegistryName, c.registryName)
 
-	repoPath, err := getRepoPath(repoName, c.ui, errorContext)
+	registryPath, err := getRegistryPath(c.registryName, c.ui, errorContext)
 	if err != nil {
 		return 1
 	}
 
 	// Add the path to the pack on the error context.
-	errorContext.Add(errors.UIContextPrefixPackPath, repoPath)
+	errorContext.Add(errors.UIContextPrefixPackPath, registryPath)
 
 	// verify packs exist before running jobs
-	if err = verifyPackExist(c.ui, c.packName, repoPath, errorContext); err != nil {
+	if err = verifyPackExist(c.ui, c.packName, registryPath, errorContext); err != nil {
 		return 1
 	}
 
-	// get pack git version
-	// TODO: Get this from pack metadata.
-	packVersion, err := version.PackVersion(repoPath)
+	// split pack name and version
+	// TODO: Move this parsing function a shared package.
+	c.packName, c.packVersion, err = registry.ParsePackNameAndVersion(c.packName)
 	if err != nil {
 		c.ui.ErrorWithContext(err, "failed to determine pack version", errorContext.GetAll()...)
 	}
 
 	// Add the path to the pack on the error context.
-	errorContext.Add(errors.UIContextPrefixPackVersion, packVersion)
+	errorContext.Add(errors.UIContextPrefixPackVersion, c.packVersion)
 
 	// If no deploymentName set default to pack@version
-	c.deploymentName = getDeploymentName(c.baseCommand, c.packName, packVersion)
+	c.deploymentName = getDeploymentName(c.baseCommand, c.packName, c.packVersion)
 	errorContext.Add(errors.UIContextPrefixDeploymentName, c.deploymentName)
 
 	// create the http client
@@ -82,7 +82,7 @@ func (c *RunCommand) Run(args []string) int {
 		return 1
 	}
 
-	packManager := generatePackManager(c.baseCommand, client, repoPath, c.packName)
+	packManager := generatePackManager(c.baseCommand, client, registryPath, fmt.Sprintf("%s@%s", c.packName, c.packVersion))
 
 	// Render the pack now, before creating the deployer. If we get an error
 	// we won't make it to the deployer.
@@ -95,8 +95,8 @@ func (c *RunCommand) Run(args []string) int {
 
 	depConfig := runner.Config{
 		PackName:       c.packName,
-		PathPath:       path.Join(repoPath, c.packName),
-		PackVersion:    packVersion,
+		PathPath:       path.Join(registryPath, c.packName),
+		PackVersion:    c.packVersion,
 		DeploymentName: c.deploymentName,
 		RegistryName:   c.registryName,
 	}
@@ -294,5 +294,5 @@ func (c *RunCommand) Synopsis() string {
 }
 
 var (
-	packDeploymentNameKey = "pack-deployment-name"
+	packDeploymentNameKey = "pack_deployment_name"
 )
