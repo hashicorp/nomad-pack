@@ -1,11 +1,11 @@
 package cli
 
 import (
+	stdErrors "errors"
 	"fmt"
 	"os"
 	"path"
 	"strings"
-	stdErrors "errors"
 
 	gg "github.com/hashicorp/go-getter"
 	"github.com/hashicorp/nom/internal/pkg/errors"
@@ -15,9 +15,12 @@ import (
 	v1client "github.com/hashicorp/nomad-openapi/clients/go/v1"
 	v1 "github.com/hashicorp/nomad-openapi/v1"
 )
-const NOMAD_CACHE = ".nomad/packs"
-const DEFAULT_REGISTRY_NAME = "default"
-const DEFAULT_REGISTRY_SOURCE = "git@github.com:hashicorp/nomad-pack-registry.git"
+
+const (
+	NomadCache            = ".nomad/packs"
+	DefaultRegistryName   = "default"
+	DefaultRegistrySource = "git@github.com:hashicorp/nomad-pack-registry.git"
+)
 
 func installRegistry(source string, destination string,
 	ui terminal.UI, errCtx *errors.UIErrorContext) error {
@@ -54,7 +57,7 @@ func createGlobalCache(ui terminal.UI, errCtx *errors.UIErrorContext) error {
 		ui.ErrorWithContext(err, "error accessing home directory", errCtx.GetAll()...)
 		return err
 	}
-	globalCacheDir := path.Join(homedir, NOMAD_CACHE)
+	globalCacheDir := path.Join(homedir, NomadCache)
 	return createDir(globalCacheDir, "global cache", ui, errCtx)
 }
 func installDefaultRegistry(ui terminal.UI, errCtx *errors.UIErrorContext) error {
@@ -64,8 +67,8 @@ func installDefaultRegistry(ui terminal.UI, errCtx *errors.UIErrorContext) error
 		ui.ErrorWithContext(err, "error accessing home directory", errCtx.GetAll()...)
 		return err
 	}
-	defaultRegistryDir := path.Join(homedir, NOMAD_CACHE, DEFAULT_REGISTRY_NAME)
-	return installRegistry(DEFAULT_REGISTRY_SOURCE, defaultRegistryDir, ui, errCtx)
+	defaultRegistryDir := path.Join(homedir, NomadCache, DefaultRegistryName)
+	return installRegistry(DefaultRegistrySource, defaultRegistryDir, ui, errCtx)
 }
 
 func installUserRegistry(source string, name string, ui terminal.UI, errCtx *errors.UIErrorContext) error {
@@ -74,7 +77,7 @@ func installUserRegistry(source string, name string, ui terminal.UI, errCtx *err
 		ui.ErrorWithContext(err, "error accessing home directory", errCtx.GetAll()...)
 		return err
 	}
-	userRegistryDir := path.Join(homedir, NOMAD_CACHE, name)
+	userRegistryDir := path.Join(homedir, NomadCache, name)
 	return installRegistry(source, userRegistryDir, ui, errCtx)
 }
 func parseRepoFromPackName(packName string) (string, string, error) {
@@ -83,7 +86,7 @@ func parseRepoFromPackName(packName string) (string, string, error) {
 	}
 	s := strings.Split(packName, ":")
 	if len(s) == 1 {
-		return DEFAULT_REGISTRY_NAME, packName, nil
+		return DefaultRegistryName, packName, nil
 	}
 	if len(s) > 2 {
 		return "", "", fmt.Errorf("invalid pack name %s, pack name must be formatted 'registry:pack'", packName)
@@ -94,12 +97,12 @@ func parseRepoFromPackName(packName string) (string, string, error) {
 }
 
 func getRepoPath(repoName string, ui terminal.UI, errCtx *errors.UIErrorContext) (string, error) {
-	homedir, err:= os.UserHomeDir()
+	homedir, err := os.UserHomeDir()
 	if err != nil {
 		ui.ErrorWithContext(err, fmt.Sprintf("cannot determine user home directory"), errCtx.GetAll()...)
 		return "", err
 	}
-	globalCacheDir := path.Join(homedir, NOMAD_CACHE)
+	globalCacheDir := path.Join(homedir, NomadCache)
 	repoPath := path.Join(globalCacheDir, repoName)
 
 	if _, err := os.Stat(repoPath); os.IsNotExist(err) {
@@ -112,11 +115,11 @@ func getRepoPath(repoName string, ui terminal.UI, errCtx *errors.UIErrorContext)
 }
 
 func getPackPath(repoName string, packName string) (string, error) {
-	homedir, err:= os.UserHomeDir()
+	homedir, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
 	}
-	return path.Join(homedir, NOMAD_CACHE, repoName, packName), nil
+	return path.Join(homedir, NomadCache, repoName, packName), nil
 }
 
 // Returns an error if the pack doesn't exist in the specified repo
