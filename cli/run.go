@@ -59,7 +59,7 @@ func (c *RunCommand) Run(args []string) int {
 	c.packName = packName
 	c.repoName = repoName
 	errorContext.Add(errors.UIContextPrefixPackName, c.packName)
-	errorContext.Add(errors.UIContextPrefixPackName, c.repoName)
+	errorContext.Add(errors.UIContextPrefixRepoName, c.repoName)
 
 	repoPath, err := getRepoPath(repoName, c.ui, errorContext)
 	if err != nil {

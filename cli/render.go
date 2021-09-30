@@ -39,7 +39,7 @@ func (r *RenderCommand) Run(args []string) int {
 		return 1
 	}
 	errorContext.Add(errors.UIContextPrefixPackName, pack)
-	errorContext.Add(errors.UIContextPrefixPackName, repo)
+	errorContext.Add(errors.UIContextPrefixRepoName, repo)
 
 	// TODO: Refactor to context.nomad file in next phase.
 	tempRepoPath, err := getRepoPath(repo, r.ui, errorContext)

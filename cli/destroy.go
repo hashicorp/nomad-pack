@@ -46,7 +46,7 @@ func (c *DestroyCommand) Run(args []string) int {
 	c.packName = packName
 	c.repoName = repoName
 	errorContext.Add(errors.UIContextPrefixPackName, c.packName)
-	errorContext.Add(errors.UIContextPrefixPackName, c.repoName)
+	errorContext.Add(errors.UIContextPrefixRepoName, c.repoName)
 
 	client, err := v1.NewClient()
 	if err != nil {
