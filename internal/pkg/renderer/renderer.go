@@ -6,8 +6,8 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/hashicorp/nom/pkg/pack"
 	v1 "github.com/hashicorp/nomad-openapi/v1"
+	"github.com/hashicorp/nomad-pack/pkg/pack"
 )
 
 // Renderer provides template rendering functionality using the text/template

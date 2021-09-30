@@ -21,7 +21,7 @@ func formatHelp(v string) string {
 
 		// We set rows/cols here manually. The important bit is the cols
 		// needs to be wide enough so glint doesn't clamp any text and
-		// lets the terminal just autowrap it. Rows doesn't make a big
+		// lets the terminal just auto-wrap it. Rows don't make a big
 		// difference.
 		Rows: 10,
 		Cols: 180,
@@ -249,6 +249,18 @@ used to examine the evaluation.
 		`
 Info reads from a pack's metadata.hcl and variables.hcl files and prints out the details
 of a pack.
+`,
+	},
+	"registry": {
+		"Nomad Pack registry management",
+		`
+Nomad Pack registry management.
+
+Requires minimum subcommand of either add, delete, or list.
+
+The registry commands can be used to list locally cached Nomad registries and 
+packs, add a new registry or pack to the local cache, or delete a registry or pack 
+from the local cache.
 `,
 	},
 }

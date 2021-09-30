@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"path"
 
-	"github.com/hashicorp/nom/internal/pkg/loader"
-	"github.com/hashicorp/nom/internal/pkg/renderer"
-	"github.com/hashicorp/nom/internal/pkg/variable"
-	"github.com/hashicorp/nom/pkg/pack"
 	v1 "github.com/hashicorp/nomad-openapi/v1"
+	"github.com/hashicorp/nomad-pack/internal/pkg/loader"
+	"github.com/hashicorp/nomad-pack/internal/pkg/renderer"
+	"github.com/hashicorp/nomad-pack/internal/pkg/variable"
+	"github.com/hashicorp/nomad-pack/pkg/pack"
 )
 
 // Config contains all the user specified parameters needed to correctly run

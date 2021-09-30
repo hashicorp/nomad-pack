@@ -13,8 +13,8 @@ import (
 	"github.com/mitchellh/go-wordwrap"
 	"github.com/posener/complete"
 
-	flag "github.com/hashicorp/nom/flag"
-	"github.com/hashicorp/nom/terminal"
+	flag "github.com/hashicorp/nomad-pack/flag"
+	"github.com/hashicorp/nomad-pack/terminal"
 )
 
 // baseCommand is embedded in all commands to provide common logic and data.

@@ -13,8 +13,8 @@ import (
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/go-glint"
 
-	flag "github.com/hashicorp/nom/flag"
-	"github.com/hashicorp/nom/internal/pkg/version"
+	flag "github.com/hashicorp/nomad-pack/flag"
+	"github.com/hashicorp/nomad-pack/internal/pkg/version"
 )
 
 const (
@@ -38,6 +38,7 @@ var (
 		"run",
 		"destroy",
 		"info",
+		"registry",
 	}
 )
 
@@ -174,6 +175,11 @@ func Commands(
 		},
 		"destroy": func() (cli.Command, error) {
 			return &DestroyCommand{
+				baseCommand: baseCommand,
+			}, nil
+		},
+		"registry": func() (cli.Command, error) {
+			return &RegistryCommand{
 				baseCommand: baseCommand,
 			}, nil
 		},

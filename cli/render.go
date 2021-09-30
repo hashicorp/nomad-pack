@@ -1,9 +1,9 @@
 package cli
 
 import (
-	"github.com/hashicorp/nom/flag"
-	"github.com/hashicorp/nom/internal/pkg/errors"
 	v1 "github.com/hashicorp/nomad-openapi/v1"
+	"github.com/hashicorp/nomad-pack/flag"
+	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/mitchellh/go-glint"
 	"github.com/posener/complete"
 )

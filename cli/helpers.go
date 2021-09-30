@@ -8,17 +8,79 @@ import (
 	"strings"
 
 	gg "github.com/hashicorp/go-getter"
-	"github.com/hashicorp/nom/internal/pkg/errors"
-	"github.com/hashicorp/nom/internal/pkg/manager"
-	"github.com/hashicorp/nom/internal/pkg/renderer"
-	"github.com/hashicorp/nom/terminal"
 	v1client "github.com/hashicorp/nomad-openapi/clients/go/v1"
 	v1 "github.com/hashicorp/nomad-openapi/v1"
+	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
+	"github.com/hashicorp/nomad-pack/internal/pkg/manager"
+	"github.com/hashicorp/nomad-pack/internal/pkg/registry"
+	"github.com/hashicorp/nomad-pack/internal/pkg/renderer"
+	"github.com/hashicorp/nomad-pack/terminal"
 )
 
 const NOMAD_CACHE = ".nomad/packs"
 const DEFAULT_REGISTRY_NAME = "default"
 const DEFAULT_REGISTRY_SOURCE = "git@github.com:hashicorp/nomad-pack-registry.git"
+
+// get the global cache directory
+func globalCacheDir() (string, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+
+	return path.Join(homeDir, NOMAD_CACHE), nil
+}
+
+// lists the currently configured global cache registries and their packs
+func listRegistries(ui terminal.UI) error {
+	// Get the global cache dir - may be configurable in the future, so using this
+	// helper function rather than a direct reference to the CONST.
+	globalCache, err := globalCacheDir()
+	if err != nil {
+		return err
+	}
+
+	// Initialize a table for a nice glint UI rendering
+	table := terminal.NewTable("REGISTRY", "REGISTRY_URL", "PACK", "VERSION")
+
+	// Load the list of registries.
+	registries, err := registry.LoadAllFromCache(globalCache)
+
+	// Iterate over the registries and build a table row for each cachedRegistry/pack
+	// entry at each version. Hierarchically, this should equate to the default
+	// cachedRegistry and all its peers.
+	for _, cachedRegistry := range registries {
+		for _, registryPack := range cachedRegistry.Packs {
+			tableRow := []terminal.TableEntry{
+				// Registry name - user defined alias or registry URL slug
+				{
+					Value: cachedRegistry.Name,
+				},
+				// The cachedRegistry URL from where the registryPack was cloned
+				{
+					Value: cachedRegistry.URL,
+				},
+				// The Name of the registryPack
+				{
+					Value: registryPack.Name(),
+				},
+				// The registryPack version
+				{
+					Value: registryPack.Metadata.Pack.Version,
+				},
+				//// TODO: The app version
+				//{
+				//	Value: registryPack.Metadata.App.Version,
+				//},
+			}
+			table.Rows = append(table.Rows, tableRow)
+		}
+	}
+
+	ui.Table(table)
+
+	return nil
+}
 
 func installRegistry(source string, destination string,
 	ui terminal.UI, errCtx *errors.UIErrorContext) error {
@@ -58,6 +120,7 @@ func createGlobalCache(ui terminal.UI, errCtx *errors.UIErrorContext) error {
 	globalCacheDir := path.Join(homedir, NOMAD_CACHE)
 	return createDir(globalCacheDir, "global cache", ui, errCtx)
 }
+
 func installDefaultRegistry(ui terminal.UI, errCtx *errors.UIErrorContext) error {
 	// Create default registry, if not exist
 	homedir, err := os.UserHomeDir()
@@ -78,6 +141,7 @@ func installUserRegistry(source string, name string, ui terminal.UI, errCtx *err
 	userRegistryDir := path.Join(homedir, NOMAD_CACHE, name)
 	return installRegistry(source, userRegistryDir, ui, errCtx)
 }
+
 func parseRepoFromPackName(packName string) (string, string, error) {
 	if len(packName) == 0 {
 		return "", "", stdErrors.New("invalid pack name: pack name cannot be empty")

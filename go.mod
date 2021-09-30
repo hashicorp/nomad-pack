@@ -1,4 +1,4 @@
-module github.com/hashicorp/nom
+module github.com/hashicorp/nomad-pack
 
 go 1.16
 

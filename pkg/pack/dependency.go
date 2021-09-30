@@ -1,6 +1,6 @@
 package pack
 
-import "github.com/hashicorp/nom/internal/pkg/helper/ptr"
+import "github.com/hashicorp/nomad-pack/internal/pkg/helper/ptr"
 
 // Dependency is a single dependency of a pack. A pack can have multiple and
 // each dependency represents an individual pack. A pack can be used as a

@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/hashicorp/nom/flag"
-	"github.com/hashicorp/nom/internal/pkg/errors"
-	"github.com/hashicorp/nom/internal/pkg/version"
 	v1client "github.com/hashicorp/nomad-openapi/clients/go/v1"
 	v1 "github.com/hashicorp/nomad-openapi/v1"
+
+	"github.com/hashicorp/nomad-pack/flag"
+	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
+	"github.com/hashicorp/nomad-pack/internal/pkg/version"
 	"github.com/posener/complete"
 )
 

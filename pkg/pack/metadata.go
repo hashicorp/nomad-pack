@@ -25,6 +25,9 @@ type MetadataApp struct {
 	// Author is an identifier to the author and maintainer of the pack such as
 	// HashiCorp or James Rasell
 	Author string `hcl:"author"`
+
+	// TODO: Add Version here, may need to be a block or series of entries to
+	// support packs that contain multiple apps.
 }
 
 // MetadataPack contains information regarding the pack itself.
@@ -41,6 +44,14 @@ type MetadataPack struct {
 	// Type of resource that is built by the pack. This currently has only one
 	// valid option of “job”.
 	Type string `hcl:"type"`
+
+	// URL is the HTTP(S) url of the pack which is acts as a convenience when
+	// managing packs within a registry.
+	URL string `hcl:"url"`
+
+	// Version is the version of the pack which is acts as a convenience when
+	// managing packs within a registry.
+	Version string `hcl:"version"`
 }
 
 // ConvertToMapInterface returns a map[string]interface{} representation of the
@@ -57,6 +68,8 @@ func (md *Metadata) ConvertToMapInterface() map[string]interface{} {
 				"name":        md.Pack.Name,
 				"description": md.Pack.Description,
 				"type":        md.Pack.Type,
+				"url":         md.Pack.URL,
+				"version":     md.Pack.Version,
 			},
 		},
 	}
@@ -75,6 +88,8 @@ func (md *Metadata) AddToInterfaceMap(m map[string]interface{}) map[string]inter
 			"name":        md.Pack.Name,
 			"description": md.Pack.Description,
 			"type":        md.Pack.Type,
+			"url":         md.Pack.URL,
+			"version":     md.Pack.Version,
 		},
 	}
 	return m

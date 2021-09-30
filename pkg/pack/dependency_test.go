@@ -3,7 +3,7 @@ package pack
 import (
 	"testing"
 
-	"github.com/hashicorp/nom/internal/pkg/helper/ptr"
+	"github.com/hashicorp/nomad-pack/internal/pkg/helper/ptr"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -28,8 +28,8 @@ func TestDependency_Validate(t *testing.T) {
 		},
 		{
 			inputDependency: &Dependency{
-				Name:   "example",
-				Source: "git://example.com/example",
+				Name:    "example",
+				Source:  "git://example.com/example",
 				Enabled: ptr.Bool(false),
 			},
 			expectedOutputDependency: &Dependency{
@@ -41,8 +41,8 @@ func TestDependency_Validate(t *testing.T) {
 		},
 		{
 			inputDependency: &Dependency{
-				Name:   "example",
-				Source: "git://example.com/example",
+				Name:    "example",
+				Source:  "git://example.com/example",
 				Enabled: ptr.Bool(true),
 			},
 			expectedOutputDependency: &Dependency{
