@@ -207,22 +207,22 @@ func getDeployedPackJobs(jobsApi *v1.Jobs, packName, deploymentName, repoName st
 	var packJobs []*v1client.Job
 	hasOtherDeploys := false
 	for _, jobStub := range jobs {
-		job, _, err := jobsApi.GetJob(opts.Ctx(), *jobStub.ID)
+		nomadJob, _, err := jobsApi.GetJob(opts.Ctx(), *jobStub.ID)
 		if err != nil {
-			return nil, fmt.Errorf("error retrieving job %s for pack %s: %s", *job.ID, packName, err)
+			return nil, fmt.Errorf("error retrieving job %s for pack %s: %s", *nomadJob.ID, packName, err)
 		}
 
-		if job.Meta != nil {
-			jobMeta := *job.Meta
+		if nomadJob.Meta != nil {
+			jobMeta := *nomadJob.Meta
 			jobDeploymentName, ok := jobMeta[packDeploymentNameKey]
 
 			if ok {
 				if jobDeploymentName == deploymentName {
-					packJobs = append(packJobs, job)
+					packJobs = append(packJobs, nomadJob)
 				} else {
 					// Check if there are jobs that match the pack name but with different
 					// deployment names in case packJobs is empty.
-					jobPackPath, nameOk := jobMeta[packKey]
+					jobPackPath, nameOk := jobMeta[job.PackKey]
 					packPath, _ := getPackPath(repoName, packName)
 					if nameOk && jobPackPath == packPath {
 						hasOtherDeploys = true
@@ -294,4 +294,8 @@ func generateRunner(client *v1.Client, packType, cliCfg interface{}, runnerCfg *
 	// done in a single place.
 	deployerImpl.SetRunnerConfig(runnerCfg)
 	return deployerImpl, nil
+}
+
+func hasVarOverrides(c *baseCommand) bool {
+	return len(c.varFiles) > 0 || len(c.vars) > 0
 }

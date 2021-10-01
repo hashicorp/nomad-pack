@@ -54,14 +54,23 @@ func (c *DestroyCommand) AutocompleteFlags() complete.Flags {
 
 func (c *DestroyCommand) Help() string {
 	c.Example = `
-	# Stop an example pack named "dev" and delete it from the cluster
+	# Stop an example pack in deployment "dev" and delete it from the cluster
 	nomad-pack destroy example --name=dev
+
+	# Stop and delete an example pack in deployment "dev" that has a job named "test"
+	# If the same pack has been installed in deployment "dev" but overriding the job 
+	# name to "hello", only "test" will be deleted
+	nomad-pack destroy example --name=dev --var=job_name=test	
 	`
 	return formatHelp(`
 	Usage: nomad-pack destroy <pack name> [options]
 
 	Stop and delete the specified Nomad Pack from the configured Nomad cluster.
-	This is the same as using the command "nomad-pack stop <pack name> --purge"
+	This is the same as using the command "nomad-pack stop <pack name> --purge".
+	By default, the destroy command will delete ALL jobs in the pack deployment. 
+	If a pack was run using var overrides to specify the job name(s), the var 
+	overrides MUST be provided when destroying the pack to guarantee nomad-pack 
+	targets the correct job(s) in the pack deployment.
 	
 ` + c.GetExample() + c.Flags().Help())
 }

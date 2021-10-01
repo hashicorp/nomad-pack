@@ -377,7 +377,6 @@ func TestJobDestroy(t *testing.T) {
 
 	baseCommand := &baseCommand{
 		Ctx: context.Background(),
-		Log: hclog.Default(),
 	}
 
 	r := &RunCommand{baseCommand: baseCommand}
@@ -405,7 +404,6 @@ func TestJobDestroyFails(t *testing.T) {
 
 	baseCommand := &baseCommand{
 		Ctx: context.Background(),
-		Log: hclog.Default(),
 	}
 
 	r := &RunCommand{baseCommand: baseCommand}
@@ -415,6 +413,52 @@ func TestJobDestroyFails(t *testing.T) {
 	d := &DestroyCommand{&StopCommand{baseCommand: baseCommand}}
 	exitCode = d.Run([]string{"nomad_example", "destroy", "--purge"})
 	require.Equal(t, 1, exitCode)
+
+	os.Setenv("NOMAD_ADDR", nomadAddr)
+}
+
+// Test that destroy properly uses var overrides to target the job
+func TestJobDestroyWithOverrides(t *testing.T) {
+	nomadAddr := os.Getenv("NOMAD_ADDR")
+	os.Setenv("NOMAD_ADDR", "http://127.0.0.1:4646")
+
+	baseCommand := &baseCommand{
+		Ctx: context.Background(),
+	}
+
+	// Create multiple jobs in the same pack deployment
+	r := &RunCommand{baseCommand: baseCommand}
+	deployName := "--name=test"
+	jobNames := []string{"foo", "bar"}
+	for _, j := range jobNames {
+		exitCode := r.Run([]string{"nomad_example", deployName, `--var=job_name=` + j})
+		require.Equal(t, 0, exitCode)
+	}
+
+	// Stop nonexistent job
+	d := &DestroyCommand{StopCommand: &StopCommand{baseCommand: baseCommand}}
+	exitCode := d.Run([]string{r.packName, deployName, "--var=job_name=baz"})
+	require.Equal(t, 1, exitCode)
+
+	// Stop job with var override
+	exitCode = d.Run([]string{r.packName, deployName, "--var=job_name=foo"})
+	require.Equal(t, 0, exitCode)
+
+	// Assert job "bar" still exists
+	nomadPath, err := exec.LookPath("nomad")
+	require.NoError(t, err)
+	nomadCmd := exec.Command(nomadPath, "status", "bar")
+	err = nomadCmd.Run()
+	require.NoError(t, err)
+
+	// Stop job with no overrides passed
+	exitCode = d.Run([]string{r.packName, deployName})
+	require.Equal(t, 0, exitCode)
+
+	// Assert job bar is gone
+	nomadCmd = exec.Command(nomadPath, "status", "bar")
+	err = nomadCmd.Run()
+	require.Error(t, err)
 
 	os.Setenv("NOMAD_ADDR", nomadAddr)
 }

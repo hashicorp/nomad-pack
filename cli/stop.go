@@ -69,12 +69,12 @@ func (c *StopCommand) Run(args []string) int {
 	// set a local variable to the JobsApi
 	jobsApi := client.Jobs()
 
-	if c.deploymentName == "" {
-		repoPath, err := getRepoPath(c.registryName, c.ui, errorContext)
-		if err != nil {
-			return 1
-		}
+	repoPath, err := getRepoPath(c.registryName, c.ui, errorContext)
+	if err != nil {
+		return 1
+	}
 
+	if c.deploymentName == "" {
 		// Add the path to the pack on the error context.
 		errorContext.Add(errors.UIContextPrefixPackPath, repoPath)
 
@@ -93,15 +93,55 @@ func (c *StopCommand) Run(args []string) int {
 	}
 	errorContext.Add(errors.UIContextPrefixDeploymentName, c.deploymentName)
 
-	jobs, err := getDeployedPackJobs(jobsApi, c.packName, c.deploymentName, registryName)
-	if err != nil {
-		c.ui.ErrorWithContext(err, "failed to find jobs for pack", errorContext.GetAll()...)
-		return 1
-	}
+	var jobs []*v1client.Job
 
-	if len(jobs) == 0 {
-		c.ui.Warning(fmt.Sprintf("no jobs found for pack %q", c.packName))
-		return 1
+	// Get job names if var overrides are passed
+	if hasVarOverrides(c.baseCommand) {
+		packManager := generatePackManager(c.baseCommand, client, repoPath, c.packName)
+		// render the pack
+		r, err := renderPack(packManager, c.baseCommand.ui, errorContext)
+		if err != nil {
+			return 255
+		}
+
+		// Commands that render templates are required to render at least one
+		// parent template.
+		if r.LenParentRenders() < 1 {
+			c.ui.ErrorWithContext(errors.ErrNoTemplatesRendered, "no templates rendered", errorContext.GetAll()...)
+			return 1
+		}
+
+		for tplName, tpl := range r.ParentRenders() {
+
+			// tplErrorContext forms the basis for error output context as is
+			// appended to when new information becomes available.
+			tplErrorContext := errorContext.Copy()
+			tplErrorContext.Add(errors.UIContextPrefixTemplateName, tplName)
+
+			// get job struct from template
+			// TODO: Should we add an hcl1 flag?
+			job, err := parseJob(c.ui, tpl, false, tplErrorContext)
+			if err != nil {
+				// err output is handled by parseJob
+				return 1
+			}
+
+			// Add the jobID to the error context.
+			tplErrorContext.Add(errors.UIContextPrefixJobName, job.GetName())
+			jobs = append(jobs, job)
+		}
+	} else {
+		// If no job names are specified, get all jobs belonging to the pack and deployment
+		jobs, err = getDeployedPackJobs(jobsApi, c.packName, c.deploymentName, registryName)
+		if err != nil {
+			c.ui.ErrorWithContext(err, "failed to find jobs for pack", errorContext.GetAll()...)
+			return 1
+		}
+
+		if len(jobs) == 0 {
+			c.ui.Warning(fmt.Sprintf("no jobs found for pack %q", c.packName))
+			return 1
+		}
 	}
 
 	var errs []error
@@ -159,11 +199,11 @@ func (c *StopCommand) checkForConflicts(jobsApi *v1.Jobs, jobName string) error 
 	}
 	jobs, _, err := jobsApi.GetJobs(queryOpts.Ctx())
 	if err != nil {
-		return fmt.Errorf("error checking for conflicts for job %s: %s", jobName, err)
+		return fmt.Errorf("error checking for conflicts for job %q: %s", jobName, err)
 	}
 
 	if len(jobs) == 0 {
-		return fmt.Errorf("no job(s) with prefix or id %s found", jobName)
+		return fmt.Errorf("no job(s) with prefix or id %q found", jobName)
 	}
 
 	if len(jobs) > 1 {
@@ -221,8 +261,6 @@ func (c *StopCommand) confirmStop() bool {
 
 func (c *StopCommand) Flags() *flag.Sets {
 	return c.flagSet(flagSetOperation, func(set *flag.Sets) {
-		set.HideUnusedFlags("Operation Options", []string{"var", "var-file"})
-
 		f := set.NewSet("Stop Options")
 
 		f.BoolVar(&flag.BoolVar{
@@ -253,17 +291,26 @@ func (c *StopCommand) AutocompleteFlags() complete.Flags {
 
 func (c *StopCommand) Help() string {
 	c.Example = `
-	# Stop an example pack named "dev"
+	# Stop an example pack in deployment "dev"
 	nomad-pack stop example --name=dev
 
-	# Stop an example pack named "dev" and purge it from the system
+	# Stop an example pack in deployment "dev" and purge it from the system
 	nomad-pack stop example --name=dev --purge
+
+	# Stop an example pack in deployment "dev" that has a job named "test"
+	# If the same pack has been installed in deployment "dev" but overriding the job 
+	# name to "hello", only "test" will be stopped
+	nomad-pack stop example --name=dev --var=job_name=test
 	`
 	return formatHelp(`
 	Usage: nomad-pack stop <pack name> [options]
 
 	Stop the specified Nomad Pack in the configured Nomad cluster. To delete the pack from
-	the cluster, specify "--purge", or use the command "nomad-pack destroy <pack name>"
+	the cluster, specify "--purge", or use the command "nomad-pack destroy <pack name>."
+	By default, the stop command will stop ALL jobs in the pack deployment. If a pack
+	was run using var overrides to specify the job name(s), the var overrides MUST be
+	provided when stopping the pack to guarantee nomad-pack targets the correct job(s)
+	in the pack deployment.
 	
 ` + c.GetExample() + c.Flags().Help())
 }
