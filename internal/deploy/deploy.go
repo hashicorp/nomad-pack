@@ -24,6 +24,24 @@ type DeployerConfig struct {
 	RegistryName   string
 }
 
+// DeployerPlanCode* is the set of expected error codes that
+// Deployer.PlanDeployment should return. Please see the interface function
+// docstring for more details.
+const (
+	DeployerPlanCodeNoUpdates = 0
+	DeployerPlanCodeUpdates   = 1
+	DeployerPlanCodeError     = 255
+)
+
+// HigherPlanCode is a helper function that returns the highest plan exit code
+// so implementations can easily track the code to return.
+func HigherPlanCode(old, new int) int {
+	if new > old {
+		return new
+	}
+	return old
+}
+
 // Deployer is the interface that defines the deployment mechanism for creating
 // objects in a Nomad cluster from pack templates. This currently only covers
 // validation of templates against their native Nomad object, but will be
@@ -60,8 +78,15 @@ type Deployer interface {
 
 	// PlanDeployment plans the deployment of the templates. As the information
 	// of the plan is specific to the object, it is the responsibility of the
-	// implementation to print console information via the terminal.UI.
-	PlanDeployment(terminal.UI) []*DeployerError
+	// implementation to print console information via the terminal.UI. The
+	// returned int identifies the exit code for the CLI. In order to keep
+	// consistency with the Nomad CLI and across pack objects, the following
+	// rules should be used:
+	//
+	// code 0:   No objects will be created or destroyed.
+	// code 1:   Objects will be created or destroyed.
+	// code 255: An error occurred determining the plan.
+	PlanDeployment(terminal.UI, *errors.UIErrorContext) (int, []*DeployerError)
 
 	// SetTemplates supplies the rendered templates to the deployer for use in
 	// subsequent function calls.

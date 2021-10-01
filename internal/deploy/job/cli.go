@@ -3,7 +3,8 @@ package job
 // CLIConfig contains all possible configurations required by the Nomad Pack
 // CLI in order to render, plan, run, and destroy job templates.
 type CLIConfig struct {
-	RunConfig     *RunCLIConfig
+	RunConfig  *RunCLIConfig
+	PlanConfig *PlanCLIConfig
 }
 
 // RunCLIConfig specifies the configuration that is used by the Nomad Pack run
@@ -18,4 +19,13 @@ type RunCLIConfig struct {
 	HCL1            bool
 	PreserveCounts  bool
 	PolicyOverride  bool
+}
+
+// PlanCLIConfig specifies the configuration that is used by the Nomad Pack
+// plan command.
+type PlanCLIConfig struct {
+	HCL1           bool
+	PolicyOverride bool
+	Verbose        bool
+	Diff           bool
 }
