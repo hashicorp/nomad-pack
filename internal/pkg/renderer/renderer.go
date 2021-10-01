@@ -37,6 +37,11 @@ type toRender struct {
 	variables map[string]interface{}
 }
 
+const (
+	leftTemplateDelim  = "[["
+	rightTemplateDelim = "]]"
+)
+
 // Render is responsible for iterating the pack and rendering each defined
 // template using the parsed variable map.
 func (r *Renderer) Render(p *pack.Pack, variables map[string]interface{}) (*Rendered, error) {
@@ -45,8 +50,9 @@ func (r *Renderer) Render(p *pack.Pack, variables map[string]interface{}) (*Rend
 	templatesToRender := make(map[string]toRender)
 	prepareTemplates(p, templatesToRender, variables)
 
-	// Set up our new template and add the function mapping.
-	tpl := template.New("tpl").Funcs(funcMap(r.Client))
+	// Set up our new template, add the function mapping, and set the
+	// delimiters.
+	tpl := template.New("tpl").Funcs(funcMap(r.Client)).Delims(leftTemplateDelim, rightTemplateDelim)
 
 	// Control the behaviour of rendering when it encounters an element
 	// referenced which doesn't exist within the variable mapping.
