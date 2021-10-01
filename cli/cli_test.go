@@ -6,7 +6,6 @@ import (
 	"os/exec"
 	"testing"
 
-	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
 )
 
@@ -42,7 +41,6 @@ func TestJobRun(t *testing.T) {
 
 	baseCommand := &baseCommand{
 		Ctx: context.Background(),
-		Log: hclog.Default(),
 	}
 
 	c := RunCommand{baseCommand: baseCommand}
@@ -64,7 +62,6 @@ func TestJobRunConflictingDeployment(t *testing.T) {
 
 	baseCommand := &baseCommand{
 		Ctx: context.Background(),
-		Log: hclog.Default(),
 	}
 
 	runCommand := RunCommand{baseCommand: baseCommand}
@@ -105,7 +102,6 @@ func TestJobRunConflictingNonPackJob(t *testing.T) {
 
 	baseCommand := &baseCommand{
 		Ctx: context.Background(),
-		Log: hclog.Default(),
 	}
 
 	runCommand := RunCommand{baseCommand: baseCommand}
@@ -131,7 +127,6 @@ func TestJobRunConflictingJobWithMetaButNoDeploymentKey(t *testing.T) {
 
 	baseCommand := &baseCommand{
 		Ctx: context.Background(),
-		Log: hclog.Default(),
 	}
 
 	runCommand := RunCommand{baseCommand: baseCommand}
@@ -162,7 +157,6 @@ func TestJobRunFails(t *testing.T) {
 
 	baseCommand := &baseCommand{
 		Ctx: context.Background(),
-		Log: hclog.Default(),
 	}
 
 	c := &RunCommand{baseCommand: baseCommand}
@@ -181,7 +175,6 @@ func TestJobPlan(t *testing.T) {
 
 	baseCommand := &baseCommand{
 		Ctx: context.Background(),
-		Log: hclog.Default(),
 	}
 
 	c := &PlanCommand{baseCommand: baseCommand}
@@ -202,7 +195,6 @@ func TestJobPlanConflictingDeployment(t *testing.T) {
 
 	baseCommand := &baseCommand{
 		Ctx: context.Background(),
-		Log: hclog.Default(),
 	}
 
 	runCommand := RunCommand{baseCommand: baseCommand}
@@ -241,7 +233,6 @@ func TestJobPlanConflictingNonPackJob(t *testing.T) {
 
 	baseCommand := &baseCommand{
 		Ctx: context.Background(),
-		Log: hclog.Default(),
 	}
 
 	planCommand := PlanCommand{baseCommand: baseCommand}
@@ -267,7 +258,6 @@ func TestJobPlanConflictingJobWithMetaButNoDeploymentKey(t *testing.T) {
 
 	baseCommand := &baseCommand{
 		Ctx: context.Background(),
-		Log: hclog.Default(),
 	}
 
 	nomadPath, err := exec.LookPath("nomad")
@@ -299,7 +289,6 @@ func TestJobDestroy(t *testing.T) {
 
 	baseCommand := &baseCommand{
 		Ctx: context.Background(),
-		Log: hclog.Default(),
 	}
 
 	runCommand := &RunCommand{baseCommand: baseCommand}
@@ -323,7 +312,6 @@ func TestJobDestroyConflicts(t *testing.T) {
 
 	baseCommand := &baseCommand{
 		Ctx: context.Background(),
-		Log: hclog.Default(),
 	}
 
 	runCommand := &RunCommand{baseCommand: baseCommand}
@@ -347,7 +335,6 @@ func TestFlagProvidedButNotDefined(t *testing.T) {
 
 	baseCommand := &baseCommand{
 		Ctx: context.Background(),
-		Log: hclog.Default(),
 	}
 
 	r := &RunCommand{baseCommand: baseCommand}

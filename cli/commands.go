@@ -9,7 +9,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/hashicorp/go-hclog"
 	"github.com/mitchellh/go-wordwrap"
 	"github.com/posener/complete"
 
@@ -27,14 +26,6 @@ type baseCommand struct {
 	// Ctx is the base context for the command. It is up to commands to
 	// utilize this context so that cancellation works in a timely manner.
 	Ctx context.Context
-
-	// Log is the logger to use.
-	Log hclog.Logger
-
-	// LogOutput is the writer that Log points to. You SHOULD NOT use
-	// this directly. We have access to this so you can use
-	// hclog.OutputResettable if necessary.
-	LogOutput io.Writer
 
 	// Example usage
 	Example string
@@ -182,20 +173,6 @@ func (c *baseCommand) Init(opts ...Option) error {
 	}
 
 	return nil
-}
-
-// logError logs an error and outputs it to the UI.
-func (c *baseCommand) logError(log hclog.Logger, prefix string, err error) {
-	if err == ErrSentinel {
-		return
-	}
-
-	log.Error(prefix, "error", err)
-
-	if prefix != "" {
-		prefix += ": "
-	}
-	c.ui.Output("%s%s", prefix, err, terminal.WithErrorStyle())
 }
 
 // flagSet creates the flags for this command. The callback should be used
