@@ -160,6 +160,11 @@ func Commands(
 				},
 			}, nil
 		},
+		"status": func() (cli.Command, error) {
+			return &StatusCommand{
+				baseCommand: baseCommand,
+			}, nil
+		},
 	}
 	return baseCommand, commands
 }

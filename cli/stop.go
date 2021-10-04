@@ -132,7 +132,7 @@ func (c *StopCommand) Run(args []string) int {
 		}
 	} else {
 		// If no job names are specified, get all jobs belonging to the pack and deployment
-		jobs, err = getDeployedPackJobs(jobsApi, c.packName, c.deploymentName, registryName)
+		jobs, err = getPackJobsByDeploy(jobsApi, c.packName, c.deploymentName, registryName)
 		if err != nil {
 			c.ui.ErrorWithContext(err, "failed to find jobs for pack", errorContext.GetAll()...)
 			return 1

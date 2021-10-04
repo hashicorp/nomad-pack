@@ -193,13 +193,12 @@ func getJob(jobsApi *v1.Jobs, jobName string, queryOpts *v1.QueryOpts) (*v1clien
 	return result, meta, nil
 }
 
-func getDeployedPackJobs(jobsApi *v1.Jobs, packName, deploymentName, repoName string) ([]*v1client.Job, error) {
+func getPackJobsByDeploy(jobsApi *v1.Jobs, packName, deploymentName, registryName string) ([]*v1client.Job, error) {
 	opts := &v1.QueryOpts{}
 	jobs, _, err := jobsApi.GetJobs(opts.Ctx())
 	if err != nil {
 		return nil, fmt.Errorf("error finding jobs for pack %s: %s", packName, err)
 	}
-
 	if len(jobs) == 0 {
 		return nil, fmt.Errorf("no job(s) found")
 	}
@@ -222,9 +221,14 @@ func getDeployedPackJobs(jobsApi *v1.Jobs, packName, deploymentName, repoName st
 				} else {
 					// Check if there are jobs that match the pack name but with different
 					// deployment names in case packJobs is empty.
-					jobPackPath, nameOk := jobMeta[job.PackKey]
-					packPath, _ := getPackPath(repoName, packName)
-					if nameOk && jobPackPath == packPath {
+					// jobPackPath, nameOk := jobMeta[job.PackKey]
+					// packPath, _ := getPackPath(repoName, packName)
+					// if nameOk && jobPackPath == packPath {
+					// Since different registries can share pack names, we need to check
+					// registry and pack names both match
+					jobRegistry, registryOk := jobMeta[job.PackRegistryKey]
+					jobPack, packOk := jobMeta[job.PackNameKey]
+					if registryOk && packOk && jobRegistry == registryName && jobPack == packName {
 						hasOtherDeploys = true
 					}
 				}
@@ -232,9 +236,10 @@ func getDeployedPackJobs(jobsApi *v1.Jobs, packName, deploymentName, repoName st
 		}
 
 		if len(packJobs) == 0 && hasOtherDeploys {
-			// TODO: do we also want to direct the user to run nomad-pack status (still needs doing)
-			// for more info? Return that info here?
-			return nil, fmt.Errorf("pack %q running but not in deployment %q", packName, deploymentName)
+			// TODO: the aesthetics here could be better. This error line is very long.
+			return nil, fmt.Errorf(
+				"pack %q running but not in deployment %q. Run \"nomad-pack status %s\" for more information",
+				packName, deploymentName, packName)
 		}
 	}
 	return packJobs, nil
@@ -298,4 +303,100 @@ func generateRunner(client *v1.Client, packType, cliCfg interface{}, runnerCfg *
 
 func hasVarOverrides(c *baseCommand) bool {
 	return len(c.varFiles) > 0 || len(c.vars) > 0
+}
+
+func getDeployedPacks(jobsApi *v1.Jobs) (map[string]map[string]struct{}, error) {
+	opts := &v1.QueryOpts{}
+	jobStubs, _, err := jobsApi.GetJobs(opts.Ctx())
+	if err != nil {
+		return nil, fmt.Errorf("error finding jobs: %s", err)
+	}
+
+	packRegistryMap := map[string]map[string]struct{}{}
+	for _, jobStub := range jobStubs {
+		nomadJob, _, err := jobsApi.GetJob(opts.Ctx(), *jobStub.ID)
+		if err != nil {
+			return nil, fmt.Errorf("error retrieving job %s: %s", *nomadJob.ID, err)
+		}
+
+		if nomadJob.Meta != nil {
+			jobMeta := *nomadJob.Meta
+			// Check metadata for pack info
+			packName, packNameOk := jobMeta[job.PackNameKey]
+			packRegistry, registryNameOk := jobMeta[job.PackRegistryKey]
+			if packNameOk && registryNameOk {
+				// Build a map of packs and their registries
+				registryMap, deployedPackOk := packRegistryMap[packName]
+
+				if deployedPackOk {
+					_, registryOk := registryMap[packRegistry]
+					if !registryOk {
+						registryMap[packRegistry] = struct{}{}
+					}
+				} else {
+					packRegistryMap[packName] = map[string]struct{}{}
+					packRegistryMap[packName][packRegistry] = struct{}{}
+				}
+			}
+		}
+	}
+	return packRegistryMap, nil
+}
+
+// TODO: this doesn't seem like the best design but I couldn't think of
+// another way to return error info along with the pack and job info
+// unless we directly formatted the table here, which seemed to be moving
+// away from what we've tried to do everywhere else and separate formatting
+// from output
+type JobStatusInfo struct {
+	packName       string
+	registryName   string
+	deploymentName string
+	jobID          string
+	status         string
+}
+
+func getDeployedPackJobs(jobsApi *v1.Jobs, packName, registryName, deploymentName string) ([]JobStatusInfo, error) {
+	opts := &v1.QueryOpts{}
+	jobs, _, err := jobsApi.GetJobs(opts.Ctx())
+	if err != nil {
+		return nil, fmt.Errorf("error finding jobs for pack %s: %s", packName, err)
+	}
+
+	var packJobs []JobStatusInfo
+	for _, jobStub := range jobs {
+		nomadJob, _, err := jobsApi.GetJob(opts.Ctx(), *jobStub.ID)
+		if err != nil {
+			packJobs = append(packJobs, JobStatusInfo{
+				packName:       packName,
+				registryName:   registryName,
+				deploymentName: deploymentName,
+				jobID:          *jobStub.ID,
+				status:         err.Error(),
+			})
+			continue
+		}
+
+		if nomadJob.Meta != nil {
+			jobMeta := *nomadJob.Meta
+			jobPackName, ok := jobMeta[job.PackNameKey]
+			if ok && jobPackName == packName {
+				// Filter by deployment name if specified
+				if deploymentName != "" {
+					jobDeployName, deployOk := jobMeta[job.PackDeploymentNameKey]
+					if deployOk && jobDeployName != deploymentName {
+						continue
+					}
+				}
+				packJobs = append(packJobs, JobStatusInfo{
+					packName:       packName,
+					registryName:   registryName,
+					deploymentName: jobMeta[job.PackDeploymentNameKey],
+					jobID:          *nomadJob.ID,
+					status:         *nomadJob.Status,
+				})
+			}
+		}
+	}
+	return packJobs, nil
 }

@@ -258,4 +258,13 @@ Destroy stops a running pack and purges it from the system. If the pack is alrea
 will delete it from the cluster. This is the equivalent of using the stop command with the purge option.
 `,
 	},
+	"status": {
+		"Status gets information on deployed packs",
+		`
+Status returns information on packs deployed in a configured Nomad cluster. If no
+pack name is specified, it will return a list of all deployed packs. If pack name
+is provided, it will return a list of the jobs in that pack, along with their status, 
+and the pack deployment they belong to. The --name flag can be used with pack name
+to limit the list of jobs to a specific deployment of the pack.`,
+	},
 }

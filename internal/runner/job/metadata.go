@@ -3,7 +3,9 @@ package job
 import v1client "github.com/hashicorp/nomad-openapi/clients/go/v1"
 
 const (
-	PackKey               = "pack"
+	PackPathKey           = "pack-path"
+	PackNameKey           = "pack-name"
+	PackRegistryKey       = "pack-registry"
 	PackDeploymentNameKey = "pack-deployment-name"
 	PackJobKey            = "pack-job"
 	PackVersionKey        = "pack-version"
@@ -19,7 +21,9 @@ func (r *Runner) setJobMeta(job *v1client.Job) {
 	}
 
 	// Add the Nomad Pack custom metadata.
-	jobMeta[PackKey] = r.runnerCfg.PathPath
+	jobMeta[PackPathKey] = r.runnerCfg.PathPath
+	jobMeta[PackNameKey] = r.runnerCfg.PackName
+	jobMeta[PackRegistryKey] = r.runnerCfg.RegistryName
 	jobMeta[PackDeploymentNameKey] = r.runnerCfg.DeploymentName
 	jobMeta[PackJobKey] = *job.Name
 	jobMeta[PackVersionKey] = r.runnerCfg.PackVersion
