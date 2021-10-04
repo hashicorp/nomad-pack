@@ -10,6 +10,9 @@ bin/*
 # Test binary, built with `go test -c`
 *.test
 
+# Release binary output directory
+pkg/
+
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
@@ -18,4 +21,3 @@ vendor/
 
 # Ignore generated OpenAPI docs
 openapi/client/docs/
-
