@@ -1,8 +1,8 @@
 package cli
 
 import (
-	"github.com/hashicorp/nom/flag"
-	"github.com/hashicorp/nom/internal/pkg/errors"
+	"github.com/hashicorp/nomad-pack/flag"
+	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/posener/complete"
 )
 

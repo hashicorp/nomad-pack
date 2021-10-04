@@ -3,7 +3,7 @@ package pack
 import (
 	"testing"
 
-	"github.com/hashicorp/nom/internal/pkg/helper/ptr"
+	"github.com/hashicorp/nomad-pack/internal/pkg/helper/ptr"
 	"github.com/stretchr/testify/assert"
 )
 
