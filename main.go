@@ -1,9 +1,10 @@
 package main
 
 import (
-	"github.com/hashicorp/nomad-pack/cli"
 	"os"
 	"path/filepath"
+
+	"github.com/hashicorp/nomad-pack/cli"
 )
 
 func main() {
