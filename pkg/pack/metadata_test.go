@@ -21,7 +21,6 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 				Pack: &MetadataPack{
 					Name:        "Example",
 					Description: "The most basic, yet awesome, example",
-					Type:        "job",
 				},
 			},
 			expectedOutput: map[string]interface{}{
@@ -33,7 +32,6 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 					"pack": map[string]interface{}{
 						"name":        "Example",
 						"description": "The most basic, yet awesome, example",
-						"type":        "job",
 					},
 				},
 			},
@@ -46,7 +44,6 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 				},
 				Pack: &MetadataPack{
 					Name: "Example",
-					Type: "job",
 				},
 			},
 			expectedOutput: map[string]interface{}{
@@ -58,7 +55,6 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 					"pack": map[string]interface{}{
 						"name":        "Example",
 						"description": "",
-						"type":        "job",
 					},
 				},
 			},
@@ -87,7 +83,6 @@ func TestMetadata_Validate(t *testing.T) {
 				Pack: &MetadataPack{
 					Name:        "Example",
 					Description: "The most basic, yet awesome, example",
-					Type:        "job",
 				},
 			},
 			expectError: false,
@@ -97,21 +92,6 @@ func TestMetadata_Validate(t *testing.T) {
 			inputMetadata: nil,
 			expectError:   true,
 			name:          "nil guard",
-		},
-		{
-			inputMetadata: &Metadata{
-				App: &MetadataApp{
-					URL:    "https://example.com",
-					Author: "Timothy J. Berners-Lee",
-				},
-				Pack: &MetadataPack{
-					Name:        "Example",
-					Description: "The most basic, yet awesome, example",
-					Type:        "cluster",
-				},
-			},
-			expectError: true,
-			name:        "invalid pack type",
 		},
 	}
 

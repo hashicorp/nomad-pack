@@ -2,7 +2,6 @@ package pack
 
 import (
 	"errors"
-	"fmt"
 )
 
 // Metadata is the contents of the Pack metadata.hcl file. It contains
@@ -37,10 +36,6 @@ type MetadataPack struct {
 	// Description is a small overview of the application that is deployed by
 	// the pack.
 	Description string `hcl:"description,optional"`
-
-	// Type of resource that is built by the pack. This currently has only one
-	// valid option of “job”.
-	Type string `hcl:"type"`
 }
 
 // ConvertToMapInterface returns a map[string]interface{} representation of the
@@ -56,7 +51,6 @@ func (md *Metadata) ConvertToMapInterface() map[string]interface{} {
 			"pack": map[string]interface{}{
 				"name":        md.Pack.Name,
 				"description": md.Pack.Description,
-				"type":        md.Pack.Type,
 			},
 		},
 	}
@@ -74,7 +68,6 @@ func (md *Metadata) AddToInterfaceMap(m map[string]interface{}) map[string]inter
 		"pack": map[string]interface{}{
 			"name":        md.Pack.Name,
 			"description": md.Pack.Description,
-			"type":        md.Pack.Type,
 		},
 	}
 	return m
@@ -113,18 +106,5 @@ func (ma *MetadataApp) validate() error {
 // validate the MetadataPack object to ensure it meets requirements and doesn't
 // contain invalid or incorrect data.
 func (mp *MetadataPack) validate() error {
-	if !isValidPackType(mp.Type) {
-		return fmt.Errorf("invalid pack type %q", mp.Type)
-	}
 	return nil
-}
-
-// isValidPackType validates that the MetadataPack.Type field is valid and can
-// be handled.
-func isValidPackType(typ string) bool {
-	switch typ {
-	case "job":
-		return true
-	}
-	return false
 }
