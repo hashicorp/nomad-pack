@@ -4,25 +4,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
-	"io/ioutil"
-	"os"
 	"text/tabwriter"
-
-	"github.com/hashicorp/go-hclog"
-	"github.com/mitchellh/cli"
-	"github.com/mitchellh/go-glint"
 
 	flag "github.com/hashicorp/nom/flag"
 	"github.com/hashicorp/nom/internal/pkg/version"
-)
-
-const (
-	// EnvLogLevel is the env var to set with the log level.
-	EnvLogLevel = "NOMAD_PACK_LOG_LEVEL"
-
-	// EnvPlain is the env var that can be set to force plain output mode.
-	EnvPlain = "NOMAD_PACK_PLAIN"
+	"github.com/mitchellh/cli"
+	"github.com/mitchellh/go-glint"
 )
 
 var (
@@ -51,24 +38,13 @@ func Main(args []string) int {
 		args[1] = "--version"
 	}
 
-	// Initialize our logger based on env vars
-	args, log, logOutput, err := logger(args)
-	if err != nil {
-		panic(err)
-	}
-
-	// Log our versions
-	log.Info("Nomad Pack version",
-		"version", version.HumanVersion(),
-	)
-
 	// Build our cancellation context
-	ctx, closer := WithInterrupt(context.Background(), log)
+	ctx, closer := WithInterrupt(context.Background())
 	defer closer()
 
 	// Get our base command
 	fset := flag.NewSets()
-	base, commands := Commands(ctx, log, logOutput, WithFlags((fset)))
+	base, commands := Commands(ctx, WithFlags((fset)))
 	defer base.Close()
 
 	// Build the CLI. We use a
@@ -107,17 +83,13 @@ func Main(args []string) int {
 	return exitCode
 }
 
-// commands returns the map of commands that can be used to initialize a CLI.
+// Commands returns the map of commands that can be used to initialize a CLI.
 func Commands(
 	ctx context.Context,
-	log hclog.Logger,
-	logOutput io.Writer,
 	opts ...Option,
 ) (*baseCommand, map[string]cli.CommandFactory) {
 	baseCommand := &baseCommand{
 		Ctx:           ctx,
-		Log:           log,
-		LogOutput:     logOutput,
 		globalOptions: opts,
 	}
 
@@ -179,67 +151,6 @@ func Commands(
 		},
 	}
 	return baseCommand, commands
-}
-
-// logger returns the logger to use for the CLI. Output, level, etc. are
-// determined based on environment variables if set.
-func logger(args []string) ([]string, hclog.Logger, io.Writer, error) {
-	app := args[0]
-
-	// Determine our log level if we have any. First override we check if env var
-	level := hclog.NoLevel
-	if v := os.Getenv(EnvLogLevel); v != "" {
-		level = hclog.LevelFromString(v)
-		if level == hclog.NoLevel {
-			return nil, nil, nil, fmt.Errorf("%s value %q is not a valid log level", EnvLogLevel, v)
-		}
-	}
-
-	// ProcessTemplates arguments looking for `-v` flags to control the log level.
-	// This overrides whatever the env var set.
-	// TODO this conflicts with using -v as shorthand for verbose
-	// commenting most of this out for now; come back to later maybe?
-	var outArgs []string
-	for _, arg := range args {
-		// if len(arg) != 0 && arg[0] != '-' {
-		outArgs = append(outArgs, arg)
-		continue
-		// }
-
-		// switch arg {
-		// case "-v":
-		// 	if level == hclog.NoLevel || level > hclog.Info {
-		// 		level = hclog.Info
-		// 	}
-		// case "-vv":
-		// 	if level == hclog.NoLevel || level > hclog.Debug {
-		// 		level = hclog.Debug
-		// 	}
-		// case "-vvv":
-		// 	if level == hclog.NoLevel || level > hclog.Trace {
-		// 		level = hclog.Trace
-		// 	}
-		// default:
-		// 	outArgs = append(outArgs, arg)
-		// }
-	}
-
-	// Default output is nowhere unless we enable logging.
-	var output io.Writer = ioutil.Discard
-	color := hclog.ColorOff
-	if level != hclog.NoLevel {
-		output = os.Stderr
-		color = hclog.AutoColor
-	}
-
-	logger := hclog.New(&hclog.LoggerOptions{
-		Name:   app,
-		Level:  level,
-		Color:  color,
-		Output: output,
-	})
-
-	return outArgs, logger, output, nil
 }
 
 func GroupedHelpFunc(f cli.HelpFunc) cli.HelpFunc {

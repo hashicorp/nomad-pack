@@ -10,7 +10,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/fatih/color v1.9.0
 	github.com/hashicorp/go-getter v1.5.4
-	github.com/hashicorp/go-hclog v0.16.2
+	github.com/hashicorp/go-hclog v0.16.2 // indirect
 	github.com/hashicorp/hcl/v2 v2.10.1
 	github.com/hashicorp/nomad v1.1.4
 	github.com/hashicorp/nomad-openapi v0.0.0-20210921122032-4500c39fcb76
