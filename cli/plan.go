@@ -7,12 +7,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/nom/flag"
-	"github.com/hashicorp/nom/internal/pkg/errors"
-	"github.com/hashicorp/nom/internal/pkg/version"
-	"github.com/hashicorp/nom/terminal"
 	v1client "github.com/hashicorp/nomad-openapi/clients/go/v1"
 	v1 "github.com/hashicorp/nomad-openapi/v1"
+	"github.com/hashicorp/nomad-pack/flag"
+	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
+	"github.com/hashicorp/nomad-pack/internal/pkg/version"
+	"github.com/hashicorp/nomad-pack/terminal"
 	"github.com/hashicorp/nomad/scheduler"
 	"github.com/posener/complete"
 )

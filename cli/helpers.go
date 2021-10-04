@@ -8,12 +8,12 @@ import (
 	"strings"
 
 	gg "github.com/hashicorp/go-getter"
-	"github.com/hashicorp/nom/internal/pkg/errors"
-	"github.com/hashicorp/nom/internal/pkg/manager"
-	"github.com/hashicorp/nom/internal/pkg/renderer"
-	"github.com/hashicorp/nom/terminal"
 	v1client "github.com/hashicorp/nomad-openapi/clients/go/v1"
 	v1 "github.com/hashicorp/nomad-openapi/v1"
+	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
+	"github.com/hashicorp/nomad-pack/internal/pkg/manager"
+	"github.com/hashicorp/nomad-pack/internal/pkg/renderer"
+	"github.com/hashicorp/nomad-pack/terminal"
 )
 
 const (

@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"text/tabwriter"
 
-	flag "github.com/hashicorp/nom/flag"
-	"github.com/hashicorp/nom/internal/pkg/version"
+	flag "github.com/hashicorp/nomad-pack/flag"
+	"github.com/hashicorp/nomad-pack/internal/pkg/version"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/go-glint"
 )

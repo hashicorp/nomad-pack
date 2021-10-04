@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"path"
 
-	"github.com/hashicorp/nom/internal/pkg/errors"
-	"github.com/hashicorp/nom/internal/pkg/loader"
-	"github.com/hashicorp/nom/internal/pkg/variable"
+	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
+	"github.com/hashicorp/nomad-pack/internal/pkg/loader"
+	"github.com/hashicorp/nomad-pack/internal/pkg/variable"
 )
 
 type InfoCommand struct {

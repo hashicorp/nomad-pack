@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/hashicorp/nom/cli"
+	"github.com/hashicorp/nomad-pack/cli"
 	"os"
 	"path/filepath"
 )
