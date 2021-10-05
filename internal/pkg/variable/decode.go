@@ -1,6 +1,7 @@
 package variable
 
 import (
+	"fmt"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/ext/typeexpr"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
@@ -28,6 +29,25 @@ func decodeVariableBlock(block *hcl.Block) (*Variable, hcl.Diagnostics) {
 	// problems in future use.
 	if !hclsyntax.ValidIdentifier(v.Name) {
 		diags = diags.Append(diagnosticInvalidVariableName(v.DeclRange.Ptr()))
+	}
+
+	// A variable doesn't need to declare a description. If it does, process
+	// this and store it, along with any processing errors.
+	if attr, exists := content.Attributes[variableAttributeDescription]; exists {
+		val, descDiags := attr.Expr.Value(nil)
+		diags = safeDiagnosticsExtend(diags, descDiags)
+
+		if val.Type() == cty.String {
+			v.Description = val.AsString()
+		} else {
+			diags = safeDiagnosticsAppend(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid type for description",
+				Detail: fmt.Sprintf("The description attribute is expected to be of type string, got %s",
+					val.Type().FriendlyName()),
+				Subject: attr.Range.Ptr(),
+			})
+		}
 	}
 
 	// A variable doesn't need to declare a type. If it does, process this and

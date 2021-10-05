@@ -16,6 +16,10 @@ type Variable struct {
 	// overridden and during templating.
 	Name string
 
+	// Description is an optional field which provides additional context to
+	// users identifying what the variable is used for.
+	Description string
+
 	// Type represents the concrete cty type of this variable. If the type is
 	// unable to be parsed into a cty type, it is invalid.
 	Type cty.Type
