@@ -48,13 +48,13 @@ The `metadata.hcl` file contains important key value information regarding the p
 - "app {url}" - The HTTP(S) url to the homepage of the application to provide a quick reference to the documentation and help pages.
 - "pack {type}" - The type of resource that is built by the pack. This currently has only one valid option of "job".
 - "app {author}" - An identifier to the author and maintainer of the pack.
-- "pack {depedancy: {name, source}}" - The dependencies that the pack has on other packs. Multiple dependencies can be supplied.
+- "pack {dependency: {name, source}}" - The dependencies that the pack has on other packs. Multiple dependencies can be supplied.
 
 An example `metadata.hcl` file:
 
 ```
 app {
-  url = "https://github.com/jrasell//hello-world-app"
+  url = "https://github.com/jrasell/hello-world-app"
   author = "James Rasell"
 }
 
@@ -67,9 +67,9 @@ pack {
 
 #### variables.hcl
 
-The `variables.hcl` file defines the variables required to fully render and ddeploy all the templates found within the "templates" directory.
+The `variables.hcl` file defines the variables required to fully render and deploy all the templates found within the "templates" directory.
 
-These varibles are defined using [HCL](https://github.com/hashicorp/hcl).
+These variables are defined using [HCL](https://github.com/hashicorp/hcl).
 
 An example `variables.hcl` file:
 
@@ -121,7 +121,7 @@ No specific format is required for the `README.md` or `CHANGELOG.md` files.
 
 ## Step Three: Write the Templates
 
-Each file at the top level of the `templates` directory that uses the extension ".nomad.tpl" defines a resource (such as a job) that will be applied to Noamd. Thesee files can use any UTF8 encoded prefix as the name.
+Each file at the top level of the `templates` directory that uses the extension ".nomad.tpl" defines a resource (such as a job) that will be applied to Noamd. These files can use any UTF-8 encoded prefix as the name.
 
 Helper templates, which can be included within larger templates, have names prefixed with an underscore “\_” and use a ".tpl" extension.
 
