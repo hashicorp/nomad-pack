@@ -12,7 +12,7 @@ import (
 func (p *Parser) parseCLIVariable(name string, rawVal string) hcl.Diagnostics {
 	// Split the name to see if we have a namespace CLI variable for a child
 	// pack and set the default packVarName.
-	splitName := strings.Split(name, "/")
+	splitName := strings.SplitN(name, ".", 2)
 	packVarName := []string{p.cfg.ParentName, name}
 
 	switch len(splitName) {
@@ -69,9 +69,10 @@ func (p *Parser) parseCLIVariable(name string, rawVal string) hcl.Diagnostics {
 
 	// We have a verified override variable.
 	v := Variable{
-		Name:  packVarName[1],
-		Type:  val.Type(),
-		Value: val,
+		Name:      packVarName[1],
+		Type:      val.Type(),
+		Value:     val,
+		DeclRange: fakeRange,
 	}
 	p.cliOverrideVars[packVarName[0]] = append(p.cliOverrideVars[packVarName[0]], &v)
 
