@@ -1,6 +1,9 @@
 package errors
 
-import stdErrors "errors"
+import (
+	stdErrors "errors"
+	"strings"
+)
 
 // ErrNoTemplatesRendered is an error to be used when the CLI runs a render
 // process that doesn't result in parent templates. This helps provide a clear
@@ -20,6 +23,7 @@ const (
 	UIContextPrefixJobName        = "Job Name: "
 	UIContextPrefixDeploymentName = "Deployment Name: "
 	UIContextPrefixRegion         = "Region: "
+	UIContextPrefixHCLRange       = "HCL Range: "
 )
 
 // UIErrorContext is used to store and manipulate error context strings used
@@ -41,3 +45,6 @@ func (u *UIErrorContext) Copy() *UIErrorContext { return &UIErrorContext{context
 
 // GetAll returns all the stored context strings.
 func (u *UIErrorContext) GetAll() []string { return u.contexts }
+
+// String returns the stored contexts as a minimally formatted string.
+func (u *UIErrorContext) String() string { return strings.Join(u.contexts, "\n") }
