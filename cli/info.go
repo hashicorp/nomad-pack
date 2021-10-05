@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/loader"
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable"
+	"github.com/mitchellh/go-glint"
 )
 
 type InfoCommand struct {
@@ -65,12 +66,6 @@ func (c *InfoCommand) Run(args []string) int {
 		return 1
 	}
 
-	c.ui.Info("----------------------")
-	c.ui.Info(fmt.Sprintf("Pack Name: %q", pack.Metadata.Pack.Name))
-	c.ui.Info(fmt.Sprintf("Description: %q", pack.Metadata.Pack.Description))
-	c.ui.Info(fmt.Sprintf("Application URL: %q", pack.Metadata.App.URL))
-	c.ui.Info(fmt.Sprintf("Application Author: %q", pack.Metadata.App.Author))
-
 	variableParser, err := variable.NewParser(&variable.ParserConfig{
 		ParentName:        path.Base(packPath),
 		RootVariableFiles: pack.RootVariableFiles(),
@@ -85,15 +80,46 @@ func (c *InfoCommand) Run(args []string) int {
 		return 1
 	}
 
-	for _, variables := range parsedVars.Vars {
-		for _, v := range variables {
-			c.ui.Info("-----------")
-			c.ui.Info(fmt.Sprintf("Variable Name: %q", v.Name))
-			c.ui.Info(fmt.Sprintf("Type: %q", v.Type.FriendlyName()))
-		}
-	}
-	c.ui.Info("----------------------")
+	// Create a new glint document to handle the outputting of information.
+	doc := glint.New()
 
+	doc.Append(glint.Layout(
+		glint.Style(glint.Text("Pack Name          "), glint.Bold()),
+		glint.Text(pack.Metadata.Pack.Name),
+	).Row())
+
+	doc.Append(glint.Layout(
+		glint.Style(glint.Text("Description        "), glint.Bold()),
+		glint.Text(pack.Metadata.Pack.Description),
+	).Row())
+
+	doc.Append(glint.Layout(
+		glint.Style(glint.Text("Application URL    "), glint.Bold()),
+		glint.Text(pack.Metadata.App.URL),
+	).Row())
+
+	doc.Append(glint.Layout(
+		glint.Style(glint.Text("Application Author "), glint.Bold()),
+		glint.Text(pack.Metadata.App.Author),
+		glint.Text("\n"),
+	).Row())
+
+	for pName, variables := range parsedVars.Vars {
+
+		doc.Append(glint.Layout(
+			glint.Style(glint.Text(fmt.Sprintf("Pack %q Variables:", pName)), glint.Bold()),
+		).Row())
+
+		for _, v := range variables {
+			doc.Append(glint.Layout(
+				glint.Style(glint.Text(fmt.Sprintf("\t- %q (%s) - %s",
+					v.Name, v.Type.FriendlyName(), v.Description))),
+			).Row())
+		}
+		glint.Text("\n")
+	}
+
+	doc.RenderFrame()
 	return 0
 }
 
