@@ -19,8 +19,7 @@ import (
 type RunCommand struct {
 	*baseCommand
 	packName          string
-	repoName          string
-	deploymentName    string
+	registryName      string
 	checkIndex        uint64
 	consulToken       string
 	consulNamespace   string
@@ -46,22 +45,22 @@ func (c *RunCommand) Run(args []string) int {
 		return 1
 	}
 
-	packRepoName := c.args[0]
+	packRegistryName := c.args[0]
 
 	// Generate our UI error context.
 	errorContext := errors.NewUIErrorContext()
 
-	repoName, packName, err := parseRepoFromPackName(packRepoName)
+	registryName, packName, err := parseRepoFromPackName(packRegistryName)
 	if err != nil {
 		c.ui.ErrorWithContext(err, "failed to parse pack name", errorContext.GetAll()...)
 		return 1
 	}
 	c.packName = packName
-	c.repoName = repoName
+	c.registryName = registryName
 	errorContext.Add(errors.UIContextPrefixPackName, c.packName)
-	errorContext.Add(errors.UIContextPrefixRepoName, c.repoName)
+	errorContext.Add(errors.UIContextPrefixRegistry, c.registryName)
 
-	repoPath, err := getRepoPath(repoName, c.ui, errorContext)
+	repoPath, err := getRepoPath(registryName, c.ui, errorContext)
 	if err != nil {
 		return 1
 	}
@@ -110,9 +109,6 @@ func (c *RunCommand) Run(args []string) int {
 		return 1
 	}
 
-	// set a timestamp to be set on all pack elements
-	timestamp := time.Now().UTC().String()
-
 	// set a local variable to the JobsApi
 	jobsApi := client.Jobs()
 
@@ -146,7 +142,10 @@ func (c *RunCommand) Run(args []string) int {
 		c.handleConsulAndVault(job)
 
 		// Set job metadata
-		c.setJobMeta(job, timestamp, packVersion)
+		if err := setJobMeta(c, job, packVersion); err != nil {
+			c.ui.ErrorWithContext(err, "error setting meta", tplErrorContext.GetAll()...)
+			return 1
+		}
 
 		// Submit the job
 		result, _, err := jobsApi.Register(newWriteOptsFromJob(job).Ctx(), job, &v1.RegisterOpts{
@@ -287,26 +286,6 @@ func (c *RunCommand) handleRegisterError(err error, errCtx *errors.UIErrorContex
 
 	c.ui.ErrorWithContext(err, "failed to register job", errCtx.GetAll()...)
 	return 0, false
-}
-
-// add metadata to the job for in cluster querying and management
-func (c *RunCommand) setJobMeta(job *v1client.Job, timestamp string, packVersion string) {
-	jobMeta := make(map[string]string)
-
-	// If current job meta isn't nil, use that instead
-	if job.Meta != nil {
-		jobMeta = *job.Meta
-	}
-
-	// Add the Nomad Pack custom metadata.
-	jobMeta[packKey], _ = getPackPath(c.repoName, c.packName)
-	jobMeta[packDeploymentNameKey] = c.deploymentName
-	jobMeta[packJobKey] = *job.Name
-	jobMeta[packDeploymentTimestampKey] = timestamp
-	jobMeta[packVersionKey] = packVersion
-
-	// Replace the job metadata with our modified version.
-	job.Meta = &jobMeta
 }
 
 // handles resolving Consul and Vault options overrides with environment variables,
@@ -473,15 +452,25 @@ func (c *RunCommand) Synopsis() string {
 	return "Run a new pack or update an existing pack"
 }
 
+// PackName satisfies the PackName function of the PackInfo interface
+func (c *RunCommand) PackName() string { return c.packName }
+
+// RegistryName satisfies the RegistryName function of the PackInfo interface
+func (c *RunCommand) RegistryName() string { return c.registryName }
+
+// DeploymentName satisfies the DeploymentName function of the PackInfo interface
+func (c *RunCommand) DeploymentName() string { return c.deploymentName }
+
 var (
 	// enforceIndexRegex is a regular expression which extracts the enforcement error
 	enforceIndexRegex = regexp.MustCompile(`\((Enforcing job modify index.*)\)`)
 )
 
 var (
-	packKey                    = "pack"
-	packDeploymentNameKey      = "pack-deployment-name"
-	packJobKey                 = "pack-job"
-	packDeploymentTimestampKey = "pack-deployment-timestamp"
-	packVersionKey             = "pack-version"
+	packNameKey           = "pack-name"
+	packPathKey           = "pack-path"
+	packDeploymentNameKey = "pack-deployment-name"
+	packJobKey            = "pack-job"
+	packVersionKey        = "pack-version"
+	packRegistryKey       = "pack-registry"
 )

@@ -22,6 +22,44 @@ const (
 	DefaultRegistrySource = "git@github.com:hashicorp/nomad-pack-registry.git"
 )
 
+// Run, plan, stop/destroy, and status all need access to pack, registry,
+// and deployment names. This allows those commands to share helper methods
+// that rely on those fields.
+type PackInfo interface {
+	PackName() string
+	RegistryName() string
+	DeploymentName() string
+}
+
+// Add metadata to the job for in cluster querying and management
+func setJobMeta(packInfo interface{}, job *v1client.Job, packVersion string) error {
+	info, ok := packInfo.(PackInfo)
+	if !ok {
+		return fmt.Errorf("failed to assert pack info, unsuitable type %T", packInfo)
+	}
+	packName := info.PackName()
+	registryName := info.RegistryName()
+	deploymentName := info.DeploymentName()
+
+	jobMeta := make(map[string]string)
+
+	// If current job meta isn't nil, use that instead
+	if job.Meta != nil {
+		jobMeta = *job.Meta
+	}
+	// Add the Nomad Pack custom metadata.
+	jobMeta[packPathKey], _ = getPackPath(registryName, packName)
+	jobMeta[packNameKey] = packName
+	jobMeta[packRegistryKey] = registryName
+	jobMeta[packDeploymentNameKey] = deploymentName
+	jobMeta[packJobKey] = *job.Name
+	jobMeta[packVersionKey] = packVersion
+
+	// Replace the job metadata with our modified version.
+	job.Meta = &jobMeta
+	return nil
+}
+
 func installRegistry(source string, destination string,
 	ui terminal.UI, errCtx *errors.UIErrorContext) error {
 	ui.Info("Initializing registry...")

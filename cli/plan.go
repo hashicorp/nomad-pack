@@ -35,8 +35,7 @@ type PlanCommand struct {
 	diff           bool
 	hcl1           bool
 	packName       string
-	repoName       string
-	jobName        string
+	registryName   string
 	policyOverride bool
 	verbose        bool
 }
@@ -53,22 +52,22 @@ func (c *PlanCommand) Run(args []string) int {
 		return 255
 	}
 
-	packRepoName := c.args[0]
+	packRegistryName := c.args[0]
 
 	// Generate our UI error context.
 	errorContext := errors.NewUIErrorContext()
 
-	repoName, packName, err := parseRepoFromPackName(packRepoName)
+	registryName, packName, err := parseRepoFromPackName(packRegistryName)
 	if err != nil {
 		c.ui.ErrorWithContext(err, "failed to parse pack name", errorContext.GetAll()...)
 		return 1
 	}
 	c.packName = packName
-	c.repoName = repoName
+	c.registryName = registryName
 	errorContext.Add(errors.UIContextPrefixPackName, c.packName)
-	errorContext.Add(errors.UIContextPrefixRepoName, c.repoName)
+	errorContext.Add(errors.UIContextPrefixRegistry, c.registryName)
 
-	repoPath, err := getRepoPath(repoName, c.ui, errorContext)
+	repoPath, err := getRepoPath(registryName, c.ui, errorContext)
 	if err != nil {
 		c.ui.ErrorWithContext(err, "failed to identify repository path")
 		return 255
@@ -137,6 +136,12 @@ func (c *PlanCommand) Run(args []string) int {
 
 		// Add the jobID to the error context.
 		tplErrorContext.Add(errors.UIContextPrefixJobName, job.GetName())
+
+		// Set job metadata
+		if err := setJobMeta(c, job, packVersion); err != nil {
+			c.ui.ErrorWithContext(err, "error setting meta", tplErrorContext.GetAll()...)
+			return 1
+		}
 
 		err = c.checkForConflicts(jobsApi, job)
 		if err != nil {
@@ -436,6 +441,15 @@ func (c *PlanCommand) Help() string {
 func (c *PlanCommand) Synopsis() string {
 	return "Dry-run a pack update to determine its effects"
 }
+
+// PackName satisfies the PackName function of the PackInfo interface
+func (c *PlanCommand) PackName() string { return c.packName }
+
+// RegistryName satisfies the RegistryName function of the PackInfo interface
+func (c *PlanCommand) RegistryName() string { return c.registryName }
+
+// DeploymentName satisfies the DeploymentName function of the PackInfo interface
+func (c *PlanCommand) DeploymentName() string { return c.deploymentName }
 
 type namespaceIdPair struct {
 	id        string
