@@ -13,6 +13,8 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/manager"
 	"github.com/hashicorp/nomad-pack/internal/pkg/renderer"
+	"github.com/hashicorp/nomad-pack/internal/runner"
+	"github.com/hashicorp/nomad-pack/internal/runner/job"
 	"github.com/hashicorp/nomad-pack/terminal"
 )
 
@@ -244,4 +246,35 @@ func newQueryOptsFromJob(job *v1client.Job) *v1.QueryOpts {
 		opts.Namespace = *job.Namespace
 	}
 	return opts
+}
+
+func generateRunner(client *v1.Client, packType, cliCfg interface{}, runnerCfg *runner.Config) (runner.Runner, error) {
+
+	var (
+		err          error
+		deployerImpl runner.Runner
+	)
+
+	// Depending on the type of pack we are dealing with, generate the correct
+	// implementation.
+	switch packType {
+	case "job":
+		jobConfig, ok := cliCfg.(*job.CLIConfig)
+		if !ok {
+			return nil, fmt.Errorf("failed to assert correct config, unsiutable type %T", cliCfg)
+		}
+		deployerImpl = job.NewDeployer(client, jobConfig)
+	default:
+		err = fmt.Errorf("unsupported pack type %q", packType)
+	}
+
+	// Return the error if you got one.
+	if err != nil {
+		return nil, err
+	}
+
+	// Set the config; this means commands do not have to do this, and it's
+	// done in a single place.
+	deployerImpl.SetRunnerConfig(runnerCfg)
+	return deployerImpl, nil
 }
