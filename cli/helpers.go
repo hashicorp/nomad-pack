@@ -193,7 +193,7 @@ func getJob(jobsApi *v1.Jobs, jobName string, queryOpts *v1.QueryOpts) (*v1clien
 	return result, meta, nil
 }
 
-func getDeployedPackJobs(jobsApi *v1.Jobs, packName string, deploymentName string) ([]*v1client.Job, error) {
+func getDeployedPackJobs(jobsApi *v1.Jobs, packName, deploymentName, repoName string) ([]*v1client.Job, error) {
 	opts := &v1.QueryOpts{}
 	jobs, _, err := jobsApi.GetJobs(opts.Ctx())
 	if err != nil {
@@ -205,21 +205,38 @@ func getDeployedPackJobs(jobsApi *v1.Jobs, packName string, deploymentName strin
 	}
 
 	var packJobs []*v1client.Job
+	hasOtherDeploys := false
 	for _, jobStub := range jobs {
-		job, _, err := jobsApi.GetJob(opts.Ctx(), *jobStub.ID)
+		nomadJob, _, err := jobsApi.GetJob(opts.Ctx(), *jobStub.ID)
 		if err != nil {
-			return nil, fmt.Errorf("error retrieving job %s for pack %s: %s", *job.ID, packName, err)
+			return nil, fmt.Errorf("error retrieving job %s for pack %s: %s", *nomadJob.ID, packName, err)
 		}
 
-		if job.Meta != nil {
-			jobMeta := *job.Meta
-			jobPackName, ok := jobMeta[packDeploymentNameKey]
-			if ok && jobPackName == deploymentName {
-				packJobs = append(packJobs, job)
+		if nomadJob.Meta != nil {
+			jobMeta := *nomadJob.Meta
+			jobDeploymentName, ok := jobMeta[packDeploymentNameKey]
+
+			if ok {
+				if jobDeploymentName == deploymentName {
+					packJobs = append(packJobs, nomadJob)
+				} else {
+					// Check if there are jobs that match the pack name but with different
+					// deployment names in case packJobs is empty.
+					jobPackPath, nameOk := jobMeta[job.PackKey]
+					packPath, _ := getPackPath(repoName, packName)
+					if nameOk && jobPackPath == packPath {
+						hasOtherDeploys = true
+					}
+				}
 			}
 		}
-	}
 
+		if len(packJobs) == 0 && hasOtherDeploys {
+			// TODO: do we also want to direct the user to run nomad-pack status (still needs doing)
+			// for more info? Return that info here?
+			return nil, fmt.Errorf("pack %q running but not in deployment %q", packName, deploymentName)
+		}
+	}
 	return packJobs, nil
 }
 
@@ -277,4 +294,8 @@ func generateRunner(client *v1.Client, packType, cliCfg interface{}, runnerCfg *
 	// done in a single place.
 	deployerImpl.SetRunnerConfig(runnerCfg)
 	return deployerImpl, nil
+}
+
+func hasVarOverrides(c *baseCommand) bool {
+	return len(c.varFiles) > 0 || len(c.vars) > 0
 }
