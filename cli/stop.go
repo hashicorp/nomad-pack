@@ -58,7 +58,7 @@ func (c *StopCommand) Run(args []string) int {
 	c.packName = packName
 	c.registryName = registryName
 	errorContext.Add(errors.UIContextPrefixPackName, c.packName)
-	errorContext.Add(errors.UIContextPrefixRegistry, c.registryName)
+	errorContext.Add(errors.UIContextPrefixRegistryName, c.registryName)
 
 	client, err := v1.NewClient()
 	if err != nil {

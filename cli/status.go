@@ -42,7 +42,7 @@ func (c *StatusCommand) Run(args []string) int {
 			c.ui.ErrorWithContext(err, "failed to parse pack name", errorContext.GetAll()...)
 			return 1
 		}
-		errorContext.Add(errors.UIContextPrefixRegistry, registryName)
+		errorContext.Add(errors.UIContextPrefixRegistryName, registryName)
 		errorContext.Add(errors.UIContextPrefixPackName, packName)
 	}
 	c.packName = packName
@@ -70,7 +70,7 @@ func (c *StatusCommand) Run(args []string) int {
 		return 0
 	}
 
-	packJobs, err := getDeployedPackJobs(jobsApi, c.packName, c.registryName, c.deploymentName)
+	packJobs, jobErrs, err := getDeployedPackJobs(jobsApi, c.packName, c.registryName, c.deploymentName)
 	if err != nil {
 		c.ui.ErrorWithContext(err, "error retrieving jobs", errorContext.GetAll()...)
 		return 1
@@ -83,7 +83,12 @@ func (c *StatusCommand) Run(args []string) int {
 		c.ui.Warning(msg)
 		return 0
 	}
+
 	c.ui.Table(formatDeployedPackJobs(packJobs))
+	if len(jobErrs) > 0 {
+		c.ui.WarningBold("error retrieving job status for the following jobs:")
+		c.ui.Table(formatDeployedPackErrs(jobErrs))
+	}
 	return 0
 }
 
@@ -174,6 +179,17 @@ func formatDeployedPackJobs(packJobs []JobStatusInfo) *terminal.Table {
 		row = append(row, terminal.TableEntry{Value: jobInfo.deploymentName})
 		row = append(row, terminal.TableEntry{Value: jobInfo.jobID})
 		row = append(row, terminal.TableEntry{Value: jobInfo.status})
+		tbl.Rows = append(tbl.Rows, row)
+	}
+	return tbl
+}
+
+func formatDeployedPackErrs(packErrs []JobStatusError) *terminal.Table {
+	tbl := terminal.NewTable("Job Name", "Error")
+	for _, jobInfo := range packErrs {
+		row := []terminal.TableEntry{}
+		row = append(row, terminal.TableEntry{Value: jobInfo.jobID})
+		row = append(row, terminal.TableEntry{Value: jobInfo.jobError.Error(), Color: terminal.Red})
 		tbl.Rows = append(tbl.Rows, row)
 	}
 	return tbl

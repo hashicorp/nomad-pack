@@ -221,9 +221,6 @@ func getPackJobsByDeploy(jobsApi *v1.Jobs, packName, deploymentName, registryNam
 				} else {
 					// Check if there are jobs that match the pack name but with different
 					// deployment names in case packJobs is empty.
-					// jobPackPath, nameOk := jobMeta[job.PackKey]
-					// packPath, _ := getPackPath(repoName, packName)
-					// if nameOk && jobPackPath == packPath {
 					// Since different registries can share pack names, we need to check
 					// registry and pack names both match
 					jobRegistry, registryOk := jobMeta[job.PackRegistryKey]
@@ -343,11 +340,6 @@ func getDeployedPacks(jobsApi *v1.Jobs) (map[string]map[string]struct{}, error) 
 	return packRegistryMap, nil
 }
 
-// TODO: this doesn't seem like the best design but I couldn't think of
-// another way to return error info along with the pack and job info
-// unless we directly formatted the table here, which seemed to be moving
-// away from what we've tried to do everywhere else and separate formatting
-// from output
 type JobStatusInfo struct {
 	packName       string
 	registryName   string
@@ -356,23 +348,26 @@ type JobStatusInfo struct {
 	status         string
 }
 
-func getDeployedPackJobs(jobsApi *v1.Jobs, packName, registryName, deploymentName string) ([]JobStatusInfo, error) {
+type JobStatusError struct {
+	jobID    string
+	jobError error
+}
+
+func getDeployedPackJobs(jobsApi *v1.Jobs, packName, registryName, deploymentName string) ([]JobStatusInfo, []JobStatusError, error) {
 	opts := &v1.QueryOpts{}
 	jobs, _, err := jobsApi.GetJobs(opts.Ctx())
 	if err != nil {
-		return nil, fmt.Errorf("error finding jobs for pack %s: %s", packName, err)
+		return nil, nil, fmt.Errorf("error finding jobs for pack %s: %s", packName, err)
 	}
 
 	var packJobs []JobStatusInfo
+	var jobErrs []JobStatusError
 	for _, jobStub := range jobs {
 		nomadJob, _, err := jobsApi.GetJob(opts.Ctx(), *jobStub.ID)
 		if err != nil {
-			packJobs = append(packJobs, JobStatusInfo{
-				packName:       packName,
-				registryName:   registryName,
-				deploymentName: deploymentName,
-				jobID:          *jobStub.ID,
-				status:         err.Error(),
+			jobErrs = append(jobErrs, JobStatusError{
+				jobID:    *jobStub.ID,
+				jobError: err,
 			})
 			continue
 		}
@@ -383,7 +378,7 @@ func getDeployedPackJobs(jobsApi *v1.Jobs, packName, registryName, deploymentNam
 			if ok && jobPackName == packName {
 				// Filter by deployment name if specified
 				if deploymentName != "" {
-					jobDeployName, deployOk := jobMeta[job.PackDeploymentNameKey]
+					jobDeployName, deployOk := jobMeta[packDeploymentNameKey]
 					if deployOk && jobDeployName != deploymentName {
 						continue
 					}
@@ -391,12 +386,12 @@ func getDeployedPackJobs(jobsApi *v1.Jobs, packName, registryName, deploymentNam
 				packJobs = append(packJobs, JobStatusInfo{
 					packName:       packName,
 					registryName:   registryName,
-					deploymentName: jobMeta[job.PackDeploymentNameKey],
+					deploymentName: jobMeta[packDeploymentNameKey],
 					jobID:          *nomadJob.ID,
 					status:         *nomadJob.Status,
 				})
 			}
 		}
 	}
-	return packJobs, nil
+	return packJobs, jobErrs, nil
 }
