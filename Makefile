@@ -1,5 +1,5 @@
 SHELL = bash
-default: test dev
+default: check test dev
 
 GIT_COMMIT=$$(git rev-parse --short HEAD)
 GIT_DIRTY=$$(test -n "`git status --porcelain`" && echo "+CHANGES" || true)
@@ -23,3 +23,17 @@ mod:
 .PHONY: api
 api:
 	go get github.com/hashicorp/nomad-openapi/v1
+
+.PHONY: check
+check: check-mod
+
+.PHONY: check-mod
+check-mod: ## Checks the Go mod is tidy
+	@echo "==> Checking Go mod and Go sum..."
+	@GO111MODULE=on go mod tidy
+	@if (git status --porcelain | grep -Eq "go\.(mod|sum)"); then \
+		echo tools go.mod or go.sum needs updating; \
+		git --no-pager diff go.mod; \
+		git --no-pager diff go.sum; \
+		exit 1; fi
+	@echo "==> Done"

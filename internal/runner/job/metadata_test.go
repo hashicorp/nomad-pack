@@ -3,21 +3,21 @@ package job
 import (
 	"testing"
 
-	"github.com/hashicorp/nom/internal/deploy"
 	v1client "github.com/hashicorp/nomad-openapi/clients/go/v1"
+	"github.com/hashicorp/nomad-pack/internal/runner"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestDeployer_setJobMeta(t *testing.T) {
 	testCases := []struct {
-		inputDeployer     *Deployer
+		inputRunner       *Runner
 		inputJob          *v1client.Job
 		expectedOutputJob *v1client.Job
 		name              string
 	}{
 		{
-			inputDeployer: &Deployer{
-				deployerCfg: &runner.DeployerConfig{
+			inputRunner: &Runner{
+				runnerCfg: &runner.Config{
 					PackName:       "foobar",
 					PathPath:       "/opt/src/foobar",
 					PackVersion:    "123456",
@@ -42,7 +42,7 @@ func TestDeployer_setJobMeta(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			tc.inputDeployer.setJobMeta(tc.inputJob)
+			tc.inputRunner.setJobMeta(tc.inputJob)
 			assert.Equal(t, tc.expectedOutputJob, tc.inputJob, tc.name)
 		})
 	}
