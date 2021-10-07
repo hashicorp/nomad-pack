@@ -25,13 +25,15 @@ type StopCommand struct {
 
 func (c *StopCommand) Run(args []string) int {
 	var err error
-	c.cmdKey = "stop" // Add cmd key here so help text is available in Init
+	c.cmdKey = "stop" // Add cmdKey here to print out helpUsageMessage on Init error
 	// Initialize. If we fail, we just exit since Init handles the UI.
 	if err = c.Init(
 		WithExactArgs(1, args),
 		WithFlags(c.Flags()),
 		WithNoConfig(),
 	); err != nil {
+		c.ui.ErrorWithContext(err, ErrParsingArgsOrFlags)
+		c.ui.Info(c.helpUsageMessage())
 		return 1
 	}
 

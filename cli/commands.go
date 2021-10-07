@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"runtime"
 
@@ -252,6 +253,15 @@ func (c *baseCommand) flagSet(bit flagSetBit, f func(*flag.Sets)) *flag.Sets {
 	return set
 }
 
+// Returns minimal help usage message
+// Used on flag/arg parse error in c.Init method
+func (c *baseCommand) helpUsageMessage() string {
+	if c.cmdKey == "" {
+		return `See "nomad-pack --help"`
+	}
+	return fmt.Sprintf(`See "nomad-pack %s --help"`, c.cmdKey)
+}
+
 // flagSetBit is used with baseCommand.flagSet
 type flagSetBit uint
 
@@ -263,6 +273,10 @@ const (
 var (
 	// ErrSentinel is a sentinel value that we can return from Init to force an exit.
 	ErrSentinel = errors.New("error sentinel")
+
+	// ErrParsingArgsOrFlags should be used in the Init method of a CLI command
+	// if it returns an error.
+	ErrParsingArgsOrFlags = "error parsing args or flags"
 )
 
 func Humanize(err error) string {

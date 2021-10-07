@@ -17,14 +17,15 @@ type StatusCommand struct {
 }
 
 func (c *StatusCommand) Run(args []string) int {
-	c.cmdKey = "status"
+	c.cmdKey = "status" // Add cmdKey here to print out helpUsageMessage on Init error
 	// Initialize. If we fail, we just exit since Init handles the UI.
 	if err := c.Init(
 		WithCustomArgs(args, validateStatusArgs),
 		WithFlags(c.Flags()),
 		WithNoConfig(),
 	); err != nil {
-		c.ui.ErrorWithContext(err, "error parsing args or flags")
+		c.ui.ErrorWithContext(err, ErrParsingArgsOrFlags)
+		c.ui.Info(c.helpUsageMessage())
 		return 1
 	}
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path"
 
+	flag "github.com/hashicorp/nomad-pack/flag"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/loader"
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable"
@@ -17,12 +18,15 @@ type InfoCommand struct {
 }
 
 func (c *InfoCommand) Run(args []string) int {
-	c.cmdKey = "info" // Add cmd key here so help text is available in Init
+	c.cmdKey = "info" // Add cmdKey here to print out helpUsageMessage on Init error
 	// Initialize. If we fail, we just exit since Init handles the UI.
 	if err := c.Init(
 		WithExactArgs(1, args),
+		WithFlags(c.Flags()),
 		WithNoConfig(),
 	); err != nil {
+		c.ui.ErrorWithContext(err, ErrParsingArgsOrFlags)
+		c.ui.Info(c.helpUsageMessage())
 		return 1
 	}
 
@@ -121,6 +125,10 @@ func (c *InfoCommand) Run(args []string) int {
 
 	doc.RenderFrame()
 	return 0
+}
+
+func (c *InfoCommand) Flags() *flag.Sets {
+	return c.flagSet(0, nil)
 }
 
 func (c *InfoCommand) Help() string {
