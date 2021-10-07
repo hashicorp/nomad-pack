@@ -147,16 +147,18 @@ When deploying, Nomad Pack will render each resource template using the variable
 
 Templates are written using [Go Template Syntax](https://learn.hashicorp.com/tutorials/nomad/go-template-syntax). This enables templates to have complex logic where necessary.
 
+Unlike default Go Template syntax, Nomad Pack uses "[[" and "]]" as delimiters.
+
 An example template using variables values from above:
 
 ```
 job "hello_world" {
-  region      = "{{ .hello_world.region }}"
-  datacenters = [{{ range $idx, $dc := .hello_world.datacenters }}{{if $idx}},{{end}}{{ $dc | quote }}{{ end }}]
+  region      = "[[ .hello_world.region ]]"
+  datacenters = [ [[ range $idx, $dc := .hello_world.datacenters ]][[if $idx]],[[end]][[ $dc | quote ]][[ end ]] ]
   type = "service"
 
   group "app" {
-    count = {{ .hello_world.count }}
+    count = [[ .hello_world.count ]]
 
     network {
       port "http" {
@@ -164,7 +166,7 @@ job "hello_world" {
       }
     }
 
-    {{/* this is a go template comment */}}
+    [[/* this is a go template comment */]]
 
     task "server" {
       driver = "docker"
@@ -175,8 +177,8 @@ job "hello_world" {
       }
 
       resources {
-        cpu    = {{ .hello_world.resources.cpu }}
-        memory = {{ .hello_world.resources.memory }}
+        cpu    = [[ .hello_world.resources.cpu ]]
+        memory = [[ .hello_world.resources.memory ]]
       }
     }
   }
@@ -189,7 +191,7 @@ The `datacenters` value shows slightly more complex Go Template, which allows fo
 
 #### Template Functions
 
-To supplement the standard Go Template set of template functions, the (masterminds/sprig)[https://github.com/Masterminds/sprig] library is used to provide an additional set of functions. The library includes string manipulation, cryptographic functionality, and standard manipulation such as converting data to and from JSON format.
+To supplement the standard Go Template set of template functions, the (masterminds/sprig)[https://github.com/Masterminds/sprig] library is used. This adds helpers for various use cases such as string manipulation, cryptographics, and data conversion (for instance to and from JSON).
 
 Custom Nomad-specific and debugging functions are also provided:
 
@@ -211,25 +213,26 @@ A custom function within a template is called like any other:
 
 For complex packs, authors may want to reuse template snippets across multiple resources.
 
-For instance, if we had two jobs defined in a pack, and we knew both would re-use the `region` and `datacenters`
-logic shown above, we could use a helper template to consolidate logic.
+For instance, if we had two jobs defined in a pack, and we knew both would re-use the same `region`
+logic for both, we could use a helper template to consolidate logic.
 
-Helper template names are prepended with an underscore "\_" and end in ".tpl". So we could define a helper called "\_region_and_dc.tpl":
-
-<!-- TODO: ADD THIS IN PROPERLY -->
+Helper template names are prepended with an underscore "\_" and end in ".tpl". So we could define a helper called "\_region.tpl":
 
 ```
-region      = "{{ .hello_world.region }}"
-datacenters = [{{ range $idx, $dc := .hello_world.datacenters }}{{if $idx}},{{end}}{{ $dc | quote }}{{ end }}]
+[[- define "region" -]]
+[[- if not (eq .hello_world.region "") -]]
+region = [[ .hello_world.region | quote]]
+[[- end -]]
+[[- end -]]
 ```
 
 Then in the parent templates, "job_a.nomad.tpl" and "job_b.nomad.tpl", we would render to the helper template using its name:
 
 ```
 job "job_a" {
-
-  {{template "region_and_dc"}}
   type = "service"
+
+  [[template "region"]]
 
   ...etc...
 }
@@ -243,7 +246,7 @@ First, packs must define their dependencies in `metadata.hcl`. A pack stanza wit
 
 ```
 app {
-  url = "https://github.com/bnorlaug/service"
+  url = "https://some-url-for-the-application.dev"
   author = "Borman Norlaug"
 }
 
@@ -263,7 +266,7 @@ dependency "demo_dep" {
 This would allow templates of "simple_service" to use "demo_dep"'s helper templates in the following way:
 
 ```
-{{ template "demo_dep.data" . }}
+[[ template "demo_dep.data" . ]]
 ```
 
 ## Step Four: Testing your Pack
