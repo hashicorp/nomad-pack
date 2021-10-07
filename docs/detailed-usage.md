@@ -38,6 +38,37 @@ nomad-pack list
 
 This command reads from the `.nomad/packs` directory explained above.
 
+## Adding new Registries and Packs
+
+The `registry` command includes several sub-commands for interacting with registires.
+
+Custom registries can be added using the `registry add` command. Currently registries must
+be deployed to GitHub, but support for other version control systems and arbitrary URLs is
+coming soon.
+
+For instance, if you wanted to add the entire [Nomad Pack Community Registry](https://github.com/hashicorp/nomad-pack-community-registry),
+you would run the following command to download the registry.
+
+```
+nomad-pack registry add --from=github.com/hashicorp/nomad-pack-community-registry
+```
+
+To download and add single pack from the registry, use the `--target` flag.
+
+```
+nomad-pack registry add --from=github.com/hashicorp/nomad-pack-community-registry --target=nginx
+```
+
+The `registry list` command will print out all the availible registries and pack
+you have added.
+
+To remove a registry or pack from your local cache. Use the `registry delete` command.
+This command also support the `--target` flag.
+
+```
+nomad-pack registry delete --from=github.com/hashicorp/nomad-pack-community-registry
+```
+
 ## Render
 
 At times, you may wish to use Nomad Pack to render jobspecs, but you will not want to immediately deploy these to Nomad.
@@ -152,4 +183,10 @@ You would destroy the contents of that pack with the command;
 
 ```
 nomad-pack destroy hola-mundo
+```
+
+To remove all jobs from Nomad completely, not just stop them. Add the `--purge` flag
+
+```
+nomad-pack destroy hola-mundo --purge
 ```
