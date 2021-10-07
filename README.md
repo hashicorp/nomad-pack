@@ -1,6 +1,6 @@
 # Nomad Pack
 
-Nomad Pack is currently in beta.
+Nomad Pack is currently a Tech Preview.
 
 Nomad Pack is a templating and packaging tool used with [HashiCorp Nomad](https://www.nomadproject.io).
 
@@ -32,71 +32,68 @@ to store information about available packs.
 nomad-pack init
 ```
 
-Next, run the `list` command to see which packs are available to deploy.
+Next, run the `list` command to see which packs are available to deploy. This will show packs
+that are available to deploy.
 
 ```
 nomad-pack list
 ```
 
 To deploy one of these packs, run the `run` command to deploy the jobs in the pack to Nomad. For
-instance, to deploy the `hello-world` pack, you would run the command:
+instance, to deploy the `hello_world` pack, you would run the command:
 
 ```
-nomad-pack run hello-world
+nomad-pack run hello_world
 ```
 
 Each pack defines a set of variables that can be provided by the user. To get information on the pack
 and to see what variables can be passed in, run the `info` command.
 
 ```
-nomad-pack info hello-world
+nomad-pack info hello_world
 ```
 
 Values for these variables can be passed into the `run` command using the `--var` flag.
 
 ```
-nomad-pack run hello-world --var greeting=hola
+nomad-pack run hello_world --var greeting=hola
 ```
 
 Values can also be provided by passing in a variables file. See the variables section of the
 [Detailed usage guide](/docs/detailed-usage.md) for details.
 
 ```
-nomad-pack run hello-world --var-file ./my-variables.hcl
+nomad-pack run hello_world --var-file ./my-variables.hcl
 ```
 
 If you want to remove all of the resources deployed by a pack, run the `destroy` command with the
 pack name.
 
 ```
-nomad-pack destroy hello-world
+nomad-pack destroy hello_world
 ```
 
 ### Adding Non-Default Pack Registries
 
-When initializing Nomad Pack, the default registry for packs is
+When using Nomad Pack, the default registry for packs is
 [https://github.com/hashicorp/nomad-pack-registry](https://github.com/hashicorp/nomad-pack-registry).
-
-This can be overridden by using the `--from` flag when running the `init` command. For instance, to
-use the Community Registry instead of the default, you could run:
-
-```
-nomad-pack init --from git@github.com/hashicorp/nomad-pack-community-registry
-```
+Packs from this registry will be made automatically availible.
 
 You can add additional registries by using the `registry add` command. For instance, if you wanted
-to add your own registry that you call `my-packs`, you could run the command:
+to add the [Nomad Pack Community Registry](https://github.com/hashicorp/nomad-pack-community-registry),
+you would run the following command to download the registry.
 
 ```
-nomad-pack registry add my-packs git@github.com/<YOUR_ORG>/<YOUR_REPO>
+nomad-pack registry add --from=github.com/hashicorp/nomad-pack-community-registry
 ```
 
-To deploy packs from that registry, you would add `my-packs` before the pack name when using the `run`
-command. For instance:
+To view the packs you can now deploy, run `list` or `registry list` command.
 
 ```
-nomad-pack run my-packs:grafana
+nomad-pack registry list
 ```
+
+Packs from this registry can now be deployed using the `run` command.
 
 ### Writing your own Packs
 
@@ -110,25 +107,23 @@ see the [Writing Packs documentation](/docs/writing-packs.md) for more details.
 
 Packs are organized into "registries" which contain multiple packs and shared templates.
 
-### Official Pack Registry
+### Pack Registries
 
 Nomad Pack is initialized with a default pack registries found at
 [https://github.com/hashicorp/nomad-pack-registry](https://github.com/hashicorp/nomad-pack-registry).
+Packs in this repository are vetted and maintained by the Nomad team at HashiCorp.
 
-### Community Pack Registries
+The [Nomad Pack Community Registry](https://github.com/hashicorp/nomad-pack-community-registry) is
+an alternative registry for community-maintained packs. Nomad community members are
+encouraged to share their packs and collaborate with one anothr in this repo.
 
-The Nomad community is encouraged to share their pack registries. The following is a list of
-community-managed pack registries:
-
-- [Nomad Pack Community Registry](https://github.com/hashicorp/nomad-pack-community-registry) a
-semi-official registries of community-written packs.
-- [Your Registry Here] - Pull Requests welcome!
-<!-- Dear Community Members, add you Pack Registry above with a name, link, and a brief description. -->
+Pull Requests and feedback on both repositories are welcome!
 
 ## Upcoming Features and Changes
 
 - Integration into the official Nomad CLI
 - Support for Volumes and ACLs
+- Support for other Vesion Control Systems
 
 ## Additional Documentaion
 

@@ -1,29 +1,32 @@
 # Detailed Nomad Pack Usage
 
-This guide will go into detail on Nomad Pack usage and command details.
+This guide will go into detail on Nomad Pack usage and commands.
 
-For an overview on basic usage, see the repository [README](../README.md).
+For an overview on basic use, see the repository [README](../README.md).
 
-For more information on writing custom packs and registries, see the repository [Writing Packs Documentation](./writing-packs.md).
+For more information on writing custom packs and registries, see the [Writing Packs Guide](./writing-packs.md)
+in th repository or in the [HashiCorp Learn Guides](https://learn.hashicorp.com/nomad).
 
-## Init
+<!--  TODO: Get the link to the writing own packs guide once it is up  -->
 
-The `init` command creates a directory at `./.nomad/packs` to store information about availible packs and packs in use.
+## Initialization
+
+<!-- TODO: Change this text once the init command is removed/replaced  -->
+
+When first using Nomad Pack, run the `init` command to create a directory at `./.nomad/packs` to store information about availible packs and packs in use.
+
+```
+nomad-pack init
+```
 
 During initializing, Nomad Pack downloads a default registry of packs from [https://github.com/hashicorp/nomad-pack-registry](https://github.com/hashicorp/nomad-pack-registry).
-
-This can be overridden by using the `--from` flag when running the `init` command. For instance, to use the Community Registry instead of the default, you could run:
-
-```
-nomad-pack init --from git@github.com/hashicorp/nomad-pack-community-registry
-```
 
 The directory structure is as follows:
 
 ```
 .nomad
 └── packs
-    ├── <SOURCE-ORG-REGISTRY>
+    ├── <REGISTRY>
         ├── <PACK-NAME>
             ├── <PACK-VERSION>
                 ├── ...files containing pack contents...
@@ -40,6 +43,37 @@ nomad-pack list
 ```
 
 This command reads from the `.nomad/packs` directory explained above.
+
+## Adding new Registries and Packs
+
+The `registry` command includes several sub-commands for interacting with registires.
+
+Custom registries can be added using the `registry add` command. Currently registries must
+be deployed to GitHub, but support for other version control systems and arbitrary URLs is
+coming soon.
+
+For instance, if you wanted to add the entire [Nomad Pack Community Registry](https://github.com/hashicorp/nomad-pack-community-registry),
+you would run the following command to download the registry.
+
+```
+nomad-pack registry add --from=github.com/hashicorp/nomad-pack-community-registry
+```
+
+To download and add single pack from the registry, use the `--target` flag.
+
+```
+nomad-pack registry add --from=github.com/hashicorp/nomad-pack-community-registry --target=nginx
+```
+
+The `registry list` command will print out all the availible registries and pack
+you have added.
+
+To remove a registry or pack from your local cache. Use the `registry delete` command.
+This command also support the `--target` flag.
+
+```
+nomad-pack registry delete --from=github.com/hashicorp/nomad-pack-community-registry
+```
 
 ## Render
 
@@ -155,4 +189,10 @@ You would destroy the contents of that pack with the command;
 
 ```
 nomad-pack destroy hola-mundo
+```
+
+To remove all jobs from Nomad completely, not just stop them. Add the `--purge` flag
+
+```
+nomad-pack destroy hola-mundo --purge
 ```
