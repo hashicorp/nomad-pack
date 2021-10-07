@@ -25,8 +25,15 @@ environment variable.
 
 ### Basic Use
 
-To use Nomad Pack, first run the `list` command. This will add download information
-about availible packs to `./.nomad/packs` and show packs that are available to deploy.
+In order to use Nomad Pack, first run the `init` command. This add a directory at `./.nomad/packs`
+to store information about available packs.
+
+```
+nomad-pack init
+```
+
+Next, run the `list` command to see which packs are available to deploy. This will show packs
+that are available to deploy.
 
 ```
 nomad-pack list
