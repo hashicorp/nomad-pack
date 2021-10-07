@@ -116,9 +116,9 @@ The `outputs.tpl` is an optional file that defines an output to be printed when 
 Output files have access to pack variables and template helper functions. A simple example:
 
 ```
-Congrats on deploying [[- .nomad_pack.pack.name -]].
+Congrats on deploying [[ .nomad_pack.pack.name ]].
 
-There are [[- .simple_pack.app_count -]] instances of your job now running on Nomad.
+There are [[ .simple_pack.app_count ]] instances of your job now running on Nomad.
 ```
 
 <!-- TODO: ADD INFORMATION ABOUT HOW THIS ACTUALLY WORKS AND HOW IT GETS NOMAD DATA -->
