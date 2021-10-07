@@ -121,12 +121,6 @@ Congrats on deploying [[- .nomad_pack.pack.name -]].
 There are [[- .simple_pack.app_count -]] instances of your job now running on Nomad.
 ```
 
-Output files can be overridden from the CLI to provide a custom output file.
-
-```
-
-```
-
 <!-- TODO: ADD INFORMATION ABOUT HOW THIS ACTUALLY WORKS AND HOW IT GETS NOMAD DATA -->
 
 <!-- TODO: ADD AN EXAMPLE -->
