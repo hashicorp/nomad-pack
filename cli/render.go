@@ -142,14 +142,14 @@ func (r *RenderCommand) Help() string {
 
 	r.Example = `
 	# Render an example pack with override variables in a variable file.
-	nomad-pack run example --var-file="./overrides.hcl"
+	nomad-pack render example --var-file="./overrides.hcl"
 
 	# Render an example pack with cli variable overrides.
-	nomad-pack run example --var="redis_image_version=latest" \
+	nomad-pack render example --var="redis_image_version=latest" \
 		--var="redis_resources={"cpu": "1000", "memory": "512"}"
 
 	# Render an example pack including the outputs template file.
-	nomad-pack run example --render-output-template	
+	nomad-pack render example --render-output-template
 	`
 
 	return formatHelp(`
