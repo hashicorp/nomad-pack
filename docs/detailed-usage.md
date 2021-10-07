@@ -11,7 +11,13 @@ in th repository or in the [HashiCorp Learn Guides](https://learn.hashicorp.com/
 
 ## Initialization
 
-When users first run Nomad Pack, it createes a directory at `./.nomad/packs` to store information about availible packs and packs in use.
+<!-- TODO: Change this text once the init command is removed/replaced  -->
+
+When first using Nomad Pack, run the `init` command to create a directory at `./.nomad/packs` to store information about availible packs and packs in use.
+
+```
+nomad-pack init
+```
 
 During initializing, Nomad Pack downloads a default registry of packs from [https://github.com/hashicorp/nomad-pack-registry](https://github.com/hashicorp/nomad-pack-registry).
 
