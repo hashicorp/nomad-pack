@@ -67,7 +67,7 @@ func (c *PlanCommand) Run(args []string) int {
 	}
 
 	errorContext.Add(errors.UIContextPrefixPackName, c.packName)
-	errorContext.Add(errors.UIContextPrefixRegistry, c.registryName)
+	errorContext.Add(errors.UIContextPrefixRegistryName, c.registryName)
 
 	registryPath, err := getRegistryPath(c.registryName, c.ui, errorContext)
 	if err != nil {
