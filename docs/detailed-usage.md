@@ -1,29 +1,26 @@
 # Detailed Nomad Pack Usage
 
-This guide will go into detail on Nomad Pack usage and command details.
+This guide will go into detail on Nomad Pack usage and commands.
 
-For an overview on basic usage, see the repository [README](../README.md).
+For an overview on basic use, see the repository [README](../README.md).
 
-For more information on writing custom packs and registries, see the repository [Writing Packs Documentation](./writing-packs.md).
+For more information on writing custom packs and registries, see the [Writing Packs Guide](./writing-packs.md)
+in th repository or in the [HashiCorp Learn Guides](https://learn.hashicorp.com/nomad).
 
-## Init
+<!--  TODO: Get the link to the writing own packs guide once it is up  -->
 
-The `init` command creates a directory at `./.nomad/packs` to store information about availible packs and packs in use.
+## Initialization
+
+When users first run Nomad Pack, it createes a directory at `./.nomad/packs` to store information about availible packs and packs in use.
 
 During initializing, Nomad Pack downloads a default registry of packs from [https://github.com/hashicorp/nomad-pack-registry](https://github.com/hashicorp/nomad-pack-registry).
-
-This can be overridden by using the `--from` flag when running the `init` command. For instance, to use the Community Registry instead of the default, you could run:
-
-```
-nomad-pack init --from git@github.com/hashicorp/nomad-pack-community-registry
-```
 
 The directory structure is as follows:
 
 ```
 .nomad
 └── packs
-    ├── <SOURCE-ORG-REGISTRY>
+    ├── <REGISTRY>
         ├── <PACK-NAME>
             ├── <PACK-VERSION>
                 ├── ...files containing pack contents...
