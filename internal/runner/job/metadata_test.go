@@ -22,6 +22,7 @@ func TestDeployer_setJobMeta(t *testing.T) {
 					PathPath:       "/opt/src/foobar",
 					PackVersion:    "123456",
 					DeploymentName: "foobar@123456",
+					RegistryName:   "default",
 				},
 			},
 			inputJob: &v1client.Job{
@@ -30,7 +31,9 @@ func TestDeployer_setJobMeta(t *testing.T) {
 			expectedOutputJob: &v1client.Job{
 				Name: stringToPtr("foobar"),
 				Meta: mapToPtr(map[string]string{
-					"pack":                 "/opt/src/foobar",
+					"pack-path":            "/opt/src/foobar",
+					"pack-name":            "foobar",
+					"pack-registry":        "default",
 					"pack-deployment-name": "foobar@123456",
 					"pack-job":             "foobar",
 					"pack-version":         "123456",

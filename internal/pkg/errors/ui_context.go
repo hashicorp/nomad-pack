@@ -17,7 +17,6 @@ const (
 	UIContextPrefixPackName       = "Pack Name: "
 	UIContextPrefixRepoName       = "Repo Name: "
 	UIContextPrefixPackPath       = "Pack Path: "
-	UIContextPrefixRegistry       = "Pack Registry: "
 	UIContextPrefixPackVersion    = "Pack Version: "
 	UIContextPrefixTemplateName   = "Template Name: "
 	UIContextPrefixJobName        = "Job Name: "

@@ -58,7 +58,7 @@ func (c *StopCommand) Run(args []string) int {
 	c.packName = packName
 	c.registryName = registryName
 	errorContext.Add(errors.UIContextPrefixPackName, c.packName)
-	errorContext.Add(errors.UIContextPrefixRegistry, c.registryName)
+	errorContext.Add(errors.UIContextPrefixRegistryName, c.registryName)
 
 	client, err := v1.NewClient()
 	if err != nil {
@@ -132,7 +132,7 @@ func (c *StopCommand) Run(args []string) int {
 		}
 	} else {
 		// If no job names are specified, get all jobs belonging to the pack and deployment
-		jobs, err = getDeployedPackJobs(jobsApi, c.packName, c.deploymentName, registryName)
+		jobs, err = getPackJobsByDeploy(jobsApi, c.packName, c.deploymentName, registryName)
 		if err != nil {
 			c.ui.ErrorWithContext(err, "failed to find jobs for pack", errorContext.GetAll()...)
 			return 1

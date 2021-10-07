@@ -98,6 +98,7 @@ func (c *RunCommand) Run(args []string) int {
 		PathPath:       path.Join(repoPath, c.packName),
 		PackVersion:    packVersion,
 		DeploymentName: c.deploymentName,
+		RegistryName:   c.registryName,
 	}
 
 	// TODO(jrasell) come up with a better way to pass the appropriate config.

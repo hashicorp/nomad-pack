@@ -25,6 +25,16 @@ func MinimumNArgs(n int) ValidationFn {
 	}
 }
 
+// Returns an error if more than N args provided
+func MaximumNArgs(n int) ValidationFn {
+	return func(c *baseCommand, args []string) error {
+		if len(args) > n {
+			return fmt.Errorf("this command accepts at most %d arg(s), received %d", n, len(args))
+		}
+		return nil
+	}
+}
+
 // Returns an error if exactly N args aren't provided
 func ExactArgs(n int) ValidationFn {
 	return func(c *baseCommand, args []string) error {

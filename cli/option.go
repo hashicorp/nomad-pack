@@ -26,12 +26,22 @@ func WithNoArgs(args []string) Option {
 }
 
 // The same as WithArgs, but also assigns the validation function MinimumNArgs
-// which returns an error if less than N args are provided. Only the function
+// which returns an error if fewer than N args are provided. Only the function
 // is assigned; actual validation happens after the flags have been parsed.
 func WithMinimumNArgs(n int, args []string) Option {
 	return func(c *baseConfig) {
 		c.Args = args
 		c.Validation = MinimumNArgs(n)
+	}
+}
+
+// The same as WithArgs, but also assigns the validation function MaximumNArgs
+// which returns an error if more than N args are provided. Only the function
+// is assigned; actual validation happens after the flags have been parsed.
+func WithMaximumNArgs(n int, args []string) Option {
+	return func(c *baseConfig) {
+		c.Args = args
+		c.Validation = MaximumNArgs(n)
 	}
 }
 
@@ -42,6 +52,17 @@ func WithExactArgs(n int, args []string) Option {
 	return func(c *baseConfig) {
 		c.Args = args
 		c.Validation = ExactArgs(n)
+	}
+}
+
+// The same as WithArgs, but also assigns a custom validation function
+// which will return an error if the custom validation criteria are not met.
+// Only the function is assigned; acutal validation happens after the flags
+// have been parsed.
+func WithCustomArgs(args []string, customValidation ValidationFn) Option {
+	return func(c *baseConfig) {
+		c.Args = args
+		c.Validation = customValidation
 	}
 }
 

@@ -487,3 +487,60 @@ func TestFlagProvidedButNotDefined(t *testing.T) {
 
 	os.Setenv("NOMAD_ADDR", nomadAddr)
 }
+
+func TestStatus(t *testing.T) {
+	// TODO: Integrate test agent and solve envar dependency
+	// this currently requires nomad agent -dev to be running and the
+	// NOMAD_ADDR envar to be set.
+	nomadAddr := os.Getenv("NOMAD_ADDR")
+	os.Setenv("NOMAD_ADDR", "http://127.0.0.1:4646")
+
+	baseCommand := &baseCommand{
+		Ctx: context.Background(),
+	}
+
+	s := &StatusCommand{baseCommand: baseCommand}
+	cases := []struct {
+		name string
+		args []string
+	}{
+		{
+			name: "no-pack-name",
+			args: []string{},
+		},
+		{
+			name: "with-pack-name",
+			args: []string{"nomad_example"},
+		},
+		{
+			name: "with-pack-and-deploy-name",
+			args: []string{"nomad_example", "--name=foo"},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			exitCode := s.Run(c.args)
+			require.Equal(t, 0, exitCode)
+		})
+	}
+	os.Setenv("NOMAD_ADDR", nomadAddr)
+}
+
+func TestStatusFails(t *testing.T) {
+	// TODO: Integrate test agent and solve envar dependency
+	// this currently requires nomad agent -dev to be running and the
+	// NOMAD_ADDR envar to be set.
+	nomadAddr := os.Getenv("NOMAD_ADDR")
+	os.Setenv("NOMAD_ADDR", "http://127.0.0.1:4646")
+
+	baseCommand := &baseCommand{
+		Ctx: context.Background(),
+	}
+	s := &StatusCommand{baseCommand: baseCommand}
+
+	exitCode := s.Run([]string{"--name=foo"})
+	require.Equal(t, 1, exitCode)
+
+	os.Setenv("NOMAD_ADDR", nomadAddr)
+}

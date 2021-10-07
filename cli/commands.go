@@ -149,10 +149,9 @@ func (c *baseCommand) Init(opts ...Option) error {
 	// Parse flags
 	err := baseCfg.Flags.Parse(baseCfg.Args)
 	if baseCfg.Flags.UsesGoflags() {
-		c.ui.Output("parsing stdlib flags", terminal.WithWarningStyle())
+		c.ui.Warning("parsing stdlib flags")
 	}
 	if err != nil {
-		c.ui.Output(Humanize(err), terminal.WithErrorStyle())
 		return err
 	}
 	c.args = baseCfg.Flags.Args()
@@ -161,8 +160,6 @@ func (c *baseCommand) Init(opts ...Option) error {
 	if baseCfg.Validation != nil {
 		err := baseCfg.Validation(c, c.args)
 		if err != nil {
-			c.ui.Output(Humanize(err), terminal.WithErrorStyle())
-			c.ui.Output(c.Help(), terminal.WithInfoStyle())
 			return err
 		}
 	}
