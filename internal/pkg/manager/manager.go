@@ -3,6 +3,7 @@ package manager
 import (
 	"fmt"
 	"path"
+	"strings"
 
 	v1 "github.com/hashicorp/nomad-openapi/v1"
 	"github.com/hashicorp/nomad-pack/internal/pkg/loader"
@@ -47,9 +48,17 @@ func (pm *PackManager) ProcessTemplates() (*renderer.Rendered, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Root vars are nested under the parent pack name, which is currently
+	// just the pack name without the version. We want to slice the string
+	// so it's just the pack name without the version
+	parentName := path.Base(pm.cfg.Path)
+	idx := strings.LastIndex(path.Base(pm.cfg.Path), "@")
+	if idx != -1 {
+		parentName = path.Base(pm.cfg.Path)[0:idx]
+	}
 
 	variableParser, err := variable.NewParser(&variable.ParserConfig{
-		ParentName:        path.Base(pm.cfg.Path),
+		ParentName:        parentName,
 		RootVariableFiles: loadedPack.RootVariableFiles(),
 		FileOverrides:     pm.cfg.VariableFiles,
 		CLIOverrides:      pm.cfg.VariableCLIArgs,
