@@ -296,12 +296,21 @@ func getRegistryPath(repoName string, ui terminal.UI, errCtx *errors.UIErrorCont
 	cacheDir := path.Join(homeDir, NomadCache)
 	registryPath := path.Join(cacheDir, repoName)
 
-	if _, err := os.Stat(registryPath); os.IsNotExist(err) {
-		ui.ErrorWithContext(err, fmt.Sprintf("registry %s does not exist at path: %s", repoName, registryPath), errCtx.GetAll()...)
-	} else if err != nil {
-		// some other error
-		ui.ErrorWithContext(err, fmt.Sprintf("cannot read registry %s at path: %s", repoName, registryPath), errCtx.GetAll()...)
+	errCtx.Add(errors.UIContextPrefixRegistryPath, registryPath)
+
+	// Attempt to stat the path. If we get an error, ensure we return this but
+	// output specific errors to help debugging.
+	_, err = os.Stat(registryPath)
+	if err != nil {
+		switch os.IsNotExist(err) {
+		case true:
+			ui.ErrorWithContext(err, "registry does not exist", errCtx.GetAll()...)
+		default:
+			ui.ErrorWithContext(err, "failed to read registry", errCtx.GetAll()...)
+		}
+		return "", err
 	}
+
 	return registryPath, nil
 }
 
