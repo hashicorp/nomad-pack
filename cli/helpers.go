@@ -46,6 +46,15 @@ func globalCacheDir() (string, error) {
 	return path.Join(homeDir, NomadCache), nil
 }
 
+// get the default registry directory
+func defaultRegistryDir() (string, error) {
+	globalCache, err := globalCacheDir()
+	if err != nil {
+		return "", err
+	}
+	return path.Join(globalCache, DefaultRegistryName), nil
+}
+
 func addRegistry(cacheDir, from, alias, target string, ui terminal.UI) error {
 	// Add the registry or registry target to the global cache
 	newRegistry, err := registry.AddFromGitURL(cacheDir, from, alias, target, log(ui))
@@ -97,6 +106,44 @@ func deleteRegistry(cacheDir, name, target string, ui terminal.UI) error {
 	if err != nil {
 		ui.ErrorWithContext(err, "error deleting registry")
 	}
+
+	return nil
+}
+func listPacks(ui terminal.UI) error {
+	// Get the global cache dir - may be configurable in the future, so using this
+	// helper function rather than a direct reference to the CONST.
+	registryPath, err := defaultRegistryDir()
+	if err != nil {
+		return err
+	}
+
+	// Initialize a table for a nice glint UI rendering
+	table := registryTable()
+
+	// Load the registry from the path
+	registry, err := registry.LoadFromCache(registryPath)
+	if err != nil {
+		return err
+	}
+
+	// Iterate over packs in a registry and build a table row for
+	// each cachedRegistry/pack entry at each version
+	// If no packs, just show registry.
+	if registry.Packs == nil || len(registry.Packs) == 0 {
+		tableRow := emptyRegistryTableRow(registry)
+		// append table row
+		table.Rows = append(table.Rows, tableRow)
+	} else {
+		// Show registry/pack combo for each pack.
+		for _, registryPack := range registry.Packs {
+			tableRow := registryPackRow(registry, registryPack)
+			// append table row
+			table.Rows = append(table.Rows, tableRow)
+		}
+	}
+
+	// Display output table
+	ui.Table(table)
 
 	return nil
 }

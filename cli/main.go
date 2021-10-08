@@ -33,6 +33,7 @@ var (
 		"run",
 		"destroy",
 		"info",
+		"list",
 		"status",
 		"registry add",
 		"registry delete",
@@ -121,6 +122,11 @@ func Commands(
 	commands := map[string]cli.CommandFactory{
 		"init": func() (cli.Command, error) {
 			return &InitCommand{
+				baseCommand: baseCommand,
+			}, nil
+		},
+		"list": func() (cli.Command, error) {
+			return &ListCommand{
 				baseCommand: baseCommand,
 			}, nil
 		},
