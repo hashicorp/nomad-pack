@@ -30,7 +30,7 @@ func (c *InfoCommand) Run(args []string) int {
 
 	// Generate our UI error context.
 	errorContext := errors.NewUIErrorContext()
-	repoName, packName, err := parseRepoFromPackName(packRepoName)
+	repoName, packName, err := parseRegistryAndPackName(packRepoName)
 
 	if err != nil {
 		c.ui.ErrorWithContext(err, "failed to parse pack name", errorContext.GetAll()...)
@@ -41,16 +41,16 @@ func (c *InfoCommand) Run(args []string) int {
 	errorContext.Add(errors.UIContextPrefixPackName, c.packName)
 	errorContext.Add(errors.UIContextPrefixRegistryName, c.repoName)
 
-	repoPath, err := getRepoPath(repoName, c.ui, errorContext)
+	registryPath, err := getRegistryPath(repoName, c.ui, errorContext)
 	if err != nil {
 		return 1
 	}
 
 	// Add the path to the pack on the error context.
-	errorContext.Add(errors.UIContextPrefixPackPath, repoPath)
+	errorContext.Add(errors.UIContextPrefixPackPath, registryPath)
 
 	// verify packs exist before running jobs
-	if err = verifyPackExist(c.ui, c.packName, repoPath, errorContext); err != nil {
+	if err = verifyPackExist(c.ui, c.packName, registryPath, errorContext); err != nil {
 		return 1
 	}
 

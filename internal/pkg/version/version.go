@@ -67,10 +67,10 @@ func HumanVersion() string {
 	return strings.Replace(version, "'", "", -1)
 }
 
-// PackVersion gets the git sha of a pack by directory. Requires git
+// GitSHA gets the git sha of a pack by directory. Requires git
 // to be installed, pathPath to exist, and for packPath to be part of a git
 // repository.
-func PackVersion(packPath string) (string, error) {
+func GitSHA(packPath string) (string, error) {
 	if _, err := os.Stat(packPath); os.IsNotExist(err) {
 		return "", err
 	}

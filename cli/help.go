@@ -21,7 +21,7 @@ func formatHelp(v string) string {
 
 		// We set rows/cols here manually. The important bit is the cols
 		// needs to be wide enough so glint doesn't clamp any text and
-		// lets the terminal just autowrap it. Rows doesn't make a big
+		// lets the terminal just auto-wrap it. Rows don't make a big
 		// difference.
 		Rows: 10,
 		Cols: 180,
@@ -266,5 +266,26 @@ pack name is specified, it will return a list of all deployed packs. If pack nam
 is provided, it will return a list of the jobs in that pack, along with their status, 
 and the pack deployment they belong to. The --name flag can be used with pack name
 to limit the list of jobs to a specific deployment of the pack.`,
+	},
+	"registry add": {
+		"Adds a pack registry or a specific pack from a registry",
+		`
+Registry add can be used to add a registry, or a specific pack from a registry at
+the latest version or at a specific tag/release/SHA.
+`,
+	},
+	"registry delete": {
+		"Deletes a pack registry or specific pack from a registry",
+		`
+Registry delete can be used to delete a registry, or a specific pack from a registry
+at the latest version or at a specific tag/release/SHA.
+`,
+	},
+	"registry list": {
+		"Lists all downloaded registries and packs",
+		`
+Registry list can be used to list all registries and associated packs that have
+been downloaded to the local environment.
+`,
 	},
 }

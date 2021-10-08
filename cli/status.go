@@ -37,7 +37,7 @@ func (c *StatusCommand) Run(args []string) int {
 	if len(args) > 0 {
 		var err error
 		packRegistryName := c.args[0]
-		registryName, packName, err = parseRepoFromPackName(packRegistryName)
+		registryName, packName, err = parseRegistryAndPackName(packRegistryName)
 		if err != nil {
 			c.ui.ErrorWithContext(err, "failed to parse pack name", errorContext.GetAll()...)
 			return 1
