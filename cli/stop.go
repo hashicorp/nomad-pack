@@ -100,7 +100,13 @@ func (c *StopCommand) Run(args []string) int {
 
 	// Get job names if var overrides are passed
 	if hasVarOverrides(c.baseCommand) {
-		packManager := generatePackManager(c.baseCommand, client, registryPath, fmt.Sprintf("%s@%s", c.packName, c.packVersion))
+		// @@@@ Temp fix to allow loading packs without a version until we talk about
+		// adding version to the pack package.
+		packTarget := c.packName
+		if c.packVersion != "" {
+			packTarget = fmt.Sprintf("%s@%s", packTarget, c.packVersion)
+		}
+		packManager := generatePackManager(c.baseCommand, client, registryPath, packTarget)
 		// render the pack
 		r, err := renderPack(packManager, c.baseCommand.ui, errorContext)
 		if err != nil {
