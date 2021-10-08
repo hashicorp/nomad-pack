@@ -1,0 +1,38 @@
+run:
+  deadline: 10m
+  tests: true
+
+# Output configuration options.
+output:
+  format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+
+# All available settings of specific linters.
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+  govet:
+    check-shadowing: true
+  gofmt:
+    simplify: true
+  staticcheck:
+    checks: [ "all","-ST1000" ]
+
+linters:
+  disable-all: true
+  enable:
+    - goimports
+    - gocritic
+    - misspell
+    - govet
+    - deadcode
+    - varcheck
+    - ineffassign
+    - structcheck
+    - unconvert
+    - gofmt
+    - gosimple
+    - depguard
+    - staticcheck
+  fast: false
