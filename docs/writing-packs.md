@@ -13,7 +13,7 @@ First, make a pack registry. This will be a repository that provides the structu
 
 Cloning [hashicorp/example-nomad-pack-registry](example-nomad-pack-registry) can give you a head start.
 
-Each registry should have a README.md file that describes thes packs in it, and top-level directories for each pack. Conventionally, the directory name matches the pack name.
+Each registry should have a README.md file that describes the packs in it, and top-level directories for each pack. Conventionally, the directory name matches the pack name.
 
 The top level of a pack registry looks like the following:
 
@@ -120,10 +120,6 @@ Congrats on deploying [[ .nomad_pack.pack.name ]].
 
 There are [[ .simple_pack.app_count ]] instances of your job now running on Nomad.
 ```
-
-<!-- TODO: ADD INFORMATION ABOUT HOW THIS ACTUALLY WORKS AND HOW IT GETS NOMAD DATA -->
-
-<!-- TODO: ADD AN EXAMPLE -->
 
 #### README and CHANGELOG
 
