@@ -24,6 +24,7 @@ const (
 	UIContextPrefixRegion         = "Region: "
 	UIContextPrefixHCLRange       = "HCL Range: "
 	UIContextPrefixRegistryName   = "Registry Name: "
+	UIContextPrefixRegistryPath   = "Registry Path: "
 )
 
 // UIErrorContext is used to store and manipulate error context strings used

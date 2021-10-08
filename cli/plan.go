@@ -71,7 +71,6 @@ func (c *PlanCommand) Run(args []string) int {
 
 	registryPath, err := getRegistryPath(c.registryName, c.ui, errorContext)
 	if err != nil {
-		c.ui.ErrorWithContext(err, "failed to identify repository path")
 		return 255
 	}
 

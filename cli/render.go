@@ -44,7 +44,6 @@ func (r *RenderCommand) Run(args []string) int {
 	// TODO: Refactor to context.nomad file in next phase.
 	registryPath, err := getRegistryPath(repo, r.ui, errorContext)
 	if err != nil {
-		r.ui.ErrorWithContext(err, "failed to identify repository path", errorContext.GetAll()...)
 		return 1
 	}
 
