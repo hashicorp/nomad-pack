@@ -50,7 +50,7 @@ func NewDeployer(client *v1.Client, cfg *CLIConfig) runner.Runner {
 }
 
 // CanonicalizeTemplates satisfies the CanonicalizeTemplates function of the
-// deploy.Deployer interface.
+// runner.Runner interface.
 func (r *Runner) CanonicalizeTemplates() []*errors.WrappedUIContext {
 
 	if len(r.parsedTemplates) < 1 {
