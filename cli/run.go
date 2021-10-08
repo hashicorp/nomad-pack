@@ -84,7 +84,13 @@ func (c *RunCommand) Run(args []string) int {
 		return 1
 	}
 
-	packManager := generatePackManager(c.baseCommand, client, registryPath, fmt.Sprintf("%s@%s", c.packName, c.packVersion))
+	// @@@@ Temp fix to allow loading packs without a version until we talk about
+	// adding version to the pack package.
+	packTarget := c.packName
+	if c.packVersion != "" {
+		packTarget = fmt.Sprintf("%s@%s", packTarget, c.packVersion)
+	}
+	packManager := generatePackManager(c.baseCommand, client, registryPath, packTarget)
 
 	// Render the pack now, before creating the deployer. If we get an error
 	// we won't make it to the deployer.

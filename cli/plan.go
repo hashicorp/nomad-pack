@@ -82,7 +82,13 @@ func (c *PlanCommand) Run(args []string) int {
 		return 255
 	}
 
-	packManager := generatePackManager(c.baseCommand, client, registryPath, fmt.Sprintf("%s@%s", c.packName, c.packVersion))
+	// @@@@ Temp fix to allow loading packs without a version until we talk about
+	// adding version to the pack package.
+	packTarget := c.packName
+	if c.packVersion != "" {
+		packTarget = fmt.Sprintf("%s@%s", packTarget, c.packVersion)
+	}
+	packManager := generatePackManager(c.baseCommand, client, registryPath, packTarget)
 
 	// load pack
 	r, err := renderPack(packManager, c.baseCommand.ui, errorContext)
