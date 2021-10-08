@@ -3,12 +3,12 @@ package job
 import v1client "github.com/hashicorp/nomad-openapi/clients/go/v1"
 
 const (
-	PackPathKey           = "pack_path"
-	PackNameKey           = "pack_name"
-	PackRegistryKey       = "pack_registry"
-	PackDeploymentNameKey = "pack_deployment_name"
-	PackJobKey            = "pack_job"
-	PackVersionKey        = "pack_version"
+	PackPathKey           = "pack.path"
+	PackNameKey           = "pack.name"
+	PackRegistryKey       = "pack.registry"
+	PackDeploymentNameKey = "pack.deployment_name"
+	PackJobKey            = "pack.job"
+	PackVersionKey        = "pack.version"
 )
 
 // add metadata to the job for in cluster querying and management
