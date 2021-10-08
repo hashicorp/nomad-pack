@@ -17,13 +17,15 @@ type InitCommand struct {
 }
 
 func (c *InitCommand) Run(args []string) int {
-	c.cmdKey = "init" // Add cmd key here so help text is available in Init
+	c.cmdKey = "init" // Add cmdKey here to print out helpUsageMessage on Init error
 	// Initialize. If we fail, we just exit since Init handles the UI.
 	if err := c.Init(
-		WithExactArgs(0, args),
+		WithNoArgs(args),
 		WithFlags(c.Flags()),
 		WithNoConfig(),
 	); err != nil {
+		c.ui.ErrorWithContext(err, ErrParsingArgsOrFlags)
+		c.ui.Info(c.helpUsageMessage())
 		return 1
 	}
 

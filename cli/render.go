@@ -21,10 +21,11 @@ type RenderCommand struct {
 
 // Run satisfies the Run function of the cli.Command interface.
 func (r *RenderCommand) Run(args []string) int {
-
-	r.cmdKey = "render"
+	r.cmdKey = "render" // Add cmdKey here to print out helpUsageMessage on Init error
 
 	if err := r.Init(WithExactArgs(1, args), WithFlags(r.Flags()), WithNoConfig()); err != nil {
+		r.ui.ErrorWithContext(err, ErrParsingArgsOrFlags)
+		r.ui.Info(r.helpUsageMessage())
 		return 1
 	}
 

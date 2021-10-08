@@ -24,13 +24,15 @@ type RunCommand struct {
 
 func (c *RunCommand) Run(args []string) int {
 	var err error
-	c.cmdKey = "run" // Add cmd key here so help text is available in Init
+	c.cmdKey = "run" // Add cmdKey here to print out helpUsageMessage on Init error
 	// Initialize. If we fail, we just exit since Init handles the UI.
 	if err := c.Init(
 		WithExactArgs(1, args),
 		WithFlags(c.Flags()),
 		WithNoConfig(),
 	); err != nil {
+		c.ui.ErrorWithContext(err, ErrParsingArgsOrFlags)
+		c.ui.Info(c.helpUsageMessage())
 		return 1
 	}
 

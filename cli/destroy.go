@@ -10,28 +10,32 @@ type DestroyCommand struct {
 }
 
 func (c *DestroyCommand) Run(args []string) int {
-	c.cmdKey = "destroy" // Add cmd key here so help text is available in Init
+	c.cmdKey = "destroy" // Add cmdKey here to print out helpUsageMessage on Init error
 	// Initialize. If we fail, we just exit since Init handles the UI.
 	if err := c.Init(
 		WithExactArgs(1, args),
 		WithFlags(c.Flags()),
 		WithNoConfig(),
 	); err != nil {
+		c.ui.ErrorWithContext(err, ErrParsingArgsOrFlags)
+		c.ui.Info(c.helpUsageMessage())
 		return 1
+	} else {
+		// This needs to be in an else block so that it doesn't try to run while
+		// the error above is still being handled. Without it, the error message
+		// appears twice.
+		s := c.StopCommand
+		args = append(args, "--purge=true")
+		// This will re-init and re-parse in the stop command but since we've already
+		// successfully parsed flags and validated args here, we should exit the stop
+		// init without error
+		return s.Run(args)
 	}
 
-	s := c.StopCommand
-	args = append(args, "--purge=true")
-	// This will re-init and re-parse in the stop command but since we've already
-	// successfully parsed flags and validated args here, we should exit the stop
-	// init without error
-	return s.Run(args)
 }
 
 func (c *DestroyCommand) Flags() *flag.Sets {
 	return c.flagSet(flagSetOperation, func(set *flag.Sets) {
-		set.HideUnusedFlags("Operation Options", []string{"var", "var-file"})
-
 		f := set.NewSet("Destroy Options")
 		// TODO: is there a way to reuse the flag from StopCommand so we're not just copy/pasting
 		f.BoolVar(&flag.BoolVar{

@@ -23,14 +23,15 @@ type PlanCommand struct {
 
 func (c *PlanCommand) Run(args []string) int {
 	var err error
-	c.cmdKey = "plan"
+	c.cmdKey = "plan" // Add cmdKey here to print out helpUsageMessage on Init error
 	// Initialize. If we fail, we just exit since Init handles the UI.
 	if err := c.Init(
 		WithExactArgs(1, args),
 		WithFlags(c.Flags()),
 		WithNoConfig(),
 	); err != nil {
-		c.ui.ErrorWithContext(err, "error parsing args or flags")
+		c.ui.ErrorWithContext(err, ErrParsingArgsOrFlags)
+		c.ui.Info(c.helpUsageMessage())
 		return 255
 	}
 

@@ -33,6 +33,7 @@ var (
 		"run",
 		"destroy",
 		"info",
+		"status",
 		"registry add",
 		"registry delete",
 		"registry list",
