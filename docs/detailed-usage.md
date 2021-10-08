@@ -171,6 +171,19 @@ nomad-pack plan hello-world --var greeting=hallo
 nomad-pack plan hello-world --var-file ./my-variables.hcl
 ```
 
+## Status
+If you want to see a list of the packs currently deployed (this may include packs that are stopped but not yet removed), run the `status` command.
+
+```
+nomad-pack status
+```
+
+To see the status of jobs running in a specific pack, use the `status` command with the pack name.
+
+```
+nomad-pack status hello-world
+```
+
 ## Destroy
 
 If you want to remove all of the resources deployed by a pack, run the `destroy` command with the pack name.
@@ -179,7 +192,7 @@ If you want to remove all of the resources deployed by a pack, run the `destroy`
 nomad-pack destroy hello-world
 ```
 
-If you deployed the pack with a name override, pass in the name you gave the pack. For instance, if you deployed with the command:
+If you deployed the pack with a `--name` value, pass in the name you gave the pack. For instance, if you deployed with the command:
 
 ```
 nomad-pack run hello-world --name hola-mundo
@@ -188,11 +201,50 @@ nomad-pack run hello-world --name hola-mundo
 You would destroy the contents of that pack with the command;
 
 ```
-nomad-pack destroy hola-mundo
+nomad-pack destroy hello-world --name hola-mundo
 ```
 
-To remove all jobs from Nomad completely, not just stop them. Add the `--purge` flag
+If you deployed the pack with variable overrides that override the job name in a pack, pass in those same overrides. For example,
+if you deployed with the command:
 
 ```
-nomad-pack destroy hola-mundo --purge
+nomad-pack run hello-world --name hola-mundo --var job_name=spanish
 ```
+
+You would destroy the contents of that pack with the command:
+
+```
+nomad-pack destroy hello-world --name hola-mundo --var job_name=spanish
+```
+
+It's possible to deploy multiple instances of a pack using the same `--name` value but with different job names using variable
+overrides. For example, you can run the following commands, which will create two jobs,
+one named "spanish" and one named "hola":
+
+```
+nomad-pack run hello-world --name hola-mundo --var job_name=spanish
+nomad-pack run hello-world --name hola-mundo --var job_name=hola
+```
+
+If you run the destroy command without including the variable overrides, the command will destroy both jobs, since by default
+nomad pack will target all jobs belonging to the specified pack and deployment name.
+```
+# This destroys both jobs: "spanish" and "hola"
+nomad-pack destroy hello-world --name hola-mundo
+```
+
+If you only want to destroy one of the jobs, you need to include the variable overrides so nomad pack knows which job to target:
+```
+# This destroys the job named "spanish"
+nomad-pack destroy hello-world --name hola-mundo --var job_name=spanish
+```
+
+## Stop
+
+To stop the jobs without completely removing them from Nomad completely, use the `stop` command:
+
+```
+nomad-pack stop hola-mundo
+```
+
+N.B. The `destroy` command is an alias for `stop --purge`.
