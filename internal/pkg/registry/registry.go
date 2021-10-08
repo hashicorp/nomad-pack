@@ -22,6 +22,11 @@ type CachedRegistry struct {
 // file, it is not considered a valid pack, and will return an error. If the loader
 // is unable to load the pack, likewise and error is returned.
 func (r *CachedRegistry) LoadCachedPack(packPath string) error {
+	// Guard against processing the .git folder or non-versioned directories
+	if strings.Contains(packPath, ".git") || !strings.Contains(packPath, "@") {
+		return nil
+	}
+
 	var err error
 
 	// get the pack name from the packPath
@@ -51,6 +56,10 @@ func (r *CachedRegistry) LoadCachedPack(packPath string) error {
 				registryPack = invalidPackDefinition(packName)
 			}
 		}
+	}
+
+	if registryPack == nil {
+		return fmt.Errorf("unable to load registry pack at %s", packPath)
 	}
 
 	// Get version from packPath
