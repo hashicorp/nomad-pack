@@ -32,28 +32,27 @@ to store information about available packs.
 nomad-pack init
 ```
 
-Next, run the `list` command to see which packs are available to deploy. This will show packs
-that are available to deploy.
+Next, run the `list` command to see which packs are available to deploy.
 
 ```
 nomad-pack list
 ```
 
-To deploy one of these packs, run the `run` command to deploy the jobs in the pack to Nomad. For
-instance, to deploy the `hello_world` pack, you would run the command:
+To deploy one of these packs, use the `run` command. This deploys each jobs defined in the pack to Nomad.
+To deploy the `hello_world` pack, you would run the following command:
 
 ```
 nomad-pack run hello_world
 ```
 
 Each pack defines a set of variables that can be provided by the user. To get information on the pack
-and to see what variables can be passed in, run the `info` command.
+and to see which variables can be passed in, run the `info` command.
 
 ```
 nomad-pack info hello_world
 ```
 
-Values for these variables can be passed into the `run` command using the `--var` flag.
+Values for these variables are provided using the `--var` flag.
 
 ```
 nomad-pack run hello_world --var greeting=hola
@@ -106,8 +105,6 @@ see the [Writing Packs documentation](/docs/writing-packs.md) for more details.
 ## Pack Registries
 
 Packs are organized into "registries" which contain multiple packs and shared templates.
-
-### Pack Registries
 
 Nomad Pack is initialized with a default pack registries found at
 [https://github.com/hashicorp/nomad-pack-registry](https://github.com/hashicorp/nomad-pack-registry).
