@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -33,6 +34,12 @@ func (c *RegistryDeleteCommand) Run(args []string) int {
 }
 
 func (c *RegistryDeleteCommand) run() int {
+	// Ensure a name is passed
+	if c.name == "" {
+		c.ui.ErrorWithContext(errors.New("registry name is required"), "error deleting registry")
+		return 1
+	}
+
 	// Get the global cache dir - may be configurable in the future, so using this
 	// helper function rather than a direct reference to the CONST.
 	cacheDir, err := globalCacheDir()
