@@ -43,7 +43,7 @@ func (c *RegistryAddCommand) run() int {
 		c.ui.ErrorWithContext(err, "error adding registry")
 		return 1
 	}
-	return 1
+	return 0
 }
 
 func (c *RegistryAddCommand) Flags() *flag.Sets {
