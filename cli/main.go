@@ -123,12 +123,6 @@ func Commands(
 				baseCommand: baseCommand,
 			}, nil
 		},
-		"repo": func() (cli.Command, error) {
-			return &helpCommand{
-				synopsis: helpText["repo"][0],
-				help:     helpText["repo"][1],
-			}, nil
-		},
 		"render": func() (cli.Command, error) {
 			return &RenderCommand{
 				baseCommand: baseCommand,

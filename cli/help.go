@@ -196,25 +196,6 @@ Subcommands:
 `
 
 var helpText = map[string][2]string{
-	"repo": {
-		"Nomad Pack git repository management",
-		`
-Nomad Pack git repository management.
-The repo commands can be used to list repositories containing Nomad packs, push
-updates to a repository you control, add a new repository to your local cache, etc.
-Nomad Pack will search for packs in local repositories to match the pack name(s) specified
-in the run command.
-`,
-	},
-	"repo list": {
-		"List local Nomad Pack repositories",
-		`
-List local Nomad Pack repositories.
-The repo list command can be used to list local repositories containing Nomad packs.
-Nomad Pack will search for packs in local repositories to match the pack name(s) specified
-in the run command.
-`,
-	},
 	"run": {
 		"Run one or more Nomad packs",
 		`
