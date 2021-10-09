@@ -1,6 +1,9 @@
 package cli
 
 import (
+	"fmt"
+	"strings"
+
 	v1 "github.com/hashicorp/nomad-openapi/v1"
 	"github.com/hashicorp/nomad-pack/flag"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
@@ -62,7 +65,13 @@ func (r *RenderCommand) Run(args []string) int {
 		return 1
 	}
 
-	packManager := generatePackManager(r.baseCommand, client, registryPath, pack)
+	// @@@@ Temp fix to allow loading packs without a version until we talk about
+	// adding version to the pack package.
+	packTarget := pack
+	if !strings.Contains(packTarget, "@") {
+		packTarget = fmt.Sprintf("%s@latest", packTarget)
+	}
+	packManager := generatePackManager(r.baseCommand, client, registryPath, packTarget)
 
 	renderOutput, err := renderPack(packManager, r.baseCommand.ui, errorContext)
 	if err != nil {

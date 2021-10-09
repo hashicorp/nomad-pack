@@ -85,5 +85,9 @@ func ParsePackNameAndVersion(name string) (packName, version string, err error) 
 		version = segments[1]
 	}
 
+	if version == "" {
+		version = "latest"
+	}
+
 	return
 }

@@ -326,7 +326,13 @@ func getPackPath(repoName string, packName string) (string, error) {
 func verifyPackExist(ui terminal.UI, packName, registryPath string, errCtx *errors.UIErrorContext) error {
 	packPath := path.Join(registryPath, packName)
 	if _, err := os.Stat(packPath); os.IsNotExist(err) {
-		ui.ErrorWithContext(err, "failed to find pack", errCtx.GetAll()...)
+		// TODO: Fix this demo hack by managing pack name correctly upstream
+		err = nil
+		packName = fmt.Sprintf("%s@latest", packName)
+		packPath = path.Join(registryPath, packName)
+		if _, err = os.Stat(packPath); os.IsNotExist(err) {
+			ui.ErrorWithContext(err, "failed to find pack", errCtx.GetAll()...)
+		}
 		return err
 	}
 

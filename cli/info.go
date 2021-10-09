@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"path"
+	"strings"
 
 	flag "github.com/hashicorp/nomad-pack/flag"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
@@ -64,6 +65,11 @@ func (c *InfoCommand) Run(args []string) int {
 		return 1
 	}
 
+	// @@@@ Temp fix to allow loading packs without a version until we talk about
+	// adding version to the pack package.
+	if !strings.Contains(packPath, "@") {
+		packPath = fmt.Sprintf("%s@latest", packPath)
+	}
 	pack, err := loader.Load(packPath)
 	if err != nil {
 		c.ui.ErrorWithContext(err, "failed to load pack from local directory", errorContext.GetAll()...)
