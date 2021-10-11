@@ -71,7 +71,7 @@ func Main(args []string) int {
 		return &cli.CLI{
 			Name:                       args[0],
 			Args:                       args[1:],
-			Version:                    version.HumanVersion(),
+			Version:                    fmt.Sprintf("Nomad Pack %s", version.HumanVersion()),
 			Commands:                   commands,
 			Autocomplete:               true,
 			AutocompleteNoDefaultFlags: true,
