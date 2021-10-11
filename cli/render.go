@@ -29,21 +29,22 @@ func (r *RenderCommand) Run(args []string) int {
 		return 1
 	}
 
+	packFullPath := r.args[0]
+
 	// Generate our UI error context.
 	errorContext := errors.NewUIErrorContext()
 
-	packRepoName := args[0]
-
-	repo, pack, err := parseRegistryAndPackName(packRepoName)
+	registryName, packName, err := parseRegistryAndPackName(packFullPath)
 	if err != nil {
 		r.ui.ErrorWithContext(err, "failed to parse pack name", errorContext.GetAll()...)
 		return 1
 	}
-	errorContext.Add(errors.UIContextPrefixPackName, pack)
-	errorContext.Add(errors.UIContextPrefixRepoName, repo)
+
+	errorContext.Add(errors.UIContextPrefixPackName, packName)
+	errorContext.Add(errors.UIContextPrefixRegistryName, registryName)
 
 	// TODO: Refactor to context.nomad file in next phase.
-	registryPath, err := getRegistryPath(repo, r.ui, errorContext)
+	registryPath, err := getRegistryPath(registryName, r.ui, errorContext)
 	if err != nil {
 		return 1
 	}
@@ -52,7 +53,7 @@ func (r *RenderCommand) Run(args []string) int {
 	// an error.
 	errorContext.Add(errors.UIContextPrefixPackPath, registryPath)
 
-	if err = verifyPackExist(r.ui, pack, registryPath, errorContext); err != nil {
+	if err = verifyPackExist(r.ui, packName, registryPath, errorContext); err != nil {
 		return 1
 	}
 
@@ -62,7 +63,7 @@ func (r *RenderCommand) Run(args []string) int {
 		return 1
 	}
 
-	packManager := generatePackManager(r.baseCommand, client, registryPath, pack)
+	packManager := generatePackManager(r.baseCommand, client, registryPath, packName)
 
 	renderOutput, err := renderPack(packManager, r.baseCommand.ui, errorContext)
 	if err != nil {
