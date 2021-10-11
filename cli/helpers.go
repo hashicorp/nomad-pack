@@ -50,7 +50,6 @@ func addRegistry(cacheDir, from, alias, target string, ui terminal.UI) error {
 	// Add the registry or registry target to the global cache
 	newRegistry, err := registry.AddFromGitURL(cacheDir, from, alias, target, log(ui))
 	if err != nil {
-		ui.ErrorWithContext(err, "error adding registry")
 		return err
 	}
 
