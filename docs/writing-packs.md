@@ -11,7 +11,7 @@ First, make a pack registry. This will be a repository that provides the structu
 
 <!-- TODO: MAKE THE EXAMPLE REPO -->
 
-Cloning [hashicorp/example-nomad-pack-registry](example-nomad-pack-registry) can give you a head start.
+Cloning [hashicorp/example-nomad-pack-registry](https://github.com/hashicorp/example-nomad-pack-registry) can give you a head start.
 
 Each registry should have a README.md file that describes the packs in it, and top-level directories for each pack. Conventionally, the directory name matches the pack name.
 
