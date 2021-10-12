@@ -126,6 +126,7 @@ Pull Requests and feedback on both repositories are welcome!
 
 - [How to Write Your Own Pack](/docs/writing-packs.md)
 - [Detailed Usage Guide](/docs/detailed-usage.md)
+- [Contributing](/docs/contributing.md)
 
 ## Tutorials
 
