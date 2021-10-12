@@ -57,14 +57,14 @@ An example `metadata.hcl` file:
 
 ```
 app {
-  url = "https://github.com/jrasell/hello-world-app"
-  author = "James Rasell"
+  url = "https://github.com/mikenomitch/hello_world_server"
+  author = "Mike Nomitch"
 }
 
 pack {
-  name = "hello-world"
+  name = "hello_world"
   description = "This pack contains a single job that renders hello world, or a different greeting, to the screen."
-  url = "https://github.com/hashicorp/nomad-pack-community-registry/hello-world"
+  url = "https://github.com/hashicorp/nomad-pack-community-registry/hello_world"
   version = "0.3.2"
 }
 ```
@@ -118,7 +118,7 @@ Output files have access to pack variables and template helper functions. A simp
 ```
 Congrats on deploying [[ .nomad_pack.pack.name ]].
 
-There are [[ .simple_pack.app_count ]] instances of your job now running on Nomad.
+There are [[ .hello_world.app_count ]] instances of your job now running on Nomad.
 ```
 
 #### README and CHANGELOG
@@ -264,19 +264,19 @@ This would allow templates of "simple_service" to use "demo_dep"'s helper templa
 As you write your pack, you will probably want to test it. To do this, copy your local pack registry
 into the `~/.nomad/pack` directory that Nomad Pack initialized on your machine.
 
-For instance, from your newly-created registry, you might copy the registry into a "dev" subdirectory.
+For instance, from your pack subdirectory, you might copy the registry into a "dev" subdirectory.
 
 ```
-cp -r . ~/.nomad/packs/dev
+cp -r . ~/.nomad/packs/dev/hello_world@latest
 ```
 
-Once this is done, Nomad Pack can now use your packs. For instance, if you had a pack called `simple_service`
+Once this is done, Nomad Pack can now use your packs. For instance, if you had a pack called `hello_world`
 you could call the following commands.
 
 ```
-nomad-pack info dev:simple_service
-nomad-pack render dev:simple_service
-nomad-pack run dev:simple_service
+nomad-pack info dev:hello_world
+nomad-pack render dev:hello_world
+nomad-pack run dev:hello_world
 ```
 
 These can be used to validate that your pack is working as expected.
@@ -297,13 +297,13 @@ If you don't want to host a pack registry in version control, you can copy your 
 Add your custom repository using the `nomad-pack registry add` command.
 
 ```
-nomad-pack registry add git@github.com/<YOUR_ORG>/<YOUR_REPO>
+nomad-pack registry add my_packs git@github.com/<YOUR_ORG>/<YOUR_REPO>
 ```
 
 Deploy your custom packs.
 
 ```
-nomad-pack run simple_service --var app_count=1
+nomad-pack run my_packs:hello_world --var app_count=1
 ```
 
 Congrats! You can now write custom packs for Nomad!
