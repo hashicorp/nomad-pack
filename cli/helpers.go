@@ -343,13 +343,16 @@ func generatePackManager(c *baseCommand, client *v1.Client, registryName, pack s
 	return manager.NewPackManager(&cfg, client)
 }
 
-// Uses the pack manager to parse the templates, override template variables with var files
-// and cli vars as applicable
+// renderPack uses the pack manager to parse the templates, override template
+// variables with var files and cli vars as applicable
 func renderPack(manager *manager.PackManager, ui terminal.UI, errCtx *errors.UIErrorContext) (*renderer.Rendered, error) {
 	r, err := manager.ProcessTemplates()
 	if err != nil {
-		ui.ErrorWithContext(err, "failed to process pack ", errCtx.GetAll()...)
-		return nil, err
+		for i := range err {
+			err[i].Context.Append(errCtx)
+			ui.ErrorWithContext(err[i].Err, "failed to process pack", err[i].Context.GetAll()...)
+		}
+		return nil, stdErrors.New("failed to render")
 	}
 	return r, nil
 }
