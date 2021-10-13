@@ -40,6 +40,8 @@ func (ui *nonInteractiveUI) Output(msg string, raw ...interface{}) {
 	msg, style, w := Interpret(msg, raw...)
 
 	switch style {
+	case DebugStyle:
+		msg = "debug: " + msg
 	case HeaderStyle:
 		msg = "\n» " + msg
 	case ErrorStyle, ErrorBoldStyle:
@@ -52,10 +54,10 @@ func (ui *nonInteractiveUI) Output(msg string, raw ...interface{}) {
 		}
 
 		return
-
 	case WarningStyle, WarningBoldStyle:
 		msg = "warning: " + msg
-
+	case TraceStyle:
+		msg = "trace: " + msg
 	case SuccessStyle, SuccessBoldStyle:
 
 	case InfoStyle:
@@ -190,6 +192,11 @@ func (ui *nonInteractiveUI) Table(tbl *Table, opts ...Option) {
 	table.Render()
 }
 
+// Debug implements UI
+func (ui *nonInteractiveUI) Debug(msg string) {
+	ui.Output(msg, WithDebugStyle())
+}
+
 // Error implements UI
 func (ui *nonInteractiveUI) Error(msg string) {
 	ui.Output(msg, WithErrorStyle())
@@ -214,6 +221,11 @@ func (ui *nonInteractiveUI) Info(msg string) {
 // Success implements UI
 func (ui *nonInteractiveUI) Success(msg string) {
 	ui.Output(msg, WithSuccessStyle())
+}
+
+// Trace implements UI
+func (ui *nonInteractiveUI) Trace(msg string) {
+	ui.Output(msg, WithTraceStyle())
 }
 
 // Warning implements UI

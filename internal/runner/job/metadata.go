@@ -8,7 +8,7 @@ const (
 	PackRegistryKey       = "pack.registry"
 	PackDeploymentNameKey = "pack.deployment_name"
 	PackJobKey            = "pack.job"
-	PackVersionKey        = "pack.version"
+	PackRefKey            = "pack.version"
 )
 
 // add metadata to the job for in cluster querying and management
@@ -26,8 +26,8 @@ func (r *Runner) setJobMeta(job *v1client.Job) {
 	jobMeta[PackRegistryKey] = r.runnerCfg.RegistryName
 	jobMeta[PackDeploymentNameKey] = r.runnerCfg.DeploymentName
 	jobMeta[PackJobKey] = *job.Name
-	jobMeta[PackVersionKey] = r.runnerCfg.PackVersion
+	jobMeta[PackRefKey] = r.runnerCfg.PackRef
 
-	// Replace the job metadata with our modified version.
+	// Replace the job metadata with our modified ref.
 	job.Meta = &jobMeta
 }

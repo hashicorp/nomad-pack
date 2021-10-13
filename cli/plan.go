@@ -1,13 +1,10 @@
 package cli
 
 import (
-	"fmt"
-	"path"
-
 	v1 "github.com/hashicorp/nomad-openapi/v1"
 	"github.com/hashicorp/nomad-pack/flag"
+	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
-	"github.com/hashicorp/nomad-pack/internal/pkg/registry"
 	"github.com/hashicorp/nomad-pack/internal/runner"
 	"github.com/hashicorp/nomad-pack/internal/runner/job"
 	"github.com/posener/complete"
@@ -15,10 +12,8 @@ import (
 
 type PlanCommand struct {
 	*baseCommand
-	packName     string
-	packVersion  string
-	registryName string
-	jobConfig    *job.CLIConfig
+	packConfig *cache.PackConfig
+	jobConfig  *job.CLIConfig
 }
 
 func (c *PlanCommand) Run(args []string) int {
@@ -35,45 +30,18 @@ func (c *PlanCommand) Run(args []string) int {
 		return 255
 	}
 
-	c.packName = c.args[0]
+	c.packConfig.Name = c.args[0]
 
-	// Generate our UI error context.
-	errorContext := errors.NewUIErrorContext()
-
-	c.registryName, c.packName, err = parseRegistryAndPackName(c.packName)
-	if err != nil {
-		c.ui.ErrorWithContext(err, "failed to parse pack name", errorContext.GetAll()...)
-		return 1
-	}
-
-	errorContext.Add(errors.UIContextPrefixPackName, c.packName)
-	errorContext.Add(errors.UIContextPrefixRegistryName, c.registryName)
-
-	registryPath, err := getRegistryPath(c.registryName, c.ui, errorContext)
-	if err != nil {
-		return 255
-	}
-
-	// Add the path to the pack on the error context.
-	errorContext.Add(errors.UIContextPrefixPackPath, registryPath)
+	// Set defaults and initialize the error context.
+	errorContext := initPackCommand(c.packConfig)
 
 	// verify packs exist before planning jobs
-	if err = verifyPackExist(c.ui, c.packName, registryPath, errorContext); err != nil {
+	if err = cache.VerifyPackExists(c.packConfig, errorContext, c.ui); err != nil {
 		return 255
 	}
 
-	// split pack name and version
-	// TODO: Get this from pack metadata.
-	c.packName, c.packVersion, err = registry.ParsePackNameAndVersion(c.packName)
-	if err != nil {
-		c.ui.ErrorWithContext(err, "failed to determine pack version", errorContext.GetAll()...)
-	}
-
-	// Add the path to the pack on the error context.
-	errorContext.Add(errors.UIContextPrefixPackVersion, c.packVersion)
-
-	// If no deploymentName set default to pack@version
-	c.deploymentName = getDeploymentName(c.baseCommand, c.packName, c.packVersion)
+	// If no deploymentName set default to pack@ref
+	c.deploymentName = getDeploymentName(c.baseCommand, c.packConfig)
 	errorContext.Add(errors.UIContextPrefixDeploymentName, c.deploymentName)
 
 	client, err := v1.NewClient()
@@ -82,13 +50,7 @@ func (c *PlanCommand) Run(args []string) int {
 		return 255
 	}
 
-	// @@@@ Temp fix to allow loading packs without a version until we talk about
-	// adding version to the pack package.
-	packTarget := c.packName
-	if c.packVersion != "" {
-		packTarget = fmt.Sprintf("%s@%s", packTarget, c.packVersion)
-	}
-	packManager := generatePackManager(c.baseCommand, client, registryPath, packTarget)
+	packManager := generatePackManager(c.baseCommand, client, c.packConfig)
 
 	// load pack
 	r, err := renderPack(packManager, c.baseCommand.ui, errorContext)
@@ -104,9 +66,9 @@ func (c *PlanCommand) Run(args []string) int {
 	}
 
 	depConfig := runner.Config{
-		PackName:       c.packName,
-		PathPath:       path.Join(registryPath, c.packName),
-		PackVersion:    c.packVersion,
+		PackName:       c.packConfig.Name,
+		PathPath:       cache.BuildPackPath(c.packConfig),
+		PackRef:        c.packConfig.Ref,
 		DeploymentName: c.deploymentName,
 	}
 
@@ -153,6 +115,8 @@ func (c *PlanCommand) Run(args []string) int {
 }
 
 func (c *PlanCommand) Flags() *flag.Sets {
+	c.packConfig = &cache.PackConfig{}
+
 	return c.flagSet(flagSetOperation, func(set *flag.Sets) {
 		f := set.NewSet("Plan Options")
 
@@ -160,6 +124,24 @@ func (c *PlanCommand) Flags() *flag.Sets {
 			RunConfig:  &job.RunCLIConfig{},
 			PlanConfig: &job.PlanCLIConfig{},
 		}
+
+		f.StringVar(&flag.StringVar{
+			Name:    "registry",
+			Target:  &c.packConfig.Registry,
+			Default: "",
+			Usage:   `Specific registry name containing the pack to be planned.`,
+		})
+
+		f.StringVar(&flag.StringVar{
+			Name:    "ref",
+			Target:  &c.packConfig.Ref,
+			Default: "",
+			Usage: `Specific git ref of the pack to be planned. 
+Supports tags, SHA, and latest. If no ref is specified, defaults to 
+latest.
+
+Using ref with a file path is not supported.`,
+		})
 
 		f.BoolVar(&flag.BoolVar{
 			Name:    "diff",
@@ -205,12 +187,14 @@ func (c *PlanCommand) AutocompleteFlags() complete.Flags {
 
 func (c *PlanCommand) Help() string {
 	c.Example = `
-	# Plan an example pack with the default deployment name "example@86a9235"
-    # (default is <pack-name>@version).
+	# Plan an example pack with the default deployment name
 	nomad-pack plan example
 
-	# Plan an example pack with deployment name "dev"
-	nomad-pack plan example --name=dev
+	# Plan an example pack at a specific ref
+	nomad-pack plan example --ref=v0.0.1
+
+	# Plan a pack from a registry other than the default registry
+	nomad-pack plan traefik --registry=community --ref=v0.0.1
 
 	# Plan an example pack without showing the diff
 	nomad-pack plan example --diff=false

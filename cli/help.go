@@ -252,14 +252,14 @@ to limit the list of jobs to a specific deployment of the pack.`,
 		"Adds a pack registry or a specific pack from a registry",
 		`
 Registry add can be used to add a registry, or a specific pack from a registry at
-the latest version or at a specific tag/release/SHA.
+the latest ref or at a specific ref (tag/SHA).
 `,
 	},
 	"registry delete": {
 		"Deletes a pack registry or specific pack from a registry",
 		`
 Registry delete can be used to delete a registry, or a specific pack from a registry
-at the latest version or at a specific tag/release/SHA.
+at the latest ref or at a specific ref (tag/SHA).
 `,
 	},
 	"registry list": {

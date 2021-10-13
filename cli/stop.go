@@ -8,24 +8,23 @@ import (
 	v1client "github.com/hashicorp/nomad-openapi/clients/go/v1"
 	v1 "github.com/hashicorp/nomad-openapi/v1"
 	"github.com/hashicorp/nomad-pack/flag"
+	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
-	"github.com/hashicorp/nomad-pack/internal/pkg/registry"
 	"github.com/posener/complete"
 )
 
 type StopCommand struct {
 	*baseCommand
-	packName     string
-	packVersion  string
-	registryName string
-	purge        bool
-	global       bool
-	Validation   ValidationFn
+	packConfig *cache.PackConfig
+	purge      bool
+	global     bool
+	Validation ValidationFn
 }
 
 func (c *StopCommand) Run(args []string) int {
 	var err error
-	c.cmdKey = "stop" // Add cmdKey here to print out helpUsageMessage on Init error
+
+	c.cmdKey = "stop" // Add cmd key here so help text is available in Init
 	// Initialize. If we fail, we just exit since Init handles the UI.
 	if err = c.Init(
 		WithExactArgs(1, args),
@@ -50,18 +49,10 @@ func (c *StopCommand) Run(args []string) int {
 		stoppedOrDestroyed = "destroyed"
 	}
 
-	packRegistryName := c.args[0]
+	c.packConfig.Name = c.args[0]
 
-	// Generate our UI error context.
-	errorContext := errors.NewUIErrorContext()
-
-	c.registryName, c.packName, err = parseRegistryAndPackName(packRegistryName)
-	if err != nil {
-		c.ui.ErrorWithContext(err, "unable to parse pack name", errorContext.GetAll()...)
-	}
-
-	errorContext.Add(errors.UIContextPrefixPackName, c.packName)
-	errorContext.Add(errors.UIContextPrefixRegistryName, c.registryName)
+	// Set defaults and initialize the error context.
+	errorContext := initPackCommand(c.packConfig)
 
 	client, err := v1.NewClient()
 	if err != nil {
@@ -72,27 +63,15 @@ func (c *StopCommand) Run(args []string) int {
 	// set a local variable to the JobsApi
 	jobsApi := client.Jobs()
 
-	registryPath, err := getRegistryPath(c.registryName, c.ui, errorContext)
-	if err != nil {
-		return 1
-	}
-
 	if c.deploymentName == "" {
 		// Add the path to the pack on the error context.
-		errorContext.Add(errors.UIContextPrefixPackPath, registryPath)
-
-		// split pack name and version
-		// TODO: Move this to a shared parse package.
-		c.packName, c.packVersion, err = registry.ParsePackNameAndVersion(c.packName)
-		if err != nil {
-			c.ui.ErrorWithContext(err, "failed to determine pack version", errorContext.GetAll()...)
-		}
+		errorContext.Add(errors.UIContextPrefixPackPath, cache.BuildPackPath(c.packConfig))
 
 		// Add the path to the pack on the error context.
-		errorContext.Add(errors.UIContextPrefixPackVersion, c.packVersion)
+		errorContext.Add(errors.UIContextPrefixPackRef, c.packConfig.Ref)
 
-		// If no deploymentName set default to pack@version
-		c.deploymentName = getDeploymentName(c.baseCommand, c.packName, c.packVersion)
+		// If no deploymentName set default to pack@ref
+		c.deploymentName = getDeploymentName(c.baseCommand, c.packConfig)
 	}
 	errorContext.Add(errors.UIContextPrefixDeploymentName, c.deploymentName)
 
@@ -100,13 +79,8 @@ func (c *StopCommand) Run(args []string) int {
 
 	// Get job names if var overrides are passed
 	if hasVarOverrides(c.baseCommand) {
-		// @@@@ Temp fix to allow loading packs without a version until we talk about
-		// adding version to the pack package.
-		packTarget := c.packName
-		if c.packVersion != "" {
-			packTarget = fmt.Sprintf("%s@%s", packTarget, c.packVersion)
-		}
-		packManager := generatePackManager(c.baseCommand, client, registryPath, packTarget)
+		packManager := generatePackManager(c.baseCommand, client, c.packConfig)
+
 		// render the pack
 		r, err := renderPack(packManager, c.baseCommand.ui, errorContext)
 		if err != nil {
@@ -141,14 +115,14 @@ func (c *StopCommand) Run(args []string) int {
 		}
 	} else {
 		// If no job names are specified, get all jobs belonging to the pack and deployment
-		jobs, err = getPackJobsByDeploy(jobsApi, c.packName, c.deploymentName, c.registryName)
+		jobs, err = getPackJobsByDeploy(jobsApi, c.packConfig, c.deploymentName)
 		if err != nil {
 			c.ui.ErrorWithContext(err, "failed to find jobs for pack", errorContext.GetAll()...)
 			return 1
 		}
 
 		if len(jobs) == 0 {
-			c.ui.Warning(fmt.Sprintf("no jobs found for pack %q", c.packName))
+			c.ui.Warning(fmt.Sprintf("no jobs found for pack %q", c.packConfig.Name))
 			return 1
 		}
 	}
@@ -190,7 +164,7 @@ func (c *StopCommand) Run(args []string) int {
 	}
 
 	if len(errs) > 0 {
-		c.ui.Warning(fmt.Sprintf("Pack %q %s complete with errors", c.packName, stopOrDestroy))
+		c.ui.Warning(fmt.Sprintf("Pack %q %s complete with errors", c.packConfig.Name, stopOrDestroy))
 		for _, err := range errs {
 			msg := fmt.Sprintf("error %s pack", stoppingOrDestroying)
 			c.ui.ErrorWithContext(err, msg, errorContext.GetAll()...)
@@ -198,7 +172,7 @@ func (c *StopCommand) Run(args []string) int {
 		return 1
 	}
 
-	c.ui.Success(fmt.Sprintf("Pack %q %s", c.packName, stoppedOrDestroyed))
+	c.ui.Success(fmt.Sprintf("Pack %q %s", c.packConfig.Name, stoppedOrDestroyed))
 	return 0
 }
 
@@ -270,7 +244,25 @@ func (c *StopCommand) confirmStop() bool {
 
 func (c *StopCommand) Flags() *flag.Sets {
 	return c.flagSet(flagSetOperation, func(set *flag.Sets) {
+		c.packConfig = &cache.PackConfig{}
+
 		f := set.NewSet("Stop Options")
+		f.StringVar(&flag.StringVar{
+			Name:    "registry",
+			Target:  &c.packConfig.Registry,
+			Default: "",
+			Usage:   `Specific registry name containing the pack to be stopped.`,
+		})
+
+		f.StringVar(&flag.StringVar{
+			Name:    "ref",
+			Target:  &c.packConfig.Ref,
+			Default: "",
+			Usage: `Specific git ref of the pack to be stopped. 
+Supports tags, SHA, and latest. If no ref is specified, defaults to latest.
+
+Using ref with a file path is not supported.`,
+		})
 
 		f.BoolVar(&flag.BoolVar{
 			Name:    "purge",

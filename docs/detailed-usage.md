@@ -27,8 +27,9 @@ The directory structure is as follows:
 .nomad
 └── packs
     ├── <REGISTRY>
-        ├── <PACK-NAME@VERSION>
-            ├── ...files with pack contents...
+        ├── <PACK-NAME>
+            ├── <PACK-REF>
+                ├── ...files containing pack contents...
 ```
 
 The contents of the `.nomad/pack` directory are needed for Nomad Pack to work properly, but users will not have to actively manage or change these files.

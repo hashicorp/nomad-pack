@@ -2,6 +2,7 @@ package cli
 
 import (
 	"github.com/hashicorp/nomad-pack/flag"
+	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"github.com/posener/complete"
 )
 
@@ -17,8 +18,10 @@ func (c *DestroyCommand) Run(args []string) int {
 		WithFlags(c.Flags()),
 		WithNoConfig(),
 	); err != nil {
+
 		c.ui.ErrorWithContext(err, ErrParsingArgsOrFlags)
 		c.ui.Info(c.helpUsageMessage())
+
 		return 1
 	} else {
 		// This needs to be in an else block so that it doesn't try to run while
@@ -36,7 +39,30 @@ func (c *DestroyCommand) Run(args []string) int {
 
 func (c *DestroyCommand) Flags() *flag.Sets {
 	return c.flagSet(flagSetOperation, func(set *flag.Sets) {
+		c.packConfig = &cache.PackConfig{}
+
+		set.HideUnusedFlags("Operation Options", []string{"var", "var-file"})
+
 		f := set.NewSet("Destroy Options")
+
+		f.StringVar(&flag.StringVar{
+			Name:    "registry",
+			Target:  &c.packConfig.Registry,
+			Default: "",
+			Usage:   `Specific registry name containing the pack to be destroyed.`,
+		})
+
+		f.StringVar(&flag.StringVar{
+			Name:    "ref",
+			Target:  &c.packConfig.Ref,
+			Default: "",
+			Usage: `Specific git ref of the pack to be destroyed. 
+Supports tags, SHA, and latest. If no ref is specified, defaults to 
+latest.
+
+Using ref with a file path is not supported.`,
+		})
+
 		// TODO: is there a way to reuse the flag from StopCommand so we're not just copy/pasting
 		f.BoolVar(&flag.BoolVar{
 			Name:    "global",

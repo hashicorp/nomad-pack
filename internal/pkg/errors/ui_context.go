@@ -14,10 +14,10 @@ var ErrNoTemplatesRendered = stdErrors.New("no templates were rendered by the re
 // UI errors outputs. If a prefix is used more than once, it should have a
 // const created.
 const (
+	UIContextPrefixGitRegistryURL = "Git Registry URL: "
 	UIContextPrefixPackName       = "Pack Name: "
-	UIContextPrefixRepoName       = "Repo Name: "
 	UIContextPrefixPackPath       = "Pack Path: "
-	UIContextPrefixPackVersion    = "Pack Version: "
+	UIContextPrefixPackRef        = "Pack Ref: "
 	UIContextPrefixTemplateName   = "Template Name: "
 	UIContextPrefixJobName        = "Job Name: "
 	UIContextPrefixDeploymentName = "Deployment Name: "
@@ -25,6 +25,7 @@ const (
 	UIContextPrefixHCLRange       = "HCL Range: "
 	UIContextPrefixRegistryName   = "Registry Name: "
 	UIContextPrefixRegistryPath   = "Registry Path: "
+	UIContextPrefixRegistryTarget = "Registry Target: "
 )
 
 // UIErrorContext is used to store and manipulate error context strings used
