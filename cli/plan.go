@@ -68,7 +68,7 @@ func (c *PlanCommand) Run(args []string) int {
 	depConfig := runner.Config{
 		PackName:       c.packConfig.Name,
 		PathPath:       cache.BuildPackPath(c.packConfig),
-		PackVersion:    c.packConfig.Ref,
+		PackRef:        c.packConfig.Ref,
 		DeploymentName: c.deploymentName,
 	}
 

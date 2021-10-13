@@ -1,6 +1,7 @@
 package cli
 
 import (
+	stdErrors "errors"
 	"fmt"
 	"os"
 	"path"
