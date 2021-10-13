@@ -48,8 +48,9 @@ func parseRegistrySlug(url string) (string, error) {
 
 // parses the registry URL from a pack URL.
 func parseRegistryURL(url string) (string, error) {
-	// Throw error if url does not start with github.com - this will undoubtedly change
-	// over time, but meets our supported use case for initial launch.
+	// Throw error if url does not start with github.com - this will
+	// undoubtedly change over time, but meets our supported use case for
+	// initial launch.
 	if !strings.HasPrefix(url, "github.com") {
 		return "", fmt.Errorf("url %s must start with %q", url, "github.com")
 	}
@@ -57,8 +58,9 @@ func parseRegistryURL(url string) (string, error) {
 	// check if a version has been passed and remove it if so
 	segments := strings.Split(url, "@")
 
-	// return the parsed url
-	return segments[0], nil
+	// Return the parsed url adding the packs subdirectory in the manner
+	// GoGetter expects.
+	return segments[0] + "//packs", nil
 }
 
 // ParsePackNameAndVersion parses the registry name and version from a
