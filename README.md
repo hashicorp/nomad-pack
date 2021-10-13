@@ -32,10 +32,10 @@ to store information about available packs.
 nomad-pack init
 ```
 
-Next, run the `list` command to see which packs are available to deploy.
+Next, run the `registry list` command to see which packs are available to deploy.
 
 ```
-nomad-pack list
+nomad-pack registry list
 ```
 
 To deploy one of these packs, use the `run` command. This deploys each jobs defined in the pack to Nomad.
@@ -55,14 +55,18 @@ nomad-pack info hello_world
 Values for these variables are provided using the `--var` flag.
 
 ```
-nomad-pack run hello_world --var greeting=hola
+nomad-pack run hello_world --var message=hola
 ```
 
 Values can also be provided by passing in a variables file. See the variables section of the
 [Detailed usage guide](/docs/detailed-usage.md) for details.
 
 ```
-nomad-pack run hello_world --var-file ./my-variables.hcl
+tee -a ./my-variables.hcl << END
+message=bonjour
+END
+
+nomad-pack run hello_world -f ./my-variables.hcl
 ```
 
 If you want to remove all of the resources deployed by a pack, run the `destroy` command with the
@@ -76,17 +80,18 @@ nomad-pack destroy hello_world
 
 When using Nomad Pack, the default registry for packs is
 [https://github.com/hashicorp/nomad-pack-registry](https://github.com/hashicorp/nomad-pack-registry).
-Packs from this registry will be made automatically availible.
+Packs from this registry will be made automatically availible. As Nomad Pack development continues,
+more Packs will be added to the official registry.
 
 You can add additional registries by using the `registry add` command. For instance, if you wanted
 to add the [Nomad Pack Community Registry](https://github.com/hashicorp/nomad-pack-community-registry),
 you would run the following command to download the registry.
 
 ```
-nomad-pack registry add --from=github.com/hashicorp/nomad-pack-community-registry
+nomad-pack registry add community github.com/hashicorp/nomad-pack-community-registry
 ```
 
-To view the packs you can now deploy, run `list` or `registry list` command.
+To view the packs you can now deploy, run the `registry list` command.
 
 ```
 nomad-pack registry list
@@ -118,18 +123,19 @@ Pull Requests and feedback on both repositories are welcome!
 
 ## Upcoming Features and Changes
 
-- Integration into the official Nomad CLI
 - Support for Volumes and ACLs
 - Support for other Vesion Control Systems
+- Pack search command
+- Integration into the official Nomad CLI
 
 ## Additional Documentaion
 
-- [How to Write Your Own Pack](/docs/writing-packs.md)
 - [Detailed Usage Guide](/docs/detailed-usage.md)
+- [How to Write Your Own Pack](/docs/writing-packs.md)
 - [Contributing](/docs/contributing.md)
-
-## Tutorials
 
 <!-- TODO: add a direct link to the guides when availible -->
 
-Nomad Pack Guides are available on [HashiCorp Learn](https://learn.hashicorp.com/nomad).
+<!-- ## Tutorials
+
+Nomad Pack Guides are available on [HashiCorp Learn](https://learn.hashicorp.com/nomad). -->

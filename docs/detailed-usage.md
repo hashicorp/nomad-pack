@@ -36,10 +36,10 @@ The contents of the `.nomad/pack` directory are needed for Nomad Pack to work pr
 
 ## List
 
-The `list` command lists the packs availible to deploy.
+The `registry list` command lists the packs availible to deploy.
 
 ```
-nomad-pack list
+nomad-pack registry list
 ```
 
 This command reads from the `.nomad/packs` directory explained above.
@@ -56,23 +56,20 @@ For instance, if you wanted to add the entire [Nomad Pack Community Registry](ht
 you would run the following command to download the registry.
 
 ```
-nomad-pack registry add --from=github.com/hashicorp/nomad-pack-community-registry
+nomad-pack registry add community github.com/hashicorp/nomad-pack-community-registry
 ```
 
 To download and add single pack from the registry, use the `--target` flag.
 
 ```
-nomad-pack registry add --from=github.com/hashicorp/nomad-pack-community-registry --target=nginx
+nomad-pack registry add community github.com/hashicorp/nomad-pack-community-registry --target=nginx
 ```
-
-The `registry list` command will print out all the availible registries and pack
-you have added.
 
 To remove a registry or pack from your local cache. Use the `registry delete` command.
 This command also support the `--target` flag.
 
 ```
-nomad-pack registry delete --from=github.com/hashicorp/nomad-pack-community-registry
+nomad-pack registry delete community
 ```
 
 ## Render
@@ -118,7 +115,7 @@ nomad-pack run hello-world --var greeting=hola
 Values can also be provided by passing in a variables file.
 
 ```
-nomad-pack run hello-world --var-file ./my-variables.hcl
+nomad-pack run hello-world -f ./my-variables.hcl
 ```
 
 These files can define overrides to the variables defined in the pack.
@@ -161,14 +158,14 @@ By passing a `--name` value into plan, Nomad Pack will look for packs deployed w
 nomad-pack plan hello-world --name hola-mundo
 ```
 
-The `plan` command takes the `--var` and `--var-file` flags like the `run` command.
+The `plan` command takes the `--var` and `-f` flags like the `run` command.
 
 ```
 nomad-pack plan hello-world --var greeting=hallo
 ```
 
 ```
-nomad-pack plan hello-world --var-file ./my-variables.hcl
+nomad-pack plan hello-world -f ./my-variables.hcl
 ```
 
 ## Status
