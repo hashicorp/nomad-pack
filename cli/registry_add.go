@@ -154,10 +154,10 @@ func (c *RegistryAddCommand) Help() string {
 	nomad-pack registry add community github.com/hashicorp/nomad-pack-community-registry
 
 	# Download latest ref of a specific pack from the registry to the global cache.
-	nomad-pack registry add community github.com/hashicorp/nomad-pack-registry --target=nomad_example
+	nomad-pack registry add community github.com/hashicorp/nomad-pack-community-registry --target=nomad_example
 
 	# Download packs from a registry at a specific tag/release/SHA.
-	nomad-pack registry add community github.com/hashicorp/nomad-pack-registry  --ref=v0.1.0
+	nomad-pack registry add community github.com/hashicorp/nomad-pack-community-registry  --ref=v0.1.0
 	`
 	return formatHelp(`
 	Usage: nomad-pack registry add <name> <source> [options]
