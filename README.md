@@ -79,9 +79,8 @@ nomad-pack destroy hello_world
 ### Adding Non-Default Pack Registries
 
 When using Nomad Pack, the default registry for packs is
-[https://github.com/hashicorp/nomad-pack-registry](https://github.com/hashicorp/nomad-pack-registry).
-Packs from this registry will be made automatically availible. As Nomad Pack development continues,
-more Packs will be added to the official registry.
+[the Nomad Pack Community Registry](https://github.com/hashicorp/nomad-pack-community-registry).
+Packs from this registry will be made automatically availible.
 
 You can add additional registries by using the `registry add` command. For instance, if you wanted
 to add the [Nomad Pack Community Registry](https://github.com/hashicorp/nomad-pack-community-registry),
@@ -111,13 +110,9 @@ see the [Writing Packs documentation](/docs/writing-packs.md) for more details.
 
 Packs are organized into "registries" which contain multiple packs and shared templates.
 
-Nomad Pack is initialized with a default pack registries found at
-[https://github.com/hashicorp/nomad-pack-registry](https://github.com/hashicorp/nomad-pack-registry).
-Packs in this repository are vetted and maintained by the Nomad team at HashiCorp.
-
 The [Nomad Pack Community Registry](https://github.com/hashicorp/nomad-pack-community-registry) is
-an alternative registry for community-maintained packs. Nomad community members are
-encouraged to share their packs and collaborate with one anothr in this repo.
+a public registry for community-maintained packs. Nomad community members are encouraged to share
+their packs and collaborate with one anothr in this repo.
 
 Pull Requests and feedback on both repositories are welcome!
 

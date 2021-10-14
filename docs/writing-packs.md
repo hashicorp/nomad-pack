@@ -284,8 +284,7 @@ These can be used to validate that your pack is working as expected.
 ## Step Five: Publish and Find your Custom Repository
 
 To use your new pack, you will likely want to publish it to the internet. Push the git repository to a URL
-accessible by your command line tool. GitHub is currently the only version control system that works to host
-packs, but support for other version control systems, such as GitLab and Bitbucket, is coming soon.
+accessible by your command line tool.
 
 If you wish to share your packs, please consider adding them to the
 [Nomad Pack Community Registry](https://github.com/hashicorp/nomad-pack-community-registry)
