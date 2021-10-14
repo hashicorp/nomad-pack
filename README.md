@@ -25,14 +25,8 @@ environment variable.
 
 ### Basic Use
 
-In order to use Nomad Pack, first run the `init` command. This add a directory at `./.nomad/packs`
-to store information about available packs.
 
-```
-nomad-pack init
-```
-
-Next, run the `registry list` command to see which packs are available to deploy.
+First, run the `registry list` command to see which packs are available to deploy.
 
 ```
 nomad-pack registry list
@@ -83,11 +77,11 @@ When using Nomad Pack, the default registry for packs is
 Packs from this registry will be made automatically availible.
 
 You can add additional registries by using the `registry add` command. For instance, if you wanted
-to add the [Nomad Pack Community Registry](https://github.com/hashicorp/nomad-pack-community-registry),
+to add [an example Gitlab registry](https://gitlab.com/mikenomitch/pack-registry),
 you would run the following command to download the registry.
 
 ```
-nomad-pack registry add community github.com/hashicorp/nomad-pack-community-registry
+nomad-pack registry add example gitlab.com/mikenomitch/pack-registry
 ```
 
 To view the packs you can now deploy, run the `registry list` command.
