@@ -14,7 +14,7 @@ import (
 const (
 	nomadCache            = ".nomad/packs"
 	DefaultRegistryName   = "default"
-	DefaultRegistrySource = "github.com/hashicorp/nomad-pack-registry"
+	DefaultRegistrySource = "github.com/hashicorp/nomad-pack-community-registry"
 	DefaultRef            = "latest"
 )
 
