@@ -290,7 +290,7 @@ func TestJobStop(t *testing.T) {
 	require.Equal(t, 0, exitCode)
 
 	d := &StopCommand{baseCommand: baseCommand}
-	exitCode = d.Run([]string{runCommand.packName, "--purge=true"})
+	exitCode = d.Run([]string{runCommand.packConfig.Name, "--purge=true"})
 	require.Equal(t, 0, exitCode)
 
 	os.Setenv("NOMAD_ADDR", nomadAddr)
@@ -429,11 +429,11 @@ func TestJobDestroyWithOverrides(t *testing.T) {
 
 	// Stop nonexistent job
 	d := &DestroyCommand{StopCommand: &StopCommand{baseCommand: baseCommand}}
-	exitCode := d.Run([]string{r.packName, deployName, "--var=job_name=baz"})
+	exitCode := d.Run([]string{r.packConfig.Name, deployName, "--var=job_name=baz"})
 	require.Equal(t, 1, exitCode)
 
 	// Stop job with var override
-	exitCode = d.Run([]string{r.packName, deployName, "--var=job_name=foo"})
+	exitCode = d.Run([]string{r.packConfig.Name, deployName, "--var=job_name=foo"})
 	require.Equal(t, 0, exitCode)
 
 	// Assert job "bar" still exists
@@ -444,7 +444,7 @@ func TestJobDestroyWithOverrides(t *testing.T) {
 	require.NoError(t, err)
 
 	// Stop job with no overrides passed
-	exitCode = d.Run([]string{r.packName, deployName})
+	exitCode = d.Run([]string{r.packConfig.Name, deployName})
 	require.Equal(t, 0, exitCode)
 
 	// Assert job bar is gone
