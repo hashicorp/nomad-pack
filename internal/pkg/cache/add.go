@@ -99,7 +99,7 @@ func (c *Cache) addFromURI(opts *AddOpts) (cachedRegistry *Registry, err error) 
 	logger.Debug(fmt.Sprintf("Processing pack entries at %s", c.clonePath()))
 
 	// Move the cloned registry packs to the global cache.
-	packEntries, err := os.ReadDir(c.clonePath())
+	packEntries, err := os.ReadDir(c.clonedPacksPath())
 	for _, packEntry := range packEntries {
 		// Don't process the .git folder or any files
 		// TODO: Handle symlinks
@@ -403,5 +403,5 @@ func (opts *AddOpts) IsTarget(dirEntry os.DirEntry) bool {
 func (opts *AddOpts) clonedPackPath(c *Cache) string {
 	// Don't use PackDir here because we won't have the Revision on the cloned
 	// directory name, thought we will append it to the registry entry if it is set.
-	return path.Join(c.clonePath(), opts.PackName)
+	return path.Join(c.clonedPacksPath(), opts.PackName)
 }

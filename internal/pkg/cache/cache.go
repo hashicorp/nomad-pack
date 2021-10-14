@@ -87,8 +87,14 @@ type cacheOperationProvider interface {
 // clonePath returns the path where remote repositories will be cloned to during
 // download processing.
 func (c *Cache) clonePath() string {
-
 	return path.Join(c.cfg.Path, tmpDir)
+}
+
+// clonedPacksPath returns the path where remote repository packs have been cloned
+// to during download processing. This enforces the hard convention that there
+// must be a packs directory in the registry.
+func (c *Cache) clonedPacksPath() string {
+	return path.Join(c.cfg.Path, tmpDir, "packs")
 }
 
 // Registries is an accessor for the cached registries contain within the cache instance.

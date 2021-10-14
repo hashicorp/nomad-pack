@@ -60,18 +60,27 @@ func (c *RegistryDeleteCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Format output based on passed flags.
-	if c.target == "" {
-		if strings.Contains(c.name, "@") {
-			c.ui.Info(fmt.Sprintf("packs in registry %s that match ref have been deleted", c.name))
-		} else {
-			c.ui.Info(fmt.Sprintf("registry %s deleted", c.name))
-		}
-	} else {
-		c.ui.Info(fmt.Sprintf("registry %s target %s deleted", c.name, c.target))
-	}
+	c.ui.Info(c.formatOutput())
 
 	return 0
+}
+
+func (c *RegistryDeleteCommand) formatOutput() string {
+	// Format output based on passed flags.
+	var output strings.Builder
+	output.WriteString(fmt.Sprintf("\nregistry %s", c.name))
+
+	if c.target != "" {
+		output.WriteString(fmt.Sprintf(" pack %s", c.target))
+	}
+
+	if c.ref != "" {
+		output.WriteString(fmt.Sprintf(" at ref %s", c.ref))
+	}
+
+	output.WriteString(" deleted")
+
+	return output.String()
 }
 
 func (c *RegistryDeleteCommand) Flags() *flag.Sets {
