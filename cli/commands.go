@@ -179,7 +179,7 @@ func (c *baseCommand) Init(opts ...Option) error {
 }
 
 
-func (c *baseCommand) maybeCreateCache() error {
+func (c *baseCommand) ensureCache() error {
 	// Creates global cache
 	globalCache, err := cache.NewCache(&cache.CacheConfig{
 		Path:   cache.DefaultCachePath(),
