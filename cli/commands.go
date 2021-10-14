@@ -149,9 +149,6 @@ func (c *baseCommand) Init(opts ...Option) error {
 
 	// Parse flags
 	err := baseCfg.Flags.Parse(baseCfg.Args)
-	if baseCfg.Flags.UsesGoflags() {
-		c.ui.Warning("parsing stdlib flags")
-	}
 	if err != nil {
 		return err
 	}
