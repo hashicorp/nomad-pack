@@ -32,11 +32,20 @@ func NewCache(cfg *CacheConfig) (cache *Cache, err error) {
 
 	cache.ErrorContext.Add(errors.RegistryContextPrefixCachePath, cfg.Path)
 
+	err = cache.ensureGlobalCache()
+	if err != nil {
+		return
+	}
+
 	if cfg.Eager {
 		err = cache.Load()
 	}
 
 	return
+}
+
+func (c *Cache) ensureGlobalCache() error {
+	return os.MkdirAll(c.cfg.Path, 0755)
 }
 
 // DefaultCachePath returns the default cache path.

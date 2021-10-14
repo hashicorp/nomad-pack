@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"io"
 	"runtime"
 
@@ -14,7 +15,6 @@ import (
 	"github.com/posener/complete"
 
 	flag "github.com/hashicorp/nomad-pack/flag"
-	customError "github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/terminal"
 )
 
@@ -171,23 +171,39 @@ func (c *baseCommand) Init(opts ...Option) error {
 		c.ui = terminal.NonInteractiveUI(c.Ctx)
 	}
 
-	// Generate our UI error context.
-	errorContext := customError.NewUIErrorContext()
-
-	err = createGlobalCache(c.ui, errorContext)
-	if err != nil {
-		c.ui.ErrorWithContext(err, "error creating global cache", errorContext.GetAll()...)
-		return err
-	}
-
-	err = installDefaultRegistry(c.ui, errorContext)
-	if err != nil {
-		c.ui.ErrorWithContext(err, "failed to install registry", errorContext.GetAll()...)
-		return err
-	}
+	c.maybeCreateCache()
 
 	return nil
 }
+
+
+func (c *baseCommand) maybeCreateCache() error {
+	// Creates global cache
+	globalCache, err := cache.NewCache(&cache.CacheConfig{
+		Path:   cache.DefaultCachePath(),
+		Logger: c.ui,
+	})
+	if err != nil {
+		return err
+	}
+	// Check if cache exists
+	_, err = globalCache.Get(&cache.GetOpts{
+		RegistryName: cache.DefaultRegistryName,
+	})
+	if err == nil {
+		return err
+	}
+	// Add the registry or registry target to the global cache
+	_, err = globalCache.Add(&cache.AddOpts{
+		RegistryName: cache.DefaultRegistryName,
+		Source:       cache.DefaultRegistrySource,
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 
 // flagSet creates the flags for this command. The callback should be used
 // to configure the set with your own custom options.

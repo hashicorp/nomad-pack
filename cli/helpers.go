@@ -46,6 +46,7 @@ func initPackCommand(cfg *cache.PackConfig) *errors.UIErrorContext {
 	return errorContext
 }
 
+
 // TODO: Needs code review. This seems like it should get moved to the registry
 // package, in which case all of the dependent functions likely need to get moved.
 // get the global cache directory
