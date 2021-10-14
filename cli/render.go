@@ -35,6 +35,8 @@ func (c *RenderCommand) Run(args []string) int {
 		return 1
 	}
 
+	c.packConfig.Name = c.args[0]
+
 	// Set defaults and initialize the error context.
 	errorContext := initPackCommand(c.packConfig)
 
