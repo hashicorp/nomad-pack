@@ -295,7 +295,3 @@ func (c *RunCommand) Help() string {
 func (c *RunCommand) Synopsis() string {
 	return "Run a new pack or update an existing pack"
 }
-
-var (
-	packDeploymentNameKey = "pack_deployment_name"
-)

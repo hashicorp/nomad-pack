@@ -303,7 +303,7 @@ func getPackJobsByDeploy(jobsApi *v1.Jobs, cfg *cache.PackConfig, deploymentName
 
 		if nomadJob.Meta != nil {
 			jobMeta := *nomadJob.Meta
-			jobDeploymentName, ok := jobMeta[packDeploymentNameKey]
+			jobDeploymentName, ok := jobMeta[job.PackDeploymentNameKey]
 
 			if ok {
 				if jobDeploymentName == deploymentName {
@@ -485,7 +485,7 @@ func getDeployedPackJobs(jobsApi *v1.Jobs, cfg *cache.PackConfig, deploymentName
 			if ok && jobPackName == cfg.Name {
 				// Filter by deployment name if specified
 				if deploymentName != "" {
-					jobDeployName, deployOk := jobMeta[packDeploymentNameKey]
+					jobDeployName, deployOk := jobMeta[job.PackDeploymentNameKey]
 					if deployOk && jobDeployName != deploymentName {
 						continue
 					}
@@ -493,7 +493,7 @@ func getDeployedPackJobs(jobsApi *v1.Jobs, cfg *cache.PackConfig, deploymentName
 				packJobs = append(packJobs, JobStatusInfo{
 					packName:       cfg.Name,
 					registryName:   cfg.Registry,
-					deploymentName: jobMeta[packDeploymentNameKey],
+					deploymentName: jobMeta[job.PackDeploymentNameKey],
 					jobID:          *nomadJob.ID,
 					status:         *nomadJob.Status,
 				})
