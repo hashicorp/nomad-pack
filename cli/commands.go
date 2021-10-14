@@ -173,7 +173,7 @@ func (c *baseCommand) Init(opts ...Option) error {
 		c.ui = terminal.NonInteractiveUI(c.Ctx)
 	}
 
-	c.maybeCreateCache()
+	c.ensureCache()
 
 	return nil
 }
