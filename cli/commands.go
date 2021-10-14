@@ -4,7 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"io"
+	"os"
+	"path"
 	"runtime"
 
 	"google.golang.org/grpc/codes"
@@ -167,8 +170,40 @@ func (c *baseCommand) Init(opts ...Option) error {
 		c.ui = terminal.NonInteractiveUI(c.Ctx)
 	}
 
+	c.ensureCache()
+
 	return nil
 }
+
+
+func (c *baseCommand) ensureCache() error {
+	// Creates global cache
+	globalCache, err := cache.NewCache(&cache.CacheConfig{
+		Path:   cache.DefaultCachePath(),
+		Logger: c.ui,
+	})
+	if err != nil {
+		return err
+	}
+
+	// Check if default registry exists
+	_, err = os.Stat(path.Join(cache.DefaultCachePath(),cache.DefaultRegistryName))
+	// If it does not error, then the registry already exists
+	if err == nil {
+		return nil
+	}
+
+	// Add the registry or registry target to the global cache
+	_, err = globalCache.Add(&cache.AddOpts{
+		RegistryName: cache.DefaultRegistryName,
+		Source:       cache.DefaultRegistrySource,
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 
 // flagSet creates the flags for this command. The callback should be used
 // to configure the set with your own custom options.

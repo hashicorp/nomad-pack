@@ -14,7 +14,7 @@ import (
 const (
 	nomadCache            = ".nomad/packs"
 	DefaultRegistryName   = "default"
-	DefaultRegistrySource = "github.com/hashicorp/nomad-pack-registry"
+	DefaultRegistrySource = "github.com/hashicorp/nomad-pack-community-registry"
 	DefaultRef            = "latest"
 )
 
@@ -32,11 +32,20 @@ func NewCache(cfg *CacheConfig) (cache *Cache, err error) {
 
 	cache.ErrorContext.Add(errors.RegistryContextPrefixCachePath, cfg.Path)
 
+	err = cache.ensureGlobalCache()
+	if err != nil {
+		return
+	}
+
 	if cfg.Eager {
 		err = cache.Load()
 	}
 
 	return
+}
+
+func (c *Cache) ensureGlobalCache() error {
+	return os.MkdirAll(c.cfg.Path, 0755)
 }
 
 // DefaultCachePath returns the default cache path.
@@ -87,8 +96,14 @@ type cacheOperationProvider interface {
 // clonePath returns the path where remote repositories will be cloned to during
 // download processing.
 func (c *Cache) clonePath() string {
-
 	return path.Join(c.cfg.Path, tmpDir)
+}
+
+// clonedPacksPath returns the path where remote repository packs have been cloned
+// to during download processing. This enforces the hard convention that there
+// must be a packs directory in the registry.
+func (c *Cache) clonedPacksPath() string {
+	return path.Join(c.cfg.Path, tmpDir, "packs")
 }
 
 // Registries is an accessor for the cached registries contain within the cache instance.
