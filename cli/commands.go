@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"io"
+	"os"
+	"path"
 	"runtime"
 
 	"google.golang.org/grpc/codes"
@@ -186,13 +188,14 @@ func (c *baseCommand) maybeCreateCache() error {
 	if err != nil {
 		return err
 	}
-	// Check if cache exists
-	_, err = globalCache.Get(&cache.GetOpts{
-		RegistryName: cache.DefaultRegistryName,
-	})
+
+	// Check if default registry exists
+	_, err = os.Stat(path.Join(cache.DefaultCachePath(),cache.DefaultRegistryName))
+	// If it does not error, then the registry already exists
 	if err == nil {
-		return err
+		return nil
 	}
+
 	// Add the registry or registry target to the global cache
 	_, err = globalCache.Add(&cache.AddOpts{
 		RegistryName: cache.DefaultRegistryName,
