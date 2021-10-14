@@ -34,8 +34,14 @@ func (c *RunCommand) Run(args []string) int {
 		c.ui.Info(c.helpUsageMessage())
 		return 1
 	}
+	return c.run()
+}
 
-	c.packConfig.Name = args[0]
+// run is the implementation of this command. It is used to ensure the args are
+// pulled from the RunCommand as these are parsed with the Run.
+func (c *RunCommand) run() int {
+
+	c.packConfig.Name = c.args[0]
 
 	// TODO: Handle file paths
 
@@ -43,7 +49,7 @@ func (c *RunCommand) Run(args []string) int {
 	errorContext := initPackCommand(c.packConfig)
 
 	// verify packs exist before running jobs
-	if err = cache.VerifyPackExists(c.packConfig, errorContext, c.ui); err != nil {
+	if err := cache.VerifyPackExists(c.packConfig, errorContext, c.ui); err != nil {
 		return 1
 	}
 
