@@ -14,6 +14,7 @@ import (
 	"github.com/posener/complete"
 
 	flag "github.com/hashicorp/nomad-pack/flag"
+	customError "github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/terminal"
 )
 
@@ -168,6 +169,21 @@ func (c *baseCommand) Init(opts ...Option) error {
 	// Reset the UI to plain if that was set
 	if c.flagPlain {
 		c.ui = terminal.NonInteractiveUI(c.Ctx)
+	}
+
+	// Generate our UI error context.
+	errorContext := customError.NewUIErrorContext()
+
+	err = createGlobalCache(c.ui, errorContext)
+	if err != nil {
+		c.ui.ErrorWithContext(err, "error creating global cache", errorContext.GetAll()...)
+		return err
+	}
+
+	err = installDefaultRegistry(c.ui, errorContext)
+	if err != nil {
+		c.ui.ErrorWithContext(err, "failed to install registry", errorContext.GetAll()...)
+		return err
 	}
 
 	return nil
