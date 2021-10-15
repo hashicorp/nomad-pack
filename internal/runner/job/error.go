@@ -50,8 +50,8 @@ func generateRegisterError(err error, errCtx *errors.UIErrorContext, jobName str
 
 	// Create our base error.
 	deployErr := errors.WrappedUIContext{
-		Err:      err,
-		Subject:  "failed to register job",
+		Err:     err,
+		Subject: "failed to register job",
 		Context: registerErr,
 	}
 
