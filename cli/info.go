@@ -33,7 +33,7 @@ func (c *InfoCommand) Run(args []string) int {
 
 	c.packConfig.Name = c.args[0]
 
-	// Generate our UI error context.
+	// Set the packConfig defaults if necessary and generate our UI error context.
 	errorContext := initPackCommand(c.packConfig)
 
 	// verify packs exist before running jobs
@@ -41,7 +41,7 @@ func (c *InfoCommand) Run(args []string) int {
 		return 1
 	}
 
-	packPath := cache.BuildPackPath(c.packConfig)
+	packPath := c.packConfig.Path
 
 	pack, err := loader.Load(packPath)
 	if err != nil {

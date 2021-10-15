@@ -1,7 +1,6 @@
 package cache
 
 import (
-	stdErrors "errors"
 	"fmt"
 	"os"
 	"path"
@@ -16,6 +15,8 @@ const (
 	DefaultRegistryName   = "default"
 	DefaultRegistrySource = "github.com/hashicorp/nomad-pack-community-registry"
 	DefaultRef            = "latest"
+	DevRegistryName       = "dev"
+	DevRef                = "dev"
 )
 
 // NewCache instantiates a new cache instance with the specified config. If no
@@ -176,43 +177,19 @@ func (c *Cache) Load() (err error) {
 	return
 }
 
-// VerifyPackExists verifies that a pack exists in the specified registry.
+// VerifyPackExists verifies that a pack exists at the specified path.
 func VerifyPackExists(cfg *PackConfig, errCtx *errors.UIErrorContext, logger logging.Logger) (err error) {
-	// TODO: Add logic to validate pack if packName is a file path.
-	if cfg.Registry == "" {
-		// Do file path here.
-		err = stdErrors.New("file paths not yet supported")
+	if _, err = os.Stat(cfg.Path); os.IsNotExist(err) {
 		logger.ErrorWithContext(err, "failed to find pack", errCtx.GetAll()...)
 		return
 	}
 
-	// TODO: Refactor when we support custom cache paths.
-	packPath := path.Join(DefaultCachePath(), cfg.Registry, cfg.Name)
-	// Will need this check to support file system
-	if cfg.Ref != "" {
-		packPath = AppendRef(packPath, cfg.Ref)
-	}
-
-	if _, err = os.Stat(packPath); os.IsNotExist(err) {
-		logger.ErrorWithContext(err, "failed to find pack", errCtx.GetAll()...)
-		return
-	}
-
-	return
-}
-
-// BuildPackPath is a utility function to build a pack path.
-func BuildPackPath(cfg *PackConfig) (packPath string) {
-	packPath = path.Join(DefaultCachePath(), cfg.Registry, cfg.Name)
-	if cfg.Ref != "" {
-		packPath = AppendRef(packPath, cfg.Ref)
-	}
 	return
 }
 
 // AppendRef is a utility function to format a pack name at a specific ref.
 func AppendRef(name, ref string) string {
-	if ref == "" {
+	if ref == "" || ref == DevRef {
 		return name
 	}
 	return fmt.Sprintf("%s@%s", name, ref)

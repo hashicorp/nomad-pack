@@ -37,7 +37,7 @@ func (c *RenderCommand) Run(args []string) int {
 
 	c.packConfig.Name = c.args[0]
 
-	// Set defaults and initialize the error context.
+	// Set the packConfig defaults if necessary and generate our UI error context.
 	errorContext := initPackCommand(c.packConfig)
 
 	if err := cache.VerifyPackExists(c.packConfig, errorContext, c.ui); err != nil {

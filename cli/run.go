@@ -43,13 +43,12 @@ func (c *RunCommand) run() int {
 
 	c.packConfig.Name = c.args[0]
 
-	// TODO: Handle file paths
-
-	// Set defaults and initialize the error context.
+	// Set the packConfig defaults if necessary and generate our UI error context.
 	errorContext := initPackCommand(c.packConfig)
 
 	// verify packs exist before running jobs
-	if err := cache.VerifyPackExists(c.packConfig, errorContext, c.ui); err != nil {
+	err := cache.VerifyPackExists(c.packConfig, errorContext, c.ui)
+	if err != nil {
 		return 1
 	}
 
@@ -80,7 +79,7 @@ func (c *RunCommand) run() int {
 	// Need to discuss with jrasell.
 	depConfig := runner.Config{
 		PackName:       c.packConfig.Name,
-		PathPath:       cache.BuildPackPath(c.packConfig),
+		PathPath:       c.packConfig.Path,
 		PackRef:        c.packConfig.Ref,
 		DeploymentName: c.deploymentName,
 		RegistryName:   c.packConfig.Registry,
@@ -128,7 +127,11 @@ func (c *RunCommand) run() int {
 		return 1
 	}
 
-	c.ui.Success(fmt.Sprintf("Pack successfully deployed. Use --name=%s to manage this this deployed instance with run, plan, or destroy", c.deploymentName))
+	if c.packConfig.Registry == cache.DevRegistryName {
+		c.ui.Success(fmt.Sprintf("Pack successfully deployed. Use %s to manage this this deployed instance with plan, stop, destroy, or info", c.packConfig.SourcePath))
+	} else {
+		c.ui.Success(fmt.Sprintf("Pack successfully deployed. Use %s with --ref=%s to manage this this deployed instance with plan, stop, destroy, or info", c.deploymentName, c.packConfig.Ref))
+	}
 
 	output, err := packManager.ProcessOutputTemplate()
 	if err != nil {

@@ -3,10 +3,7 @@ package cli
 import (
 	stdErrors "errors"
 	"fmt"
-	"os"
-	"path"
 
-	gg "github.com/hashicorp/go-getter"
 	v1client "github.com/hashicorp/nomad-openapi/clients/go/v1"
 	v1 "github.com/hashicorp/nomad-openapi/v1"
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
@@ -18,83 +15,17 @@ import (
 	"github.com/hashicorp/nomad-pack/terminal"
 )
 
-// TODO: Delete or replace these with pkg cache constants. Need to see how the
-// init PR lands.
-const (
-	NomadCache            = ".nomad/packs"
-	DefaultRegistryName   = "default"
-	DefaultRegistrySource = "git@github.com:hashicorp/nomad-pack-registry.git"
-)
-
 // get an initialized error context for a command that accepts pack args.
-func initPackCommand(cfg *cache.PackConfig) *errors.UIErrorContext {
-	// Set defaults on pack config
-	if cfg.Registry == "" {
-		cfg.Registry = cache.DefaultRegistryName
-	}
-
-	if cfg.Ref == "" {
-		cfg.Ref = cache.DefaultRef
-	}
+func initPackCommand(cfg *cache.PackConfig) (errorContext *errors.UIErrorContext) {
+	cfg.Init()
 
 	// Generate our UI error context.
-	errorContext := errors.NewUIErrorContext()
+	errorContext = errors.NewUIErrorContext()
 	errorContext.Add(errors.UIContextPrefixRegistryName, cfg.Registry)
 	errorContext.Add(errors.UIContextPrefixPackName, cfg.Name)
 	errorContext.Add(errors.UIContextPrefixPackRef, cfg.Ref)
 
-	return errorContext
-}
-
-// TODO: Needs code review. This seems like it should get moved to the registry
-// package, in which case all of the dependent functions likely need to get moved.
-// get the global cache directory
-func globalCacheDir() (string, error) {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
-	}
-
-	return path.Join(homeDir, NomadCache), nil
-}
-
-// TODO: Move to registry package.
-func createGlobalCache(ui terminal.UI, errCtx *errors.UIErrorContext) error {
-	cacheDir, err := globalCacheDir()
-	if err != nil {
-		ui.ErrorWithContext(err, "error accessing home directory", errCtx.GetAll()...)
-		return err
-	}
-	return createDir(cacheDir, "global cache", ui, errCtx)
-}
-
-// TODO: Move to registry package and decouple from UI with Logger interface.
-func getRegistryPath(repoName string, ui terminal.UI, errCtx *errors.UIErrorContext) (string, error) {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		ui.ErrorWithContext(err, fmt.Sprintf("cannot determine user home directory"), errCtx.GetAll()...)
-		return "", err
-	}
-
-	cacheDir := path.Join(homeDir, NomadCache)
-	registryPath := path.Join(cacheDir, repoName)
-
-	if _, err := os.Stat(registryPath); os.IsNotExist(err) {
-		ui.ErrorWithContext(err, fmt.Sprintf("registry %s does not exist at path: %s", repoName, registryPath), errCtx.GetAll()...)
-	} else if err != nil {
-		// some other error
-		ui.ErrorWithContext(err, fmt.Sprintf("cannot read registry %s at path: %s", repoName, registryPath), errCtx.GetAll()...)
-	}
-	return registryPath, nil
-}
-
-// TODO: Move to registry package.
-func getPackPath(registryName string, packName string) (string, error) {
-	cacheDir, err := globalCacheDir()
-	if err != nil {
-		return "", err
-	}
-	return path.Join(cacheDir, registryName, packName), nil
+	return
 }
 
 func registryTable() *terminal.Table {
@@ -159,72 +90,6 @@ func registryPackRow(cachedRegistry *cache.Registry, cachedPack *cache.Pack) []t
 	}
 }
 
-// TODO: Delete after merging init changes.
-func installRegistry(source string, destination string,
-	ui terminal.UI, errCtx *errors.UIErrorContext) error {
-	ui.Info("Initializing registry...")
-	ui.Info(fmt.Sprintf("Downloading source from %s", source))
-	ui.Info(fmt.Sprintf("Installing into: %s", destination))
-	err := gg.Get(destination, source)
-	if err != nil {
-		ui.ErrorWithContext(err, fmt.Sprintf("could not install %s registry: %s", destination, source), errCtx.GetAll()...)
-	}
-	return err
-}
-
-// TODO: Move to filesystem package and decouple from UI with Logger interface.
-func createDir(dir string, dirName string,
-	ui terminal.UI, errCtx *errors.UIErrorContext) error {
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		err = os.MkdirAll(dir, 0755)
-		if err != nil {
-			ui.ErrorWithContext(err, fmt.Sprintf("cannot create %s: %s", dirName, dir), errCtx.GetAll()...)
-		}
-		ui.Info(fmt.Sprintf("created %s directory: %s", dirName, dir))
-	} else if err != nil {
-		// some other error
-		ui.ErrorWithContext(err, fmt.Sprintf("cannot create %s: %s", dirName, dir), errCtx.GetAll()...)
-	} else {
-		ui.Info(fmt.Sprintf("%s directory already exists: %s", dirName, dir))
-	}
-	return nil
-}
-
-// TODO: Delete after init refactor merge.
-func installDefaultRegistry(ui terminal.UI, errCtx *errors.UIErrorContext) error {
-	// Create default registry, if not exist
-	cacheDir, err := globalCacheDir()
-	if err != nil {
-		ui.ErrorWithContext(err, "error accessing global cache", errCtx.GetAll()...)
-		return err
-	}
-	defaultRegistryDir := path.Join(cacheDir, DefaultRegistryName)
-	return installRegistry(DefaultRegistrySource, defaultRegistryDir, ui, errCtx)
-}
-
-// TODO: Delete after init refactor merge.
-func installUserRegistry(source string, name string, ui terminal.UI, errCtx *errors.UIErrorContext) error {
-	cacheDir, err := globalCacheDir()
-	if err != nil {
-		ui.ErrorWithContext(err, "error accessing global cache", errCtx.GetAll()...)
-		return err
-	}
-	userRegistryDir := path.Join(cacheDir, name)
-	return installRegistry(source, userRegistryDir, ui, errCtx)
-}
-
-// TODO: This needs some code review. Lots of coupling going on here.
-// generatePackManager is used to generate the pack manager for this Nomad Pack run.
-func generatePackManager(c *baseCommand, client *v1.Client, packCfg *cache.PackConfig) *manager.PackManager {
-	// TODO: Refactor to have manager use cache.
-	cfg := manager.Config{
-		Path:            cache.BuildPackPath(packCfg),
-		VariableFiles:   c.varFiles,
-		VariableCLIArgs: c.vars,
-	}
-	return manager.NewPackManager(&cfg, client)
-}
-
 // TODO: This needs to be on a domain specific pkg rather than a UI helpers file.
 // This will be possible once we create a logger interface that can be passed
 // between layers.
@@ -270,16 +135,6 @@ func getDeploymentName(c *baseCommand, cfg *cache.PackConfig) string {
 		return cache.AppendRef(cfg.Name, cfg.Ref)
 	}
 	return c.deploymentName
-}
-
-// TODO: Move to a domain specific package.
-// using jobsApi to get a job by job name
-func getJob(jobsApi *v1.Jobs, jobName string, queryOpts *v1.QueryOpts) (*v1client.Job, *v1.QueryMeta, error) {
-	result, meta, err := jobsApi.GetJob(queryOpts.Ctx(), jobName)
-	if err != nil {
-		return nil, nil, err
-	}
-	return result, meta, nil
 }
 
 // TODO: Move to a domain specific package.
@@ -330,35 +185,6 @@ func getPackJobsByDeploy(jobsApi *v1.Jobs, cfg *cache.PackConfig, deploymentName
 		}
 	}
 	return packJobs, nil
-}
-
-// TODO: Needs code review. Will likely move if we decide to move client management
-// out of CLI commands.
-// generate write options for openapi based on the nomad job.
-// This just sets namespace and region, but we might want to
-// extend it to include tokens, etc later
-func newWriteOptsFromJob(job *v1client.Job) *v1.WriteOpts {
-	opts := &v1.WriteOpts{}
-	if job.Region != nil {
-		opts.Region = *job.Region
-	}
-	if job.Namespace != nil {
-		opts.Namespace = *job.Namespace
-	}
-	return opts
-}
-
-// TODO: Needs code review. Will likely move if we decide to move client management
-// out of CLI commands.
-func newQueryOptsFromJob(job *v1client.Job) *v1.QueryOpts {
-	opts := &v1.QueryOpts{}
-	if job.Region != nil {
-		opts.Region = *job.Region
-	}
-	if job.Namespace != nil {
-		opts.Namespace = *job.Namespace
-	}
-	return opts
 }
 
 // TODO: Needs code review. Will likely move if we decide to move client management
@@ -492,7 +318,7 @@ func getDeployedPackJobs(jobsApi *v1.Jobs, cfg *cache.PackConfig, deploymentName
 				}
 				packJobs = append(packJobs, JobStatusInfo{
 					packName:       cfg.Name,
-					registryName:   cfg.Registry,
+					registryName:   jobMeta[job.PackRegistryKey],
 					deploymentName: jobMeta[job.PackDeploymentNameKey],
 					jobID:          *nomadJob.ID,
 					status:         *nomadJob.Status,
