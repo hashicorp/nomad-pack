@@ -66,7 +66,7 @@ func NewParser(cfg *ParserConfig) (*Parser, error) {
 	for _, file := range cfg.FileOverrides {
 		_, err := os.Stat(file)
 		if err != nil {
-			return nil, errors.New(fmt.Sprintf("Variable file `%s` not found", file))
+			return nil, fmt.Errorf("variable file %q not found", file)
 		}
 	}
 
