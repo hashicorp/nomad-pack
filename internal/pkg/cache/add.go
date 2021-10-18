@@ -1,9 +1,7 @@
 package cache
 
 import (
-	stdErrors "errors"
 	"fmt"
-	"net/url"
 	"os"
 	"path"
 	"time"
@@ -46,22 +44,7 @@ func (c *Cache) Add(opts *AddOpts) (cachedRegistry *Registry, err error) {
 		return
 	}
 
-	// If the passed source is a valid URL, then add from URL.
-	if _, urlErr := url.ParseRequestURI(opts.Source); urlErr != nil {
-		cachedRegistry, err = c.addFromURI(opts)
-		return
-	}
-
-	// If not a URL, try to add by file path.
-	fileInfo, fileErr := os.Stat(opts.Source)
-	if fileErr != nil {
-		// If not a valid file path, return invalid source err.
-		err = errors.ErrInvalidRegistrySource
-		c.cfg.Logger.ErrorWithContext(err, "registry source is neither a URL or or a directory", c.ErrorContext.GetAll()...)
-		return
-	}
-
-	cachedRegistry, err = c.addFromFileSystem(&fileInfo, opts)
+	cachedRegistry, err = c.addFromURI(opts)
 
 	return
 }
@@ -146,7 +129,7 @@ func (c *Cache) cloneRemoteGitRegistry(opts *AddOpts) (err error) {
 
 	// Append the pack name to the go-getter url if a pack name was specified
 	if opts.PackName != "" {
-		url = fmt.Sprintf("%s//%s", opts.Source, opts.PackName)
+		url = fmt.Sprintf("%s.git//packs/%s", opts.Source, opts.PackName)
 	}
 
 	// If ref is set, add query string variable
@@ -156,12 +139,10 @@ func (c *Cache) cloneRemoteGitRegistry(opts *AddOpts) (err error) {
 
 	logger.Debug(fmt.Sprintf("go-getter URL is %s", url))
 
-	// TODO: Review this go-getter URL requirement and test different scenarios.
 	clonePath := c.clonePath()
-	// if we are targeting a single pack clone to a directory with that pack name
-	// so that the directory structure matches a registry.
+	// If pack name is set, add an intermediary "packs" and pack dir manually.
 	if opts.PackName != "" {
-		clonePath = opts.clonedPackPath(c)
+		clonePath = path.Join(clonePath, "packs", opts.PackName)
 	}
 	err = gg.Get(clonePath, fmt.Sprintf("git::%s", url))
 	if err != nil {
@@ -171,11 +152,6 @@ func (c *Cache) cloneRemoteGitRegistry(opts *AddOpts) (err error) {
 
 	logger.Debug(fmt.Sprintf("Registry successfully cloned at %s", c.clonePath()))
 
-	return
-}
-
-func (c *Cache) addFromFileSystem(fileInfo *os.FileInfo, opts *AddOpts) (registry *Registry, err error) {
-	err = stdErrors.New("addFromFileSystem not implemented")
 	return
 }
 

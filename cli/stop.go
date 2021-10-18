@@ -51,7 +51,7 @@ func (c *StopCommand) Run(args []string) int {
 
 	c.packConfig.Name = c.args[0]
 
-	// Set defaults and initialize the error context.
+	// Set the packConfig defaults if necessary and generate our UI error context.
 	errorContext := initPackCommand(c.packConfig)
 
 	client, err := v1.NewClient()
@@ -65,7 +65,7 @@ func (c *StopCommand) Run(args []string) int {
 
 	if c.deploymentName == "" {
 		// Add the path to the pack on the error context.
-		errorContext.Add(errors.UIContextPrefixPackPath, cache.BuildPackPath(c.packConfig))
+		errorContext.Add(errors.UIContextPrefixPackPath, c.packConfig.Path)
 
 		// Add the path to the pack on the error context.
 		errorContext.Add(errors.UIContextPrefixPackRef, c.packConfig.Ref)

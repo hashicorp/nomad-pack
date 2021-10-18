@@ -33,8 +33,9 @@ func (c *StatusCommand) Run(args []string) int {
 		c.packConfig.Name = c.args[0]
 	}
 
-	// Generate our UI error context.
-	errorContext := initPackCommand(c.packConfig)
+	// Set the packConfig defaults if necessary and generate our UI error context.
+	errorContext := errors.NewUIErrorContext()
+	errorContext.Add(errors.UIContextPrefixPackName, c.packConfig.Name)
 
 	client, err := v1.NewClient()
 	if err != nil {

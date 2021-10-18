@@ -32,7 +32,7 @@ func (c *PlanCommand) Run(args []string) int {
 
 	c.packConfig.Name = c.args[0]
 
-	// Set defaults and initialize the error context.
+	// Set the packConfig defaults if necessary and generate our UI error context.
 	errorContext := initPackCommand(c.packConfig)
 
 	// verify packs exist before planning jobs
@@ -67,7 +67,7 @@ func (c *PlanCommand) Run(args []string) int {
 
 	depConfig := runner.Config{
 		PackName:       c.packConfig.Name,
-		PathPath:       cache.BuildPackPath(c.packConfig),
+		PathPath:       c.packConfig.Path,
 		PackRef:        c.packConfig.Ref,
 		DeploymentName: c.deploymentName,
 	}
@@ -198,6 +198,10 @@ func (c *PlanCommand) Help() string {
 
 	# Plan an example pack without showing the diff
 	nomad-pack plan example --diff=false
+
+    # Plan a pack under development from the filesystem - supports current working 
+    # directory or relative path
+	nomad-pack plan . 
 	`
 
 	return formatHelp(`

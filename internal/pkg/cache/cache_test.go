@@ -39,8 +39,6 @@ func testPackCount(t *testing.T, opts cacheOperationProvider) int {
 }
 
 func TestListRegistries(t *testing.T) {
-	t.Parallel()
-
 	cacheDir := t.TempDir()
 	opts := testAddOpts("list-registries")
 
@@ -60,8 +58,6 @@ func TestListRegistries(t *testing.T) {
 }
 
 func TestAddRegistry(t *testing.T) {
-	t.Parallel()
-
 	cacheDir := t.TempDir()
 	opts := testAddOpts("add-registry")
 
@@ -82,8 +78,6 @@ func TestAddRegistry(t *testing.T) {
 }
 
 func TestAddRegistryPacksAtMultipleRefs(t *testing.T) {
-	t.Parallel()
-
 	cacheDir := t.TempDir()
 	testOpts := testAddOpts("multiple-refs")
 	// Set opts at sha ref
@@ -91,7 +85,7 @@ func TestAddRegistryPacksAtMultipleRefs(t *testing.T) {
 		cachePath:    cacheDir,
 		RegistryName: "multiple-refs",
 		Source:       testRegistryURL,
-		Ref:          "5e564c9",
+		Ref:          "a74b4e1",
 	}
 
 	cache, err := NewCache(&CacheConfig{
@@ -126,8 +120,6 @@ func TestAddRegistryPacksAtMultipleRefs(t *testing.T) {
 }
 
 func TestAddRegistryWithTarget(t *testing.T) {
-	t.Parallel()
-
 	cacheDir := t.TempDir()
 
 	// Set opts at sha ref
@@ -154,15 +146,13 @@ func TestAddRegistryWithTarget(t *testing.T) {
 }
 
 func TestAddRegistryWithSHA(t *testing.T) {
-	t.Parallel()
-
 	cacheDir := t.TempDir()
 	// Set opts at sha ref
 	addOpts := &AddOpts{
 		cachePath:    cacheDir,
 		RegistryName: "with-sha",
 		Source:       testRegistryURL,
-		Ref:          "5e564c9",
+		Ref:          "a74b4e1",
 	}
 
 	cache, err := NewCache(&CacheConfig{
@@ -184,8 +174,6 @@ func TestAddRegistryWithSHA(t *testing.T) {
 }
 
 func TestAddRegistryWithRefAndPackName(t *testing.T) {
-	t.Parallel()
-
 	cacheDir := t.TempDir()
 	// Set opts at sha ref
 	addOpts := &AddOpts{
@@ -193,7 +181,7 @@ func TestAddRegistryWithRefAndPackName(t *testing.T) {
 		RegistryName: "with-ref-and-pack-name",
 		PackName:     "traefik",
 		Source:       testRegistryURL,
-		Ref:          "v0.0.1",
+		Ref:          "a74b4e1",
 	}
 
 	cache, err := NewCache(&CacheConfig{
@@ -212,16 +200,13 @@ func TestAddRegistryWithRefAndPackName(t *testing.T) {
 }
 
 func TestAddRegistryNoCacheDir(t *testing.T) {
-	t.Parallel()
-
 	opts := testAddOpts("no-cache-dir")
 
 	cache, err := NewCache(&CacheConfig{
 		Path:   "",
 		Logger: logging.NewTestLogger(t.Log),
 	})
-	require.NoError(t, err)
-	require.NotNil(t, cache)
+	require.Error(t, err)
 
 	registry, err := cache.Add(opts)
 
@@ -231,8 +216,6 @@ func TestAddRegistryNoCacheDir(t *testing.T) {
 }
 
 func TestAddRegistryNoSource(t *testing.T) {
-	t.Parallel()
-
 	cacheDir := t.TempDir()
 	opts := testAddOpts("no-source")
 	opts.Source = ""
@@ -251,30 +234,7 @@ func TestAddRegistryNoSource(t *testing.T) {
 	require.Equal(t, errors.ErrRegistrySourceRequired, err)
 }
 
-func TestAddRegistryWithProtocol(t *testing.T) {
-	t.Parallel()
-
-	cacheDir := t.TempDir()
-
-	opts := testAddOpts("with-protocol")
-	opts.Source = "https://github.com/hashicorp/nomad-pack-registry"
-	cache, err := NewCache(&CacheConfig{
-		Path:   cacheDir,
-		Logger: logging.NewTestLogger(t.Log),
-	})
-	require.NoError(t, err)
-	require.NotNil(t, cache)
-
-	registry, err := cache.Add(opts)
-
-	require.Error(t, err)
-	require.Nil(t, registry)
-	require.Equal(t, errors.ErrInvalidRegistrySource, err)
-}
-
 func TestDeleteRegistry(t *testing.T) {
-	t.Parallel()
-
 	cacheDir := t.TempDir()
 	opts := testAddOpts("delete-registry")
 
@@ -308,8 +268,6 @@ func TestDeleteRegistry(t *testing.T) {
 }
 
 func TestDeletePack(t *testing.T) {
-	t.Parallel()
-
 	cacheDir := t.TempDir()
 	opts := testAddOpts("delete-pack")
 
@@ -349,8 +307,6 @@ func TestDeletePack(t *testing.T) {
 }
 
 func TestDeletePackByRef(t *testing.T) {
-	t.Parallel()
-
 	cacheDir := t.TempDir()
 	opts := testAddOpts("delete-pack-by-ref")
 
@@ -366,7 +322,7 @@ func TestDeletePackByRef(t *testing.T) {
 	require.NotNil(t, registry)
 
 	// Now add at different ref
-	opts.Ref = "v0.0.1"
+	opts.Ref = "a74b4e1"
 	registry, err = cache.Add(opts)
 	require.NoError(t, err)
 	require.NotNil(t, registry)
