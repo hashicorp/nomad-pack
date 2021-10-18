@@ -114,8 +114,8 @@ func (pm *PackManager) loadAndValidatePacks() (*pack.Pack, error) {
 		return nil, fmt.Errorf("failed to load pack: %v", err)
 	}
 
-	if err := parentPack.Metadata.Validate(); err != nil {
-		return nil, fmt.Errorf("failed to validate pack metadata: %v", err)
+	if err := parentPack.Validate(); err != nil {
+		return nil, fmt.Errorf("failed to validate pack: %v", err)
 	}
 
 	// Using the input path to the parent pack, define the path where
@@ -146,8 +146,8 @@ func (pm *PackManager) loadAndValidatePack(cur *pack.Pack, depsPath string) erro
 			return fmt.Errorf("failed to load dependent pack: %v", err)
 		}
 
-		if err := dependentPack.Metadata.Validate(); err != nil {
-			return fmt.Errorf("failed to validate dependent pack metadata: %v", err)
+		if err := dependentPack.Validate(); err != nil {
+			return fmt.Errorf("failed to validate dependent pack: %v", err)
 		}
 
 		// Add the dependency to the current pack.
