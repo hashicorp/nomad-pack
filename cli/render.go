@@ -157,6 +157,10 @@ func (c *RenderCommand) Help() string {
 
 	# Render an example pack including the outputs template file.
 	nomad-pack render example --render-output-template
+
+    # Render a pack under development from the filesystem - supports current working 
+    # directory or relative path
+	nomad-pack render . 
 	`
 
 	return formatHelp(`

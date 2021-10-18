@@ -284,6 +284,10 @@ func (c *RunCommand) Help() string {
 
 	# Run an example pack with cli variable overrides
 	nomad-pack run example --var="redis_image_version=latest" --var="redis_resources={"cpu": "1000", "memory": "512"}"
+
+	# Run a pack under development from the filesystem - supports current working 
+    # directory or relative path
+	nomad-pack run . 
 	`
 
 	return formatHelp(`

@@ -198,6 +198,10 @@ func (c *PlanCommand) Help() string {
 
 	# Plan an example pack without showing the diff
 	nomad-pack plan example --diff=false
+
+    # Plan a pack under development from the filesystem - supports current working 
+    # directory or relative path
+	nomad-pack plan . 
 	`
 
 	return formatHelp(`

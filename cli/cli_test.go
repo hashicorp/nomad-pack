@@ -20,7 +20,7 @@ func TestVersion(t *testing.T) {
 	nomadAddr := os.Getenv("NOMAD_ADDR")
 	os.Setenv("NOMAD_ADDR", "http://127.0.0.1:4646")
 
-	exitCode := Main([]string{"nom", "-v"})
+	exitCode := Main([]string{"nomad-pack", "-v"})
 	require.Equal(t, 0, exitCode)
 	os.Setenv("NOMAD_ADDR", nomadAddr)
 }

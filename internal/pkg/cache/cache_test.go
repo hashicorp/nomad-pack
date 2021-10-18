@@ -85,7 +85,7 @@ func TestAddRegistryPacksAtMultipleRefs(t *testing.T) {
 		cachePath:    cacheDir,
 		RegistryName: "multiple-refs",
 		Source:       testRegistryURL,
-		Ref:          "5e564c9",
+		Ref:          "a74b4e1",
 	}
 
 	cache, err := NewCache(&CacheConfig{
@@ -152,7 +152,7 @@ func TestAddRegistryWithSHA(t *testing.T) {
 		cachePath:    cacheDir,
 		RegistryName: "with-sha",
 		Source:       testRegistryURL,
-		Ref:          "5e564c9",
+		Ref:          "a74b4e1",
 	}
 
 	cache, err := NewCache(&CacheConfig{
@@ -181,7 +181,7 @@ func TestAddRegistryWithRefAndPackName(t *testing.T) {
 		RegistryName: "with-ref-and-pack-name",
 		PackName:     "traefik",
 		Source:       testRegistryURL,
-		Ref:          "v0.0.1",
+		Ref:          "a74b4e1",
 	}
 
 	cache, err := NewCache(&CacheConfig{
@@ -206,8 +206,7 @@ func TestAddRegistryNoCacheDir(t *testing.T) {
 		Path:   "",
 		Logger: logging.NewTestLogger(t.Log),
 	})
-	require.NoError(t, err)
-	require.NotNil(t, cache)
+	require.Error(t, err)
 
 	registry, err := cache.Add(opts)
 
@@ -233,25 +232,6 @@ func TestAddRegistryNoSource(t *testing.T) {
 	require.Error(t, err)
 	require.Nil(t, registry)
 	require.Equal(t, errors.ErrRegistrySourceRequired, err)
-}
-
-func TestAddRegistryWithProtocol(t *testing.T) {
-	cacheDir := t.TempDir()
-
-	opts := testAddOpts("with-protocol")
-	opts.Source = "https://github.com/hashicorp/nomad-pack-registry"
-	cache, err := NewCache(&CacheConfig{
-		Path:   cacheDir,
-		Logger: logging.NewTestLogger(t.Log),
-	})
-	require.NoError(t, err)
-	require.NotNil(t, cache)
-
-	registry, err := cache.Add(opts)
-
-	require.Error(t, err)
-	require.Nil(t, registry)
-	require.Equal(t, errors.ErrInvalidRegistrySource, err)
 }
 
 func TestDeleteRegistry(t *testing.T) {
