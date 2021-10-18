@@ -11,15 +11,9 @@ in th repository or in the [HashiCorp Learn Guides](https://learn.hashicorp.com/
 
 ## Initialization
 
-<!-- TODO: Change this text once the init command is removed/replaced  -->
+When first using Nomad Pack, a directory at `./.nomad/packs` will be created to store information about available packs and packs in use.
 
-When first using Nomad Pack, run the `init` command to create a directory at `./.nomad/packs` to store information about availible packs and packs in use.
-
-```
-nomad-pack init
-```
-
-During initializing, Nomad Pack downloads a default registry of packs from [https://github.com/hashicorp/nomad-pack-registry](https://github.com/hashicorp/nomad-pack-registry).
+During initializing, Nomad Pack downloads a default registry of packs from [https://github.com/hashicorp/nomad-pack-community- registry](https://github.com/hashicorp/nomad-pack-community-registry).
 
 The directory structure is as follows:
 
@@ -32,11 +26,13 @@ The directory structure is as follows:
                 ├── ...files containing pack contents...
 ```
 
-The contents of the `.nomad/pack` directory are needed for Nomad Pack to work properly, but users will not have to actively manage or change these files.
+The contents of the `.nomad/pack` directory are needed for Nomad Pack to work properly, 
+but users must not manually manage or change these files. Instead, use the `registry`
+commands.
 
 ## List
 
-The `registry list` command lists the packs availible to deploy.
+The `registry list` command lists the packs available to deploy.
 
 ```
 nomad-pack registry list
@@ -46,11 +42,11 @@ This command reads from the `.nomad/packs` directory explained above.
 
 ## Adding new Registries and Packs
 
-The `registry` command includes several sub-commands for interacting with registires.
+The `registry` command includes several sub-commands for interacting with registries.
 
-Custom registries can be added using the `registry add` command. Currently registries must
-be deployed to GitHub, but support for other version control systems and arbitrary URLs is
-coming soon.
+Custom registries can be added using the `registry add` command. Any `git` based
+registry supported by [`go-getter`](https://github.com/hashicorp/go-getter) should
+work.
 
 For instance, if you wanted to add the entire [Nomad Pack Community Registry](https://github.com/hashicorp/nomad-pack-community-registry),
 you would run the following command to download the registry.
@@ -59,14 +55,20 @@ you would run the following command to download the registry.
 nomad-pack registry add community github.com/hashicorp/nomad-pack-community-registry
 ```
 
-To download and add single pack from the registry, use the `--target` flag.
+To add a single pack from the registry, use the `--target` flag.
 
 ```
 nomad-pack registry add community github.com/hashicorp/nomad-pack-community-registry --target=nginx
 ```
 
+To download single pack or an entire registry at a specific version/SHA, use the `--ref` flag.
+
+```
+nomad-pack registry add community github.com/hashicorp/nomad-pack-community-registry --ref=v0.0.1
+```
+
 To remove a registry or pack from your local cache. Use the `registry delete` command.
-This command also support the `--target` flag.
+This command also supports the `--target` and `--ref` flags.
 
 ```
 nomad-pack registry delete community
@@ -82,7 +84,7 @@ The `render` command takes the `--var` and `--var-file` flags that `run` takes.
 
 The `--too` flag determines the directory where the rendered templates will be written.
 
-The `--render-output-template` can be passed to additionally render the output template. Some output templates rely on an deployment for information. In these cases, the output template may not be rendered with all necessary information.
+The `--render-output-template` can be passed to additionally render the output template. Some output templates rely on a deployment for information. In these cases, the output template may not be rendered with all necessary information.
 
 ```
 nomad-pack render hello-world --to ./tmp --var greeting=hola --render-output-template
@@ -90,13 +92,15 @@ nomad-pack render hello-world --to ./tmp --var greeting=hola --render-output-tem
 
 ## Run
 
-To deploy all of the resources in a pack to Nomad, use the `run` command.
+To deploy the resources in a pack to Nomad, use the `run` command.
 
 ```
 nomad-pack run hello-world
 ```
 
-By passing a `--name` value into `run`, Nomad Pack deploy each resource in the pack with a metadata value for "pack name". If no name is given, the pack name is used by default.
+By passing a `--name` value into `run`, Nomad Pack deploys each resource in the 
+pack with a metadata value for "pack name". If no name is given, the pack name 
+is used by default.
 
 This allows Nomad Pack to manage multiple deployments of the same pack.
 
@@ -183,7 +187,7 @@ nomad-pack status hello-world
 
 ## Destroy
 
-If you want to remove all of the resources deployed by a pack, run the `destroy` command with the pack name.
+If you want to remove the resources deployed by a pack, run the `destroy` command with the pack name.
 
 ```
 nomad-pack destroy hello-world
