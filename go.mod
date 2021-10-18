@@ -13,7 +13,7 @@ require (
 	github.com/hashicorp/go-hclog v0.16.2 // indirect
 	github.com/hashicorp/hcl/v2 v2.10.1
 	github.com/hashicorp/nomad v1.1.4
-	github.com/hashicorp/nomad-openapi v0.0.0-20210921122032-4500c39fcb76
+	github.com/hashicorp/nomad-openapi v0.0.0-20211018165803-33eb48e328a1
 	github.com/kr/pretty v0.2.1 // indirect
 	github.com/kr/text v0.2.0
 	github.com/lab47/vterm v0.0.0-20201001232628-a9dd795f94c2

@@ -42,7 +42,7 @@ type Runner struct {
 func NewDeployer(client *v1.Client, cfg *CLIConfig) runner.Runner {
 	return &Runner{
 		client:          client,
-		clientQueryOpts: &v1.QueryOpts{},
+		clientQueryOpts: newQueryOpts(),
 		cfg:             cfg,
 		rawTemplates:    make(map[string]string),
 		parsedTemplates: make(map[string]*v1client.Job),

@@ -255,7 +255,7 @@ func parseJob(ui terminal.UI, hcl string, hclV1 bool, errCtx *errors.UIErrorCont
 		return nil, err
 	}
 
-	opts := &v1.QueryOpts{}
+	opts := newQueryOpts()
 	parsedJob, err := c.Jobs().Parse(opts.Ctx(), hcl, true, hclV1)
 	if err != nil {
 		ui.ErrorWithContext(err, "failed to parse job specification", errCtx.GetAll()...)
@@ -273,29 +273,19 @@ func getDeploymentName(c *baseCommand, cfg *cache.PackConfig) string {
 }
 
 // TODO: Move to a domain specific package.
-// using jobsApi to get a job by job name
-func getJob(jobsApi *v1.Jobs, jobName string, queryOpts *v1.QueryOpts) (*v1client.Job, *v1.QueryMeta, error) {
-	result, meta, err := jobsApi.GetJob(queryOpts.Ctx(), jobName)
-	if err != nil {
-		return nil, nil, err
-	}
-	return result, meta, nil
-}
-
-// TODO: Move to a domain specific package.
 func getPackJobsByDeploy(jobsApi *v1.Jobs, cfg *cache.PackConfig, deploymentName string) ([]*v1client.Job, error) {
-	opts := &v1.QueryOpts{}
+	opts := newQueryOpts()
 	jobs, _, err := jobsApi.GetJobs(opts.Ctx())
 	if err != nil {
 		return nil, fmt.Errorf("error finding jobs for pack %s: %s", cfg.Name, err)
 	}
-	if len(jobs) == 0 {
+	if len(*jobs) == 0 {
 		return nil, fmt.Errorf("no job(s) found")
 	}
 
 	var packJobs []*v1client.Job
 	hasOtherDeploys := false
-	for _, jobStub := range jobs {
+	for _, jobStub := range *jobs {
 		nomadJob, _, err := jobsApi.GetJob(opts.Ctx(), *jobStub.ID)
 		if err != nil {
 			return nil, fmt.Errorf("error retrieving job %s for pack %s: %s", *nomadJob.ID, cfg.Name, err)
@@ -330,35 +320,6 @@ func getPackJobsByDeploy(jobsApi *v1.Jobs, cfg *cache.PackConfig, deploymentName
 		}
 	}
 	return packJobs, nil
-}
-
-// TODO: Needs code review. Will likely move if we decide to move client management
-// out of CLI commands.
-// generate write options for openapi based on the nomad job.
-// This just sets namespace and region, but we might want to
-// extend it to include tokens, etc later
-func newWriteOptsFromJob(job *v1client.Job) *v1.WriteOpts {
-	opts := &v1.WriteOpts{}
-	if job.Region != nil {
-		opts.Region = *job.Region
-	}
-	if job.Namespace != nil {
-		opts.Namespace = *job.Namespace
-	}
-	return opts
-}
-
-// TODO: Needs code review. Will likely move if we decide to move client management
-// out of CLI commands.
-func newQueryOptsFromJob(job *v1client.Job) *v1.QueryOpts {
-	opts := &v1.QueryOpts{}
-	if job.Region != nil {
-		opts.Region = *job.Region
-	}
-	if job.Namespace != nil {
-		opts.Namespace = *job.Namespace
-	}
-	return opts
 }
 
 // TODO: Needs code review. Will likely move if we decide to move client management
@@ -402,14 +363,14 @@ func hasVarOverrides(c *baseCommand) bool {
 
 // TODO: Move to a domain specific package.
 func getDeployedPacks(jobsApi *v1.Jobs) (map[string]map[string]struct{}, error) {
-	opts := &v1.QueryOpts{}
+	opts := newQueryOpts()
 	jobStubs, _, err := jobsApi.GetJobs(opts.Ctx())
 	if err != nil {
 		return nil, fmt.Errorf("error finding jobs: %s", err)
 	}
 
 	packRegistryMap := map[string]map[string]struct{}{}
-	for _, jobStub := range jobStubs {
+	for _, jobStub := range *jobStubs {
 		nomadJob, _, err := jobsApi.GetJob(opts.Ctx(), *jobStub.ID)
 		if err != nil {
 			return nil, fmt.Errorf("error retrieving job %s: %s", *nomadJob.ID, err)
@@ -461,7 +422,7 @@ type JobStatusError struct {
 
 // TODO: Move to a domain specific package.
 func getDeployedPackJobs(jobsApi *v1.Jobs, cfg *cache.PackConfig, deploymentName string) ([]JobStatusInfo, []JobStatusError, error) {
-	opts := &v1.QueryOpts{}
+	opts := newQueryOpts()
 	jobs, _, err := jobsApi.GetJobs(opts.Ctx())
 	if err != nil {
 		return nil, nil, fmt.Errorf("error finding jobs for pack %s: %s", cfg.Name, err)
@@ -469,7 +430,7 @@ func getDeployedPackJobs(jobsApi *v1.Jobs, cfg *cache.PackConfig, deploymentName
 
 	var packJobs []JobStatusInfo
 	var jobErrs []JobStatusError
-	for _, jobStub := range jobs {
+	for _, jobStub := range *jobs {
 		nomadJob, _, err := jobsApi.GetJob(opts.Ctx(), *jobStub.ID)
 		if err != nil {
 			jobErrs = append(jobErrs, JobStatusError{
@@ -501,4 +462,14 @@ func getDeployedPackJobs(jobsApi *v1.Jobs, cfg *cache.PackConfig, deploymentName
 		}
 	}
 	return packJobs, jobErrs, nil
+}
+
+func newQueryOpts() *v1.QueryOpts {
+	opts := v1.QueryOpts{}
+	return opts.WithAuthToken(os.Getenv("NOMAD_TOKEN"))
+}
+
+func newWriteOpts() *v1.WriteOpts {
+	opts := v1.WriteOpts{}
+	return opts.WithAuthToken(os.Getenv("NOMAD_TOKEN"))
 }
