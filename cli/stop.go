@@ -144,10 +144,10 @@ func (c *StopCommand) Run(args []string) int {
 		}
 
 		// Invoke the stop
-		writeOpts := &v1.WriteOpts{
-			Region:    *job.Region,
-			Namespace: *job.Namespace,
-		}
+		writeOpts := newWriteOpts()
+		writeOpts.Region = *job.Region
+		writeOpts.Namespace = *job.Namespace
+
 		result, _, err := client.Jobs().Delete(writeOpts.Ctx(), *job.Name, c.purge, c.global)
 		if err != nil {
 			errs = append(errs, err)
@@ -177,20 +177,20 @@ func (c *StopCommand) Run(args []string) int {
 }
 
 func (c *StopCommand) checkForConflicts(jobsApi *v1.Jobs, jobName string) error {
-	queryOpts := &v1.QueryOpts{
-		Prefix: jobName,
-	}
+	queryOpts := newQueryOpts()
+	queryOpts.Prefix = jobName
+
 	jobs, _, err := jobsApi.GetJobs(queryOpts.Ctx())
 	if err != nil {
 		return fmt.Errorf("error checking for conflicts for job %q: %s", jobName, err)
 	}
 
-	if len(jobs) == 0 {
+	if len(*jobs) == 0 {
 		return fmt.Errorf("no job(s) with prefix or id %q found", jobName)
 	}
 
-	if len(jobs) > 1 {
-		return fmt.Errorf("prefix matched multiple jobs\n\n%s", createStatusListOutput(jobs, c.allNamespaces()))
+	if len(*jobs) > 1 {
+		return fmt.Errorf("prefix matched multiple jobs\n\n%s", createStatusListOutput(*jobs, c.allNamespaces()))
 	}
 
 	return nil
