@@ -1,5 +1,7 @@
 package pack
 
+import "errors"
+
 // File is an individual file component of a Pack.
 type File struct {
 
@@ -82,4 +84,20 @@ func (p *Pack) RootVariableFiles() map[string]*File {
 	}
 
 	return out
+}
+
+// Validate the pack for terminal problems that can easily be detected at this
+// stage. Anything that has potential to cause a panic should ideally be caught
+// here.
+func (p *Pack) Validate() error {
+
+	if p.RootVariableFile == nil {
+		return errors.New("root variable file is required")
+	}
+
+	if err := p.Metadata.Validate(); err != nil {
+		return err
+	}
+
+	return nil
 }
