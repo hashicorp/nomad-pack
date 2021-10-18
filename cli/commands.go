@@ -175,7 +175,6 @@ func (c *baseCommand) Init(opts ...Option) error {
 	return nil
 }
 
-
 func (c *baseCommand) ensureCache() error {
 	// Creates global cache
 	globalCache, err := cache.NewCache(&cache.CacheConfig{
@@ -187,7 +186,7 @@ func (c *baseCommand) ensureCache() error {
 	}
 
 	// Check if default registry exists
-	_, err = os.Stat(path.Join(cache.DefaultCachePath(),cache.DefaultRegistryName))
+	_, err = os.Stat(path.Join(cache.DefaultCachePath(), cache.DefaultRegistryName))
 	// If it does not error, then the registry already exists
 	if err == nil {
 		return nil
@@ -203,7 +202,6 @@ func (c *baseCommand) ensureCache() error {
 	}
 	return nil
 }
-
 
 // flagSet creates the flags for this command. The callback should be used
 // to configure the set with your own custom options.
