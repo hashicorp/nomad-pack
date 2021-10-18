@@ -28,6 +28,17 @@ func initPackCommand(cfg *cache.PackConfig) (errorContext *errors.UIErrorContext
 	return
 }
 
+// generatePackManager is used to generate the pack manager for this Nomad Pack run.
+func generatePackManager(c *baseCommand, client *v1.Client, packCfg *cache.PackConfig) *manager.PackManager {
+	// TODO: Refactor to have manager use cache.
+	cfg := manager.Config{
+		Path:            packCfg.Path,
+		VariableFiles:   c.varFiles,
+		VariableCLIArgs: c.vars,
+	}
+	return manager.NewPackManager(&cfg, client)
+}
+
 func registryTable() *terminal.Table {
 	return terminal.NewTable("PACK NAME", "REF", "METADATA VERSION", "REGISTRY", "REGISTRY_URL")
 }
