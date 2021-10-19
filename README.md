@@ -10,6 +10,26 @@ Nomad Pack is used to:
 - Re-use common patterns across internal applications
 - Find and share job specifications with the Nomad community
 
+## Installation
+
+To simplify the getting started experience, you can download a [precompiled binary][hashicorp_releases]
+and run it on your machine locally. After downloading Nomad Pack, unzip the package. Make sure that
+the nomad binary is available on your PATH. You can inspect the locations available on your path by
+running this command:
+```
+$ echo $PATH
+/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
+```
+
+The output is a list of locations separated by colons. You can make Nomad Pack available by moving
+the binary to one of the listed locations, or by adding Nomad Pack's location to your PATH.
+
+Nomad Pack is also available as a [Docker image][docker_hub]. With Docker installed on your local
+machine, you can pull the latest image by running the following command:
+```
+$ docker pull hashicorp/nomad-pack
+```
+
 ## Usage
 
 ### Dependencies
@@ -19,9 +39,6 @@ environment variable.
 
 If Nomad ACLs are enabled, a token with proper permissions must be defined in the `NOMAD_TOKEN`
 environment variable.
-
-<!-- TODO: Add this section once we know how to download it -->
-<!-- ### Downloading Nomad Pack -->
 
 ### Basic Use
 
@@ -128,3 +145,6 @@ Pull Requests and feedback on both repositories are welcome!
 <!-- ## Tutorials
 
 Nomad Pack Guides are available on [HashiCorp Learn](https://learn.hashicorp.com/nomad). -->
+
+[hashicorp_releases]: (https://releases.hashicorp.com/nomad-pack/)
+[docker_hub]: (https://hub.docker.com/r/hashicorp/nomad-pack)
