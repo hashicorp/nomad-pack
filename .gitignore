@@ -11,7 +11,7 @@ bin/*
 *.test
 
 # Release binary output directory
-# pkg
+/pkg/*
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
