@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/nomad-pack/internal/pkg/loader"
-	"github.com/hashicorp/nomad-pack/pkg/pack"
+	"github.com/hashicorp/nomad-pack/sdk/pack"
 )
 
 // Registry represents a registry definition from the global cache.
