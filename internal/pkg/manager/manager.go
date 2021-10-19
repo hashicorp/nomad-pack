@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/loader"
 	"github.com/hashicorp/nomad-pack/internal/pkg/renderer"
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable"
-	"github.com/hashicorp/nomad-pack/pkg/pack"
+	"github.com/hashicorp/nomad-pack/sdk/pack"
 )
 
 // Config contains all the user specified parameters needed to correctly run

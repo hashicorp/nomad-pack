@@ -9,7 +9,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclparse"
-	"github.com/hashicorp/nomad-pack/pkg/pack"
+	"github.com/hashicorp/nomad-pack/sdk/pack"
 	"github.com/spf13/afero"
 	"github.com/zclconf/go-cty/cty"
 )
