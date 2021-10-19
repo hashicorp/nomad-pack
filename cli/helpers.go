@@ -3,6 +3,7 @@ package cli
 import (
 	stdErrors "errors"
 	"fmt"
+	"os"
 
 	v1client "github.com/hashicorp/nomad-openapi/clients/go/v1"
 	v1 "github.com/hashicorp/nomad-openapi/v1"
