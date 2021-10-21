@@ -1,6 +1,6 @@
 package pack
 
-import "github.com/hashicorp/nomad-pack/internal/pkg/helper/ptr"
+import "github.com/hashicorp/nomad-pack/sdk/helper"
 
 // Dependency is a single dependency of a pack. A pack can have multiple and
 // each dependency represents an individual pack. A pack can be used as a
@@ -32,7 +32,7 @@ func (d *Dependency) validate() error {
 	}
 
 	if d.Enabled == nil {
-		d.Enabled = ptr.Bool(true)
+		d.Enabled = helper.BoolToPtr(true)
 	}
 	return nil
 }

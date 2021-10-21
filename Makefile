@@ -25,7 +25,7 @@ api:
 	go get github.com/hashicorp/nomad-openapi/v1
 
 .PHONY: check
-check: check-mod
+check: check-mod check-sdk
 
 .PHONY: check-mod
 check-mod: ## Checks the Go mod is tidy
@@ -35,5 +35,13 @@ check-mod: ## Checks the Go mod is tidy
 		echo tools go.mod or go.sum needs updating; \
 		git --no-pager diff go.mod; \
 		git --no-pager diff go.sum; \
+		exit 1; fi
+	@echo "==> Done"
+
+.PHONY: check-sdk
+check-sdk: ## Checks the SDK is isolated
+	@echo "==> Checking SDK package is isolated..."
+	@if go list --test -f '{{ join .Deps "\n" }}' ./sdk/* | grep github.com/hashicorp/nomad-pack/ | grep -v -e /nomad-pack/sdk/ -e nomad-pack/sdk.test; \
+		then echo " /sdk package depends the ^^ above internal packages. Remove such dependency"; \
 		exit 1; fi
 	@echo "==> Done"

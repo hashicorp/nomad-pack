@@ -3,7 +3,7 @@ package pack
 import (
 	"testing"
 
-	"github.com/hashicorp/nomad-pack/internal/pkg/helper/ptr"
+	"github.com/hashicorp/nomad-pack/sdk/helper"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,7 +22,7 @@ func TestDependency_Validate(t *testing.T) {
 			expectedOutputDependency: &Dependency{
 				Name:    "example",
 				Source:  "git://example.com/example",
-				Enabled: ptr.Bool(true),
+				Enabled: helper.BoolToPtr(true),
 			},
 			name: "nil enabled input",
 		},
@@ -30,12 +30,12 @@ func TestDependency_Validate(t *testing.T) {
 			inputDependency: &Dependency{
 				Name:    "example",
 				Source:  "git://example.com/example",
-				Enabled: ptr.Bool(false),
+				Enabled: helper.BoolToPtr(false),
 			},
 			expectedOutputDependency: &Dependency{
 				Name:    "example",
 				Source:  "git://example.com/example",
-				Enabled: ptr.Bool(false),
+				Enabled: helper.BoolToPtr(false),
 			},
 			name: "false enabled input",
 		},
@@ -43,12 +43,12 @@ func TestDependency_Validate(t *testing.T) {
 			inputDependency: &Dependency{
 				Name:    "example",
 				Source:  "git://example.com/example",
-				Enabled: ptr.Bool(true),
+				Enabled: helper.BoolToPtr(true),
 			},
 			expectedOutputDependency: &Dependency{
 				Name:    "example",
 				Source:  "git://example.com/example",
-				Enabled: ptr.Bool(true),
+				Enabled: helper.BoolToPtr(true),
 			},
 			name: "false enabled input",
 		},
