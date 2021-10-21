@@ -130,7 +130,7 @@ No specific format is required for the `README.md` or `CHANGELOG.md` files.
 
 ## Step Three: Write the Templates
 
-Each file at the top level of the `templates` directory that uses the extension ".nomad.tpl" defines a resource (such as a job) that will be applied to Noamd. These files can use any UTF-8 encoded prefix as the name.
+Each file at the top level of the `templates` directory that uses the extension ".nomad.tpl" defines a resource (such as a job) that will be applied to Nomad. These files can use any UTF-8 encoded prefix as the name.
 
 Helper templates, which can be included within larger templates, have names prefixed with an underscore “\_” and use a ".tpl" extension.
 
