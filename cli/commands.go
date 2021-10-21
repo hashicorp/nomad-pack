@@ -170,7 +170,11 @@ func (c *baseCommand) Init(opts ...Option) error {
 		c.ui = terminal.NonInteractiveUI(c.Ctx)
 	}
 
-	c.ensureCache()
+	// Perform the cache ensure, but skip if we are running the version
+	// command.
+	if c.cmdKey != "version" {
+		return c.ensureCache()
+	}
 
 	return nil
 }
