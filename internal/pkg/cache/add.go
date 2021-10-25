@@ -160,7 +160,7 @@ func (c *Cache) processPackEntry(opts *AddOpts, packEntry os.DirEntry) (err erro
 	logger.Debug(fmt.Sprintf("Processing pack %s@%s", packEntry.Name(), opts.Ref))
 
 	// Check if folder exists
-	_, err = os.Stat(opts.PackDir())
+	_, err = os.Stat(opts.PackPath())
 	if err != nil {
 		// If an error other than not exists is thrown, rethrow it,
 		// else the CopyDir operation below will create it.
@@ -198,16 +198,6 @@ func (c *Cache) processPackEntry(opts *AddOpts, packEntry os.DirEntry) (err erro
 
 	// Load the pack to the output registry
 	logger.Debug(fmt.Sprintf("Loading cloned pack from %s", opts.PackPath()))
-
-	// TODO: Delete me if tests work out. No need to validate the pack on clone.
-	// The Get op will do that.
-	//_, err = loader.Load(opts.PackPath())
-	//if err != nil {
-	//	// Log error, but don't stop processing just because a pack definition is invalid.
-	//	logger.ErrorWithContext(err, "error loading cloned pack", c.ErrorContext.GetAll()...)
-	//	// Set to nil since it is recoverable.
-	//	err = nil
-	//}
 
 	// log a history of the latest ref downloads - convenient for enabling users
 	// to trace download of last known good ref of latest. If ref is
