@@ -106,8 +106,18 @@ func (c *StatusCommand) Flags() *flag.Sets {
 			Name:    "registry",
 			Target:  &c.packConfig.Registry,
 			Default: "",
-			Usage: `Specific registry name containing the pack inspect.
+			Usage: `Specific registry name containing the pack to inspect.
 If not specified, the default registry will be used.`,
+		})
+
+		f.StringVar(&flag.StringVar{
+			Name:    "ref",
+			Target:  &c.packConfig.Ref,
+			Default: "",
+			Usage: `Specific git ref of the pack to inspect. 
+Supports tags, SHA, and latest. If no ref is specified, defaults to latest.
+
+Using ref with a file path is not supported.`,
 		})
 	})
 }
