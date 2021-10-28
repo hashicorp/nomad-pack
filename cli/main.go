@@ -109,14 +109,6 @@ func Commands(
 		globalOptions: opts,
 	}
 
-	// aliases is a list of command aliases we have. The key is the CLI
-	// command (the alias) and the value is the existing target command.
-	// aliases := map[string]string{
-	// 	"build":   "artifact build",
-	// 	"deploy":  "deployment deploy",
-	// 	"install": "server install",
-	// }
-
 	// start building our commands
 	commands := map[string]cli.CommandFactory{
 		"render": func() (cli.Command, error) {
