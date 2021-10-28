@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -35,7 +34,7 @@ func TestJobRun(t *testing.T) {
 		clearJob(t, &cache.PackConfig{Name: testPack})
 	}()
 
-	exitCode := runCmd().Run([]string{testPack})
+	exitCode := RunCmd().Run([]string{testPack})
 	require.Equal(t, 0, exitCode)
 }
 
@@ -44,19 +43,19 @@ func TestJobRunConflictingDeployment(t *testing.T) {
 	testInit(t)
 
 	// Register the initial pack
-	exitCode := runCmd().Run([]string{testPack})
+	exitCode := RunCmd().Run([]string{testPack})
 	defer func() {
 		clearJob(t, &cache.PackConfig{Name: testPack})
 	}()
 
-	// deploymentName := runCmd.deploymentName
+	// deploymentName := RunCmd.deploymentName
 	require.Equal(t, 0, exitCode)
 
-	exitCode = runCmd().Run([]string{testPack, "--name=with-name"})
+	exitCode = RunCmd().Run([]string{testPack, "--name=with-name"})
 	require.Equal(t, 1, exitCode)
 
 	// Confirm that it's still possible to update the existing pack
-	exitCode = runCmd().Run([]string{testPack})
+	exitCode = RunCmd().Run([]string{testPack})
 	require.Equal(t, 0, exitCode)
 }
 
@@ -72,7 +71,7 @@ func TestJobRunConflictingNonPackJob(t *testing.T) {
 	}()
 
 	// Now try to register the pack
-	exitCode := runCmd().Run([]string{testPack})
+	exitCode := RunCmd().Run([]string{testPack})
 	require.Equal(t, 1, exitCode)
 }
 
@@ -87,14 +86,14 @@ func TestJobRunConflictingJobWithMeta(t *testing.T) {
 	nomadExec(t, "run", "../fixtures/simple-with-meta.nomad")
 
 	// Now try to register
-	exitCode := runCmd().Run([]string{testPack})
+	exitCode := RunCmd().Run([]string{testPack})
 	require.Equal(t, 1, exitCode)
 }
 
 func TestJobRunFails(t *testing.T) {
 	testInit(t)
 
-	exitCode := runCmd().Run([]string{"fake-job"})
+	exitCode := RunCmd().Run([]string{"fake-job"})
 	require.Equal(t, 1, exitCode)
 
 	reset()
@@ -103,7 +102,7 @@ func TestJobRunFails(t *testing.T) {
 func TestJobPlan(t *testing.T) {
 	testInit(t)
 
-	exitCode := planCmd().Run([]string{testPack})
+	exitCode := PlanCmd().Run([]string{testPack})
 	// Should return 1 indicating an allocation will be placed
 	require.Equal(t, 1, exitCode)
 
@@ -119,10 +118,10 @@ func TestJobPlanConflictingDeployment(t *testing.T) {
 	}()
 
 	// Register the initial pack
-	exitCode := runCmd().Run([]string{testPack})
+	exitCode := RunCmd().Run([]string{testPack})
 	require.Equal(t, 0, exitCode)
 
-	exitCode = runCmd().Run([]string{testPack, testRefFlag})
+	exitCode = RunCmd().Run([]string{testPack, testRefFlag})
 	require.Equal(t, 1, exitCode)
 
 	reset()
@@ -139,7 +138,7 @@ func TestJobPlanConflictingNonPackJob(t *testing.T) {
 	nomadExec(t, "run", "../fixtures/simple.nomad")
 
 	// Now try to plan the pack
-	exitCode := planCmd().Run([]string{testPack})
+	exitCode := PlanCmd().Run([]string{testPack})
 	require.Equal(t, 255, exitCode)
 
 	reset()
@@ -148,10 +147,10 @@ func TestJobPlanConflictingNonPackJob(t *testing.T) {
 func TestJobStop(t *testing.T) {
 	testInit(t)
 
-	exitCode := runCmd().Run([]string{testPack})
+	exitCode := RunCmd().Run([]string{testPack})
 	require.Equal(t, 0, exitCode)
 
-	exitCode = stopCmd().Run([]string{testPack, "--purge=true"})
+	exitCode = StopCmd().Run([]string{testPack, "--purge=true"})
 	require.Equal(t, 0, exitCode)
 
 	reset()
@@ -198,12 +197,12 @@ func TestJobStopConflicts(t *testing.T) {
 			} else {
 				deploymentName := fmt.Sprintf("--name=%s", c.deploymentName)
 				varJobName := fmt.Sprintf("--var=job_name=%s", c.jobName)
-				exitCode := runCmd().Run([]string{c.packName, deploymentName, varJobName})
+				exitCode := RunCmd().Run([]string{c.packName, deploymentName, varJobName})
 				require.Equal(t, 0, exitCode)
 			}
 
 			// Try to stop job
-			exitCode := stopCmd().Run([]string{c.packName})
+			exitCode := StopCmd().Run([]string{c.packName})
 			require.Equal(t, 1, exitCode)
 		})
 	}
@@ -216,10 +215,10 @@ func TestJobStopConflicts(t *testing.T) {
 func TestJobDestroy(t *testing.T) {
 	testInit(t)
 
-	exitCode := runCmd().Run([]string{testPack})
+	exitCode := RunCmd().Run([]string{testPack})
 	require.Equal(t, 0, exitCode)
 
-	exitCode = destroyCmd().Run([]string{testPack})
+	exitCode = DestroyCmd().Run([]string{testPack})
 	require.Equal(t, 0, exitCode)
 
 	// Assert job no longer queryable
@@ -237,23 +236,23 @@ func TestJobDestroyWithOverrides(t *testing.T) {
 
 	jobNames := []string{"foo", "bar"}
 	for _, j := range jobNames {
-		exitCode := runCmd().Run([]string{testPack, `--var=job_name=` + j})
+		exitCode := RunCmd().Run([]string{testPack, `--var=job_name=` + j})
 		require.Equal(t, 0, exitCode)
 	}
 
 	// Stop nonexistent job
-	exitCode := destroyCmd().Run([]string{testPack, "--var=job_name=baz"})
+	exitCode := DestroyCmd().Run([]string{testPack, "--var=job_name=baz"})
 	require.Equal(t, 1, exitCode)
 
 	// Stop job with var override
-	exitCode = destroyCmd().Run([]string{testPack, "--var=job_name=foo"})
+	exitCode = DestroyCmd().Run([]string{testPack, "--var=job_name=foo"})
 	require.Equal(t, 0, exitCode)
 
 	// Assert job "bar" still exists
 	nomadExec(t, "status", "bar")
 
 	// Stop job with no overrides passed
-	exitCode = destroyCmd().Run([]string{testPack})
+	exitCode = DestroyCmd().Run([]string{testPack})
 	require.Equal(t, 0, exitCode)
 
 	// Assert job bar is gone
@@ -268,11 +267,11 @@ func TestFlagProvidedButNotDefined(t *testing.T) {
 	// There is no job flag. This tests that adding an unspecified flag does not
 	// create an invalid memory address error
 	// Posix case
-	exitCode := runCmd().Run([]string{"nginx", "--job=provided-but-not-defined"})
+	exitCode := RunCmd().Run([]string{"nginx", "--job=provided-but-not-defined"})
 	require.Equal(t, 1, exitCode)
 
 	// std go case
-	exitCode = runCmd().Run([]string{"-job=provided-but-not-defined", "nginx"})
+	exitCode = RunCmd().Run([]string{"-job=provided-but-not-defined", "nginx"})
 	require.Equal(t, 1, exitCode)
 
 	reset()
@@ -284,7 +283,7 @@ func TestStatus(t *testing.T) {
 		clearJob(t, &cache.PackConfig{Name: testPack})
 	}()
 
-	exitCode := runCmd().Run([]string{testPack})
+	exitCode := RunCmd().Run([]string{testPack})
 	require.Equal(t, 0, exitCode)
 
 	cases := []struct {
@@ -311,7 +310,7 @@ func TestStatus(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			exitCode = statusCmd().Run(c.args)
+			exitCode = StatusCmd().Run(c.args)
 			require.Equal(t, 0, exitCode)
 		})
 	}
@@ -333,31 +332,6 @@ func TestStatusFails(t *testing.T) {
 var nomadAddr string
 var testPack = "simple_service"
 var testRefFlag = "--ref=48eb7d5"
-
-// reduce boilerplate copy pasta with a factory method.
-func baseCmd() *baseCommand {
-	return &baseCommand{Ctx: context.Background()}
-}
-
-func planCmd() *PlanCommand {
-	return &PlanCommand{baseCommand: baseCmd()}
-}
-
-func runCmd() *RunCommand {
-	return &RunCommand{baseCommand: baseCmd()}
-}
-
-func destroyCmd() *DestroyCommand {
-	return &DestroyCommand{&StopCommand{baseCommand: baseCmd()}}
-}
-
-func statusCmd() *StatusCommand {
-	return &StatusCommand{baseCommand: baseCmd()}
-}
-
-func stopCmd() *StopCommand {
-	return &StopCommand{baseCommand: baseCmd()}
-}
 
 // Save the current machine's NOMAD_ADDR so that tests can reset developer.
 // environment. Added to every test to allow one of ad hoc testing.
@@ -396,18 +370,18 @@ func clearJob(t *testing.T, cfg *cache.PackConfig) {
 	reset()
 }
 
-func nomadExec(t *testing.T, args ...string) {
-	nomadPath, err := exec.LookPath("nomad")
-	require.NoError(t, err)
-	nomadCmd := exec.Command(nomadPath, args...)
-	err = nomadCmd.Run()
-	require.NoError(t, err)
-}
-
 func nomadExpectErr(t *testing.T, args ...string) {
 	nomadPath, err := exec.LookPath("nomad")
 	require.NoError(t, err)
 	nomadCmd := exec.Command(nomadPath, args...)
 	err = nomadCmd.Run()
 	require.Error(t, err)
+}
+
+func nomadExec(t *testing.T, args ...string) {
+	nomadPath, err := exec.LookPath("nomad")
+	require.NoError(t, err)
+	nomadCmd := exec.Command(nomadPath, args...)
+	err = nomadCmd.Run()
+	require.NoError(t, err)
 }
