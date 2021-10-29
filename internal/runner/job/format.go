@@ -8,12 +8,23 @@ import (
 
 	v1client "github.com/hashicorp/nomad-openapi/clients/go/v1"
 	"github.com/hashicorp/nomad-pack/terminal"
-	"github.com/hashicorp/nomad/scheduler"
 	"github.com/ryanuber/columnize"
 )
 
 const (
 	preemptionDisplayThreshold = 10
+)
+
+// updateType* is copied from github.com/hashicorp/nomad/scheduler, so we don't
+// need import it.
+const (
+	updateTypeIgnore            = "ignore"
+	updateTypeCreate            = "create"
+	updateTypeDestroy           = "destroy"
+	updateTypeMigrate           = "migrate"
+	updateTypeCanary            = "canary"
+	updateTypeInplaceUpdate     = "in-place update"
+	updateTypeDestructiveUpdate = "create/destroy update"
 )
 
 type namespaceIdPair struct {
@@ -120,18 +131,18 @@ func formatTaskGroupDiff(tg v1client.TaskGroupDiff, tgPrefix int, verbose bool, 
 			count := (*tg.Updates)[updateType]
 			var color string
 			switch updateType {
-			case scheduler.UpdateTypeIgnore:
-			case scheduler.UpdateTypeCreate:
+			case updateTypeIgnore:
+			case updateTypeCreate:
 				color = terminal.GreenStyle
-			case scheduler.UpdateTypeDestroy:
+			case updateTypeDestroy:
 				color = terminal.RedStyle
-			case scheduler.UpdateTypeMigrate:
+			case updateTypeMigrate:
 				color = terminal.BlueStyle
-			case scheduler.UpdateTypeInplaceUpdate:
+			case updateTypeInplaceUpdate:
 				color = terminal.CyanStyle
-			case scheduler.UpdateTypeDestructiveUpdate:
+			case updateTypeDestructiveUpdate:
 				color = terminal.YellowStyle
-			case scheduler.UpdateTypeCanary:
+			case updateTypeCanary:
 				color = terminal.LightYellowStyle
 			}
 			ui.AppendToRow("%d %s", count, updateType, terminal.WithStyle(color))
