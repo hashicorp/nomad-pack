@@ -104,7 +104,7 @@ func (c *RegistryAddCommand) Run(args []string) int {
 	c.ui.Table(table)
 
 	if validPack != nil {
-		c.ui.Info(fmt.Sprintf("Try running one the packs you just added liked this\n\n  nomad-pack run %s -registry=%s -ref=%s", validPack.Name(), newRegistry.Name, validPack.Ref))
+		c.ui.Info(fmt.Sprintf("Try running one the packs you just added liked this\n\n  nomad-pack run %s --registry=%s --ref=%s", validPack.Name(), newRegistry.Name, validPack.Ref))
 	}
 
 	return 0
