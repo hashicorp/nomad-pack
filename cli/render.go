@@ -1,11 +1,19 @@
 package cli
 
 import (
+	stdErrors "errors"
+	"fmt"
+	"io/fs"
+	"io/ioutil"
+	"os"
+	"path"
+	"strings"
+
 	v1 "github.com/hashicorp/nomad-openapi/v1"
 	"github.com/hashicorp/nomad-pack/flag"
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
-	"github.com/mitchellh/go-glint"
+	"github.com/hashicorp/nomad-pack/terminal"
 	"github.com/posener/complete"
 )
 
@@ -15,9 +23,95 @@ import (
 type RenderCommand struct {
 	*baseCommand
 	packConfig *cache.PackConfig
-	// renderOutputTemplate is a boolean flag to control whether the outpu
+	// renderOutputTemplate is a boolean flag to control whether the output
 	// template is rendered.
 	renderOutputTemplate bool
+	// renderToFolder is the path to write rendered job files to in addition to
+	// standard output.
+	renderToFolder string
+	// Overwrite is a boolean flag to control whether the rendered files should
+	// be overwritten if they already exist.
+	overwrite bool
+}
+
+type Render struct {
+	Name    string
+	Content string
+}
+
+func (r Render) toTerminal(c *RenderCommand) {
+	c.ui.Output(r.Name+":", terminal.WithStyle(terminal.BoldStyle))
+	c.ui.Output("")
+	c.ui.Output(r.Content)
+}
+
+func (r Render) toFile(c *RenderCommand) error {
+	renderToFolder := path.Clean(c.renderToFolder)
+	validateOutFolder(renderToFolder)
+
+	filePath, fileName := path.Split(r.Name)
+	outDir := path.Join(renderToFolder, filePath)
+	outFile := path.Join(outDir, fileName)
+	maybeCreateDestinationFolder(outDir)
+	err := writeFile(outFile, r.Content, c.overwrite)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func validateOutFolder(path string) error {
+	if path == "" {
+		return nil
+	}
+	info, err := os.Stat(path)
+
+	if err != nil {
+		if stdErrors.Is(err, fs.ErrNotExist) {
+			return stdErrors.New("render-to-folder target does not exist")
+		}
+
+		return fmt.Errorf("unexpected error testing render-to-folder path: %w", err)
+	}
+
+	if !info.IsDir() {
+		return stdErrors.New("render-to-folder must be a directory")
+	}
+
+	return nil
+}
+
+func maybeCreateDestinationFolder(path string) error {
+	_, err := os.Stat(path)
+
+	// If the directory doesn't exist, create it.
+	if stdErrors.Is(err, fs.ErrNotExist) {
+		err := os.MkdirAll(path, 0755)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func writeFile(path string, content string, overwrite bool) error {
+	// Check to see if the file already exists and validate against the value
+	// of overwrite.
+	_, err := os.Stat(path)
+	if err == nil && !overwrite {
+		return fmt.Errorf("destination file exists and overwrite is unset")
+	}
+	err = ioutil.WriteFile(path, []byte(content), 0644)
+	if err != nil {
+		return fmt.Errorf("failed to write rendered template to file: %s", err)
+	}
+	return nil
+}
+
+func formatRenderName(name string) string {
+	outName := strings.Replace(name, "/templates/", "/", 1)
+	outName = strings.TrimRight(outName, ".tpl")
+	return outName
 }
 
 // Run satisfies the Run function of the cli.Command interface.
@@ -49,7 +143,11 @@ func (c *RenderCommand) Run(args []string) int {
 		c.ui.ErrorWithContext(err, "failed to initialize client", errorContext.GetAll()...)
 		return 1
 	}
-
+	err = validateOutFolder(c.renderToFolder)
+	if err != nil {
+		c.ui.Error(err.Error())
+		return 1
+	}
 	packManager := generatePackManager(c.baseCommand, client, c.packConfig)
 
 	renderOutput, err := renderPack(packManager, c.baseCommand.ui, errorContext)
@@ -64,16 +162,18 @@ func (c *RenderCommand) Run(args []string) int {
 		return 1
 	}
 
-	d := glint.New()
+	var renders = []Render{}
 
-	// Iterate the rendered files and add these to the Glint document.
+	// Iterate the rendered files and add these to the list of renders to
+	// output. This allows errors to surface and end things without emitting
+	// partial output and then erroring out.
 	// TODO(jrasell): trim at least the templates directory name from the name
 	//  as it doesn't provide much benefit.
 	for name, renderedFile := range renderOutput.DependentRenders() {
-		addRenderToDoc(d, name, renderedFile)
+		renders = append(renders, Render{Name: formatRenderName(name), Content: renderedFile})
 	}
 	for name, renderedFile := range renderOutput.ParentRenders() {
-		addRenderToDoc(d, name, renderedFile)
+		renders = append(renders, Render{Name: formatRenderName(name), Content: renderedFile})
 	}
 
 	// If the user wants to render and display the outputs template file then
@@ -86,20 +186,23 @@ func (c *RenderCommand) Run(args []string) int {
 		if err != nil {
 			c.ui.ErrorWithContext(err, "failed to render output template", errorContext.GetAll()...)
 		} else {
-			addRenderToDoc(d, "outputs.tpl", outputRender)
+			renders = append(renders, Render{Name: "outputs.tpl", Content: outputRender})
 		}
 	}
 
-	d.RenderFrame()
-	return 0
-}
+	for _, render := range renders {
+		if c.renderToFolder != "" {
+			err = render.toFile(c)
+			if err != nil {
+				c.ui.ErrorWithContext(err, "failed to render to file", errorContext.GetAll()...)
+				return 1
+			}
+		}
+		render.toTerminal(c)
 
-// addRenderToDoc updates the Glint Document to include the provided template
-// within the layout.
-func addRenderToDoc(doc *glint.Document, name, tpl string) {
-	doc.Append(glint.Layout(glint.Style(glint.Text(name+":"), glint.Bold())).Row())
-	doc.Append(glint.Layout(glint.Style(glint.Text(""))).Row())
-	doc.Append(glint.Layout(glint.Style(glint.Text(tpl))).Row())
+	}
+
+	return 0
 }
 
 func (c *RenderCommand) Flags() *flag.Sets {
@@ -133,6 +236,28 @@ Using ref with a file path is not supported.`,
 			Usage: `Controls whether or not the output template file within the
                       pack is rendered and displayed.`,
 		})
+
+		f.StringVarP(&flag.StringVarP{
+			StringVar: &flag.StringVar{
+				Name:   "render-to-folder",
+				Target: &c.renderToFolder,
+				Usage: `Path to write rendered job files to in addition to standard
+				output.`,
+				// Aliases: []string{"to"},
+			},
+			Shorthand: "o",
+		})
+
+		f.BoolVarP(&flag.BoolVarP{
+			BoolVar: &flag.BoolVar{
+				Name:    "overwrite",
+				Target:  &c.overwrite,
+				Default: false,
+				Usage:   `Overwrite rendered files when --render-to-folder is set.`,
+				// Aliases: []string{"yolo"},
+			},
+			Shorthand: "Y",
+		})
 	})
 }
 
@@ -157,6 +282,10 @@ func (c *RenderCommand) Help() string {
 
 	# Render an example pack including the outputs template file.
 	nomad-pack render example --render-output-template
+
+	# Render an example pack, outputting the rendered templates to file and
+	overwriting existing files, in addition to the terminal.
+	nomad-pack render example --render-to-folder ~/outFolder --overwrite
 
     # Render a pack under development from the filesystem - supports current working 
     # directory or relative path
