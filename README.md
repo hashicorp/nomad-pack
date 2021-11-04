@@ -27,7 +27,7 @@ the binary to one of the listed locations, or by adding Nomad Pack's location to
 Nomad Pack is also available as a [Docker image][docker_hub]. With Docker installed on your local
 machine, you can pull the latest image by running the following command:
 ```
-$ docker pull hashicorp/nomad-pack
+$ docker pull hashicorp/nomad-pack:0.0.1-techpreview1
 ```
 
 ## Usage
