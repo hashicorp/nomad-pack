@@ -3,6 +3,7 @@ package cache
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"path"
 	"strings"
@@ -109,17 +110,27 @@ func (r *Registry) setURLFromPacks() {
 			continue
 		}
 
-		// Get the pack url from the metadata
-		url := cachedPack.Metadata.Pack.URL
+		// Get the pack url from the metadata. This fix still assumes that the
+		// Pack.URL contains an actual URL and not a ssh or file-shaped path.
+		packURL, err := url.Parse(cachedPack.Metadata.Pack.URL)
 
-		// Get the substring to remove any prefixes
-		url = url[strings.Index(url, "github.com"):]
+		// If the pack url can not be parsed, show a warning and continue. If a
+		// valid pack url occurs later, this will be overwritten. This at least
+		// prevents hitting the base case of "registry contains no valid packs"
+		if err != nil {
+			r.Source = fmt.Sprintf("invalid url (%s)", cachedPack.Metadata.Pack.URL)
+			continue
+		}
 
-		// Split into a slice of segments, since this should include the pack name
-		segments := strings.Split(url, "/")
+		segmentCount := 2
 
-		// Initialize this to the number of segments we want
-		segmentCount := 3
+		var segments []string
+		if packURL.Hostname() != "" {
+			segments = append(segments, packURL.Hostname())
+			segmentCount += 1
+		}
+
+		segments = append(segments, strings.Split(strings.TrimLeft(packURL.Path, "/"), "/")...)
 
 		// Set the count to len of segments in case URL is not formatted correctly.
 		if len(segments) < 3 {
@@ -130,6 +141,11 @@ func (r *Registry) setURLFromPacks() {
 		r.Source = strings.Join(segments[:segmentCount], "/")
 
 		// Exit once we have a valid pack
+		return
+	}
+
+	if r.Source != "" {
+		// return the error to the table if we had a URL, but it was invalid.
 		return
 	}
 
