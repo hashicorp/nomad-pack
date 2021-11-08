@@ -46,17 +46,20 @@ func (r Render) toTerminal(c *RenderCommand) {
 }
 
 func (r Render) toFile(c *RenderCommand) error {
-	renderToFolder := path.Clean(c.renderToFolder)
-	validateOutFolder(renderToFolder)
+	renderToDir := path.Clean(c.renderToFolder)
+	validateOutFolder(renderToDir)
 
 	filePath, fileName := path.Split(r.Name)
-	outDir := path.Join(renderToFolder, filePath)
+	outDir := path.Join(renderToDir, filePath)
 	outFile := path.Join(outDir, fileName)
+
 	maybeCreateDestinationFolder(outDir)
+
 	err := writeFile(outFile, r.Content, c.overwrite)
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -91,6 +94,7 @@ func maybeCreateDestinationFolder(path string) error {
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -101,16 +105,21 @@ func writeFile(path string, content string, overwrite bool) error {
 	if err == nil && !overwrite {
 		return fmt.Errorf("destination file exists and overwrite is unset")
 	}
+
 	err = ioutil.WriteFile(path, []byte(content), 0644)
 	if err != nil {
 		return fmt.Errorf("failed to write rendered template to file: %s", err)
 	}
+
 	return nil
 }
 
+// formatRenderName trims the low-value elements from the rendered template
+// name.
 func formatRenderName(name string) string {
 	outName := strings.Replace(name, "/templates/", "/", 1)
 	outName = strings.TrimRight(outName, ".tpl")
+
 	return outName
 }
 
@@ -167,8 +176,7 @@ func (c *RenderCommand) Run(args []string) int {
 	// Iterate the rendered files and add these to the list of renders to
 	// output. This allows errors to surface and end things without emitting
 	// partial output and then erroring out.
-	// TODO(jrasell): trim at least the templates directory name from the name
-	//  as it doesn't provide much benefit.
+
 	for name, renderedFile := range renderOutput.DependentRenders() {
 		renders = append(renders, Render{Name: formatRenderName(name), Content: renderedFile})
 	}
@@ -190,6 +198,8 @@ func (c *RenderCommand) Run(args []string) int {
 		}
 	}
 
+	// Output the renders. Output the files first if enabled so that any renders
+	// that display will also have been written to disk.
 	for _, render := range renders {
 		if c.renderToFolder != "" {
 			err = render.toFile(c)
@@ -199,7 +209,6 @@ func (c *RenderCommand) Run(args []string) int {
 			}
 		}
 		render.toTerminal(c)
-
 	}
 
 	return 0
@@ -239,7 +248,7 @@ Using ref with a file path is not supported.`,
 
 		f.StringVarP(&flag.StringVarP{
 			StringVar: &flag.StringVar{
-				Name:   "render-to-folder",
+				Name:   "to-folder",
 				Target: &c.renderToFolder,
 				Usage: `Path to write rendered job files to in addition to standard
 				output.`,
@@ -285,7 +294,7 @@ func (c *RenderCommand) Help() string {
 
 	# Render an example pack, outputting the rendered templates to file and
 	overwriting existing files, in addition to the terminal.
-	nomad-pack render example --render-to-folder ~/outFolder --overwrite
+	nomad-pack render example --to-folder ~/outFolder --overwrite
 
     # Render a pack under development from the filesystem - supports current working 
     # directory or relative path

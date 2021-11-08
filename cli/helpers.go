@@ -214,7 +214,7 @@ func generateRunner(client *v1.Client, packType, cliCfg interface{}, runnerCfg *
 	case "job":
 		jobConfig, ok := cliCfg.(*job.CLIConfig)
 		if !ok {
-			return nil, fmt.Errorf("failed to assert correct config, unsiutable type %T", cliCfg)
+			return nil, fmt.Errorf("failed to assert correct config, unsuitable type %T", cliCfg)
 		}
 		deployerImpl = job.NewDeployer(client, jobConfig)
 	default:
