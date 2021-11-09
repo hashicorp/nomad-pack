@@ -60,7 +60,7 @@ func (r Render) toFile(c *RenderCommand, ec *errors.UIErrorContext) error {
 	var overwrite bool
 
 	if !c.autoApproved && c.ui.Interactive() {
-		overwrite, err = askForOverwrite(c)
+		overwrite, err = confirmOverwrite(c)
 		if err != nil {
 			return err
 		}
