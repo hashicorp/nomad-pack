@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	stdErrors "errors"
 	"fmt"
 	"io/fs"
@@ -26,12 +27,9 @@ type RenderCommand struct {
 	// renderOutputTemplate is a boolean flag to control whether the output
 	// template is rendered.
 	renderOutputTemplate bool
-	// renderToFolder is the path to write rendered job files to in addition to
+	// renderToDir is the path to write rendered job files to in addition to
 	// standard output.
-	renderToFolder string
-	// Overwrite is a boolean flag to control whether the rendered files should
-	// be overwritten if they already exist.
-	overwrite bool
+	renderToDir string
 }
 
 type Render struct {
@@ -45,25 +43,56 @@ func (r Render) toTerminal(c *RenderCommand) {
 	c.ui.Output(r.Content)
 }
 
-func (r Render) toFile(c *RenderCommand) error {
-	renderToDir := path.Clean(c.renderToFolder)
-	validateOutFolder(renderToDir)
+func (r Render) toFile(c *RenderCommand, ec *errors.UIErrorContext) error {
+	renderToDir := path.Clean(c.renderToDir)
+	err := validateOutDir(renderToDir)
+	if err != nil {
+		ec.Add("Destination Dir: ", renderToDir)
+		return err
+	}
 
 	filePath, fileName := path.Split(r.Name)
 	outDir := path.Join(renderToDir, filePath)
 	outFile := path.Join(outDir, fileName)
 
-	maybeCreateDestinationFolder(outDir)
+	maybeCreateDestinationDir(outDir)
 
-	err := writeFile(outFile, r.Content, c.overwrite)
+	var overwrite bool
+
+	if !c.autoApproved && c.ui.Interactive() {
+		overwrite, err = askForOverwrite(c)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = writeFile(outFile, r.Content, c.autoApproved || overwrite)
 	if err != nil {
+		ec.Add("Destination File: ", outFile)
 		return err
 	}
 
 	return nil
 }
 
-func validateOutFolder(path string) error {
+func confirmOverwrite(c *RenderCommand) (bool, error) {
+	for {
+		overwrite, err := c.ui.Input(&terminal.Input{
+			Prompt: "Output file exists, overwrite? [y/n] ",
+			Style:  terminal.WarningBoldStyle,
+		})
+		if err != nil {
+			return false, err
+		}
+		overwrite = strings.ToLower(overwrite)
+		if overwrite == "y" || overwrite == "n" {
+			return overwrite == "y", nil
+		}
+	}
+
+}
+
+func validateOutDir(path string) error {
 	if path == "" {
 		return nil
 	}
@@ -71,20 +100,20 @@ func validateOutFolder(path string) error {
 
 	if err != nil {
 		if stdErrors.Is(err, fs.ErrNotExist) {
-			return stdErrors.New("render-to-folder target does not exist")
+			return nil
 		}
 
-		return fmt.Errorf("unexpected error testing render-to-folder path: %w", err)
+		return fmt.Errorf("unexpected error testing --to-dir path: %w", err)
 	}
 
 	if !info.IsDir() {
-		return stdErrors.New("render-to-folder must be a directory")
+		return stdErrors.New("--to-dir must be a directory")
 	}
 
 	return nil
 }
 
-func maybeCreateDestinationFolder(path string) error {
+func maybeCreateDestinationDir(path string) error {
 	_, err := os.Stat(path)
 
 	// If the directory doesn't exist, create it.
@@ -101,7 +130,9 @@ func maybeCreateDestinationFolder(path string) error {
 func writeFile(path string, content string, overwrite bool) error {
 	// Check to see if the file already exists and validate against the value
 	// of overwrite.
+
 	_, err := os.Stat(path)
+
 	if err == nil && !overwrite {
 		return fmt.Errorf("destination file exists and overwrite is unset")
 	}
@@ -152,7 +183,7 @@ func (c *RenderCommand) Run(args []string) int {
 		c.ui.ErrorWithContext(err, "failed to initialize client", errorContext.GetAll()...)
 		return 1
 	}
-	err = validateOutFolder(c.renderToFolder)
+	err = validateOutDir(c.renderToDir)
 	if err != nil {
 		c.ui.Error(err.Error())
 		return 1
@@ -201,9 +232,12 @@ func (c *RenderCommand) Run(args []string) int {
 	// Output the renders. Output the files first if enabled so that any renders
 	// that display will also have been written to disk.
 	for _, render := range renders {
-		if c.renderToFolder != "" {
-			err = render.toFile(c)
+		if c.renderToDir != "" {
+			err = render.toFile(c, errorContext)
 			if err != nil {
+				if stdErrors.Is(err, context.Canceled) {
+					return 1
+				}
 				c.ui.ErrorWithContext(err, "failed to render to file", errorContext.GetAll()...)
 				return 1
 			}
@@ -248,8 +282,8 @@ Using ref with a file path is not supported.`,
 
 		f.StringVarP(&flag.StringVarP{
 			StringVar: &flag.StringVar{
-				Name:   "to-folder",
-				Target: &c.renderToFolder,
+				Name:   "to-dir",
+				Target: &c.renderToDir,
 				Usage: `Path to write rendered job files to in addition to standard
 				output.`,
 				// Aliases: []string{"to"},
@@ -257,16 +291,6 @@ Using ref with a file path is not supported.`,
 			Shorthand: "o",
 		})
 
-		f.BoolVarP(&flag.BoolVarP{
-			BoolVar: &flag.BoolVar{
-				Name:    "overwrite",
-				Target:  &c.overwrite,
-				Default: false,
-				Usage:   `Overwrite rendered files when --render-to-folder is set.`,
-				// Aliases: []string{"yolo"},
-			},
-			Shorthand: "Y",
-		})
 	})
 }
 
@@ -292,9 +316,10 @@ func (c *RenderCommand) Help() string {
 	# Render an example pack including the outputs template file.
 	nomad-pack render example --render-output-template
 
-	# Render an example pack, outputting the rendered templates to file and
-	overwriting existing files, in addition to the terminal.
-	nomad-pack render example --to-folder ~/outFolder --overwrite
+	# Render an example pack, outputting the rendered templates to file in
+	# addition to the terminal. Setting auto-approve allows the command to
+	# overwrite existing files.
+	nomad-pack render example --to-dir ~/out --auto-approve
 
     # Render a pack under development from the filesystem - supports current working 
     # directory or relative path

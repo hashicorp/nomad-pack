@@ -82,12 +82,12 @@ This can be useful when writing a pack, debugging deployments, integrating Nomad
 
 The `render` command takes the `--var` and `--var-file` flags that `run` takes.
 
-The `--too` flag determines the directory where the rendered templates will be written.
+The `--to-dir` flag determines the directory where the rendered templates will be written.
 
 The `--render-output-template` can be passed to additionally render the output template. Some output templates rely on a deployment for information. In these cases, the output template may not be rendered with all necessary information.
 
 ```
-nomad-pack render hello-world --to ./tmp --var greeting=hola --render-output-template
+nomad-pack render hello-world --to-dir ./tmp --var greeting=hola --render-output-template
 ```
 
 ## Run
