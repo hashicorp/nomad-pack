@@ -208,8 +208,15 @@ func (ui *nonInteractiveUI) ErrorWithContext(err error, sub string, ctx ...strin
 	ui.Error(strings.Title(sub))
 	ui.Error("  Error: " + err.Error())
 	ui.Error("  Context:")
+	max := 0
 	for _, entry := range ctx {
-		ui.Error("    " + entry)
+		if loc := strings.Index(entry, ":") + 1; loc > max {
+			max = loc
+		}
+	}
+	for _, entry := range ctx {
+		padding := max - strings.Index(entry, ":") + 1
+		ui.Error("  " + strings.Repeat(" ", padding) + entry)
 	}
 }
 
