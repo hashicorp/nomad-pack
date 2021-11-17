@@ -6,7 +6,6 @@ import (
 	"net/url"
 	"os"
 	"path"
-	"strings"
 
 	"github.com/hashicorp/nomad-pack/internal/pkg/loader"
 	"github.com/hashicorp/nomad-pack/sdk/pack"
@@ -122,23 +121,8 @@ func (r *Registry) setURLFromPacks() {
 			continue
 		}
 
-		segmentCount := 2
-
-		var segments []string
-		if packURL.Hostname() != "" {
-			segments = append(segments, packURL.Hostname())
-			segmentCount += 1
-		}
-
-		segments = append(segments, strings.Split(strings.TrimLeft(packURL.Path, "/"), "/")...)
-
-		// Set the count to len of segments in case URL is not formatted correctly.
-		if len(segments) < 3 {
-			segmentCount = len(segments)
-		}
-
-		// set the URL back to a joined url.
-		r.Source = strings.Join(segments[:segmentCount], "/")
+		dir, _ := path.Split(packURL.Path)
+		r.Source = path.Join(packURL.Hostname(), dir)
 
 		// Exit once we have a valid pack
 		return
