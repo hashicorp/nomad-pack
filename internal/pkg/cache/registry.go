@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/hashicorp/nomad-pack/internal/pkg/loader"
 	"github.com/hashicorp/nomad-pack/sdk/pack"
@@ -100,29 +101,42 @@ func (r *Registry) get(opts *GetOpts, cache *Cache) (err error) {
 
 	return
 }
+func (r *Registry) parsePackURL(packURL string) bool {
+	if packURL == "" {
+		return false
+	}
+	// Get the pack url from the metadata. This fix still assumes that the
+	// Pack.URL contains an actual URL and not a ssh or file-shaped path.
+	// TODO: make this parsing more flexible.
+	parsedPackURL, err := url.Parse(packURL)
+
+	// If the pack url can not be parsed, show a warning and continue. If a
+	// valid pack url occurs later, this will be overwritten. This at least
+	// prevents hitting the base case of "registry contains no valid packs"
+	if err != nil {
+		r.Source = fmt.Sprintf("invalid url (%s)", packURL)
+		return false
+	}
+
+	// chop off the pack name
+	dir, _ := path.Split(parsedPackURL.Path)
+	// hop off the "/packs" component of the directory
+	dir, _ = path.Split(strings.TrimSuffix(dir, "/"))
+	// don't display the .git; note because this is still a path it ends in a /
+	dir = strings.TrimSuffix(dir, ".git/")
+
+	r.Source = path.Join(parsedPackURL.Hostname(), dir)
+	return true
+
+}
 
 // setURLFromPacks sets the Source since we don't have this stored in any sort of
 // reliable way.
 func (r *Registry) setURLFromPacks() {
 	for _, cachedPack := range r.Packs {
-		if cachedPack.Metadata.Pack.URL == "" {
+		if !r.parsePackURL(cachedPack.Metadata.Pack.URL) {
 			continue
 		}
-
-		// Get the pack url from the metadata. This fix still assumes that the
-		// Pack.URL contains an actual URL and not a ssh or file-shaped path.
-		packURL, err := url.Parse(cachedPack.Metadata.Pack.URL)
-
-		// If the pack url can not be parsed, show a warning and continue. If a
-		// valid pack url occurs later, this will be overwritten. This at least
-		// prevents hitting the base case of "registry contains no valid packs"
-		if err != nil {
-			r.Source = fmt.Sprintf("invalid url (%s)", cachedPack.Metadata.Pack.URL)
-			continue
-		}
-
-		dir, _ := path.Split(packURL.Path)
-		r.Source = path.Join(packURL.Hostname(), dir)
 
 		// Exit once we have a valid pack
 		return
