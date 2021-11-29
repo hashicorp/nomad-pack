@@ -123,7 +123,7 @@ Packs are organized into "registries" which contain multiple packs and shared te
 
 The [Nomad Pack Community Registry](https://github.com/hashicorp/nomad-pack-community-registry) is
 a public registry for community-maintained packs. Nomad community members are encouraged to share
-their packs and collaborate with one anothr in this repo.
+their packs and collaborate with one another in this repo.
 
 Pull Requests and feedback on both repositories are welcome!
 
