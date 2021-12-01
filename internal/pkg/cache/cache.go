@@ -11,7 +11,6 @@ import (
 )
 
 const (
-	nomadCache            = ".nomad/packs"
 	DefaultRegistryName   = "default"
 	DefaultRegistrySource = "github.com/hashicorp/nomad-pack-community-registry"
 	DefaultRef            = "latest"
@@ -51,13 +50,17 @@ func (c *Cache) ensureGlobalCache() error {
 
 // DefaultCachePath returns the default cache path.
 func DefaultCachePath() string {
-	homeDir, err := os.UserHomeDir()
+	cacheDir, err := os.UserCacheDir()
 	if err != nil {
-		homeDir = "~"
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			homeDir = "~"
+		}
+		return path.Join(homeDir, ".nomad/packs")
 	}
-
-	return path.Join(homeDir, nomadCache)
+	return path.Join(cacheDir, "nomad/packs")
 }
+
 func defaultCacheConfig() *CacheConfig {
 	return &CacheConfig{
 		Path:   DefaultCachePath(),
