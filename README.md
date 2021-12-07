@@ -74,7 +74,7 @@ Values can also be provided by passing in a variables file. See the variables se
 
 ```
 tee -a ./my-variables.hcl << END
-message=bonjour
+message="bonjour"
 END
 
 nomad-pack run hello_world -f ./my-variables.hcl
