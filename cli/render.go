@@ -103,7 +103,7 @@ func validateOutDir(path string) error {
 			return nil
 		}
 
-		return fmt.Errorf("unexpected error testing --to-dir path: %w", err)
+		return fmt.Errorf("unexpected error validating --to-dir path: %w", err)
 	}
 
 	if !info.IsDir() {
