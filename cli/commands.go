@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"io"
 	"os"
 	"path"
 	"runtime"
+
+	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -55,6 +56,9 @@ type baseCommand struct {
 	// varFiles is an HCL file(s) setting one or more values
 	// for defined input variables
 	varFiles []string
+
+	// autoApproved is true when the user supplies the --auto-approve or -y flag
+	autoApproved bool
 
 	// deploymentName is the unique identifier of the deployed
 	// instance of a specified pack. Used for running more than
@@ -276,7 +280,15 @@ func (c *baseCommand) flagSet(bit flagSetBit, f func(*flag.Sets)) *flag.Sets {
                       should be passed to the plan or destroy commands.
                       `,
 		})
-
+		f.BoolVarP(&flag.BoolVarP{
+			BoolVar: &flag.BoolVar{
+				Name:    "auto-approve",
+				Target:  &c.autoApproved,
+				Default: false,
+				Usage:   `Automatically answer confirmation prompts in the affirmative.`,
+			},
+			Shorthand: "y",
+		})
 	}
 
 	if f != nil {

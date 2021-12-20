@@ -205,7 +205,19 @@ func (ui *nonInteractiveUI) Error(msg string) {
 // ErrorWithContext satisfies the ErrorWithContext function on the UI
 // interface.
 func (ui *nonInteractiveUI) ErrorWithContext(err error, sub string, ctx ...string) {
-	ErrorWithContext(err, sub, ctx...)
+	ui.Error(strings.Title(sub))
+	ui.Error("  Error: " + err.Error())
+	ui.Error("  Context:")
+	max := 0
+	for _, entry := range ctx {
+		if loc := strings.Index(entry, ":") + 1; loc > max {
+			max = loc
+		}
+	}
+	for _, entry := range ctx {
+		padding := max - strings.Index(entry, ":") + 1
+		ui.Error("  " + strings.Repeat(" ", padding) + entry)
+	}
 }
 
 // Header implements UI
