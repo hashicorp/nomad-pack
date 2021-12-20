@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"strings"
 	"time"
 
 	gg "github.com/hashicorp/go-getter"
@@ -129,7 +130,8 @@ func (c *Cache) cloneRemoteGitRegistry(opts *AddOpts) (err error) {
 
 	// Append the pack name to the go-getter url if a pack name was specified
 	if opts.PackName != "" {
-		url = fmt.Sprintf("%s.git//packs/%s", opts.Source, opts.PackName)
+		src := strings.TrimRight(opts.Source, ".git") // to make the next command work consistently
+		url = fmt.Sprintf("%s.git//packs/%s", src, opts.PackName)
 	}
 
 	// If ref is set, add query string variable

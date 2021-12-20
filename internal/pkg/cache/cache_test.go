@@ -1,8 +1,10 @@
 package cache
 
 import (
+	"fmt"
 	"os"
 	"path"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
@@ -349,4 +351,55 @@ func TestDeletePackByRef(t *testing.T) {
 	// test that registry still exists, and other packs are still  there.
 	require.NotEqual(t, 0, packCount)
 	require.Equal(t, packCount-1, len(registryEntries))
+}
+
+func TestParsePackURL(t *testing.T) {
+	reg := &Registry{}
+
+	testCases := []struct {
+		name           string
+		path           string
+		expectedResult string
+		expectOk       bool
+	}{
+		{
+			name:           "empty string",
+			path:           "",
+			expectedResult: "",
+			expectOk:       false,
+		},
+		{
+			name:           "default",
+			path:           "https://github.com/hashicorp/nomad-pack-community-registry/packs/simple_service",
+			expectedResult: "github.com/hashicorp/nomad-pack-community-registry",
+			expectOk:       true,
+		},
+		{
+			name:           "filepath",
+			path:           "/Users/voiselle/debugging/path-to-a-registry/packs/simple_service",
+			expectedResult: "/Users/voiselle/debugging/path-to-a-registry",
+			expectOk:       true,
+		},
+		{
+			name:           "nested-repo",
+			path:           "https://gitlab.com/a6281/nomad/my-pack-registry.git/packs/simple_service",
+			expectedResult: "gitlab.com/a6281/nomad/my-pack-registry",
+			expectOk:       true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ok := reg.parsePackURL(tc.path)
+			fmt.Printf("  path: %s\nsource: %s\n    ok: %v\n\n", tc.path, reg.Source, ok)
+			if tc.expectOk {
+				require.True(t, ok)
+				require.Equal(t, tc.expectedResult, reg.Source)
+			} else {
+				require.False(t, ok)
+				// If we get an error, reg.Source should be unset.
+				require.True(t, strings.Contains(reg.Source, "invalid url") || reg.Source == "")
+			}
+		})
+	}
 }
