@@ -8,6 +8,7 @@ import (
 	v1 "github.com/hashicorp/nomad-openapi/v1"
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
+	intHelper "github.com/hashicorp/nomad-pack/internal/pkg/helper"
 	"github.com/hashicorp/nomad-pack/internal/pkg/manager"
 	"github.com/hashicorp/nomad-pack/internal/pkg/renderer"
 	"github.com/hashicorp/nomad-pack/internal/runner"
@@ -134,7 +135,7 @@ func parseJob(ui terminal.UI, hcl string, hclV1 bool, errCtx *errors.UIErrorCont
 	opts := newQueryOpts()
 	parsedJob, err := c.Jobs().Parse(opts.Ctx(), hcl, true, hclV1)
 	if err != nil {
-		ui.ErrorWithContext(err, "failed to parse job specification", errCtx.GetAll()...)
+		ui.ErrorWithContext(intHelper.UnwrapAPIError(err), "failed to parse job specification", errCtx.GetAll()...)
 		return nil, err
 	}
 	return parsedJob, nil
