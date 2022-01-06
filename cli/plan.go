@@ -70,6 +70,7 @@ func (c *PlanCommand) Run(args []string) int {
 		PathPath:       c.packConfig.Path,
 		PackRef:        c.packConfig.Ref,
 		DeploymentName: c.deploymentName,
+		RegistryName:   c.packConfig.Registry,
 	}
 
 	// TODO(jrasell) come up with a better way to pass the appropriate config.
@@ -91,8 +92,13 @@ func (c *PlanCommand) Run(args []string) int {
 		return 255
 	}
 
-	// TODO(jrasell) we should call canonicalize here, but need additional CMD
-	//  flags.
+	if canonicalizeErrs := jobRunner.CanonicalizeTemplates(); canonicalizeErrs != nil {
+		for _, canonicalizeErr := range canonicalizeErrs {
+			canonicalizeErr.Context.Append(errorContext)
+			c.ui.ErrorWithContext(canonicalizeErr.Err, canonicalizeErr.Subject, canonicalizeErr.Context.GetAll()...)
+		}
+		return 1
+	}
 
 	if conflictErrs := jobRunner.CheckForConflicts(errorContext); conflictErrs != nil {
 		for _, conflictErr := range conflictErrs {
