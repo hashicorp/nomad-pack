@@ -101,6 +101,16 @@ func TestJobPlan(t *testing.T) {
 	require.Equal(t, 1, exitCode)
 }
 
+func TestJobPlan_BadJob(t *testing.T) {
+	testInit(t)
+
+	exitCode := planCmd().Run([]string{badPack})
+	// Should return 255 indicating an error occurred
+	require.Equal(t, 255, exitCode)
+
+	reset()
+}
+
 // Confirm that another pack with the same job names but a different deployment name fails
 func TestJobPlanConflictingDeployment(t *testing.T) {
 	testInit(t)
@@ -303,6 +313,7 @@ func TestStatusFails(t *testing.T) {
 
 var nomadAddr string
 var testPack = "simple_service"
+var badPack = "../fixtures/bad_pack"
 var testRefFlag = "--ref=48eb7d5"
 
 // reduce boilerplate copy pasta with a factory method.
@@ -336,8 +347,25 @@ func testInit(t *testing.T) {
 	nomadAddr = os.Getenv("NOMAD_ADDR")
 	_ = os.Setenv("NOMAD_ADDR", "http://127.0.0.1:4646")
 
+	_, err := os.Stat(path.Join(cache.DefaultCachePath(), cache.DefaultRegistryName, "simple_service@latest"))
+	if err != nil && os.IsNotExist(err) {
+		var c *cache.Cache
+		c, err = cache.NewCache(&cache.CacheConfig{
+			Path:   cache.DefaultCachePath(),
+			Eager:  false,
+			Logger: logging.Default(),
+		})
+		require.NoError(t, err)
+		_, err = c.Add(&cache.AddOpts{
+			RegistryName: cache.DefaultRegistryName,
+			Source:       cache.DefaultRegistrySource,
+			Ref:          "latest",
+		})
+		require.NoError(t, err)
+	}
+
 	// Make sure the alternate ref registry is loaded to the environment.
-	_, err := os.Stat(path.Join(cache.DefaultCachePath(), cache.DefaultRegistryName, "simple_service@48eb7d5"))
+	_, err = os.Stat(path.Join(cache.DefaultCachePath(), cache.DefaultRegistryName, "simple_service@48eb7d5"))
 	if err != nil && os.IsNotExist(err) {
 		var c *cache.Cache
 		c, err = cache.NewCache(&cache.CacheConfig{
