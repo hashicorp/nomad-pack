@@ -6,6 +6,7 @@ import (
 	v1client "github.com/hashicorp/nomad-openapi/clients/go/v1"
 	v1 "github.com/hashicorp/nomad-openapi/v1"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
+	intHelper "github.com/hashicorp/nomad-pack/internal/pkg/helper"
 	"github.com/hashicorp/nomad-pack/internal/runner"
 	"github.com/hashicorp/nomad-pack/terminal"
 )
@@ -46,7 +47,7 @@ func (r *Runner) PlanDeployment(ui terminal.UI, errCtx *errors.UIErrorContext) (
 		planResponse, _, err := r.client.Jobs().PlanOpts(newWriteOptsFromJob(parsedJob).Ctx(), parsedJob, &planOpts)
 		if err != nil {
 			outputErrors = append(outputErrors, &errors.WrappedUIContext{
-				Err:     err,
+				Err:     intHelper.UnwrapAPIError(err),
 				Subject: "failed to perform plan",
 				Context: tplErrorContext,
 			})
@@ -89,7 +90,7 @@ func (r *Runner) multiRegionPlan(
 		result, _, err := r.client.Jobs().PlanOpts(newQueryOptsFromJob(job).Ctx(), job, opts)
 		if err != nil {
 			outputErrors = append(outputErrors, &errors.WrappedUIContext{
-				Err:     err,
+				Err:     intHelper.UnwrapAPIError(err),
 				Subject: "failed to perform regional plan",
 				Context: regionCtx,
 			})
