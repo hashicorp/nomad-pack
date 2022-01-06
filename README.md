@@ -130,7 +130,7 @@ Pull Requests and feedback on both repositories are welcome!
 ## Upcoming Features and Changes
 
 - Support for Volumes and ACLs
-- Support for other Vesion Control Systems
+- Support for other Version Control Systems
 - Pack search command
 - Integration into the official Nomad CLI
 
