@@ -280,6 +280,9 @@ func (c *baseCommand) flagSet(bit flagSetBit, f func(*flag.Sets)) *flag.Sets {
                       should be passed to the plan or destroy commands.
                       `,
 		})
+	}
+	if bit&flagSetNeedsApproval != 0 {
+		f := set.NewSet("Approval Options")
 		f.BoolVarP(&flag.BoolVarP{
 			BoolVar: &flag.BoolVar{
 				Name:    "auto-approve",
@@ -312,8 +315,9 @@ func (c *baseCommand) helpUsageMessage() string {
 type flagSetBit uint
 
 const (
-	flagSetNone      flagSetBit = 1 << iota
-	flagSetOperation            // shared flags for operations (run, plan, etc)
+	flagSetNone          flagSetBit = 1 << iota
+	flagSetOperation                // shared flags for operations (run, plan, etc)
+	flagSetNeedsApproval            // adds the -y flag for commands that require approval to run
 )
 
 var (
