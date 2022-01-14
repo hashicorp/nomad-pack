@@ -1,7 +1,6 @@
 package cli
 
 import (
-	stdErrors "errors"
 	"fmt"
 	"strings"
 
@@ -70,7 +69,7 @@ func (c *RegistryAddCommand) Run(args []string) int {
 
 	// If subprocess fails to add any packs, report this to the user.
 	if len(newRegistry.Packs) == 0 {
-		c.ui.ErrorWithContext(stdErrors.New("failed to add packs for registry"), "see output for reason", errorContext.GetAll()...)
+		c.ui.ErrorWithContext(errors.New("failed to add packs for registry"), "see output for reason", errorContext.GetAll()...)
 		return 1
 	}
 

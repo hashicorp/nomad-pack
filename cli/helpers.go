@@ -1,7 +1,6 @@
 package cli
 
 import (
-	stdErrors "errors"
 	"fmt"
 	"os"
 
@@ -114,7 +113,7 @@ func renderPack(manager *manager.PackManager, ui terminal.UI, errCtx *errors.UIE
 			err[i].Context.Append(errCtx)
 			ui.ErrorWithContext(err[i].Err, "failed to process pack", err[i].Context.GetAll()...)
 		}
-		return nil, stdErrors.New("failed to render")
+		return nil, errors.New("failed to render")
 	}
 	return r, nil
 }
