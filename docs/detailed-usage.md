@@ -108,6 +108,12 @@ This allows Nomad Pack to manage multiple deployments of the same pack.
 nomad-pack run hello-world --name hola-mundo
 ```
 
+It is also possible to run a local pack directly from the pack directory by passing in the directory instead of the pack name.
+
+```
+nomad pack run .
+```
+
 ### Variables
 
 Each pack defines a set of variables that can be provided by the user. Values for variables can be passed into the `run` command using the `--var` flag.
