@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/hashicorp/hcl/v2"
-
 	"github.com/stretchr/testify/assert"
 )
 
