@@ -1,7 +1,6 @@
 package cache
 
 import (
-	stdErrors "errors"
 	"fmt"
 	"os"
 	"path"
@@ -20,7 +19,7 @@ func (c *Cache) Delete(opts *DeleteOpts) (err error) {
 
 	// if cache directory is empty return error
 	if opts.cachePath == "" {
-		err = stdErrors.New("cache path is required")
+		err = errors.New("cache path is required")
 		return
 	}
 
@@ -69,7 +68,7 @@ func (c *Cache) Delete(opts *DeleteOpts) (err error) {
 
 	// If nothing got deleted, throw an error.
 	if deleteCount == 0 {
-		err = stdErrors.New("error deleting packs")
+		err = errors.New("error deleting packs")
 		logger.ErrorWithContext(err, "no packs found matching arguments", c.ErrorContext.GetAll()...)
 		return
 	}

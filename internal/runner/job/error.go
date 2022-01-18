@@ -1,7 +1,6 @@
 package job
 
 import (
-	stdErrors "errors"
 	"regexp"
 	"strings"
 
@@ -34,7 +33,7 @@ func newValidationDeployerError(err error, sub, tplName string) *errors.WrappedU
 
 func newNoParsedTemplatesError(sub string, errCtx *errors.UIErrorContext) *errors.WrappedUIContext {
 	return &errors.WrappedUIContext{
-		Err:     stdErrors.New("no parsed templates found"),
+		Err:     errors.New("no parsed templates found"),
 		Subject: sub,
 		Context: errCtx,
 	}

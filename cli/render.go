@@ -2,7 +2,6 @@ package cli
 
 import (
 	"context"
-	stdErrors "errors"
 	"fmt"
 	"io/fs"
 	"io/ioutil"
@@ -99,7 +98,7 @@ func validateOutDir(path string) error {
 	info, err := os.Stat(path)
 
 	if err != nil {
-		if stdErrors.Is(err, fs.ErrNotExist) {
+		if errors.Is(err, fs.ErrNotExist) {
 			return nil
 		}
 
@@ -107,7 +106,7 @@ func validateOutDir(path string) error {
 	}
 
 	if !info.IsDir() {
-		return stdErrors.New("--to-dir must be a directory")
+		return errors.New("--to-dir must be a directory")
 	}
 
 	return nil
@@ -117,7 +116,7 @@ func maybeCreateDestinationDir(path string) error {
 	_, err := os.Stat(path)
 
 	// If the directory doesn't exist, create it.
-	if stdErrors.Is(err, fs.ErrNotExist) {
+	if errors.Is(err, fs.ErrNotExist) {
 		err := os.MkdirAll(path, 0755)
 		if err != nil {
 			return err
@@ -235,7 +234,7 @@ func (c *RenderCommand) Run(args []string) int {
 		if c.renderToDir != "" {
 			err = render.toFile(c, errorContext)
 			if err != nil {
-				if stdErrors.Is(err, context.Canceled) {
+				if errors.Is(err, context.Canceled) {
 					return 1
 				}
 				c.ui.ErrorWithContext(err, "failed to render to file", errorContext.GetAll()...)

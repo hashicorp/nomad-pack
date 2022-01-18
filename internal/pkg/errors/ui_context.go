@@ -1,14 +1,13 @@
 package errors
 
 import (
-	stdErrors "errors"
 	"strings"
 )
 
 // ErrNoTemplatesRendered is an error to be used when the CLI runs a render
 // process that doesn't result in parent templates. This helps provide a clear
 // indication to the problem, as I have certainly been confused by this.
-var ErrNoTemplatesRendered = stdErrors.New("no templates were rendered by the renderer process run")
+var ErrNoTemplatesRendered = newError("no templates were rendered by the renderer process run")
 
 // UIContextPrefix* are the prefixes commonly used to create a string used in
 // UI errors outputs. If a prefix is used more than once, it should have a

@@ -1,20 +1,16 @@
 package errors
 
-import (
-	stdErrors "errors"
-)
-
 var (
-	ErrCachePathRequired       = stdErrors.New("cache path is required")
-	ErrInvalidCachePath        = stdErrors.New("invalid cache path")
-	ErrInvalidRegistryRevision = stdErrors.New("invalid revision")
-	ErrInvalidRegistrySource   = stdErrors.New("invalid registry source")
-	ErrNoRegistriesAdded       = stdErrors.New("no registries were added to the cache")
-	ErrPackNameRequired        = stdErrors.New("pack name is required")
-	ErrPackNotFound            = stdErrors.New("pack not found")
-	ErrRegistryNameRequired    = stdErrors.New("registry name is required")
-	ErrRegistryNotFound        = stdErrors.New("registry not found")
-	ErrRegistrySourceRequired  = stdErrors.New("registry source is required")
+	ErrCachePathRequired       = newError("cache path is required")
+	ErrInvalidCachePath        = newError("invalid cache path")
+	ErrInvalidRegistryRevision = newError("invalid revision")
+	ErrInvalidRegistrySource   = newError("invalid registry source")
+	ErrNoRegistriesAdded       = newError("no registries were added to the cache")
+	ErrPackNameRequired        = newError("pack name is required")
+	ErrPackNotFound            = newError("pack not found")
+	ErrRegistryNameRequired    = newError("registry name is required")
+	ErrRegistryNotFound        = newError("registry not found")
+	ErrRegistrySourceRequired  = newError("registry source is required")
 )
 
 // UIContextPrefix* are the prefixes commonly used to create a string used in
