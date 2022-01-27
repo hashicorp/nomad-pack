@@ -11,6 +11,7 @@ dev: GOPATH=$(shell go env GOPATH)
 dev:
 	@echo "==> Building nomad-pack..."
 	@CGO_ENABLED=0 go build -ldflags $(GO_LDFLAGS) -o ./bin/nomad-pack
+	@rm -f $(GOPATH)/bin/nomad-pack
 	@cp ./bin/nomad-pack $(GOPATH)/bin/nomad-pack
 	@echo "==> Done"
 
@@ -32,7 +33,7 @@ check-mod: ## Checks the Go mod is tidy
 	@echo "==> Checking Go mod and Go sum..."
 	@GO111MODULE=on go mod tidy
 	@if (git status --porcelain | grep -Eq "go\.(mod|sum)"); then \
-		echo tools go.mod or go.sum needs updating; \
+		echo go.mod or go.sum needs updating; \
 		git --no-pager diff go.mod; \
 		git --no-pager diff go.sum; \
 		exit 1; fi
