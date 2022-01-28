@@ -91,11 +91,13 @@ func confirmOverwrite(c *RenderCommand, path string) (bool, error) {
 		switch overwrite {
 		case "a":
 			c.overwriteAll = true
-			fallthrough
+			return true, nil
 		case "y":
 			return true, nil
 		case "n":
 			return false, nil
+		default:
+			c.ui.Output("Please select a valid option.\n", terminal.WithStyle(terminal.ErrorBoldStyle))
 		}
 	}
 }
@@ -138,11 +140,9 @@ func maybeCreateDestinationDir(path string) error {
 func writeFile(c *RenderCommand, path string, content string) error {
 	// Check to see if the file already exists and validate against the value
 	// of overwrite.
-	var overwrite bool
-
 	_, err := os.Stat(path)
 	if err == nil {
-		overwrite, err = confirmOverwrite(c, path)
+		overwrite, err := confirmOverwrite(c, path)
 		if err != nil {
 			return err
 		}
