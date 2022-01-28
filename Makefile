@@ -1,5 +1,5 @@
 SHELL = bash
-default: check test dev
+default: check lint test dev
 
 GIT_COMMIT=$$(git rev-parse --short HEAD)
 GIT_DIRTY=$$(test -n "`git status --porcelain`" && echo "+CHANGES" || true)
@@ -37,6 +37,12 @@ check-mod: ## Checks the Go mod is tidy
 		git --no-pager diff go.mod; \
 		git --no-pager diff go.sum; \
 		exit 1; fi
+	@echo "==> Done"
+
+.PHONY: lint
+lint: ## Lint the source code
+	@echo "==> Linting source code..."
+	@golangci-lint run -j 1
 	@echo "==> Done"
 
 .PHONY: check-sdk
