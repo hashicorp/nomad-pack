@@ -29,6 +29,8 @@ type RenderCommand struct {
 	// renderToDir is the path to write rendered job files to in addition to
 	// standard output.
 	renderToDir string
+	// overwriteAll is set to true when someone specifies "a" to the y/n/a
+	overwriteAll bool
 }
 
 type Render struct {
@@ -56,16 +58,7 @@ func (r Render) toFile(c *RenderCommand, ec *errors.UIErrorContext) error {
 
 	maybeCreateDestinationDir(outDir)
 
-	var overwrite bool
-
-	if !c.autoApproved && c.ui.Interactive() {
-		overwrite, err = confirmOverwrite(c)
-		if err != nil {
-			return err
-		}
-	}
-
-	err = writeFile(outFile, r.Content, c.autoApproved || overwrite)
+	err = writeFile(c, outFile, r.Content)
 	if err != nil {
 		ec.Add("Destination File: ", outFile)
 		return err
@@ -74,21 +67,38 @@ func (r Render) toFile(c *RenderCommand, ec *errors.UIErrorContext) error {
 	return nil
 }
 
-func confirmOverwrite(c *RenderCommand) (bool, error) {
+func confirmOverwrite(c *RenderCommand, path string) (bool, error) {
+	// For non-interactive UIs, the value must be passed by flag.
+	if !c.ui.Interactive() {
+		return c.autoApproved, nil
+	}
+
+	if c.autoApproved || c.overwriteAll {
+		return true, nil
+	}
+
+	// For interactive UIs, we can do a y/n/a
 	for {
 		overwrite, err := c.ui.Input(&terminal.Input{
-			Prompt: "Output file exists, overwrite? [y/n] ",
+			Prompt: fmt.Sprintf("Output file %q exists, overwrite? [y/n/a] ", path),
 			Style:  terminal.WarningBoldStyle,
 		})
 		if err != nil {
 			return false, err
 		}
 		overwrite = strings.ToLower(overwrite)
-		if overwrite == "y" || overwrite == "n" {
-			return overwrite == "y", nil
+		switch overwrite {
+		case "a":
+			c.overwriteAll = true
+			return true, nil
+		case "y":
+			return true, nil
+		case "n":
+			return false, nil
+		default:
+			c.ui.Output("Please select a valid option.\n", terminal.WithStyle(terminal.ErrorBoldStyle))
 		}
 	}
-
 }
 
 func validateOutDir(path string) error {
@@ -126,14 +136,18 @@ func maybeCreateDestinationDir(path string) error {
 	return nil
 }
 
-func writeFile(path string, content string, overwrite bool) error {
+func writeFile(c *RenderCommand, path string, content string) error {
 	// Check to see if the file already exists and validate against the value
 	// of overwrite.
-
 	_, err := os.Stat(path)
-
-	if err == nil && !overwrite {
-		return fmt.Errorf("destination file exists and overwrite is unset")
+	if err == nil {
+		overwrite, err := confirmOverwrite(c, path)
+		if err != nil {
+			return err
+		}
+		if !overwrite {
+			return fmt.Errorf("destination file exists and overwrite is unset")
+		}
 	}
 
 	err = ioutil.WriteFile(path, []byte(content), 0644)
@@ -248,7 +262,7 @@ func (c *RenderCommand) Run(args []string) int {
 }
 
 func (c *RenderCommand) Flags() *flag.Sets {
-	return c.flagSet(flagSetOperation, func(set *flag.Sets) {
+	return c.flagSet(flagSetOperation|flagSetNeedsApproval, func(set *flag.Sets) {
 		c.packConfig = &cache.PackConfig{}
 
 		f := set.NewSet("Render Options")
