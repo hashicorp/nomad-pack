@@ -1,10 +1,9 @@
 package errors
 
 import (
-	stdErrors "errors"
-	"github.com/hashicorp/hcl/v2"
 	"testing"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -16,7 +15,7 @@ func TestWrappedUIContext_Error(t *testing.T) {
 	}{
 		{
 			inputWrappedUIContext: &WrappedUIContext{
-				Err:     stdErrors.New("tis but a scratch"),
+				Err:     newError("tis but a scratch"),
 				Subject: "the cause of camalot",
 				Context: &UIErrorContext{contexts: []string{"King: Arthur"}},
 			},
@@ -48,7 +47,7 @@ func TestWrappedUIContext_HCLDiagsToWrappedUIContext(t *testing.T) {
 			},
 			expectedOutput: []*WrappedUIContext{
 				{
-					Err:     stdErrors.New("this is the longer detail and is the real error"),
+					Err:     newError("this is the longer detail and is the real error"),
 					Subject: "some poor diag detail",
 					Context: &UIErrorContext{contexts: []string{"HCL Range: test.hcl:0,0-0"}},
 				},

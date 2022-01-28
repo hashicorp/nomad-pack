@@ -9,8 +9,8 @@ import (
 	v1 "github.com/hashicorp/nomad-openapi/v1"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/runner"
+	"github.com/hashicorp/nomad-pack/sdk/helper"
 	"github.com/hashicorp/nomad-pack/terminal"
-	"github.com/hashicorp/nomad/helper"
 )
 
 // Runner is the job implementation of the runner.Runner interface.
@@ -42,7 +42,7 @@ type Runner struct {
 func NewDeployer(client *v1.Client, cfg *CLIConfig) runner.Runner {
 	return &Runner{
 		client:          client,
-		clientQueryOpts: &v1.QueryOpts{},
+		clientQueryOpts: newQueryOpts(),
 		cfg:             cfg,
 		rawTemplates:    make(map[string]string),
 		parsedTemplates: make(map[string]*v1client.Job),
@@ -50,7 +50,7 @@ func NewDeployer(client *v1.Client, cfg *CLIConfig) runner.Runner {
 }
 
 // CanonicalizeTemplates satisfies the CanonicalizeTemplates function of the
-// deploy.Deployer interface.
+// runner.Runner interface.
 func (r *Runner) CanonicalizeTemplates() []*errors.WrappedUIContext {
 
 	if len(r.parsedTemplates) < 1 {

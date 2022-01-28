@@ -2,6 +2,7 @@ package cli
 
 import (
 	"github.com/hashicorp/nomad-pack/flag"
+	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"github.com/posener/complete"
 )
 
@@ -10,29 +11,58 @@ type DestroyCommand struct {
 }
 
 func (c *DestroyCommand) Run(args []string) int {
-	c.cmdKey = "destroy" // Add cmd key here so help text is available in Init
+	c.cmdKey = "destroy" // Add cmdKey here to print out helpUsageMessage on Init error
 	// Initialize. If we fail, we just exit since Init handles the UI.
 	if err := c.Init(
 		WithExactArgs(1, args),
 		WithFlags(c.Flags()),
 		WithNoConfig(),
 	); err != nil {
+
+		c.ui.ErrorWithContext(err, ErrParsingArgsOrFlags)
+		c.ui.Info(c.helpUsageMessage())
+
 		return 1
+	} else {
+		// This needs to be in an else block so that it doesn't try to run while
+		// the error above is still being handled. Without it, the error message
+		// appears twice.
+		s := c.StopCommand
+		args = append(args, "--purge=true")
+		// This will re-init and re-parse in the stop command but since we've already
+		// successfully parsed flags and validated args here, we should exit the stop
+		// init without error
+		return s.Run(args)
 	}
 
-	s := c.StopCommand
-	args = append(args, "--purge=true")
-	// This will re-init and re-parse in the stop command but since we've already
-	// successfully parsed flags and validated args here, we should exit the stop
-	// init without error
-	return s.Run(args)
 }
 
 func (c *DestroyCommand) Flags() *flag.Sets {
 	return c.flagSet(flagSetOperation, func(set *flag.Sets) {
+		c.packConfig = &cache.PackConfig{}
+
 		set.HideUnusedFlags("Operation Options", []string{"var", "var-file"})
 
 		f := set.NewSet("Destroy Options")
+
+		f.StringVar(&flag.StringVar{
+			Name:    "registry",
+			Target:  &c.packConfig.Registry,
+			Default: "",
+			Usage:   `Specific registry name containing the pack to be destroyed.`,
+		})
+
+		f.StringVar(&flag.StringVar{
+			Name:    "ref",
+			Target:  &c.packConfig.Ref,
+			Default: "",
+			Usage: `Specific git ref of the pack to be destroyed. 
+Supports tags, SHA, and latest. If no ref is specified, defaults to 
+latest.
+
+Using ref with a file path is not supported.`,
+		})
+
 		// TODO: is there a way to reuse the flag from StopCommand so we're not just copy/pasting
 		f.BoolVar(&flag.BoolVar{
 			Name:    "global",

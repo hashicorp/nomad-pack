@@ -12,12 +12,31 @@ type Config struct {
 	DeploymentName string
 	PackName       string
 	PathPath       string
-	PackVersion    string
+	PackRef        string
 	RegistryName   string
 }
 
+// PlanCode* is the set of expected error codes that Runner.PlanDeployment
+// should return. Please see the interface function docstring for more details.
+const (
+	PlanCodeNoUpdates = 0
+	PlanCodeUpdates   = 1
+	PlanCodeError     = 255
+)
+
+// HigherPlanCode is a helper function that returns the highest plan exit code
+// so implementations can easily track the code to return.
+func HigherPlanCode(old, new int) int {
+	if new > old {
+		return new
+	}
+	return old
+}
+
 // Runner is the interface that defines the deployment mechanism for creating
-// objects in a Nomad cluster from pack templates.
+// objects in a Nomad cluster from pack templates. This currently only covers
+// validation of templates against their native Nomad object, but will be
+// expanded to cover planning and running.
 type Runner interface {
 
 	// CanonicalizeTemplates performs Nomad Pack specific canonicalization on
@@ -50,8 +69,15 @@ type Runner interface {
 
 	// PlanDeployment plans the deployment of the templates. As the information
 	// of the plan is specific to the object, it is the responsibility of the
-	// implementation to print console information via the terminal.UI.
-	PlanDeployment(terminal.UI) []*errors.WrappedUIContext
+	// implementation to print console information via the terminal.UI. The
+	// returned int identifies the exit code for the CLI. In order to keep
+	// consistency with the Nomad CLI and across pack objects, the following
+	// rules should be used:
+	//
+	// code 0:   No objects will be created or destroyed.
+	// code 1:   Objects will be created or destroyed.
+	// code 255: An error occurred determining the plan.
+	PlanDeployment(terminal.UI, *errors.UIErrorContext) (int, []*errors.WrappedUIContext)
 
 	// SetTemplates supplies the rendered templates to the deployer for use in
 	// subsequent function calls.

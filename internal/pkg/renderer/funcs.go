@@ -32,11 +32,12 @@ func funcMap(nomadClient *v1.Client) template.FuncMap {
 
 	// Add additional custom functions.
 	f["fileContents"] = fileContents
+	f["toStringList"] = toStringList
 
 	return f
 }
 
-//
+// fileContents reads the passed path and returns the content as a string.
 func fileContents(file string) (string, error) {
 	content, err := ioutil.ReadFile(file)
 	if err != nil {
@@ -67,6 +68,19 @@ func nomadNamespace(client *v1.Client) func(string) (*v1client.Namespace, error)
 // call.
 func nomadRegions(client *v1.Client) func() (*[]string, error) {
 	return func() (*[]string, error) { return client.Regions().GetRegions(context.Background()) }
+}
+
+// toStringList takes a list of string and returns the HCL equivalent which is
+// useful when templating jobs and params such as datacenters.
+func toStringList(l []interface{}) (string, error) {
+	var out string
+	for i := range l {
+		if i > 0 && i < len(l) {
+			out += ", "
+		}
+		out += fmt.Sprintf("%q", l[i])
+	}
+	return "[" + out + "]", nil
 }
 
 // spewDump dumps the entire contents of the interface as a string. The output

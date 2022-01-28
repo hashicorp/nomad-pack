@@ -196,25 +196,6 @@ Subcommands:
 `
 
 var helpText = map[string][2]string{
-	"repo": {
-		"Nomad Pack git repository management",
-		`
-Nomad Pack git repository management.
-The repo commands can be used to list repositories containing Nomad packs, push
-updates to a repository you control, add a new repository to your local cache, etc.
-Nomad Pack will search for packs in local repositories to match the pack name(s) specified
-in the run command.
-`,
-	},
-	"repo list": {
-		"List local Nomad Pack repositories",
-		`
-List local Nomad Pack repositories.
-The repo list command can be used to list local repositories containing Nomad packs.
-Nomad Pack will search for packs in local repositories to match the pack name(s) specified
-in the run command.
-`,
-	},
 	"run": {
 		"Run one or more Nomad packs",
 		`
@@ -271,14 +252,14 @@ to limit the list of jobs to a specific deployment of the pack.`,
 		"Adds a pack registry or a specific pack from a registry",
 		`
 Registry add can be used to add a registry, or a specific pack from a registry at
-the latest version or at a specific tag/release/SHA.
+the latest ref or at a specific ref (tag/SHA).
 `,
 	},
 	"registry delete": {
 		"Deletes a pack registry or specific pack from a registry",
 		`
 Registry delete can be used to delete a registry, or a specific pack from a registry
-at the latest version or at a specific tag/release/SHA.
+at the latest ref or at a specific ref (tag/SHA).
 `,
 	},
 	"registry list": {

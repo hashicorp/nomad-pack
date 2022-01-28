@@ -3,12 +3,13 @@ package variable
 import (
 	"errors"
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclparse"
-	"github.com/hashicorp/nomad-pack/pkg/pack"
+	"github.com/hashicorp/nomad-pack/sdk/pack"
 	"github.com/spf13/afero"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -62,6 +63,12 @@ func NewParser(cfg *ParserConfig) (*Parser, error) {
 	// Sort the file overrides to ensure variable merging is consistent on
 	// multiple passes.
 	sort.Strings(cfg.FileOverrides)
+	for _, file := range cfg.FileOverrides {
+		_, err := os.Stat(file)
+		if err != nil {
+			return nil, fmt.Errorf("variable file %q not found", file)
+		}
+	}
 
 	return &Parser{
 		fs: afero.Afero{

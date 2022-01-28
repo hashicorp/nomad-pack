@@ -7,7 +7,7 @@ import (
 	"text/template"
 
 	v1 "github.com/hashicorp/nomad-openapi/v1"
-	"github.com/hashicorp/nomad-pack/pkg/pack"
+	"github.com/hashicorp/nomad-pack/sdk/pack"
 )
 
 // Renderer provides template rendering functionality using the text/template

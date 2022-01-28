@@ -3,12 +3,14 @@ package manager
 import (
 	"fmt"
 	"path"
+	"strings"
 
 	v1 "github.com/hashicorp/nomad-openapi/v1"
+	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/loader"
 	"github.com/hashicorp/nomad-pack/internal/pkg/renderer"
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable"
-	"github.com/hashicorp/nomad-pack/pkg/pack"
+	"github.com/hashicorp/nomad-pack/sdk/pack"
 )
 
 // Config contains all the user specified parameters needed to correctly run
@@ -41,38 +43,63 @@ func NewPackManager(cfg *Config, client *v1.Client) *PackManager {
 // TODO(jrasell) figure out whether we want an error or hcl.Diagnostics return
 //   object. If we stick to an error, then we need to come up with a way of
 //   nicely formatting them.
-func (pm *PackManager) ProcessTemplates() (*renderer.Rendered, error) {
+func (pm *PackManager) ProcessTemplates() (*renderer.Rendered, []*errors.WrappedUIContext) {
 
 	loadedPack, err := pm.loadAndValidatePacks()
 	if err != nil {
-		return nil, err
+		return nil, []*errors.WrappedUIContext{{
+			Err:     err,
+			Subject: "failed to validate packs",
+			Context: errors.NewUIErrorContext(),
+		}}
+	}
+
+	// Root vars are nested under the parent pack name, which is currently
+	// just the pack name without the version. We want to slice the string
+	// so it's just the pack name without the version
+	parentName := path.Base(pm.cfg.Path)
+	idx := strings.LastIndex(path.Base(pm.cfg.Path), "@")
+	if idx != -1 {
+		parentName = path.Base(pm.cfg.Path)[0:idx]
 	}
 
 	variableParser, err := variable.NewParser(&variable.ParserConfig{
-		ParentName:        path.Base(pm.cfg.Path),
+		ParentName:        parentName,
 		RootVariableFiles: loadedPack.RootVariableFiles(),
 		FileOverrides:     pm.cfg.VariableFiles,
 		CLIOverrides:      pm.cfg.VariableCLIArgs,
 	})
 	if err != nil {
-		return nil, err
+		return nil, []*errors.WrappedUIContext{{
+			Err:     err,
+			Subject: "failed to instantiate parser",
+			Context: errors.NewUIErrorContext(),
+		}}
 	}
 
 	parsedVars, diags := variableParser.Parse()
 	if diags != nil && diags.HasErrors() {
-		return nil, diags
+		return nil, errors.HCLDiagsToWrappedUIContext(diags)
 	}
 
 	mapVars, diags := parsedVars.ConvertVariablesToMapInterface()
 	if diags != nil && diags.HasErrors() {
-		return nil, diags
+		return nil, errors.HCLDiagsToWrappedUIContext(diags)
 	}
 
 	r := new(renderer.Renderer)
 	r.Client = pm.client
 	pm.renderer = r
 
-	return r.Render(loadedPack, mapVars)
+	rendered, err := r.Render(loadedPack, mapVars)
+	if err != nil {
+		return nil, []*errors.WrappedUIContext{{
+			Err:     err,
+			Subject: "failed to instantiate parser",
+			Context: errors.NewUIErrorContext(),
+		}}
+	}
+	return rendered, nil
 }
 
 // ProcessOutputTemplate performs the output template rendering.
@@ -87,8 +114,8 @@ func (pm *PackManager) loadAndValidatePacks() (*pack.Pack, error) {
 		return nil, fmt.Errorf("failed to load pack: %v", err)
 	}
 
-	if err := parentPack.Metadata.Validate(); err != nil {
-		return nil, fmt.Errorf("failed to validate pack metadata: %v", err)
+	if err := parentPack.Validate(); err != nil {
+		return nil, fmt.Errorf("failed to validate pack: %v", err)
 	}
 
 	// Using the input path to the parent pack, define the path where
@@ -119,8 +146,8 @@ func (pm *PackManager) loadAndValidatePack(cur *pack.Pack, depsPath string) erro
 			return fmt.Errorf("failed to load dependent pack: %v", err)
 		}
 
-		if err := dependentPack.Metadata.Validate(); err != nil {
-			return fmt.Errorf("failed to validate dependent pack metadata: %v", err)
+		if err := dependentPack.Validate(); err != nil {
+			return fmt.Errorf("failed to validate dependent pack: %v", err)
 		}
 
 		// Add the dependency to the current pack.

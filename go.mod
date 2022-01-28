@@ -10,11 +10,8 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/fatih/color v1.9.0
 	github.com/hashicorp/go-getter v1.5.4
-	github.com/hashicorp/go-hclog v0.16.2 // indirect
 	github.com/hashicorp/hcl/v2 v2.10.1
-	github.com/hashicorp/nomad v1.1.4
-	github.com/hashicorp/nomad-openapi v0.0.0-20210921122032-4500c39fcb76
-	github.com/kr/pretty v0.2.1 // indirect
+	github.com/hashicorp/nomad-openapi v0.0.0-20211120040829-8bd0a1f543b4
 	github.com/kr/text v0.2.0
 	github.com/lab47/vterm v0.0.0-20201001232628-a9dd795f94c2
 	github.com/mattn/go-isatty v0.0.12

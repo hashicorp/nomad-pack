@@ -1,10 +1,19 @@
 package cli
 
 import (
+	"context"
+	"fmt"
+	"io/fs"
+	"io/ioutil"
+	"os"
+	"path"
+	"strings"
+
 	v1 "github.com/hashicorp/nomad-openapi/v1"
 	"github.com/hashicorp/nomad-pack/flag"
+	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
-	"github.com/mitchellh/go-glint"
+	"github.com/hashicorp/nomad-pack/terminal"
 	"github.com/posener/complete"
 )
 
@@ -13,58 +22,188 @@ import (
 // debugging packs.
 type RenderCommand struct {
 	*baseCommand
-
-	// renderOutputTemplate is a boolean flag to control whether the outpu
+	packConfig *cache.PackConfig
+	// renderOutputTemplate is a boolean flag to control whether the output
 	// template is rendered.
 	renderOutputTemplate bool
+	// renderToDir is the path to write rendered job files to in addition to
+	// standard output.
+	renderToDir string
+	// overwriteAll is set to true when someone specifies "a" to the y/n/a
+	overwriteAll bool
+}
+
+type Render struct {
+	Name    string
+	Content string
+}
+
+func (r Render) toTerminal(c *RenderCommand) {
+	c.ui.Output(r.Name+":", terminal.WithStyle(terminal.BoldStyle))
+	c.ui.Output("")
+	c.ui.Output(r.Content)
+}
+
+func (r Render) toFile(c *RenderCommand, ec *errors.UIErrorContext) error {
+	renderToDir := path.Clean(c.renderToDir)
+	err := validateOutDir(renderToDir)
+	if err != nil {
+		ec.Add("Destination Dir: ", renderToDir)
+		return err
+	}
+
+	filePath, fileName := path.Split(r.Name)
+	outDir := path.Join(renderToDir, filePath)
+	outFile := path.Join(outDir, fileName)
+
+	maybeCreateDestinationDir(outDir)
+
+	err = writeFile(c, outFile, r.Content)
+	if err != nil {
+		ec.Add("Destination File: ", outFile)
+		return err
+	}
+
+	return nil
+}
+
+func confirmOverwrite(c *RenderCommand, path string) (bool, error) {
+	// For non-interactive UIs, the value must be passed by flag.
+	if !c.ui.Interactive() {
+		return c.autoApproved, nil
+	}
+
+	if c.autoApproved || c.overwriteAll {
+		return true, nil
+	}
+
+	// For interactive UIs, we can do a y/n/a
+	for {
+		overwrite, err := c.ui.Input(&terminal.Input{
+			Prompt: fmt.Sprintf("Output file %q exists, overwrite? [y/n/a] ", path),
+			Style:  terminal.WarningBoldStyle,
+		})
+		if err != nil {
+			return false, err
+		}
+		overwrite = strings.ToLower(overwrite)
+		switch overwrite {
+		case "a":
+			c.overwriteAll = true
+			return true, nil
+		case "y":
+			return true, nil
+		case "n":
+			return false, nil
+		default:
+			c.ui.Output("Please select a valid option.\n", terminal.WithStyle(terminal.ErrorBoldStyle))
+		}
+	}
+}
+
+func validateOutDir(path string) error {
+	if path == "" {
+		return nil
+	}
+	info, err := os.Stat(path)
+
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil
+		}
+
+		return fmt.Errorf("unexpected error validating --to-dir path: %w", err)
+	}
+
+	if !info.IsDir() {
+		return errors.New("--to-dir must be a directory")
+	}
+
+	return nil
+}
+
+func maybeCreateDestinationDir(path string) error {
+	_, err := os.Stat(path)
+
+	// If the directory doesn't exist, create it.
+	if errors.Is(err, fs.ErrNotExist) {
+		err := os.MkdirAll(path, 0755)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func writeFile(c *RenderCommand, path string, content string) error {
+	// Check to see if the file already exists and validate against the value
+	// of overwrite.
+	_, err := os.Stat(path)
+	if err == nil {
+		overwrite, err := confirmOverwrite(c, path)
+		if err != nil {
+			return err
+		}
+		if !overwrite {
+			return fmt.Errorf("destination file exists and overwrite is unset")
+		}
+	}
+
+	err = ioutil.WriteFile(path, []byte(content), 0644)
+	if err != nil {
+		return fmt.Errorf("failed to write rendered template to file: %s", err)
+	}
+
+	return nil
+}
+
+// formatRenderName trims the low-value elements from the rendered template
+// name.
+func formatRenderName(name string) string {
+	outName := strings.Replace(name, "/templates/", "/", 1)
+	outName = strings.TrimRight(outName, ".tpl")
+
+	return outName
 }
 
 // Run satisfies the Run function of the cli.Command interface.
-func (r *RenderCommand) Run(args []string) int {
+func (c *RenderCommand) Run(args []string) int {
+	c.cmdKey = "render" // Add cmdKey here to print out helpUsageMessage on Init error
 
-	r.cmdKey = "render"
+	if err := c.Init(
+		WithExactArgs(1, args),
+		WithFlags(c.Flags()),
+		WithNoConfig()); err != nil {
 
-	if err := r.Init(WithExactArgs(1, args), WithFlags(r.Flags()), WithNoConfig()); err != nil {
+		c.ui.ErrorWithContext(err, ErrParsingArgsOrFlags)
+		c.ui.Info(c.helpUsageMessage())
+
 		return 1
 	}
 
-	// Generate our UI error context.
-	errorContext := errors.NewUIErrorContext()
+	c.packConfig.Name = c.args[0]
 
-	packRepoName := args[0]
+	// Set the packConfig defaults if necessary and generate our UI error context.
+	errorContext := initPackCommand(c.packConfig)
 
-	repo, pack, err := parseRegistryAndPackName(packRepoName)
-	if err != nil {
-		r.ui.ErrorWithContext(err, "failed to parse pack name", errorContext.GetAll()...)
-		return 1
-	}
-	errorContext.Add(errors.UIContextPrefixPackName, pack)
-	errorContext.Add(errors.UIContextPrefixRepoName, repo)
-
-	// TODO: Refactor to context.nomad file in next phase.
-	registryPath, err := getRegistryPath(repo, r.ui, errorContext)
-	if err != nil {
-		r.ui.ErrorWithContext(err, "failed to identify repository path", errorContext.GetAll()...)
-		return 1
-	}
-
-	// Add the path to the error context, so this can be viewed when displaying
-	// an error.
-	errorContext.Add(errors.UIContextPrefixPackPath, registryPath)
-
-	if err = verifyPackExist(r.ui, pack, registryPath, errorContext); err != nil {
+	if err := cache.VerifyPackExists(c.packConfig, errorContext, c.ui); err != nil {
 		return 1
 	}
 
 	client, err := v1.NewClient()
 	if err != nil {
-		r.ui.ErrorWithContext(err, "failed to initialize client", errorContext.GetAll()...)
+		c.ui.ErrorWithContext(err, "failed to initialize client", errorContext.GetAll()...)
 		return 1
 	}
+	err = validateOutDir(c.renderToDir)
+	if err != nil {
+		c.ui.Error(err.Error())
+		return 1
+	}
+	packManager := generatePackManager(c.baseCommand, client, c.packConfig)
 
-	packManager := generatePackManager(r.baseCommand, client, registryPath, pack)
-
-	renderOutput, err := renderPack(packManager, r.baseCommand.ui, errorContext)
+	renderOutput, err := renderPack(packManager, c.baseCommand.ui, errorContext)
 	if err != nil {
 		return 1
 	}
@@ -72,20 +211,21 @@ func (r *RenderCommand) Run(args []string) int {
 	// The render command should at least render one parent, or one dependant
 	// pack template.
 	if renderOutput.LenParentRenders() < 1 && renderOutput.LenDependentRenders() < 1 {
-		r.ui.ErrorWithContext(errors.ErrNoTemplatesRendered, "no templates rendered", errorContext.GetAll()...)
+		c.ui.ErrorWithContext(errors.ErrNoTemplatesRendered, "no templates rendered", errorContext.GetAll()...)
 		return 1
 	}
 
-	d := glint.New()
+	var renders = []Render{}
 
-	// Iterate the rendered files and add these to the Glint document.
-	// TODO(jrasell): trim at least the templates directory name from the name
-	//  as it doesn't provide much benefit.
+	// Iterate the rendered files and add these to the list of renders to
+	// output. This allows errors to surface and end things without emitting
+	// partial output and then erroring out.
+
 	for name, renderedFile := range renderOutput.DependentRenders() {
-		addRenderToDoc(d, name, renderedFile)
+		renders = append(renders, Render{Name: formatRenderName(name), Content: renderedFile})
 	}
 	for name, renderedFile := range renderOutput.ParentRenders() {
-		addRenderToDoc(d, name, renderedFile)
+		renders = append(renders, Render{Name: formatRenderName(name), Content: renderedFile})
 	}
 
 	// If the user wants to render and display the outputs template file then
@@ -93,54 +233,92 @@ func (r *RenderCommand) Run(args []string) int {
 	// not exit. The render can fail due to template function errors, but we
 	// can still display the pack templates from above. The error will be
 	// displayed before the template renders, so the UI looks OK.
-	if r.renderOutputTemplate {
+	if c.renderOutputTemplate {
 		outputRender, err := packManager.ProcessOutputTemplate()
 		if err != nil {
-			r.ui.ErrorWithContext(err, "failed to render output template", errorContext.GetAll()...)
+			c.ui.ErrorWithContext(err, "failed to render output template", errorContext.GetAll()...)
 		} else {
-			addRenderToDoc(d, "outputs.tpl", outputRender)
+			renders = append(renders, Render{Name: "outputs.tpl", Content: outputRender})
 		}
 	}
 
-	d.RenderFrame()
+	// Output the renders. Output the files first if enabled so that any renders
+	// that display will also have been written to disk.
+	for _, render := range renders {
+		if c.renderToDir != "" {
+			err = render.toFile(c, errorContext)
+			if err != nil {
+				if errors.Is(err, context.Canceled) {
+					return 1
+				}
+				c.ui.ErrorWithContext(err, "failed to render to file", errorContext.GetAll()...)
+				return 1
+			}
+		}
+		render.toTerminal(c)
+	}
+
 	return 0
 }
 
-// addRenderToDoc updates the Glint Document to include the provided template
-// within the layout.
-func addRenderToDoc(doc *glint.Document, name, tpl string) {
-	doc.Append(glint.Layout(glint.Style(glint.Text(name+":"), glint.Bold())).Row())
-	doc.Append(glint.Layout(glint.Style(glint.Text(""))).Row())
-	doc.Append(glint.Layout(glint.Style(glint.Text(tpl))).Row())
-}
-
-func (r *RenderCommand) Flags() *flag.Sets {
-	return r.flagSet(flagSetOperation, func(set *flag.Sets) {
+func (c *RenderCommand) Flags() *flag.Sets {
+	return c.flagSet(flagSetOperation|flagSetNeedsApproval, func(set *flag.Sets) {
+		c.packConfig = &cache.PackConfig{}
 
 		f := set.NewSet("Render Options")
 
+		f.StringVar(&flag.StringVar{
+			Name:    "registry",
+			Target:  &c.packConfig.Registry,
+			Default: "",
+			Usage: `Specific registry name containing the pack to be rendered.
+If not specified, the default registry will be used.`,
+		})
+
+		f.StringVar(&flag.StringVar{
+			Name:    "ref",
+			Target:  &c.packConfig.Ref,
+			Default: "",
+			Usage: `Specific git ref of the pack to be rendered. 
+Supports tags, SHA, and latest. If no ref is specified, defaults to latest.
+
+Using ref with a file path is not supported.`,
+		})
+
 		f.BoolVar(&flag.BoolVar{
 			Name:    "render-output-template",
-			Target:  &r.renderOutputTemplate,
+			Target:  &c.renderOutputTemplate,
 			Default: false,
 			Usage: `Controls whether or not the output template file within the
                       pack is rendered and displayed.`,
 		})
+
+		f.StringVarP(&flag.StringVarP{
+			StringVar: &flag.StringVar{
+				Name:   "to-dir",
+				Target: &c.renderToDir,
+				Usage: `Path to write rendered job files to in addition to standard
+				output.`,
+				// Aliases: []string{"to"},
+			},
+			Shorthand: "o",
+		})
+
 	})
 }
 
-func (r *RenderCommand) AutocompleteArgs() complete.Predictor {
+func (c *RenderCommand) AutocompleteArgs() complete.Predictor {
 	return complete.PredictNothing
 }
 
-func (r *RenderCommand) AutocompleteFlags() complete.Flags {
-	return r.Flags().Completions()
+func (c *RenderCommand) AutocompleteFlags() complete.Flags {
+	return c.Flags().Completions()
 }
 
 // Help satisfies the Help function of the cli.Command interface.
-func (r *RenderCommand) Help() string {
+func (c *RenderCommand) Help() string {
 
-	r.Example = `
+	c.Example = `
 	# Render an example pack with override variables in a variable file.
 	nomad-pack render example --var-file="./overrides.hcl"
 
@@ -150,6 +328,15 @@ func (r *RenderCommand) Help() string {
 
 	# Render an example pack including the outputs template file.
 	nomad-pack render example --render-output-template
+
+	# Render an example pack, outputting the rendered templates to file in
+	# addition to the terminal. Setting auto-approve allows the command to
+	# overwrite existing files.
+	nomad-pack render example --to-dir ~/out --auto-approve
+
+    # Render a pack under development from the filesystem - supports current working 
+    # directory or relative path
+	nomad-pack render . 
 	`
 
 	return formatHelp(`
@@ -157,10 +344,10 @@ func (r *RenderCommand) Help() string {
 
 	Render the specified Nomad Pack and view the results.
 
-` + r.GetExample() + r.Flags().Help())
+` + c.GetExample() + c.Flags().Help())
 }
 
 // Synopsis satisfies the Synopsis function of the cli.Command interface.
-func (r *RenderCommand) Synopsis() string {
+func (c *RenderCommand) Synopsis() string {
 	return "Render the templates within a pack"
 }

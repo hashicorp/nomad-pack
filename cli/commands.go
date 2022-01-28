@@ -3,8 +3,13 @@ package cli
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
+	"os"
+	"path"
 	"runtime"
+
+	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -51,6 +56,9 @@ type baseCommand struct {
 	// varFiles is an HCL file(s) setting one or more values
 	// for defined input variables
 	varFiles []string
+
+	// autoApproved is true when the user supplies the --auto-approve or -y flag
+	autoApproved bool
 
 	// deploymentName is the unique identifier of the deployed
 	// instance of a specified pack. Used for running more than
@@ -148,9 +156,6 @@ func (c *baseCommand) Init(opts ...Option) error {
 
 	// Parse flags
 	err := baseCfg.Flags.Parse(baseCfg.Args)
-	if baseCfg.Flags.UsesGoflags() {
-		c.ui.Warning("parsing stdlib flags")
-	}
 	if err != nil {
 		return err
 	}
@@ -169,6 +174,40 @@ func (c *baseCommand) Init(opts ...Option) error {
 		c.ui = terminal.NonInteractiveUI(c.Ctx)
 	}
 
+	// Perform the cache ensure, but skip if we are running the version
+	// command.
+	if c.cmdKey != "version" {
+		return c.ensureCache()
+	}
+
+	return nil
+}
+
+func (c *baseCommand) ensureCache() error {
+	// Creates global cache
+	globalCache, err := cache.NewCache(&cache.CacheConfig{
+		Path:   cache.DefaultCachePath(),
+		Logger: c.ui,
+	})
+	if err != nil {
+		return err
+	}
+
+	// Check if default registry exists
+	_, err = os.Stat(path.Join(cache.DefaultCachePath(), cache.DefaultRegistryName))
+	// If it does not error, then the registry already exists
+	if err == nil {
+		return nil
+	}
+
+	// Add the registry or registry target to the global cache
+	_, err = globalCache.Add(&cache.AddOpts{
+		RegistryName: cache.DefaultRegistryName,
+		Source:       cache.DefaultRegistrySource,
+	})
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -241,7 +280,18 @@ func (c *baseCommand) flagSet(bit flagSetBit, f func(*flag.Sets)) *flag.Sets {
                       should be passed to the plan or destroy commands.
                       `,
 		})
-
+	}
+	if bit&flagSetNeedsApproval != 0 {
+		f := set.NewSet("Approval Options")
+		f.BoolVarP(&flag.BoolVarP{
+			BoolVar: &flag.BoolVar{
+				Name:    "auto-approve",
+				Target:  &c.autoApproved,
+				Default: false,
+				Usage:   `Automatically answer confirmation prompts in the affirmative.`,
+			},
+			Shorthand: "y",
+		})
 	}
 
 	if f != nil {
@@ -252,17 +302,31 @@ func (c *baseCommand) flagSet(bit flagSetBit, f func(*flag.Sets)) *flag.Sets {
 	return set
 }
 
+// Returns minimal help usage message
+// Used on flag/arg parse error in c.Init method
+func (c *baseCommand) helpUsageMessage() string {
+	if c.cmdKey == "" {
+		return `See "nomad-pack --help"`
+	}
+	return fmt.Sprintf(`See "nomad-pack %s --help"`, c.cmdKey)
+}
+
 // flagSetBit is used with baseCommand.flagSet
 type flagSetBit uint
 
 const (
-	flagSetNone      flagSetBit = 1 << iota
-	flagSetOperation            // shared flags for operations (run, plan, etc)
+	flagSetNone          flagSetBit = 1 << iota
+	flagSetOperation                // shared flags for operations (run, plan, etc)
+	flagSetNeedsApproval            // adds the -y flag for commands that require approval to run
 )
 
 var (
 	// ErrSentinel is a sentinel value that we can return from Init to force an exit.
 	ErrSentinel = errors.New("error sentinel")
+
+	// ErrParsingArgsOrFlags should be used in the Init method of a CLI command
+	// if it returns an error.
+	ErrParsingArgsOrFlags = "error parsing args or flags"
 )
 
 func Humanize(err error) string {

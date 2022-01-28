@@ -1,7 +1,6 @@
 package errors
 
 import (
-	stdErrors "errors"
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
@@ -39,7 +38,7 @@ func HCLDiagsToWrappedUIContext(diags hcl.Diagnostics) []*WrappedUIContext {
 	wrapped := make([]*WrappedUIContext, len(diags))
 	for i, diag := range diags {
 		wrapped[i] = &WrappedUIContext{
-			Err:     stdErrors.New(diag.Detail),
+			Err:     newError(diag.Detail),
 			Subject: diag.Summary,
 			Context: NewUIErrorContext(),
 		}

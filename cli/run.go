@@ -2,12 +2,11 @@ package cli
 
 import (
 	"fmt"
-	"path"
 
 	v1 "github.com/hashicorp/nomad-openapi/v1"
 	"github.com/hashicorp/nomad-pack/flag"
+	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
-	"github.com/hashicorp/nomad-pack/internal/pkg/registry"
 	"github.com/hashicorp/nomad-pack/internal/runner"
 	"github.com/hashicorp/nomad-pack/internal/runner/job"
 	"github.com/posener/complete"
@@ -15,64 +14,46 @@ import (
 
 type RunCommand struct {
 	*baseCommand
-	packName     string
-	packVersion  string
-	registryName string
-	jobConfig    *job.CLIConfig
-	Validation   ValidationFn
+	packConfig *cache.PackConfig
+	jobConfig  *job.CLIConfig
+	Validation ValidationFn
 }
 
 func (c *RunCommand) Run(args []string) int {
 	var err error
-	c.cmdKey = "run" // Add cmd key here so help text is available in Init
+
+	c.cmdKey = "run" // Add cmdKey here to print out helpUsageMessage on Init error
+
 	// Initialize. If we fail, we just exit since Init handles the UI.
-	if err := c.Init(
+	if err = c.Init(
 		WithExactArgs(1, args),
 		WithFlags(c.Flags()),
 		WithNoConfig(),
 	); err != nil {
+		c.ui.ErrorWithContext(err, ErrParsingArgsOrFlags)
+		c.ui.Info(c.helpUsageMessage())
 		return 1
 	}
+	return c.run()
+}
 
-	packRepoName := c.args[0]
+// run is the implementation of this command. It is used to ensure the args are
+// pulled from the RunCommand as these are parsed with the Run.
+func (c *RunCommand) run() int {
 
-	// Generate our UI error context.
-	errorContext := errors.NewUIErrorContext()
+	c.packConfig.Name = c.args[0]
 
-	c.registryName, c.packName, err = parseRegistryAndPackName(packRepoName)
-	if err != nil {
-		c.ui.ErrorWithContext(err, "failed to parse pack name", errorContext.GetAll()...)
-		return 1
-	}
-
-	errorContext.Add(errors.UIContextPrefixPackName, c.packName)
-	errorContext.Add(errors.UIContextPrefixRegistryName, c.registryName)
-
-	registryPath, err := getRegistryPath(c.registryName, c.ui, errorContext)
-	if err != nil {
-		return 1
-	}
-
-	// Add the path to the pack on the error context.
-	errorContext.Add(errors.UIContextPrefixPackPath, registryPath)
+	// Set the packConfig defaults if necessary and generate our UI error context.
+	errorContext := initPackCommand(c.packConfig)
 
 	// verify packs exist before running jobs
-	if err = verifyPackExist(c.ui, c.packName, registryPath, errorContext); err != nil {
+	err := cache.VerifyPackExists(c.packConfig, errorContext, c.ui)
+	if err != nil {
 		return 1
 	}
 
-	// split pack name and version
-	// TODO: Move this parsing function a shared package.
-	c.packName, c.packVersion, err = registry.ParsePackNameAndVersion(c.packName)
-	if err != nil {
-		c.ui.ErrorWithContext(err, "failed to determine pack version", errorContext.GetAll()...)
-	}
-
-	// Add the path to the pack on the error context.
-	errorContext.Add(errors.UIContextPrefixPackVersion, c.packVersion)
-
-	// If no deploymentName set default to pack@version
-	c.deploymentName = getDeploymentName(c.baseCommand, c.packName, c.packVersion)
+	// If no deploymentName set default to pack@ref
+	c.deploymentName = getDeploymentName(c.baseCommand, c.packConfig)
 	errorContext.Add(errors.UIContextPrefixDeploymentName, c.deploymentName)
 
 	// create the http client
@@ -82,7 +63,7 @@ func (c *RunCommand) Run(args []string) int {
 		return 1
 	}
 
-	packManager := generatePackManager(c.baseCommand, client, registryPath, fmt.Sprintf("%s@%s", c.packName, c.packVersion))
+	packManager := generatePackManager(c.baseCommand, client, c.packConfig)
 
 	// Render the pack now, before creating the deployer. If we get an error
 	// we won't make it to the deployer.
@@ -93,12 +74,15 @@ func (c *RunCommand) Run(args []string) int {
 
 	renderedParents := r.ParentRenders()
 
+	// TODO: Refactor to use PackConfig. Maybe PackConfig should be in a more common
+	// pkg than cache, or maybe it's ok for runner to depend on the cache.
+	// Need to discuss with jrasell.
 	depConfig := runner.Config{
-		PackName:       c.packName,
-		PathPath:       path.Join(registryPath, c.packName),
-		PackVersion:    c.packVersion,
+		PackName:       c.packConfig.Name,
+		PathPath:       c.packConfig.Path,
+		PackRef:        c.packConfig.Ref,
 		DeploymentName: c.deploymentName,
-		RegistryName:   c.registryName,
+		RegistryName:   c.packConfig.Registry,
 	}
 
 	// TODO(jrasell) come up with a better way to pass the appropriate config.
@@ -143,11 +127,15 @@ func (c *RunCommand) Run(args []string) int {
 		return 1
 	}
 
-	c.ui.Success(fmt.Sprintf("Pack successfully deployed. Use --name=%s to manage this this deployed instance with run, plan, or destroy", c.deploymentName))
+	if c.packConfig.Registry == cache.DevRegistryName {
+		c.ui.Success(fmt.Sprintf("Pack successfully deployed. Use %s to manage this this deployed instance with plan, stop, destroy, or info", c.packConfig.SourcePath))
+	} else {
+		c.ui.Success(fmt.Sprintf("Pack successfully deployed. Use %s with --ref=%s to manage this this deployed instance with plan, stop, destroy, or info", c.packConfig.Name, c.packConfig.Ref))
+	}
 
 	output, err := packManager.ProcessOutputTemplate()
 	if err != nil {
-		c.ui.ErrorWithContext(err, "failed to render output template", "Pack Name: "+c.packName)
+		c.ui.ErrorWithContext(err, "failed to render output template", "Pack Name: "+c.packConfig.Name)
 		return 1
 	}
 
@@ -162,9 +150,28 @@ func (c *RunCommand) Flags() *flag.Sets {
 	return c.flagSet(flagSetOperation, func(set *flag.Sets) {
 		f := set.NewSet("Run Options")
 
+		c.packConfig = &cache.PackConfig{}
+
 		c.jobConfig = &job.CLIConfig{
 			RunConfig: &job.RunCLIConfig{},
 		}
+
+		f.StringVar(&flag.StringVar{
+			Name:    "registry",
+			Target:  &c.packConfig.Registry,
+			Default: "",
+			Usage:   `Specific registry name containing the pack to be run.`,
+		})
+
+		f.StringVar(&flag.StringVar{
+			Name:    "ref",
+			Target:  &c.packConfig.Ref,
+			Default: "",
+			Usage: `Specific git ref of the pack to be run. 
+Supports tags, SHA, and latest. If no ref is specified, defaults to latest.
+
+Using ref with a file path is not supported.`,
+		})
 
 		f.Uint64Var(&flag.Uint64Var{
 			Name:    "check-index",
@@ -264,10 +271,9 @@ func (c *RunCommand) AutocompleteFlags() complete.Flags {
 }
 
 func (c *RunCommand) Help() string {
-	// TODO: do we want to version example? Have another different example that has
-	// a version num instead of git sha?
+	// TODO: do we want to ref example?
 	c.Example = `
-	# Run an example pack with the default deployment name "example@86a9235" (default is <pack-name>@version)
+	# Run an example pack with the default deployment name "example".
 	nomad-pack run example
 
 	# Run an example pack with the specified deployment name "dev"
@@ -278,6 +284,10 @@ func (c *RunCommand) Help() string {
 
 	# Run an example pack with cli variable overrides
 	nomad-pack run example --var="redis_image_version=latest" --var="redis_resources={"cpu": "1000", "memory": "512"}"
+
+	# Run a pack under development from the filesystem - supports current working 
+    # directory or relative path
+	nomad-pack run . 
 	`
 
 	return formatHelp(`
@@ -292,7 +302,3 @@ func (c *RunCommand) Help() string {
 func (c *RunCommand) Synopsis() string {
 	return "Run a new pack or update an existing pack"
 }
-
-var (
-	packDeploymentNameKey = "pack_deployment_name"
-)

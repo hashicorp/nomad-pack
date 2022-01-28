@@ -21,7 +21,7 @@ var (
 	// Prerelease designates whether the current version is within a prerelease
 	// phase. Typically, this will be "dev" to signify a development cycle or a
 	// release candidate phase such as alpha, beta, rc1, or such.
-	Prerelease = "alpha"
+	Prerelease = "techpreview1"
 
 	// Metadata allows us to provide additional metadata information to the
 	// version identifier. This is typically used to identify enterprise builds

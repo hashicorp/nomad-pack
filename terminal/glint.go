@@ -1,6 +1,7 @@
 package terminal
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"fmt"
@@ -9,11 +10,15 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/bgentry/speakeasy"
+	"github.com/fatih/color"
+	"github.com/mattn/go-isatty"
 	"github.com/mitchellh/go-glint"
 	"github.com/olekukonko/tablewriter"
 )
 
 type glintUI struct {
+	ctx context.Context
 	d   *glint.Document
 	row []glint.Component
 }
@@ -22,6 +27,7 @@ func GlintUI(ctx context.Context) UI {
 	result := &glintUI{
 		d:   glint.New(),
 		row: make([]glint.Component, 0),
+		ctx: ctx,
 	}
 
 	go result.d.Render(ctx)
@@ -34,15 +40,48 @@ func (ui *glintUI) Close() error {
 }
 
 func (ui *glintUI) Input(input *Input) (string, error) {
-	return "", ErrNonInteractive
+	var buf bytes.Buffer
+
+	// Write the prompt, add a space.
+	ui.Output(input.Prompt, WithStyle(input.Style), WithWriter(&buf))
+	fmt.Fprint(color.Output, strings.TrimRight(buf.String(), "\r\n"))
+	fmt.Fprint(color.Output, " ")
+
+	// Ask for input in a go-routine so that we can ignore it.
+	errCh := make(chan error, 1)
+	lineCh := make(chan string, 1)
+	go func() {
+		var line string
+		var err error
+		if input.Secret && isatty.IsTerminal(os.Stdin.Fd()) {
+			line, err = speakeasy.Ask("")
+		} else {
+			r := bufio.NewReader(os.Stdin)
+			line, err = r.ReadString('\n')
+		}
+		if err != nil {
+			errCh <- err
+			return
+		}
+
+		lineCh <- strings.TrimRight(line, "\r\n")
+	}()
+
+	select {
+	case err := <-errCh:
+		return "", err
+	case line := <-lineCh:
+		return line, nil
+	case <-ui.ctx.Done():
+		// Print newline so that any further output starts properly
+		fmt.Fprintln(color.Output)
+		return "", ui.ctx.Err()
+	}
 }
 
 // Interactive implements UI
 func (ui *glintUI) Interactive() bool {
-	// TODO(mitchellh): We can make this interactive later but Glint itself
-	// doesn't support input yet. We can pause the document, do some input,
-	// then resume potentially.
-	return false
+	return isatty.IsTerminal(os.Stdin.Fd())
 }
 
 // Output implements UI
@@ -295,6 +334,11 @@ func (ui *glintUI) Table(tbl *Table, opts ...Option) {
 	ui.d.Append(glint.Finalize(glint.Text(buf.String())))
 }
 
+// Debug implements UI
+func (ui *glintUI) Debug(msg string) {
+	ui.Output(msg, WithDebugStyle())
+}
+
 // Error implements UI
 func (ui *glintUI) Error(msg string) {
 	ui.Output(msg, WithErrorStyle())
@@ -358,6 +402,11 @@ func (ui *glintUI) Info(msg string) {
 // Success implements UI
 func (ui *glintUI) Success(msg string) {
 	ui.Output(msg, WithSuccessStyle())
+}
+
+// Trace implements UI
+func (ui *glintUI) Trace(msg string) {
+	ui.Output(msg, WithTraceStyle())
 }
 
 // Warning implements UI

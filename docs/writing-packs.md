@@ -11,25 +11,28 @@ First, make a pack registry. This will be a repository that provides the structu
 
 <!-- TODO: MAKE THE EXAMPLE REPO -->
 
-Cloning [hashicorp/example-nomad-pack-registry](example-nomad-pack-registry) can give you a head start.
+Cloning [hashicorp/example-nomad-pack-registry](https://github.com/hashicorp/example-nomad-pack-registry) can give you a head start.
 
-Each registry should have a README.md file that describes thes packs in it, and top-level directories for each pack. Conventionally, the directory name matches the pack name.
+Each registry should have a README.md file that describes the packs in it, and 
+top-level directory named `packs` that contains a subdirectory for each individual 
+pack. Conventionally, the pack subdirectory name matches the pack name.
 
 The top level of a pack registry looks like the following:
 
 ```
 .
 └── README.md
-└── <PACK-NAME-A>
-    └── ...pack contents...
-└── <PACK-NAME-B>
-    └── ...pack contents...
-└── ...packs...
+└── packs
+    └── <PACK-NAME-A>
+        └── ...pack contents...
+    └── <PACK-NAME-B>
+        └── ...pack contents...
+    └── ...packs...
 ```
 
 ## Step Two: Add a new Pack
 
-To add a new pack, create a new directory at the top level of the repository.
+To add a new pack, create a new directory in the `packs` directory of the repository.
 
 The directory should have the following contents:
 
@@ -49,7 +52,7 @@ The `metadata.hcl` file contains important key value information regarding the p
 - "pack {name}" - The name of the pack.
 - "pack {description}" - A small overview of the application that is deployed by the pack.
 - "pack {url}" - The source URL for the pack itself.
-- "pack {verion}" - The version of thee pack.
+- "pack {version}" - The version of the pack.
 - "dependency {name}" - The dependencies that the pack has on other packs. Multiple dependencies can be supplied.
 - "dependency {source}" - The source URL for this dependency.
 
@@ -57,14 +60,14 @@ An example `metadata.hcl` file:
 
 ```
 app {
-  url = "https://github.com/jrasell/hello-world-app"
-  author = "James Rasell"
+  url = "https://github.com/mikenomitch/hello_world_server"
+  author = "Mike Nomitch"
 }
 
 pack {
-  name = "hello-world"
+  name = "hello_world"
   description = "This pack contains a single job that renders hello world, or a different greeting, to the screen."
-  url = "https://github.com/hashicorp/nomad-pack-community-registry/hello-world"
+  url = "https://github.com/hashicorp/nomad-pack-community-registry/hello_world"
   version = "0.3.2"
 }
 ```
@@ -118,12 +121,8 @@ Output files have access to pack variables and template helper functions. A simp
 ```
 Congrats on deploying [[ .nomad_pack.pack.name ]].
 
-There are [[ .simple_pack.app_count ]] instances of your job now running on Nomad.
+There are [[ .hello_world.app_count ]] instances of your job now running on Nomad.
 ```
-
-<!-- TODO: ADD INFORMATION ABOUT HOW THIS ACTUALLY WORKS AND HOW IT GETS NOMAD DATA -->
-
-<!-- TODO: ADD AN EXAMPLE -->
 
 #### README and CHANGELOG
 
@@ -131,7 +130,7 @@ No specific format is required for the `README.md` or `CHANGELOG.md` files.
 
 ## Step Three: Write the Templates
 
-Each file at the top level of the `templates` directory that uses the extension ".nomad.tpl" defines a resource (such as a job) that will be applied to Noamd. These files can use any UTF-8 encoded prefix as the name.
+Each file at the top level of the `templates` directory that uses the extension ".nomad.tpl" defines a resource (such as a job) that will be applied to Nomad. These files can use any UTF-8 encoded prefix as the name.
 
 Helper templates, which can be included within larger templates, have names prefixed with an underscore “\_” and use a ".tpl" extension.
 
@@ -194,7 +193,7 @@ Custom Nomad-specific and debugging functions are also provided:
 - `nomadNamespace` takes a single string parameter of a namespace ID which will be read via `/v1/namespace/:namespace`.
 - `spewDump` dumps the entirety of the passed object as a string. The output includes the content types and values. This uses the `spew.SDump` function.
 - `spewPrintf` dumps the supplied arguments into a string according to the supplied format. This utilises the `spew.Printf` function.
-- `fileContents` takes an argument to a file of the local host, reads it’s contents and provides this as a string.
+- `fileContents` takes an argument to a file of the local host, reads its contents and provides this as a string.
 
 A custom function within a template is called like any other:
 
@@ -236,7 +235,7 @@ job "job_a" {
 
 Packs can depend on content from other packs.
 
-First, packs must define their dependencies in `metadata.hcl`. A pack stanza with a dependency would look like the the following:
+First, packs must define their dependencies in `metadata.hcl`. A pack stanza with a dependency would look like the following:
 
 ```
 app {
@@ -265,49 +264,42 @@ This would allow templates of "simple_service" to use "demo_dep"'s helper templa
 
 ## Step Four: Testing your Pack
 
-As you write your pack, you will probably want to test it. To do this, copy your local pack registry
-into the `~/.nomad/pack` directory that Nomad Pack initialized on your machine.
+As you write your pack, you will probably want to test it. To do this, pass the
+directory path as the name of the pack to the `run`, `plan`, `render`, `info`, 
+`stop`, or `destroy` commands. Relative paths are supported.
 
-For instance, from your newly-created registry, you might copy the registry into a "dev" subdirectory.
-
-```
-cp -r . ~/.nomad/packs/dev
-```
-
-Once this is done, Nomad Pack can now use your packs. For instance, if you had a pack called `simple_service`
-you could call the following commands.
+For instance, if your current working directory is the directory where you are
+developing your pack, and `nomad-pack` is on your path, you can run this command.
 
 ```
-nomad-pack info dev:simple_service
-nomad-pack render dev:simple_service
-nomad-pack run dev:simple_service
+nomad-pack run .
 ```
 
-These can be used to validate that your pack is working as expected.
+Packs added this way will show up in output with a `dev` registry and `dev` ref.
 
 ## Step Five: Publish and Find your Custom Repository
 
 To use your new pack, you will likely want to publish it to the internet. Push the git repository to a URL
-accessible by your command line tool. GitHub is currently the only version control system that works to host
-packs, but support for other version control systems, such as GitLab and Bitbucket, is coming soon.
+accessible by your command line tool.
 
 If you wish to share your packs, please consider adding them to the
 [Nomad Pack Community Registry](https://github.com/hashicorp/nomad-pack-community-registry)
 
-If you don't want to host a pack registry in version control, you can copy your pack registry to your local `.nomad/packs` directory to deploy it.
+If you don't want to host a pack registry in version control, you can work locally
+using the filesystem method.
 
 ## Step Six: Deploy your Custom Pack!
 
 Add your custom repository using the `nomad-pack registry add` command.
 
 ```
-nomad-pack registry add git@github.com/<YOUR_ORG>/<YOUR_REPO>
+nomad-pack registry add my_packs github.com/<YOUR_ORG>/<YOUR_REPO>
 ```
 
 Deploy your custom packs.
 
 ```
-nomad-pack run simple_service --var app_count=1
+nomad-pack run hello_world --var app_count=1 --registry=my_packs
 ```
 
 Congrats! You can now write custom packs for Nomad!

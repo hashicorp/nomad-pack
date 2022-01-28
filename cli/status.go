@@ -5,6 +5,7 @@ import (
 
 	v1 "github.com/hashicorp/nomad-openapi/v1"
 	flag "github.com/hashicorp/nomad-pack/flag"
+	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/terminal"
 	"github.com/posener/complete"
@@ -12,71 +13,55 @@ import (
 
 type StatusCommand struct {
 	*baseCommand
-	packName     string
-	registryName string
+	packConfig *cache.PackConfig
 }
 
 func (c *StatusCommand) Run(args []string) int {
-	c.cmdKey = "status"
+	c.cmdKey = "status" // Add cmdKey here to print out helpUsageMessage on Init error
 	// Initialize. If we fail, we just exit since Init handles the UI.
 	if err := c.Init(
 		WithCustomArgs(args, validateStatusArgs),
 		WithFlags(c.Flags()),
 		WithNoConfig(),
 	); err != nil {
-		c.ui.ErrorWithContext(err, "error parsing args or flags")
+		c.ui.ErrorWithContext(err, ErrParsingArgsOrFlags)
+		c.ui.Info(c.helpUsageMessage())
 		return 1
 	}
 
-	// Generate our UI error context.
-	errorContext := errors.NewUIErrorContext()
-
-	// Check if pack name specified
-	packName := ""
-	registryName := ""
-	if len(args) > 0 {
-		var err error
-		packRegistryName := c.args[0]
-		registryName, packName, err = parseRegistryAndPackName(packRegistryName)
-		if err != nil {
-			c.ui.ErrorWithContext(err, "failed to parse pack name", errorContext.GetAll()...)
-			return 1
-		}
-		errorContext.Add(errors.UIContextPrefixRegistryName, registryName)
-		errorContext.Add(errors.UIContextPrefixPackName, packName)
+	if len(c.args) > 0 {
+		c.packConfig.Name = c.args[0]
 	}
-	c.packName = packName
-	c.registryName = registryName
+
+	// Set the packConfig defaults if necessary and generate our UI error context.
+	errorContext := errors.NewUIErrorContext()
+	errorContext.Add(errors.UIContextPrefixPackName, c.packConfig.Name)
 
 	client, err := v1.NewClient()
 	if err != nil {
 		c.ui.ErrorWithContext(err, "failed to initialize client", errorContext.GetAll()...)
 		return 1
 	}
-	jobsApi := client.Jobs()
-	// If pack name isn't specified, return all deployed packs
-	if c.packName == "" {
-		packRegistryMap, err := getDeployedPacks(jobsApi)
-		if err != nil {
-			c.ui.ErrorWithContext(err, "error retrieving packs", errorContext.GetAll()...)
-			return 1
-		}
 
-		if len(packRegistryMap) == 0 {
-			c.ui.Warning("no packs found")
-			return 0
-		}
-		c.ui.Table(formatDeployedPacks(packRegistryMap))
-		return 0
+	jobsApi := client.Jobs()
+
+	// If pack name isn't specified, return all deployed packs
+	if c.packConfig.Name == "" {
+		return c.renderAllDeployedPacks(jobsApi, errorContext)
 	}
 
-	packJobs, jobErrs, err := getDeployedPackJobs(jobsApi, c.packName, c.registryName, c.deploymentName)
+	return c.renderDeployedPackJobs(err, jobsApi, errorContext)
+}
+
+func (c *StatusCommand) renderDeployedPackJobs(err error, jobsApi *v1.Jobs, errorContext *errors.UIErrorContext) int {
+	packJobs, jobErrs, err := getDeployedPackJobs(jobsApi, c.packConfig, c.deploymentName)
 	if err != nil {
 		c.ui.ErrorWithContext(err, "error retrieving jobs", errorContext.GetAll()...)
 		return 1
 	}
+
 	if len(packJobs) == 0 {
-		msg := fmt.Sprintf("no jobs found for pack %q", packName)
+		msg := fmt.Sprintf("no jobs found for pack %q", c.packConfig.Name)
 		if c.deploymentName != "" {
 			msg += fmt.Sprintf(" in deployment %q", c.deploymentName)
 		}
@@ -85,26 +70,54 @@ func (c *StatusCommand) Run(args []string) int {
 	}
 
 	c.ui.Table(formatDeployedPackJobs(packJobs))
+
 	if len(jobErrs) > 0 {
 		c.ui.WarningBold("error retrieving job status for the following jobs:")
 		c.ui.Table(formatDeployedPackErrs(jobErrs))
 	}
+
+	return 0
+}
+
+func (c *StatusCommand) renderAllDeployedPacks(jobsApi *v1.Jobs, errorContext *errors.UIErrorContext) int {
+	packRegistryMap, err := getDeployedPacks(jobsApi)
+	if err != nil {
+		c.ui.ErrorWithContext(err, "error retrieving packs", errorContext.GetAll()...)
+		return 1
+	}
+
+	if len(packRegistryMap) == 0 {
+		c.ui.Warning("no packs found")
+		return 0
+	}
+
+	c.ui.Table(formatDeployedPacks(packRegistryMap))
+
 	return 0
 }
 
 func (c *StatusCommand) Flags() *flag.Sets {
 	return c.flagSet(0, func(set *flag.Sets) {
+		c.packConfig = &cache.PackConfig{}
+
 		f := set.NewSet("Status Options")
 
 		f.StringVar(&flag.StringVar{
-			Name:    "name",
-			Target:  &c.deploymentName,
+			Name:    "registry",
+			Target:  &c.packConfig.Registry,
 			Default: "",
-			Usage: `If set, will filter the list of deployed jobs to only those
-			in this deployment and belonging to the specified pack. Can only
-			be used if pack name is provided. Specifying --name without providing
-			a pack name will result in an error. 
-			`,
+			Usage: `Specific registry name containing the pack to inspect.
+If not specified, the default registry will be used.`,
+		})
+
+		f.StringVar(&flag.StringVar{
+			Name:    "ref",
+			Target:  &c.packConfig.Ref,
+			Default: "",
+			Usage: `Specific git ref of the pack to inspect. 
+Supports tags, SHA, and latest. If no ref is specified, defaults to latest.
+
+Using ref with a file path is not supported.`,
 		})
 	})
 }
@@ -127,10 +140,13 @@ func (c *StatusCommand) Help() string {
 
 	# Get a list of all deployed jobs and their status for an example pack in the deployment name "dev"
 	nomad-pack status example --name=dev
+
+    # Get a list of all deployed jobs and their status for an example pack in the deployment name "dev"
+	nomad-pack status example --name=dev --registry=community
 	`
 
 	return formatHelp(`
-	Usage: nomad-pack status [options]
+	Usage: nomad-pack status <name> [options]
 
 	Get information on deployed Nomad Packs. If no pack name is specified, it will return
 	a list of all deployed packs. If pack name is specified, it will return a list of all

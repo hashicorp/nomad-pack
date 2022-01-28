@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"path"
 
-	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
+	"github.com/hashicorp/nomad-pack/flag"
+	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"github.com/hashicorp/nomad-pack/internal/pkg/loader"
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable"
 	"github.com/mitchellh/go-glint"
@@ -12,53 +13,35 @@ import (
 
 type InfoCommand struct {
 	*baseCommand
-	packName string
-	repoName string
+	packConfig *cache.PackConfig
 }
 
 func (c *InfoCommand) Run(args []string) int {
-	c.cmdKey = "info" // Add cmd key here so help text is available in Init
+	c.cmdKey = "info" // Add cmdKey here to print out helpUsageMessage on Init error
 	// Initialize. If we fail, we just exit since Init handles the UI.
 	if err := c.Init(
 		WithExactArgs(1, args),
+		WithFlags(c.Flags()),
 		WithNoConfig(),
 	); err != nil {
+
+		c.ui.ErrorWithContext(err, ErrParsingArgsOrFlags)
+		c.ui.Info(c.helpUsageMessage())
+
 		return 1
 	}
 
-	packRepoName := c.args[0]
+	c.packConfig.Name = c.args[0]
 
-	// Generate our UI error context.
-	errorContext := errors.NewUIErrorContext()
-	repoName, packName, err := parseRegistryAndPackName(packRepoName)
-
-	if err != nil {
-		c.ui.ErrorWithContext(err, "failed to parse pack name", errorContext.GetAll()...)
-		return 1
-	}
-	c.packName = packName
-	c.repoName = repoName
-	errorContext.Add(errors.UIContextPrefixPackName, c.packName)
-	errorContext.Add(errors.UIContextPrefixRegistryName, c.repoName)
-
-	registryPath, err := getRegistryPath(repoName, c.ui, errorContext)
-	if err != nil {
-		return 1
-	}
-
-	// Add the path to the pack on the error context.
-	errorContext.Add(errors.UIContextPrefixPackPath, registryPath)
+	// Set the packConfig defaults if necessary and generate our UI error context.
+	errorContext := initPackCommand(c.packConfig)
 
 	// verify packs exist before running jobs
-	if err = verifyPackExist(c.ui, c.packName, registryPath, errorContext); err != nil {
+	if err := cache.VerifyPackExists(c.packConfig, errorContext, c.ui); err != nil {
 		return 1
 	}
 
-	packPath, err := getPackPath(repoName, packName)
-	if err != nil {
-		c.ui.ErrorWithContext(err, "failed to get path directory", errorContext.GetAll()...)
-		return 1
-	}
+	packPath := c.packConfig.Path
 
 	pack, err := loader.Load(packPath)
 	if err != nil {
@@ -121,6 +104,33 @@ func (c *InfoCommand) Run(args []string) int {
 
 	doc.RenderFrame()
 	return 0
+}
+
+func (c *InfoCommand) Flags() *flag.Sets {
+	return c.flagSet(flagSetOperation, func(set *flag.Sets) {
+		c.packConfig = &cache.PackConfig{}
+
+		f := set.NewSet("Render Options")
+
+		f.StringVar(&flag.StringVar{
+			Name:    "registry",
+			Target:  &c.packConfig.Registry,
+			Default: "",
+			Usage: `Specific registry name containing the pack to retrieve info about.
+If not specified, the default registry will be used.`,
+		})
+
+		f.StringVar(&flag.StringVar{
+			Name:    "ref",
+			Target:  &c.packConfig.Ref,
+			Default: "",
+			Usage: `Specific git ref of the pack to retrieve info about. 
+Supports tags, SHA, and latest. If no ref is specified, defaults to 
+latest.
+
+Using ref with a file path is not supported.`,
+		})
+	})
 }
 
 func (c *InfoCommand) Help() string {

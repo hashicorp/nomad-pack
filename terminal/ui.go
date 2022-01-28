@@ -69,6 +69,9 @@ type UI interface {
 	// called until the StepGroup is complete.
 	StepGroup() StepGroup
 
+	// Debug formats output with the DebugStyle
+	Debug(string)
+
 	// Error formats Output with the ErrorStyle
 	Error(string)
 
@@ -84,6 +87,9 @@ type UI interface {
 
 	// Success formats Output with the SuccessStyle
 	Success(string)
+
+	// Trace formats Output with the TraceStyle
+	Trace(string)
 
 	// Warning formats Output with the WarningStyle
 	Warning(string)
@@ -153,8 +159,10 @@ func Interpret(msg string, raw ...interface{}) (string, string, io.Writer) {
 
 const (
 	HeaderStyle      = "header"
+	DebugStyle       = "debug"
 	ErrorStyle       = "error"
 	ErrorBoldStyle   = "error-bold"
+	TraceStyle       = "trace"
 	WarningStyle     = "warning"
 	WarningBoldStyle = "warning-bold"
 	InfoStyle        = "info"
@@ -199,10 +207,24 @@ func WithInfoStyle() Option {
 	}
 }
 
+// WithDebugStyle styles the output as a debug message.
+func WithDebugStyle() Option {
+	return func(c *config) {
+		c.Style = DebugStyle
+	}
+}
+
 // WithErrorStyle styles the output as an error message.
 func WithErrorStyle() Option {
 	return func(c *config) {
 		c.Style = ErrorStyle
+	}
+}
+
+// WithTraceStyle styles the output as an error message.
+func WithTraceStyle() Option {
+	return func(c *config) {
+		c.Style = TraceStyle
 	}
 }
 
@@ -275,11 +297,13 @@ func ErrorWithContext(err error, sub string, ctx ...string) {
 
 var (
 	colorHeader      = color.New(color.Bold)
+	colorDebug       = color.New(color.FgHiBlue)
 	colorInfo        = color.New()
 	colorError       = color.New(color.FgRed)
 	colorErrorBold   = color.New(color.FgRed, color.Bold)
 	colorSuccess     = color.New(color.FgGreen)
 	colorSuccessBold = color.New(color.FgGreen, color.Bold)
+	colorTrace       = color.New(color.FgCyan)
 	colorWarning     = color.New(color.FgYellow)
 	colorWarningBold = color.New(color.FgYellow, color.Bold)
 )

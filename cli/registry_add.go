@@ -1,16 +1,23 @@
 package cli
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/hashicorp/nomad-pack/flag"
+	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
+	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/posener/complete"
 )
 
+// RegistryAddCommand adds a regsitry to the global cache.
 type RegistryAddCommand struct {
 	*baseCommand
 	command string
-	from    string
-	alias   string
+	source  string
+	name    string
 	target  string
+	ref     string
 }
 
 func (c *RegistryAddCommand) Run(args []string) int {
@@ -19,30 +26,86 @@ func (c *RegistryAddCommand) Run(args []string) int {
 
 	// Initialize. If we fail, we just exit since Init handles the UI.
 	if err := c.Init(
-		WithNoArgs(args),
+		WithExactArgs(2, args),
 		WithFlags(flagSet),
 		WithNoConfig(),
 		WithClient(false),
 	); err != nil {
+		c.ui.ErrorWithContext(err, "error parsing args or flags")
 		return 1
 	}
 
-	return c.run()
-}
+	// Generate our UI error context.
+	errorContext := errors.NewUIErrorContext()
 
-func (c *RegistryAddCommand) run() int {
-	// Get the global cache dir - may be configurable in the future, so using this
-	// helper function rather than a direct reference to the CONST.
-	cacheDir, err := globalCacheDir()
+	c.name = args[0]
+	c.source = args[1]
+
+	errorContext.Add(errors.UIContextPrefixRegistryName, c.name)
+	errorContext.Add(errors.UIContextPrefixGitRegistryURL, c.source)
+
+	if c.target != "" {
+		errorContext.Add(errors.UIContextPrefixRegistryTarget, c.target)
+	}
+
+	// Add the registry or registry target to the global cache
+	globalCache, err := cache.NewCache(&cache.CacheConfig{
+		Path:   cache.DefaultCachePath(),
+		Logger: c.ui,
+	})
 	if err != nil {
-		c.ui.ErrorWithContext(err, "error retrieving global cache directory")
 		return 1
 	}
 
-	if err = addRegistry(cacheDir, c.from, c.alias, c.target, c.ui); err != nil {
-		c.ui.ErrorWithContext(err, "error adding registry")
+	newRegistry, err := globalCache.Add(&cache.AddOpts{
+		RegistryName: c.name,
+		Source:       c.source,
+		PackName:     c.target,
+		Ref:          c.ref,
+	})
+	if err != nil {
 		return 1
 	}
+
+	// If subprocess fails to add any packs, report this to the user.
+	if len(newRegistry.Packs) == 0 {
+		c.ui.ErrorWithContext(errors.New("failed to add packs for registry"), "see output for reason", errorContext.GetAll()...)
+		return 1
+	}
+
+	// Initialize output table
+	table := registryTable()
+	var validPack *cache.Pack
+	// If only targeting a single pack, only output a single row
+	if c.target != "" {
+		// It is safe to target pack 0 here because registry.AddFromGitURL will
+		// ensure only the target pack is returned.
+		tableRow := registryPackRow(newRegistry, newRegistry.Packs[0])
+		table.Rows = append(table.Rows, tableRow)
+		for _, registryPack := range newRegistry.Packs {
+			if !strings.Contains(strings.ToLower(registryPack.Ref), "invalid") {
+				validPack = registryPack
+			}
+		}
+	} else {
+		for _, registryPack := range newRegistry.Packs {
+			tableRow := registryPackRow(newRegistry, registryPack)
+			table.Rows = append(table.Rows, tableRow)
+			// Grab a successful pack to show extra help text.
+			if validPack == nil &&
+				!strings.Contains(strings.ToLower(registryPack.Ref), "invalid") {
+				validPack = registryPack
+			}
+		}
+	}
+
+	c.ui.Info("Registry successfully added to cache.")
+	c.ui.Table(table)
+
+	if validPack != nil {
+		c.ui.Info(fmt.Sprintf("Try running one the packs you just added liked this\n\n  nomad-pack run %s --registry=%s --ref=%s", validPack.Name(), newRegistry.Name, validPack.Ref))
+	}
+
 	return 0
 }
 
@@ -51,34 +114,23 @@ func (c *RegistryAddCommand) Flags() *flag.Sets {
 		f := set.NewSet("Registry Options")
 
 		f.StringVar(&flag.StringVar{
-			Name:    "from",
-			Target:  &c.from,
-			Default: "",
-			Usage: `The remote pack registry to be added. 
-At this time, this must be a url that points to a git repository. Supports version with @ syntax.
-For example, "nomad-pack registry add --from=github.com/hashicorp/nomad-pack-registry@v1.0.0".
-Supports tags, releases, SHA, and latest. If no version is specified, defaults 
-to latest. Running "nomad registry add" multiple times for the same version 
-is idempotent, however running "nomad-pack registry add" without specifying 
-a version, or when specifying @latest is destructive, and will overwrite 
-current @latest in the global cache.`,
-		})
-
-		f.StringVar(&flag.StringVar{
-			Name:    "alias",
-			Target:  &c.alias,
-			Default: "",
-			Usage: `User defined name for the registry. 
-Allows users to override the remote registry name in the global registry cache. 
-By default, the source url will be turned into a slug and the registry will be 
-named with the slug (e.g. github.com-hashicorp-nomad-pack-registry).`,
-		})
-
-		f.StringVar(&flag.StringVar{
 			Name:    "target",
 			Target:  &c.target,
 			Default: "",
-			Usage:   `A specific pack within the registry to be added or deleted.`,
+			Usage:   `A specific pack within the registry to be added.`,
+		})
+
+		f.StringVar(&flag.StringVar{
+			Name:    "ref",
+			Target:  &c.ref,
+			Default: "",
+			Usage: `Specific git ref of the registry or pack to be added. 
+Supports tags, SHA, and latest. If no ref is specified, defaults to latest. 
+Running "nomad registry add" multiple times for the same ref is idempotent, 
+however running "nomad-pack registry add" without specifying a ref, or when 
+specifying @latest, is destructive, and will overwrite current @latest in the global cache.
+
+Using ref with a file path is not supported.`,
 		})
 	})
 }
@@ -97,17 +149,17 @@ func (c *RegistryAddCommand) Synopsis() string {
 
 func (c *RegistryAddCommand) Help() string {
 	c.Example = `
-	# Download latest version of the pack registry to the global cache.
-	nomad-pack registry add --from=github.com/hashicorp/nomad-pack-registry
+	# Download latest ref of the pack registry to the global cache.
+	nomad-pack registry add community github.com/hashicorp/nomad-pack-community-registry
 
-	# Download latest version of a specific pack from the registry to the global cache.
-	nomad-pack registry add --from=github.com/hashicorp/nomad-pack-registry --target=nomad_example
+	# Download latest ref of a specific pack from the registry to the global cache.
+	nomad-pack registry add community github.com/hashicorp/nomad-pack-community-registry --target=nomad_example
 
-	# Download a pack registry at a specific tag/release/SHA/latest to the global cache.
-	nomad-pack registry add --from=github.com/hashicorp/nomad-pack-registry@v0.1.0
+	# Download packs from a registry at a specific tag/release/SHA.
+	nomad-pack registry add community github.com/hashicorp/nomad-pack-community-registry  --ref=v0.1.0
 	`
 	return formatHelp(`
-	Usage: nomad-pack registry add [options]
+	Usage: nomad-pack registry add <name> <source> [options]
 
 	Add nomad pack registries.
 	

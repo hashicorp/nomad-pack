@@ -33,6 +33,7 @@ var (
 		"run",
 		"destroy",
 		"info",
+		"status",
 		"registry add",
 		"registry delete",
 		"registry list",
@@ -70,7 +71,7 @@ func Main(args []string) int {
 		return &cli.CLI{
 			Name:                       args[0],
 			Args:                       args[1:],
-			Version:                    version.HumanVersion(),
+			Version:                    fmt.Sprintf("Nomad Pack %s", version.HumanVersion()),
 			Commands:                   commands,
 			Autocomplete:               true,
 			AutocompleteNoDefaultFlags: true,
@@ -108,27 +109,8 @@ func Commands(
 		globalOptions: opts,
 	}
 
-	// aliases is a list of command aliases we have. The key is the CLI
-	// command (the alias) and the value is the existing target command.
-	// aliases := map[string]string{
-	// 	"build":   "artifact build",
-	// 	"deploy":  "deployment deploy",
-	// 	"install": "server install",
-	// }
-
 	// start building our commands
 	commands := map[string]cli.CommandFactory{
-		"init": func() (cli.Command, error) {
-			return &InitCommand{
-				baseCommand: baseCommand,
-			}, nil
-		},
-		"repo": func() (cli.Command, error) {
-			return &helpCommand{
-				synopsis: helpText["repo"][0],
-				help:     helpText["repo"][1],
-			}, nil
-		},
 		"render": func() (cli.Command, error) {
 			return &RenderCommand{
 				baseCommand: baseCommand,

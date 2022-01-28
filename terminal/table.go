@@ -72,13 +72,17 @@ func (u *basicUI) Table(tbl *Table, opts ...Option) {
 }
 
 const (
-	Yellow = "yellow"
-	Green  = "green"
-	Red    = "red"
+	Yellow  = YellowStyle
+	Green   = GreenStyle
+	Red     = RedStyle
+	Bold    = BoldStyle
+	Default = DefaultStyle
 )
 
 var colorMapping = map[string]int{
-	Green:  tablewriter.FgGreenColor,
-	Yellow: tablewriter.FgYellowColor,
-	Red:    tablewriter.FgRedColor,
+	Green:   tablewriter.FgGreenColor,
+	Yellow:  tablewriter.FgYellowColor,
+	Red:     tablewriter.FgRedColor,
+	Bold:    tablewriter.Bold,
+	Default: tablewriter.Normal,
 }
