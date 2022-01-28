@@ -1,0 +1,1 @@
+[[.heredoc_variable_noeof.heredoc]]

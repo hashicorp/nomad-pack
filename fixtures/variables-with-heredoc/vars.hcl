@@ -1,0 +1,3 @@
+heredoc = <<EOF
+Good
+EOF
