@@ -21,3 +21,7 @@ vendor/
 
 # Ignore generated OpenAPI docs
 openapi/client/docs/
+
+# Ingore e2e binary and downloaded terraform
+e2e/bin/*
+e2e/nomad/

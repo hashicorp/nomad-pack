@@ -2,6 +2,7 @@ module github.com/hashicorp/nomad-pack
 
 go 1.16
 
+replace github.com/hashicorp/nomad-openapi => ../nomad-openapi
 require (
 	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/bgentry/speakeasy v0.1.0
