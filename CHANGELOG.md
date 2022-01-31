@@ -1,7 +1,7 @@
 ## Unreleased
 
 BUG FIXES:
-
+* template: Handle HEREDOC delimiter immediately before EOF [GH-191](https://github.com/hashicorp/nomad-pack/pull/191)
 
 IMPROVEMENTS:
 

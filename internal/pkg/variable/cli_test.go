@@ -1,6 +1,8 @@
 package variable
 
 import (
+	"os"
+	"path"
 	"testing"
 
 	"github.com/hashicorp/hcl/v2"
@@ -128,4 +130,19 @@ func TestParser_parseCLIVariable(t *testing.T) {
 			assert.Equal(t, tc.expectedCLIVars, tc.inputParser.cliOverrideVars, tc.name)
 		}
 	}
+}
+
+func TestParser_parseHeredocAtEOF(t *testing.T) {
+	inputParser := &Parser{
+		fs:              afero.Afero{Fs: afero.OsFs{}},
+		cfg:             &ParserConfig{ParentName: "example"},
+		rootVars:        map[string]map[string]*Variable{},
+		cliOverrideVars: make(map[string][]*Variable),
+	}
+	// FIXME: Find the fixture folder in a less janky way
+	cwd, _ := os.Getwd()
+	fixturePath := path.Join(cwd, "../../../fixtures/variables-with-heredoc/vars.hcl")
+	b, diags := inputParser.loadOverrideFile(fixturePath)
+	assert.NotNil(t, b)
+	assert.Empty(t, diags)
 }

@@ -128,6 +128,10 @@ func (p *Parser) Parse() (*ParsedVariables, hcl.Diagnostics) {
 func (p *Parser) loadOverrideFile(file string) (hcl.Body, hcl.Diagnostics) {
 
 	src, err := p.fs.ReadFile(file)
+	// FIXME - Workaround for ending heredoc with no linefeed.
+	// Variables files shouldn't care about the extra linefeed, but jamming one
+	// in all the time feels bad.
+	src = append(src, "\n"...)
 	if err != nil {
 		return nil, hcl.Diagnostics{
 			{
