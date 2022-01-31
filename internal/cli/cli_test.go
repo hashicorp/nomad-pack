@@ -15,6 +15,10 @@ import (
 )
 
 // These tests currently require the nomad agent -dev to be running.
+// TODO: Start a Nomad Dev Agent if Nomad is on their box. If not, skip loudly
+
+// TODO: Refactor the test packs to use raw_exec jobs so that no additional
+// nomad task driver dependencies are required on the testing box
 
 // TODO: Test job run with diffs
 // TODO: Test job run plan with diffs
@@ -88,8 +92,6 @@ func TestJobRunFails(t *testing.T) {
 
 	exitCode := runCmd().Run([]string{"fake-job"})
 	require.Equal(t, 1, exitCode)
-
-	reset()
 }
 
 func TestJobPlan(t *testing.T) {
@@ -103,12 +105,11 @@ func TestJobPlan(t *testing.T) {
 
 func TestJobPlan_BadJob(t *testing.T) {
 	testInit(t)
+	defer reset()
 
 	exitCode := planCmd().Run([]string{badPack})
 	// Should return 255 indicating an error occurred
 	require.Equal(t, 255, exitCode)
-
-	reset()
 }
 
 // Confirm that another pack with the same job names but a different deployment name fails
@@ -212,8 +213,6 @@ func TestJobDestroy(t *testing.T) {
 
 	// Assert job no longer queryable
 	nomadExpectErr(t, "status", testPack)
-
-	reset()
 }
 
 // Test that destroy properly uses var overrides to target the job
@@ -304,7 +303,6 @@ func TestStatus(t *testing.T) {
 func TestStatusFails(t *testing.T) {
 	testInit(t)
 	defer reset()
-
 	statusCmd := &StatusCommand{baseCommand: baseCmd()}
 
 	exitCode := statusCmd.Run([]string{"--name=foo"})
