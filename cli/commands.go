@@ -17,7 +17,7 @@ import (
 	"github.com/mitchellh/go-wordwrap"
 	"github.com/posener/complete"
 
-	flag "github.com/hashicorp/nomad-pack/flag"
+	flag "github.com/hashicorp/nomad-pack/internal/pkg/flag"
 	"github.com/hashicorp/nomad-pack/terminal"
 )
 

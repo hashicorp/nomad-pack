@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	v1 "github.com/hashicorp/nomad-openapi/v1"
-	flag "github.com/hashicorp/nomad-pack/flag"
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
+	flag "github.com/hashicorp/nomad-pack/internal/pkg/flag"
 	"github.com/hashicorp/nomad-pack/terminal"
 	"github.com/posener/complete"
 )

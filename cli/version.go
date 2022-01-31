@@ -1,7 +1,7 @@
 package cli
 
 import (
-	"github.com/hashicorp/nomad-pack/flag"
+	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
 	"github.com/hashicorp/nomad-pack/internal/pkg/version"
 	"github.com/mitchellh/go-glint"
 	"github.com/posener/complete"
