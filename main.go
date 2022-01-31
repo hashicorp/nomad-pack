@@ -4,7 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/hashicorp/nomad-pack/cli"
+	"github.com/hashicorp/nomad-pack/internal/cli"
 )
 
 func main() {
