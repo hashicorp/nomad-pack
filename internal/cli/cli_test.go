@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -23,17 +24,15 @@ import (
 
 func TestVersion(t *testing.T) {
 	testInit(t)
+	defer reset()
+
 	exitCode := Main([]string{"nomad-pack", "-v"})
 	require.Equal(t, 0, exitCode)
-	reset()
 }
 
 func TestJobRun(t *testing.T) {
 	testInit(t)
-
-	defer func() {
-		clearJob(t, &cache.PackConfig{Name: testPack})
-	}()
+	defer clearJob(t, &cache.PackConfig{Name: testPack})
 
 	exitCode := runCmd().Run([]string{testPack})
 	require.Equal(t, 0, exitCode)
@@ -42,12 +41,10 @@ func TestJobRun(t *testing.T) {
 // Confirm that another pack with the same job names but a different deployment name fails
 func TestJobRunConflictingDeployment(t *testing.T) {
 	testInit(t)
+	defer clearJob(t, &cache.PackConfig{Name: testPack})
 
 	// Register the initial pack
 	exitCode := runCmd().Run([]string{testPack})
-	defer func() {
-		clearJob(t, &cache.PackConfig{Name: testPack})
-	}()
 
 	// deploymentName := runCmd.deploymentName
 	require.Equal(t, 0, exitCode)
@@ -63,13 +60,10 @@ func TestJobRunConflictingDeployment(t *testing.T) {
 // Check for conflict with non-pack job i.e. no meta
 func TestJobRunConflictingNonPackJob(t *testing.T) {
 	testInit(t)
+	defer clearJob(t, &cache.PackConfig{Name: testPack})
 
 	// Register non pack job
-	nomadExec(t, "run", "../fixtures/simple.nomad")
-
-	defer func() {
-		clearJob(t, &cache.PackConfig{Name: testPack})
-	}()
+	nomadExpectNoErr(t, "run", "../../fixtures/simple.nomad")
 
 	// Now try to register the pack
 	exitCode := runCmd().Run([]string{testPack})
@@ -79,12 +73,9 @@ func TestJobRunConflictingNonPackJob(t *testing.T) {
 // Check for conflict with job that has meta
 func TestJobRunConflictingJobWithMeta(t *testing.T) {
 	testInit(t)
+	defer clearJob(t, &cache.PackConfig{Name: testPack})
 
-	defer func() {
-		clearJob(t, &cache.PackConfig{Name: testPack})
-	}()
-
-	nomadExec(t, "run", "../fixtures/simple-with-meta.nomad")
+	nomadExpectNoErr(t, "run", "../../fixtures/simple-with-meta.nomad")
 
 	// Now try to register
 	exitCode := runCmd().Run([]string{testPack})
@@ -93,6 +84,7 @@ func TestJobRunConflictingJobWithMeta(t *testing.T) {
 
 func TestJobRunFails(t *testing.T) {
 	testInit(t)
+	defer reset()
 
 	exitCode := runCmd().Run([]string{"fake-job"})
 	require.Equal(t, 1, exitCode)
@@ -102,21 +94,17 @@ func TestJobRunFails(t *testing.T) {
 
 func TestJobPlan(t *testing.T) {
 	testInit(t)
+	defer reset()
 
 	exitCode := planCmd().Run([]string{testPack})
 	// Should return 1 indicating an allocation will be placed
 	require.Equal(t, 1, exitCode)
-
-	reset()
 }
 
 // Confirm that another pack with the same job names but a different deployment name fails
 func TestJobPlanConflictingDeployment(t *testing.T) {
 	testInit(t)
-
-	defer func() {
-		clearJob(t, &cache.PackConfig{Name: testPack})
-	}()
+	defer clearJob(t, &cache.PackConfig{Name: testPack})
 
 	// Register the initial pack
 	exitCode := runCmd().Run([]string{testPack})
@@ -124,41 +112,35 @@ func TestJobPlanConflictingDeployment(t *testing.T) {
 
 	exitCode = runCmd().Run([]string{testPack, testRefFlag})
 	require.Equal(t, 1, exitCode)
-
-	reset()
 }
 
 // Check for conflict with non-pack job i.e. no meta
 func TestJobPlanConflictingNonPackJob(t *testing.T) {
 	testInit(t)
-	defer func() {
-		clearJob(t, &cache.PackConfig{Name: testPack})
-	}()
+	defer clearJob(t, &cache.PackConfig{Name: testPack})
 
 	// Register non pack job
-	nomadExec(t, "run", "../fixtures/simple.nomad")
+	nomadExpectNoErr(t, "run", "../../fixtures/simple.nomad")
 
 	// Now try to plan the pack
 	exitCode := planCmd().Run([]string{testPack})
 	require.Equal(t, 255, exitCode)
-
-	reset()
 }
 
 func TestJobStop(t *testing.T) {
 	testInit(t)
+	defer reset()
 
 	exitCode := runCmd().Run([]string{testPack})
 	require.Equal(t, 0, exitCode)
 
 	exitCode = stopCmd().Run([]string{testPack, "--purge=true"})
 	require.Equal(t, 0, exitCode)
-
-	reset()
 }
 
 func TestJobStopConflicts(t *testing.T) {
 	testInit(t)
+	defer reset()
 
 	cases := []struct {
 		name           string
@@ -187,14 +169,11 @@ func TestJobStopConflicts(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			defer func() {
-				// Purge job. Use nomad command since it'll work for all jobs
-				nomadExec(t, "stop", "-purge", c.jobName)
-			}()
+			defer nomadExec(t, "stop", "-purge", c.jobName)
 
 			// Create job
 			if c.nonPackJob {
-				nomadExec(t, "run", "../fixtures/simple.nomad")
+				nomadExpectNoErr(t, "run", "../../fixtures/simple.nomad")
 			} else {
 				deploymentName := fmt.Sprintf("--name=%s", c.deploymentName)
 				varJobName := fmt.Sprintf("--var=job_name=%s", c.jobName)
@@ -207,14 +186,13 @@ func TestJobStopConflicts(t *testing.T) {
 			require.Equal(t, 1, exitCode)
 		})
 	}
-
-	reset()
 }
 
 // Destroy is just an alias for stop --purge so we only need to
 // test that specific functionality
 func TestJobDestroy(t *testing.T) {
 	testInit(t)
+	defer reset()
 
 	exitCode := runCmd().Run([]string{testPack})
 	require.Equal(t, 0, exitCode)
@@ -231,6 +209,7 @@ func TestJobDestroy(t *testing.T) {
 // Test that destroy properly uses var overrides to target the job
 func TestJobDestroyWithOverrides(t *testing.T) {
 	testInit(t)
+	defer reset()
 
 	// 	TODO: Table Testing
 	// Create multiple jobs in the same pack deployment
@@ -250,7 +229,7 @@ func TestJobDestroyWithOverrides(t *testing.T) {
 	require.Equal(t, 0, exitCode)
 
 	// Assert job "bar" still exists
-	nomadExec(t, "status", "bar")
+	nomadExpectNoErr(t, "status", "bar")
 
 	// Stop job with no overrides passed
 	exitCode = destroyCmd().Run([]string{testPack})
@@ -258,12 +237,11 @@ func TestJobDestroyWithOverrides(t *testing.T) {
 
 	// Assert job bar is gone
 	nomadExpectErr(t, "status", "bar")
-
-	reset()
 }
 
 func TestFlagProvidedButNotDefined(t *testing.T) {
 	testInit(t)
+	defer reset()
 
 	// There is no job flag. This tests that adding an unspecified flag does not
 	// create an invalid memory address error
@@ -274,15 +252,11 @@ func TestFlagProvidedButNotDefined(t *testing.T) {
 	// std go case
 	exitCode = runCmd().Run([]string{"-job=provided-but-not-defined", "nginx"})
 	require.Equal(t, 1, exitCode)
-
-	reset()
 }
 
 func TestStatus(t *testing.T) {
 	testInit(t)
-	defer func() {
-		clearJob(t, &cache.PackConfig{Name: testPack})
-	}()
+	defer clearJob(t, &cache.PackConfig{Name: testPack})
 
 	exitCode := runCmd().Run([]string{testPack})
 	require.Equal(t, 0, exitCode)
@@ -315,19 +289,16 @@ func TestStatus(t *testing.T) {
 			require.Equal(t, 0, exitCode)
 		})
 	}
-
-	reset()
 }
 
 func TestStatusFails(t *testing.T) {
 	testInit(t)
+	defer reset()
 
 	statusCmd := &StatusCommand{baseCommand: baseCmd()}
 
 	exitCode := statusCmd.Run([]string{"--name=foo"})
 	require.Equal(t, 1, exitCode)
-
-	reset()
 }
 
 var nomadAddr string
@@ -392,22 +363,45 @@ func reset() {
 // deferable func to ensure tests don't leave nomad dev agent with running job
 // that can affect other tests.
 func clearJob(t *testing.T, cfg *cache.PackConfig) {
-	nomadExec(t, "job", "stop", "-purge", cfg.Name)
+	_ = nomadExec(t, "job", "stop", "-purge", cfg.Name)
 	reset()
 }
 
-func nomadExec(t *testing.T, args ...string) {
-	nomadPath, err := exec.LookPath("nomad")
-	require.NoError(t, err)
-	nomadCmd := exec.Command(nomadPath, args...)
-	err = nomadCmd.Run()
-	require.NoError(t, err)
+func nomadExpectNoErr(t *testing.T, args ...string) {
+	err := nomadExec(t, args...)
+	if err != nil {
+		execErr, _ := err.(ErrNomadExec)
+		require.NoError(t, err, "stdout: %q \nstderr: %q", execErr.stdout, execErr.stderr)
+	}
 }
 
 func nomadExpectErr(t *testing.T, args ...string) {
+	err := nomadExec(t, args...)
+	require.Error(t, err)
+}
+
+func nomadExec(t *testing.T, args ...string) error {
+	var outb, errb bytes.Buffer
+
 	nomadPath, err := exec.LookPath("nomad")
 	require.NoError(t, err)
+
 	nomadCmd := exec.Command(nomadPath, args...)
+	nomadCmd.Stdout = &outb
+	nomadCmd.Stderr = &errb
 	err = nomadCmd.Run()
-	require.Error(t, err)
+	if err != nil {
+		return &ErrNomadExec{err: err, stdout: outb.String(), stderr: errb.String()}
+	}
+	return nil
+}
+
+type ErrNomadExec struct {
+	err    error
+	stdout string
+	stderr string
+}
+
+func (e ErrNomadExec) Error() string {
+	return fmt.Sprintf("nomad exec error: %s \n  stdout: \n%s \n  stderr: \n%s", e.err.Error(), e.stdout, e.stderr)
 }
