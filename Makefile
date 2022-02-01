@@ -6,6 +6,14 @@ GIT_DIRTY=$$(test -n "`git status --porcelain`" && echo "+CHANGES" || true)
 GIT_IMPORT="github.com/hashicorp/nomad-pack/internal/pkg/version"
 GO_LDFLAGS="-s -w -X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY)"
 
+.PHONY: bootstrap
+bootstrap: lint-deps # Install all dependencies
+
+.PHONY: lint-deps
+lint-deps: ## Install linter dependencies
+	@echo "==> Updating linter dependencies..."
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.42.0
+
 .PHONY: dev
 dev: GOPATH=$(shell go env GOPATH)
 dev:
