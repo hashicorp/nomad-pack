@@ -115,20 +115,3 @@ func WithUI(ui terminal.UI) Option {
 		c.UI = ui
 	}
 }
-
-// WithNoAutoServer configures the CLI to not automatically spin up
-// an in-memory server for this command.
-//func WithNoAutoServer() Option {
-//	return func(c *baseConfig) {
-//		c.NoAutoServer = true
-//	}
-//}
-
-// WithConnectionArg parses the first argument in the CLI as connection
-// info if it exists. This parses it according to the clicontext.Config.FromURL
-// method.
-//func WithConnectionArg() Option {
-//	return func(c *baseConfig) {
-//		c.ConnArg = true
-//	}
-//}

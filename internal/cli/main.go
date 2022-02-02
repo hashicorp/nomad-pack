@@ -42,6 +42,7 @@ var (
 	// Initialize hidden commands. Anything we add here will be ignored when
 	// we print out the full list of commands
 	hiddenCommands = map[string]struct{}{}
+	ExposeDocs     bool
 )
 
 // Main runs the CLI with the given arguments and returns the exit code.
@@ -60,12 +61,10 @@ func Main(args []string) int {
 
 	// Get our base command
 	fset := flag.NewSets()
-	base, commands := Commands(ctx, WithFlags((fset)))
+	base, commands := Commands(ctx, WithFlags(fset))
 	defer base.Close()
 
-	// Build the CLI. We use a
-	//
-	//CLI factory function because to modify the
+	// Build the CLI. We use a CLI factory function because to modify the
 	// args once you call a func on CLI you need to create a new CLI instance.
 	cliFactory := func() *cli.CLI {
 		return &cli.CLI{
@@ -108,6 +107,10 @@ func Commands(
 		Ctx:           ctx,
 		globalOptions: opts,
 	}
+
+	// aliases is a list of command aliases we have. The key is the CLI
+	// command (the alias) and the value is the existing target command.
+	aliases := map[string]string{}
 
 	// start building our commands
 	commands := map[string]cli.CommandFactory{
@@ -174,6 +177,22 @@ func Commands(
 			}, nil
 		},
 	}
+
+	// register our aliases
+	for from, to := range aliases {
+		commands[from] = commands[to]
+	}
+
+	if ExposeDocs {
+		commands["gen-cli-docs"] = func() (cli.Command, error) {
+			return &DocGenerateCommand{
+				baseCommand: baseCommand,
+				commands:    commands,
+				aliases:     aliases,
+			}, nil
+		}
+	}
+
 	return baseCommand, commands
 }
 

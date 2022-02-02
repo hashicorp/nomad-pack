@@ -9,6 +9,7 @@ import (
 	"path"
 	"runtime"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 
 	"google.golang.org/grpc/codes"
@@ -31,6 +32,9 @@ type baseCommand struct {
 	// Ctx is the base context for the command. It is up to commands to
 	// utilize this context so that cancellation works in a timely manner.
 	Ctx context.Context
+
+	// Log is the logger to use.
+	Log hclog.Logger
 
 	// Example usage
 	Example string
@@ -71,8 +75,10 @@ type baseCommand struct {
 	// options passed in at the global level
 	globalOptions []Option
 
-	// The home directory that we loaded the waypoint config from
+	// The home directory that we loaded the nomad-pack config from
 	homeConfigPath string
+
+	ExposeDocs bool
 }
 
 func (c *baseCommand) Help() string {
