@@ -3,7 +3,7 @@ module github.com/hashicorp/nomad-pack
 go 1.16
 
 require (
-	github.com/Masterminds/sprig v2.22.0+incompatible
+	github.com/Masterminds/sprig/v3 v3.2.2
 	github.com/bgentry/speakeasy v0.1.0
 	github.com/briandowns/spinner v1.11.1
 	github.com/containerd/console v1.0.1
