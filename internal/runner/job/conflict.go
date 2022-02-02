@@ -3,8 +3,8 @@ package job
 import (
 	"fmt"
 
-	v1client "github.com/hashicorp/nomad-openapi/clients/go/v1"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
+	intHelper "github.com/hashicorp/nomad-pack/internal/pkg/helper"
 )
 
 func (r *Runner) CheckForConflicts(errCtx *errors.UIErrorContext) []*errors.WrappedUIContext {
@@ -18,7 +18,7 @@ func (r *Runner) CheckForConflicts(errCtx *errors.UIErrorContext) []*errors.Wrap
 
 	for tplName, jobSpec := range r.parsedTemplates {
 		if err := r.checkForConflict(jobSpec.GetName()); err != nil {
-			outputErrors = append(outputErrors, newValidationDeployerError(err, validationSubjConflict, tplName))
+			outputErrors = append(outputErrors, newValidationDeployerError(intHelper.UnwrapAPIError(err), validationSubjConflict, tplName))
 			continue
 		}
 	}
@@ -36,8 +36,8 @@ func (r *Runner) checkForConflict(jobName string) error {
 
 	existing, _, err := r.client.Jobs().GetJob(r.clientQueryOpts.Ctx(), jobName)
 	if err != nil {
-		openAPIErr, ok := err.(v1client.GenericOpenAPIError)
-		if !ok || string(openAPIErr.Body()) != "job not found" {
+		err = intHelper.UnwrapAPIError(err)
+		if err.Error() != "job not found" {
 			return err
 		}
 	}

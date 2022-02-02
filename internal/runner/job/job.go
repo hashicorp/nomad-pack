@@ -8,6 +8,7 @@ import (
 	v1client "github.com/hashicorp/nomad-openapi/clients/go/v1"
 	v1 "github.com/hashicorp/nomad-openapi/v1"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
+	intHelper "github.com/hashicorp/nomad-pack/internal/pkg/helper"
 	"github.com/hashicorp/nomad-pack/internal/runner"
 	"github.com/hashicorp/nomad-pack/sdk/helper"
 	"github.com/hashicorp/nomad-pack/terminal"
@@ -95,7 +96,7 @@ func (r *Runner) Deploy(ui terminal.UI, errorContext *errors.UIErrorContext) *er
 		result, _, err := r.client.Jobs().Register(newWriteOptsFromJob(jobSpec).Ctx(), jobSpec, &registerOpts)
 		if err != nil {
 			r.rollback(ui)
-			return generateRegisterError(err, tplErrorContext, jobSpec.GetName())
+			return generateRegisterError(intHelper.UnwrapAPIError(err), tplErrorContext, jobSpec.GetName())
 		}
 
 		// Print any warnings if there are any
@@ -133,7 +134,7 @@ func (r *Runner) rollback(ui terminal.UI) {
 		ui.Info(fmt.Sprintf("attempting rollback of job '%s'", *job.ID))
 		_, _, err := r.client.Jobs().Delete(newWriteOptsFromJob(job).Ctx(), *job.ID, true, true)
 		if err != nil {
-			ui.ErrorWithContext(err, fmt.Sprintf("rollback failed for job '%s'", *job.ID))
+			ui.ErrorWithContext(intHelper.UnwrapAPIError(err), fmt.Sprintf("rollback failed for job '%s'", *job.ID))
 		} else {
 			ui.Info(fmt.Sprintf("rollback of job '%s' succeeded", *job.ID))
 		}
@@ -190,7 +191,7 @@ func (r *Runner) handlePeriodicJobResponse(ui terminal.UI, job *v1client.Job) {
 		now := time.Now().In(loc)
 		next, err := r.client.Jobs().Next(job.Periodic, now)
 		if err != nil {
-			ui.ErrorWithContext(err, "failed to determine next launch time")
+			ui.ErrorWithContext(intHelper.UnwrapAPIError(err), "failed to determine next launch time")
 		} else {
 			ui.Warning(fmt.Sprintf("Approximate next launch time: %s (%s from now)",
 				formatTime(&next), formatTimeDifference(now, next, time.Second)))
@@ -209,7 +210,7 @@ func (r *Runner) ParseTemplates() []*errors.WrappedUIContext {
 
 		job, err := r.client.Jobs().Parse(r.clientQueryOpts.Ctx(), tpl, true, r.cfg.RunConfig.HCL1)
 		if err != nil {
-			outputErrors = append(outputErrors, newValidationDeployerError(err, validationSubjParseFailed, tplName))
+			outputErrors = append(outputErrors, newValidationDeployerError(intHelper.UnwrapAPIError(err), validationSubjParseFailed, tplName))
 			continue
 		}
 
