@@ -1,3 +1,0 @@
-heredoc = <<EOF
-Good
-EOF
