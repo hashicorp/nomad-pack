@@ -144,7 +144,7 @@ func (c *InfoCommand) Help() string {
 
 	Returns information on the given pack including name, description, and variable details.
 
-` + c.GetExample())
+` + c.GetExample() + c.Flags().Help())
 }
 
 func (c *InfoCommand) Synopsis() string {
