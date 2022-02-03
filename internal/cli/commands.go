@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"runtime"
+	"strings"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
@@ -56,6 +57,9 @@ type baseCommand struct {
 
 	// vars sets values for defined input variables
 	vars map[string]string
+
+	// envVars sets values for defined input variables from the environment
+	envVars map[string]string
 
 	// varFiles is an HCL file(s) setting one or more values
 	// for defined input variables
@@ -166,6 +170,8 @@ func (c *baseCommand) Init(opts ...Option) error {
 		return err
 	}
 	c.args = baseCfg.Flags.Args()
+
+	c.envVars = getVarsFromEnv()
 
 	// Do any validation after parsing
 	if baseCfg.Validation != nil {
@@ -365,4 +371,27 @@ func IsCanceled(err error) bool {
 	}
 
 	return s.Code() == codes.Canceled
+}
+
+func getVarsFromEnv() map[string]string {
+	out := make(map[string]string)
+
+	for _, raw := range os.Environ() {
+		if !strings.HasPrefix(raw, VarEnvPrefix) {
+			continue
+		}
+		raw = raw[len(VarEnvPrefix):] // trim the prefix
+
+		eq := strings.Index(raw, "=")
+		if eq == -1 {
+			// Seems invalid, so we'll ignore it.
+			continue
+		}
+
+		name := raw[:eq]
+		value := raw[eq+1:]
+		out[name] = value
+	}
+
+	return out
 }

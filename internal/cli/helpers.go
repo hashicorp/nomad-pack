@@ -16,6 +16,8 @@ import (
 	"github.com/hashicorp/nomad-pack/terminal"
 )
 
+const VarEnvPrefix = "NOMAD_PACK_VAR_"
+
 // get an initialized error context for a command that accepts pack args.
 func initPackCommand(cfg *cache.PackConfig) (errorContext *errors.UIErrorContext) {
 	cfg.Init()
@@ -36,6 +38,7 @@ func generatePackManager(c *baseCommand, client *v1.Client, packCfg *cache.PackC
 		Path:            packCfg.Path,
 		VariableFiles:   c.varFiles,
 		VariableCLIArgs: c.vars,
+		VariableEnvVars: c.envVars,
 	}
 	return manager.NewPackManager(&cfg, client)
 }

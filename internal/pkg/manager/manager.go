@@ -19,6 +19,7 @@ type Config struct {
 	Path            string
 	VariableFiles   []string
 	VariableCLIArgs map[string]string
+	VariableEnvVars map[string]string
 }
 
 // PackManager is responsible for loading, parsing, and rendering a Pack and
@@ -68,6 +69,7 @@ func (pm *PackManager) ProcessTemplates() (*renderer.Rendered, []*errors.Wrapped
 		RootVariableFiles: loadedPack.RootVariableFiles(),
 		FileOverrides:     pm.cfg.VariableFiles,
 		CLIOverrides:      pm.cfg.VariableCLIArgs,
+		EnvOverrides:      pm.cfg.VariableEnvVars,
 	})
 	if err != nil {
 		return nil, []*errors.WrappedUIContext{{
