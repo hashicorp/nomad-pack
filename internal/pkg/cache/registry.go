@@ -133,8 +133,13 @@ func (r *Registry) parsePackURL(packURL string) bool {
 // setURLFromPacks sets the Source since we don't have this stored in any sort of
 // reliable way.
 func (r *Registry) setURLFromPacks() {
+
 	for _, cachedPack := range r.Packs {
-		if !r.parsePackURL(cachedPack.Metadata.Pack.URL) {
+		if err := cachedPack.Validate(); err != nil {
+			continue
+		}
+
+		if r.parsePackURL(cachedPack.Metadata.Pack.URL) {
 			continue
 		}
 
