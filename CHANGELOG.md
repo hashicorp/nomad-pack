@@ -1,4 +1,10 @@
+
 ## Unreleased
+
+FEATURE:
+* **Set Nomad Pack variables using environment variables** - Pack reads the
+  environment for variables prefixed with `NOMAD_PACK_VAR_` and supplies them to
+  the running pack.
 
 BUG FIXES:
 * template: Handle HEREDOC delimiter immediately before EOF [GH-191](https://github.com/hashicorp/nomad-pack/pull/191)
