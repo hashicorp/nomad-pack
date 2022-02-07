@@ -13,7 +13,7 @@ require (
 	github.com/hashicorp/go-hclog v1.0.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/hcl/v2 v2.10.1
-	github.com/hashicorp/nomad-openapi v0.0.0-20211120040829-8bd0a1f543b4
+	github.com/hashicorp/nomad-openapi v0.0.0-20220207152010-73a3f0e35f5b
 	github.com/kr/text v0.2.0
 	github.com/lab47/vterm v0.0.0-20201001232628-a9dd795f94c2
 	github.com/mattn/go-isatty v0.0.12
