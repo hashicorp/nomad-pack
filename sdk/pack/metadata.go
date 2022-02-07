@@ -115,11 +115,17 @@ func (md *Metadata) Validate() error {
 // validate the MetadataApp object to ensure it meets requirements and doesn't
 // contain invalid or incorrect data.
 func (ma *MetadataApp) validate() error {
+	if ma == nil {
+		return errors.New("App is uninitialized")
+	}
 	return nil
 }
 
 // validate the MetadataPack object to ensure it meets requirements and doesn't
 // contain invalid or incorrect data.
 func (mp *MetadataPack) validate() error {
+	if mp == nil {
+		return errors.New("Pack metadata is uninitialized")
+	}
 	return nil
 }
