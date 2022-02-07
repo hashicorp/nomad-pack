@@ -2,6 +2,7 @@ package variable
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -29,8 +30,8 @@ func (p *Parser) parseEnvVariable(name string, rawVal string) hcl.Diagnostics {
 		return hcl.Diagnostics{
 			{
 				Severity: hcl.DiagError,
-				Summary:  "Invalid NOMAD_PACK_var option",
-				Detail:   fmt.Sprintf("The given environment variable NOMAD_PACK_var_%s=%s is not correctly specified. The variable name must not have more than forward-slash separators.", name, rawVal),
+				Summary:  fmt.Sprintf("Invalid %s option", strings.TrimRight(VarEnvPrefix, "_")),
+				Detail:   fmt.Sprintf("The given environment variable %s%s=%s is not correctly specified. The variable name must not have more than one dot `.` separator.", VarEnvPrefix, name, rawVal),
 			},
 		}
 	}
@@ -39,12 +40,14 @@ func (p *Parser) parseEnvVariable(name string, rawVal string) hcl.Diagnostics {
 	// HCL diagnostics.
 	fakeRange := hcl.Range{Filename: fmt.Sprintf("<value for var.%s from environment>", name)}
 
-	// If the variable has not been configured in the root then exit. This is a
-	// standard requirement, especially because we would be unable to ensure a
-	// consistent type.
+	// If the variable has not been configured in the root then ignore it. This
+	// is a departure from the way in which flags and var-files are handled.
+	// The environment might contain NOMAD_PACK_VAR variables used for other
+	// packs that might be run on the same system but are not used with this
+	// particular pack.
 	existing, exists := p.rootVars[packVarName[0]][packVarName[1]]
 	if !exists {
-		return hcl.Diagnostics{diagnosticMissingRootVar(name, &fakeRange)}
+		return nil
 	}
 
 	expr, diags := expressionFromVariableDefinition(fakeRange.Filename, rawVal, existing.Type)
@@ -100,7 +103,7 @@ func (p *Parser) parseCLIVariable(name string, rawVal string) hcl.Diagnostics {
 			{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid -var option",
-				Detail:   fmt.Sprintf("The given -var option %s=%s is not correctly specified. The variable name must not have more than forward-slash separators.", name, rawVal),
+				Detail:   fmt.Sprintf("The given -var option %s=%s is not correctly specified. The variable name must not have more than one dot `.` separator.", name, rawVal),
 			},
 		}
 	}
@@ -158,4 +161,27 @@ func expressionFromVariableDefinition(file, val string, varType cty.Type) (hclsy
 	default:
 		return hclsyntax.ParseExpression([]byte(val), file, hcl.Pos{Line: 1, Column: 1})
 	}
+}
+
+func GetVarsFromEnv() map[string]string {
+	out := make(map[string]string)
+
+	for _, raw := range os.Environ() {
+		if !strings.HasPrefix(raw, VarEnvPrefix) {
+			continue
+		}
+		raw = raw[len(VarEnvPrefix):] // trim the prefix
+
+		eq := strings.Index(raw, "=")
+		if eq == -1 {
+			// Seems invalid, so we'll ignore it.
+			continue
+		}
+
+		name := raw[:eq]
+		value := raw[eq+1:]
+		out[name] = value
+	}
+
+	return out
 }

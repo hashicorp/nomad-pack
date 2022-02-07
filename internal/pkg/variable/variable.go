@@ -8,6 +8,8 @@ import (
 	"github.com/zclconf/go-cty/cty/convert"
 )
 
+const VarEnvPrefix = "NOMAD_PACK_VAR_"
+
 // Variable encapsulates a single variable as defined within a block according
 // to variableFileSchema and variableBlockSchema.
 type Variable struct {

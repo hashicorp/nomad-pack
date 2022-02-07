@@ -16,8 +16,6 @@ import (
 	"github.com/hashicorp/nomad-pack/terminal"
 )
 
-const VarEnvPrefix = "NOMAD_PACK_VAR_"
-
 // get an initialized error context for a command that accepts pack args.
 func initPackCommand(cfg *cache.PackConfig) (errorContext *errors.UIErrorContext) {
 	cfg.Init()

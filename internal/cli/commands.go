@@ -8,19 +8,16 @@ import (
 	"os"
 	"path"
 	"runtime"
-	"strings"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
-
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-
+	flag "github.com/hashicorp/nomad-pack/internal/pkg/flag"
+	"github.com/hashicorp/nomad-pack/internal/pkg/variable"
+	"github.com/hashicorp/nomad-pack/terminal"
 	"github.com/mitchellh/go-wordwrap"
 	"github.com/posener/complete"
-
-	flag "github.com/hashicorp/nomad-pack/internal/pkg/flag"
-	"github.com/hashicorp/nomad-pack/terminal"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // baseCommand is embedded in all commands to provide common logic and data.
@@ -171,7 +168,7 @@ func (c *baseCommand) Init(opts ...Option) error {
 	}
 	c.args = baseCfg.Flags.Args()
 
-	c.envVars = getVarsFromEnv()
+	c.envVars = variable.GetVarsFromEnv()
 
 	// Do any validation after parsing
 	if baseCfg.Validation != nil {
@@ -371,27 +368,4 @@ func IsCanceled(err error) bool {
 	}
 
 	return s.Code() == codes.Canceled
-}
-
-func getVarsFromEnv() map[string]string {
-	out := make(map[string]string)
-
-	for _, raw := range os.Environ() {
-		if !strings.HasPrefix(raw, VarEnvPrefix) {
-			continue
-		}
-		raw = raw[len(VarEnvPrefix):] // trim the prefix
-
-		eq := strings.Index(raw, "=")
-		if eq == -1 {
-			// Seems invalid, so we'll ignore it.
-			continue
-		}
-
-		name := raw[:eq]
-		value := raw[eq+1:]
-		out[name] = value
-	}
-
-	return out
 }
