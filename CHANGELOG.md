@@ -1,16 +1,26 @@
-## Unreleased
+## UNRELEASED
 
+FEATURES:
+
+* **Run Pack from Folder** - Nomad Pack can run and render packs stored in the current folder. For example, if the current folder
+  contains a pack named `simple-service`, you can run it using `nomad-pack run ./simple-service`.
+  
 BUG FIXES:
-* template: Handle HEREDOC delimiter immediately before EOF [GH-191](https://github.com/hashicorp/nomad-pack/pull/191)
+* template: Handle HEREDOC delimiter immediately before EOF [[GH-191](https://github.com/hashicorp/nomad-pack/pull/191)]
+* cli: display API client errors in CLI output [[GH-183](https://github.com/hashicorp/nomad-pack/pull/183)]
+* cli: add flags to `info` command help output [[GH-200](https://github.com/hashicorp/nomad-pack/pull/200)]
+* cli: fix panic from bad registry metadata [[GH-202](https://github.com/hashicorp/nomad-pack/pull/202)]
 
 IMPROVEMENTS:
 
-* cache: Moved the pack registry cache to the platform-specific user cache directory [GH-172](https://github.com/hashicorp/nomad-pack/pull/172)
-* cli: Don't build pack registry cache during the `version` command [GH-128](https://github.com/hashicorp/nomad-pack/pull/128)
-* cli: Support Nomad ACLs and mTLS configuration [GH-177](https://github.com/hashicorp/nomad-pack/pull/177)
-* cli/plan: Run template canonicalization before planning to fix diffs [GH-181](https://github.com/hashicorp/nomad-pack/pull/181)
-* dependencies: Removed direct import of Nomad code base [GH-157](https://github.com/hashicorp/nomad-pack/pull/157)
-* template: Added `toStringList` function [GH-136](https://github.com/hashicorp/nomad-pack/pull/136)
+* cache: Moved the pack registry cache to the platform-specific user cache directory [[GH-172](https://github.com/hashicorp/nomad-pack/pull/172)]
+* cli: Don't build pack registry cache during the `version` command [[GH-128](https://github.com/hashicorp/nomad-pack/pull/128)]
+* cli: Support Nomad ACLs and mTLS configuration [[GH-177](https://github.com/hashicorp/nomad-pack/pull/177)]
+* cli/plan: Run template canonicalization before planning to fix diffs [[GH-181](https://github.com/hashicorp/nomad-pack/pull/181)]
+* dependencies: Removed direct import of Nomad code base [[GH-157](https://github.com/hashicorp/nomad-pack/pull/157)]
+* template: Added `toStringList` function [[GH-136](https://github.com/hashicorp/nomad-pack/pull/136)]
+* template: Update Sprig library to v3 [[GH-197](https://github.com/hashicorp/nomad-pack/pull/197)]
+
 
 ## 0.0.1-techpreview1 (October 19, 2021)
 
