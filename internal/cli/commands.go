@@ -11,15 +11,13 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
-
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-
+	flag "github.com/hashicorp/nomad-pack/internal/pkg/flag"
+	"github.com/hashicorp/nomad-pack/internal/pkg/variable"
+	"github.com/hashicorp/nomad-pack/terminal"
 	"github.com/mitchellh/go-wordwrap"
 	"github.com/posener/complete"
-
-	flag "github.com/hashicorp/nomad-pack/internal/pkg/flag"
-	"github.com/hashicorp/nomad-pack/terminal"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // baseCommand is embedded in all commands to provide common logic and data.
@@ -56,6 +54,9 @@ type baseCommand struct {
 
 	// vars sets values for defined input variables
 	vars map[string]string
+
+	// envVars sets values for defined input variables from the environment
+	envVars map[string]string
 
 	// varFiles is an HCL file(s) setting one or more values
 	// for defined input variables
@@ -166,6 +167,8 @@ func (c *baseCommand) Init(opts ...Option) error {
 		return err
 	}
 	c.args = baseCfg.Flags.Args()
+
+	c.envVars = variable.GetVarsFromEnv()
 
 	// Do any validation after parsing
 	if baseCfg.Validation != nil {

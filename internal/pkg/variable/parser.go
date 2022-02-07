@@ -25,8 +25,9 @@ type Parser struct {
 	// the second is by the variable name.
 	rootVars map[string]map[string]*Variable
 
-	// fileOverrideVars and cliOverrideVars are the override variables. The
-	// maps are keyed by the pack name they are associated to.
+	// envOverrideVars, fileOverrideVars, cliOverrideVars are the override
+	// variables. The maps are keyed by the pack name they are associated to.
+	envOverrideVars  map[string][]*Variable
 	fileOverrideVars map[string][]*Variable
 	cliOverrideVars  map[string][]*Variable
 }
@@ -41,6 +42,10 @@ type ParserConfig struct {
 	// RootVariableFiles contains a map of root variable files, keyed by their
 	// pack name.
 	RootVariableFiles map[string]*pack.File
+
+	// EnvOverrides are key=value variables and take the lowest precedence of
+	// all sources. If the same key is supplied twice, the last wins.
+	EnvOverrides map[string]string
 
 	// FileOverrides is a list of files which contain variable overrides in the
 	// form key=value. The files will be stored before processing to ensure a
@@ -76,6 +81,7 @@ func NewParser(cfg *ParserConfig) (*Parser, error) {
 		},
 		cfg:              cfg,
 		rootVars:         make(map[string]map[string]*Variable),
+		envOverrideVars:  make(map[string][]*Variable),
 		fileOverrideVars: make(map[string][]*Variable),
 		cliOverrideVars:  make(map[string][]*Variable),
 	}, nil
@@ -90,7 +96,12 @@ func (p *Parser) Parse() (*ParsedVariables, hcl.Diagnostics) {
 		return nil, diags
 	}
 
-	// Parse file and CLI overrides.
+	// Parse env, file, and CLI overrides.
+	for k, v := range p.cfg.EnvOverrides {
+		envOverrideDiags := p.parseEnvVariable(k, v)
+		diags = safeDiagnosticsExtend(diags, envOverrideDiags)
+	}
+
 	for _, fileOverride := range p.cfg.FileOverrides {
 		fileOverrideDiags := p.parseOverridesFile(fileOverride)
 		diags = safeDiagnosticsExtend(diags, fileOverrideDiags)
@@ -107,7 +118,7 @@ func (p *Parser) Parse() (*ParsedVariables, hcl.Diagnostics) {
 
 	// Iterate all our override variables and merge these into our root
 	// variables with the CLI taking highest priority.
-	for _, override := range []map[string][]*Variable{p.fileOverrideVars, p.cliOverrideVars} {
+	for _, override := range []map[string][]*Variable{p.envOverrideVars, p.fileOverrideVars, p.cliOverrideVars} {
 		for packName, variables := range override {
 			for _, v := range variables {
 				existing, exists := p.rootVars[packName][v.Name]

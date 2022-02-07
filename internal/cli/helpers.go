@@ -36,6 +36,7 @@ func generatePackManager(c *baseCommand, client *v1.Client, packCfg *cache.PackC
 		Path:            packCfg.Path,
 		VariableFiles:   c.varFiles,
 		VariableCLIArgs: c.vars,
+		VariableEnvVars: c.envVars,
 	}
 	return manager.NewPackManager(&cfg, client)
 }

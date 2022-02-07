@@ -1,6 +1,7 @@
 package variable
 
 import (
+	"fmt"
 	"os"
 	"path"
 	"testing"
@@ -18,6 +19,7 @@ func TestParser_parseCLIVariable(t *testing.T) {
 		inputRawVal     string
 		expectedError   bool
 		expectedCLIVars map[string][]*Variable
+		expectedEnvVars map[string][]*Variable
 		name            string
 	}{
 		{
@@ -35,6 +37,7 @@ func TestParser_parseCLIVariable(t *testing.T) {
 					},
 				},
 				cliOverrideVars: make(map[string][]*Variable),
+				envOverrideVars: make(map[string][]*Variable),
 			},
 			inputName:     "region",
 			inputRawVal:   "vlc",
@@ -49,7 +52,8 @@ func TestParser_parseCLIVariable(t *testing.T) {
 					},
 				},
 			},
-			name: "non-namespaced variable",
+			expectedEnvVars: make(map[string][]*Variable),
+			name:            "non-namespaced variable",
 		},
 		{
 			inputParser: &Parser{
@@ -139,10 +143,143 @@ func TestParser_parseHeredocAtEOF(t *testing.T) {
 		rootVars:        map[string]map[string]*Variable{},
 		cliOverrideVars: make(map[string][]*Variable),
 	}
-	// FIXME: Find the fixture folder in a less janky way
-	cwd, _ := os.Getwd()
-	fixturePath := path.Join(cwd, "../../../fixtures/variables-with-heredoc/vars.hcl")
+	fixturePath := Fixture("variable_test/heredoc.vars.hcl")
 	b, diags := inputParser.loadOverrideFile(fixturePath)
 	assert.NotNil(t, b)
 	assert.Empty(t, diags)
+}
+
+func TestParser_VariableOverrides(t *testing.T) {
+	testcases := []struct {
+		Name   string
+		Parser *Parser
+		Expect string
+	}{
+		{
+			Name:   "no override",
+			Parser: NewTestInputParser(),
+			Expect: "root",
+		},
+		{
+			Name:   "env override",
+			Parser: NewTestInputParser(WithEnvVar("input", "env")),
+			Expect: "env",
+		},
+		{
+			Name:   "file override",
+			Parser: NewTestInputParser(WithFileVar("input", "file")),
+			Expect: "file",
+		},
+		{
+			Name:   "flag override",
+			Parser: NewTestInputParser(WithCliVar("input", "flag")),
+			Expect: "flag",
+		},
+		{
+			Name: "file opaques env",
+			Parser: NewTestInputParser(
+				WithEnvVar("input", "env"),
+				WithFileVar("input", "file"),
+			),
+			Expect: "file",
+		},
+		{
+			Name: "flag opaques env",
+			Parser: NewTestInputParser(
+				WithEnvVar("input", "env"),
+				WithCliVar("input", "flag"),
+			),
+			Expect: "flag",
+		},
+		{
+			Name: "flag opaques file",
+			Parser: NewTestInputParser(
+				WithFileVar("input", "file"),
+				WithCliVar("input", "flag"),
+			),
+			Expect: "flag",
+		},
+		{
+			Name: "flag opaques env and file",
+			Parser: NewTestInputParser(
+				WithEnvVar("input", "env"),
+				WithFileVar("input", "file"),
+				WithCliVar("input", "flag"),
+			),
+			Expect: "flag",
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.Name, func(t *testing.T) {
+			pv, diags := tc.Parser.Parse()
+			assert.NotNil(t, pv)
+			assert.Empty(t, diags)
+
+			assert.Equal(t, tc.Expect, pv.Vars["example"]["input"].Value.AsString())
+		})
+	}
+}
+
+func Fixture(fPath string) string {
+	// FIXME: Find the fixture folder in a less janky way
+	cwd, _ := os.Getwd()
+	return path.Join(cwd, "../../../fixtures/", fPath)
+}
+
+type TestParserOption func(*Parser)
+
+func WithEnvVar(key, value string) TestParserOption {
+	return func(p *Parser) {
+		p.envOverrideVars["example"] = append(p.envOverrideVars["example"], NewStringVariable(key, value, "env"))
+	}
+}
+
+func WithCliVar(key, value string) TestParserOption {
+	return func(p *Parser) {
+		p.cliOverrideVars["example"] = append(p.cliOverrideVars["example"], NewStringVariable(key, value, "cli"))
+	}
+}
+
+func WithFileVar(key, value string) TestParserOption {
+	return func(p *Parser) {
+		p.cliOverrideVars["example"] = append(p.cliOverrideVars["example"], NewStringVariable(key, value, "file"))
+	}
+}
+
+func NewTestInputParser(opts ...TestParserOption) *Parser {
+
+	p := &Parser{
+		fs:  afero.Afero{Fs: afero.OsFs{}},
+		cfg: &ParserConfig{ParentName: "example"},
+		rootVars: map[string]map[string]*Variable{
+			"example": {
+				"input": &Variable{
+					Name:      "input",
+					Type:      cty.String,
+					Value:     cty.StringVal("root"),
+					DeclRange: hcl.Range{Filename: "<value for var.input from rootVars>"},
+				},
+			},
+		},
+		envOverrideVars:  make(map[string][]*Variable),
+		fileOverrideVars: make(map[string][]*Variable),
+		cliOverrideVars:  make(map[string][]*Variable),
+	}
+
+	// Loop through each option
+	for _, opt := range opts {
+		opt(p)
+	}
+
+	return p
+}
+
+func NewStringVariable(key, value, kind string) *Variable {
+	return &Variable{
+		Name:      key,
+		Type:      cty.String,
+		Value:     cty.StringVal(value),
+		DeclRange: hcl.Range{Filename: fmt.Sprintf("<value for var.%s from %s>", key, kind)},
+	}
 }
