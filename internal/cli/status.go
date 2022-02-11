@@ -50,10 +50,10 @@ func (c *StatusCommand) Run(args []string) int {
 		return c.renderAllDeployedPacks(jobsApi, errorContext)
 	}
 
-	return c.renderDeployedPackJobs(err, jobsApi, errorContext)
+	return c.renderDeployedPackJobs(jobsApi, errorContext)
 }
 
-func (c *StatusCommand) renderDeployedPackJobs(err error, jobsApi *v1.Jobs, errorContext *errors.UIErrorContext) int {
+func (c *StatusCommand) renderDeployedPackJobs(jobsApi *v1.Jobs, errorContext *errors.UIErrorContext) int {
 	packJobs, jobErrs, err := getDeployedPackJobs(jobsApi, c.packConfig, c.deploymentName)
 	if err != nil {
 		c.ui.ErrorWithContext(err, "error retrieving jobs", errorContext.GetAll()...)

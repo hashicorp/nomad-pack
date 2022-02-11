@@ -22,11 +22,10 @@ type StopCommand struct {
 }
 
 func (c *StopCommand) Run(args []string) int {
-	var err error
 
 	c.cmdKey = "stop" // Add cmd key here so help text is available in Init
 	// Initialize. If we fail, we just exit since Init handles the UI.
-	if err = c.Init(
+	if err := c.Init(
 		WithExactArgs(1, args),
 		WithFlags(c.Flags()),
 		WithNoConfig(),
@@ -82,7 +81,7 @@ func (c *StopCommand) Run(args []string) int {
 		packManager := generatePackManager(c.baseCommand, client, c.packConfig)
 
 		// render the pack
-		r, err := renderPack(packManager, c.baseCommand.ui, errorContext)
+		r, err := renderPack(packManager, c.baseCommand.ui, errorContext) //nolint:govet // Shadowed err is perfectly fine here
 		if err != nil {
 			return 255
 		}
@@ -199,37 +198,37 @@ func (c *StopCommand) checkForConflicts(jobsApi *v1.Jobs, jobName string) error 
 // TODO: Add interactive support
 func (c *StopCommand) confirmStop() bool {
 	return true
-	//getConfirmation := func(question string) (int, bool) {
-	//	answer, err := c.ui.Input(question)
-	//	if err != nil {
-	//		c.ui.Output(fmt.Sprintf("Failed to parse answer: %v", err))
-	//		return 1, false
-	//	}
+	// getConfirmation := func(question string) (int, bool) {
+	// 	answer, err := c.ui.Input(question)
+	// 	if err != nil {
+	// 		c.ui.Output(fmt.Sprintf("Failed to parse answer: %v", err))
+	// 		return 1, false
+	// 	}
 	//
-	//	if answer == "" || strings.ToLower(answer)[0] == 'n' {
-	//		// No case
-	//		c.ui.Output("Cancelling job stop")
-	//		return 0, false
-	//	} else if strings.ToLower(answer)[0] == 'y' && len(answer) > 1 {
-	//		// Non-exact match yes
-	//		c.ui.Output("For confirmation, an exact ‘y’ is required.")
-	//		return 0, false
-	//	} else if answer != "y" {
-	//		c.ui.Output("No confirmation detected. For confirmation, an exact 'y' is required.")
+	// 	if answer == "" || strings.ToLower(answer)[0] == 'n' {
+	// 		// No case
+	// 		c.ui.Output("Cancelling job stop")
+	// 		return 0, false
+	// 	} else if strings.ToLower(answer)[0] == 'y' && len(answer) > 1 {
+	// 		// Non-exact match yes
+	// 		c.ui.Output("For confirmation, an exact ‘y’ is required.")
+	// 		return 0, false
+	// 	} else if answer != "y" {
+	// 		c.ui.Output("No confirmation detected. For confirmation, an exact 'y' is required.")
 	//		return 1, false
-	//	}
-	//	return 0, true
-	//}
+	// 	}
+	// 	return 0, true
+	// }
 
 	// Confirm the stop if the job was a prefix match
 	// TODO: Add interactive support
-	//if c.jobName != *job.ID {
-	//	question := fmt.Sprintf("Are you sure you want to stop job %q? [y/N]", *job.ID)
-	//	code, confirmed := getConfirmation(question)
-	//	if !confirmed {
-	//		return code
-	//	}
-	//}
+	// if c.jobName != *job.ID {
+	// 	question := fmt.Sprintf("Are you sure you want to stop job %q? [y/N]", *job.ID)
+	// 	code, confirmed := getConfirmation(question)
+	// 	if !confirmed {
+	// 		return code
+	// 	}
+	// }
 
 	// Confirm we want to stop only a single region of a multiregion job
 	// TODO: Add interactive support
@@ -239,7 +238,7 @@ func (c *StopCommand) confirmStop() bool {
 	//	if !confirmed {
 	//		return code
 	//	}
-	//}
+	// }
 }
 
 func (c *StopCommand) Flags() *flag.Sets {

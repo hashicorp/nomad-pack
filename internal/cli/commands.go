@@ -49,8 +49,9 @@ type baseCommand struct {
 	// flagPlain is whether the output should be in plain mode.
 	flagPlain bool
 
+	// TODO: Implement labels
 	// flagLabels are set via -label if flagSetOperation is set.
-	flagLabels map[string]string
+	// flagLabels map[string]string
 
 	// vars sets values for defined input variables
 	vars map[string]string
@@ -76,8 +77,9 @@ type baseCommand struct {
 	// options passed in at the global level
 	globalOptions []Option
 
+	// TODO: Add nomad-pack config file support
 	// The home directory that we loaded the nomad-pack config from
-	homeConfigPath string
+	// homeConfigPath string
 
 	ExposeDocs bool
 }
@@ -324,9 +326,9 @@ func (c *baseCommand) helpUsageMessage() string {
 type flagSetBit uint
 
 const (
-	flagSetNone          flagSetBit = 1 << iota
-	flagSetOperation                // shared flags for operations (run, plan, etc)
-	flagSetNeedsApproval            // adds the -y flag for commands that require approval to run
+	flagSetNone          flagSetBit = 1 << iota // nolint:deadcode,varcheck // this is a sentinel value and could be unused
+	flagSetOperation                            // shared flags for operations (run, plan, etc)
+	flagSetNeedsApproval                        // adds the -y flag for commands that require approval to run
 )
 
 var (

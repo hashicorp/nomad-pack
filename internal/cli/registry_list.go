@@ -10,7 +10,6 @@ import (
 // to the current machine.
 type RegistryListCommand struct {
 	*baseCommand
-	command string
 }
 
 func (c *RegistryListCommand) Run(args []string) int {

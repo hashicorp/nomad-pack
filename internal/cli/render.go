@@ -141,7 +141,7 @@ func writeFile(c *RenderCommand, path string, content string) error {
 	// of overwrite.
 	_, err := os.Stat(path)
 	if err == nil {
-		overwrite, err := confirmOverwrite(c, path)
+		overwrite, err := confirmOverwrite(c, path) //nolint:govet // Shadowing err is ok here
 		if err != nil {
 			return err
 		}
@@ -234,7 +234,7 @@ func (c *RenderCommand) Run(args []string) int {
 	// can still display the pack templates from above. The error will be
 	// displayed before the template renders, so the UI looks OK.
 	if c.renderOutputTemplate {
-		outputRender, err := packManager.ProcessOutputTemplate()
+		outputRender, err := packManager.ProcessOutputTemplate() //nolint:govet // Shadowed err is perfectly fine here
 		if err != nil {
 			c.ui.ErrorWithContext(err, "failed to render output template", errorContext.GetAll()...)
 		} else {
