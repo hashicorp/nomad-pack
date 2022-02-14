@@ -66,7 +66,7 @@ func (c *StatusCommand) renderDeployedPackJobs(jobsApi *v1.Jobs, errorContext *e
 			msg += fmt.Sprintf(" in deployment %q", c.deploymentName)
 		}
 		c.ui.Warning(msg)
-		return 0
+		return 1
 	}
 
 	c.ui.Table(formatDeployedPackJobs(packJobs))

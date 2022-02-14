@@ -36,6 +36,7 @@ func httpTest(t testing.TB, cb func(c *agent.Config), f func(srv *agent.TestAgen
 	s := makeHTTPServer(t, cb)
 	defer s.Shutdown()
 	testutil.WaitForLeader(t, s.Agent.RPC)
+	t.Setenv("NOMAD_ADDR", fmt.Sprintf("http://%s:%d", s.Config.BindAddr, s.Config.Ports.HTTP))
 	f(s)
 }
 
@@ -81,10 +82,6 @@ func TestACLBootstrap(t *testing.T) {
 		c.NomadConfig.ACLEnabled = true
 	}
 	httpTest(t, enableACL, func(s *agent.TestAgent) {
-		// if os.Getenv("NOMAD_TOKEN") == "" {
-		// 	t.Skip()
-		// }
-
 		client, err := NewTestClient(s)
 		require.NoError(t, err)
 
@@ -112,4 +109,40 @@ func TestACLBootstrap(t *testing.T) {
 		require.NotNil(t, qMeta)
 		require.NotNil(t, result)
 	})
+}
+
+// TestServer configuration helpers
+
+// AgentOption is a functional option used as an argument to `WithAgentConfig`
+type AgentOption func(*agent.Config)
+
+// WithDefaultConfig provides an agent.Config callback that generally applies
+// across all tests
+func WithDefaultConfig() func(c *agent.Config) {
+	return WithAgentConfig(LogLevel(testLogLevel))
+}
+
+// WithAgentConfig creates a callback function that applies all of the provided
+// AgentOptions to the agent.Config.
+func WithAgentConfig(opts ...AgentOption) func(*agent.Config) {
+	return func(c *agent.Config) {
+		for _, opt := range opts {
+			opt(c)
+		}
+	}
+}
+
+// LogLevel is an AgentOption used to control the log level of the TestServer
+func LogLevel(level string) AgentOption {
+	return func(c *agent.Config) {
+		c.LogLevel = level
+	}
+}
+
+// ACLEnabled is an AgentOption used to configure the TestServer with ACLs
+// enabled. Once started, this agent will need to have the ACLs bootstrapped.
+func ACLEnabled() AgentOption {
+	return func(c *agent.Config) {
+		c.NomadConfig.ACLEnabled = true
+	}
 }
