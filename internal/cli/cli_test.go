@@ -23,11 +23,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// These tests currently require the nomad agent -dev to be running.
-// TODO: Start a Nomad Dev Agent if Nomad is on their box. If not, skip loudly
-// TODO: Refactor the test packs to use raw_exec jobs so that no additional
-// nomad task driver dependencies are required on the testing box
-
 // TODO: Test job run with diffs
 // TODO: Test job run plan with diffs
 // TODO: Test multi-region plan without conflicts
@@ -520,4 +515,20 @@ func TestCreateTestRegistry(t *testing.T) {
 	result := runPackCmd(t, []string{"registry", "list"})
 	require.Contains(t, result.cmdOut.String(), fmt.Sprintf("simple_raw_exec            | 48eb7d5 | 0.0.1            | %s", regName))
 	require.Equal(t, 0, result.exitCode)
+}
+
+func nomadCleanupJob(t *testing.T, s *agent.TestAgent) {
+	c, _ := NewTestClient(s)
+
+	wo := v1.DefaultWriteOpts()
+
+	wCtx, done := context.WithTimeout(wo.Ctx(), 5*time.Second)
+	resp, wMeta, err := c.Jobs().Delete(wCtx, jobName, purge, false)
+	done()
+
+	qCtx, done := context.WithTimeout(q.Ctx(), 5*time.Second)
+	resp, wMeta, err := c.Jobs().Delete(wCtx, jobName, purge, false)
+	done()
+
+	require.Nil(t, job)
 }

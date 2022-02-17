@@ -2,7 +2,7 @@ package cli
 
 import (
 	"fmt"
-	"os"
+	"path"
 	"testing"
 	"time"
 
@@ -36,15 +36,17 @@ func httpTest(t testing.TB, cb func(c *agent.Config), f func(srv *agent.TestAgen
 	s := makeHTTPServer(t, cb)
 	defer s.Shutdown()
 	testutil.WaitForLeader(t, s.Agent.RPC)
-	t.Setenv("NOMAD_ADDR", fmt.Sprintf("http://%s:%d", s.Config.BindAddr, s.Config.Ports.HTTP))
+	//	t.Setenv("NOMAD_ADDR", fmt.Sprintf("http://%s:%d", s.Config.BindAddr, s.Config.Ports.HTTP))
 	f(s)
 }
 
 func NewTestClient(testAgent *agent.TestAgent) (*v1.Client, error) {
-	os.Setenv("NOMAD_ADDR", fmt.Sprintf("http://%s:%d", testAgent.Config.BindAddr, testAgent.Config.Ports.HTTP))
-	defer os.Setenv("NOMAD_ADDR", "http://127.0.0.1:4646")
+	c, err := v1.NewClient(v1.WithAddress(testAgent.HTTPAddr()))
+	if err != nil {
+		return nil, err
+	}
 
-	return v1.NewClient()
+	return c, nil
 }
 
 func TestSetQueryOptions(t *testing.T) {
@@ -107,6 +109,52 @@ func TestACLBootstrap(t *testing.T) {
 		result, qMeta, err := client.Jobs().GetJobs(q.Ctx())
 		require.NoError(t, err)
 		require.NotNil(t, qMeta)
+		require.NotNil(t, result)
+	})
+}
+
+func mTLSFixturePath(nodeType, pemType string) string {
+	var filename string
+	switch pemType {
+	case "cafile":
+		filename = "nomad-agent-ca.pem"
+	case "certfile":
+		filename = fmt.Sprintf("global-%s-nomad-0.pem", nodeType)
+	case "keyfile":
+		filename = fmt.Sprintf("global-%s-nomad-0-key.pem", nodeType)
+	}
+
+	return path.Join(testFixturePath(), "mtls", filename)
+}
+
+func TestTLSEnabled(t *testing.T) {
+	enableTLS := func(c *agent.Config) {
+		tC := c.TLSConfig
+		tC.VerifyHTTPSClient = true
+		tC.EnableHTTP = true
+		tC.CAFile = mTLSFixturePath("server", "cafile")
+		tC.CertFile = mTLSFixturePath("server", "certfile")
+		tC.KeyFile = mTLSFixturePath("server", "keyfile")
+	}
+	httpTest(t, enableTLS, func(s *agent.TestAgent) {
+		client, err := v1.NewClient(
+			v1.WithTLSCerts(
+				mTLSFixturePath("client", "cafile"),
+				mTLSFixturePath("client", "certfile"),
+				mTLSFixturePath("client", "keyfile"),
+			),
+			v1.WithAddress(s.HTTPAddr()),
+		)
+
+		require.NoError(t, err)
+
+		q := &v1.QueryOpts{
+			Region:    globalRegion,
+			Namespace: defaultNamespace,
+		}
+		result, err := client.Status().Leader(q.Ctx())
+		t.Logf("result: %q", *result)
+		require.NoError(t, err)
 		require.NotNil(t, result)
 	})
 }
