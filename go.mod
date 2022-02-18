@@ -19,7 +19,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/hcl/v2 v2.11.1
 	github.com/hashicorp/nomad v1.2.6
-	github.com/hashicorp/nomad-openapi v0.0.0-20220211180953-40aa4c208474
+	github.com/hashicorp/nomad-openapi v0.0.0-20220218205536-0284f27f29e1
 	github.com/hashicorp/nomad/api v0.0.0-20220211135303-4afc67b7002e // indirect
 	github.com/kr/text v0.2.0
 	github.com/lab47/vterm v0.0.0-20211107042118-80c3d2849f9c
