@@ -36,7 +36,7 @@ func (r *Runner) checkForConflict(jobName string) error {
 
 	existing, _, err := r.client.Jobs().GetJob(r.clientQueryOpts.Ctx(), jobName)
 	if err != nil {
-		err = intHelper.UnwrapAPIError(err)
+		err := intHelper.UnwrapAPIError(err)
 		if err.Error() != "job not found" {
 			return err
 		}
