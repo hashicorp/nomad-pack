@@ -33,7 +33,6 @@ func (r *Runner) CheckForConflicts(errCtx *errors.UIErrorContext) []*errors.Wrap
 // supplied job is found. If the job is found, we confirm if it belongs to this
 // Nomad Pack deployment. In the event it doesn't this will result in an error.
 func (r *Runner) checkForConflict(jobName string) error {
-
 	existing, _, err := r.client.Jobs().GetJob(r.clientQueryOpts.Ctx(), jobName)
 	if err != nil {
 		err := intHelper.UnwrapAPIError(err)

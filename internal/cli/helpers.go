@@ -351,3 +351,34 @@ func newWriteOpts() *v1.WriteOpts {
 	opts := v1.WriteOpts{}
 	return opts.WithAuthToken(os.Getenv("NOMAD_TOKEN"))
 }
+
+func clientOptsFromFlags(c *baseCommand) []v1.ClientOption {
+	cfg := c.nomadConfig
+	opts := make([]v1.ClientOption, 0)
+	if cfg.address != "" {
+		opts = append(opts, v1.WithAddress(cfg.address))
+	}
+	if cfg.namespace != "" {
+		opts = append(opts, v1.WithDefaultNamespace(cfg.namespace))
+	}
+	if cfg.region != "" {
+		opts = append(opts, v1.WithDefaultRegion(cfg.region))
+	}
+	if cfg.token != "" {
+		opts = append(opts, v1.WithToken(cfg.token))
+	}
+	if cfg.clientCert != "" && cfg.clientKey != "" {
+		opts = append(opts, v1.WithClientCert(cfg.clientCert, cfg.clientKey))
+	}
+	if cfg.caCert != "" {
+		opts = append(opts, v1.WithCACert(cfg.caCert))
+	}
+	if cfg.tlsServerName != "" {
+		opts = append(opts, v1.WithTLSServerName(cfg.tlsServerName))
+	}
+	if cfg.tlsSkipVerify {
+		opts = append(opts, v1.WithTLSSkipVerify())
+	}
+
+	return opts
+}

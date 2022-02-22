@@ -105,7 +105,7 @@ func TestJobRunFails(t *testing.T) {
 
 func TestJobPlan(t *testing.T) {
 	httpTest(t, WithDefaultConfig(), func(s *agent.TestAgent) {
-		ExpectGoodPackPlan(t, runPackCmd(t, []string{"plan", getTestPackPath(testPack)}))
+		ExpectGoodPackPlan(t, runPackCmdOnTestAgent(t, s, []string{"plan", getTestPackPath(testPack)}))
 	})
 }
 
@@ -344,6 +344,26 @@ type PackCommandResult struct {
 	cmdErr   *bytes.Buffer
 }
 
+func runPackCmdOnTestAgent(t *testing.T, srv *agent.TestAgent, args []string) PackCommandResult {
+	args = append(args, AddressFromTestServer(srv)...)
+	return runPackCmd(t, args)
+}
+
+func AddressFromTestServer(srv *agent.TestAgent) []string {
+	return []string{"--address", srv.HTTPAddr()}
+}
+
+func TLSConfigFromTestServer(srv *agent.TestAgent) []string {
+	if srv.Config.TLSConfig == nil {
+		return []string{}
+	}
+	return []string{
+		"--client-cert", srv.Config.TLSConfig.CertFile,
+		"--client-key", srv.Config.TLSConfig.KeyFile,
+		"--ca-cert", srv.Config.TLSConfig.CAFile,
+	}
+}
+
 func runPackCmd(t *testing.T, args []string) PackCommandResult {
 	cmdOut := bytes.NewBuffer(make([]byte, 0))
 	cmdErr := bytes.NewBuffer(make([]byte, 0))
@@ -517,18 +537,18 @@ func TestCreateTestRegistry(t *testing.T) {
 	require.Equal(t, 0, result.exitCode)
 }
 
-func nomadCleanupJob(t *testing.T, s *agent.TestAgent) {
-	c, _ := NewTestClient(s)
+// func nomadCleanupJob(t *testing.T, s *agent.TestAgent) {
+// 	c, _ := NewTestClient(s)
 
-	wo := v1.DefaultWriteOpts()
+// 	wo := v1.DefaultWriteOpts()
 
-	wCtx, done := context.WithTimeout(wo.Ctx(), 5*time.Second)
-	resp, wMeta, err := c.Jobs().Delete(wCtx, jobName, purge, false)
-	done()
+// 	wCtx, done := context.WithTimeout(wo.Ctx(), 5*time.Second)
+// 	resp, wMeta, err := c.Jobs().Delete(wCtx, jobName, purge, false)
+// 	done()
 
-	qCtx, done := context.WithTimeout(q.Ctx(), 5*time.Second)
-	resp, wMeta, err := c.Jobs().Delete(wCtx, jobName, purge, false)
-	done()
+// 	qCtx, done := context.WithTimeout(q.Ctx(), 5*time.Second)
+// 	resp, wMeta, err := c.Jobs().Delete(wCtx, jobName, purge, false)
+// 	done()
 
-	require.Nil(t, job)
-}
+// 	require.Nil(t, job)
+// }

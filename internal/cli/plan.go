@@ -43,7 +43,7 @@ func (c *PlanCommand) Run(args []string) int {
 	c.deploymentName = getDeploymentName(c.baseCommand, c.packConfig)
 	errorContext.Add(errors.UIContextPrefixDeploymentName, c.deploymentName)
 
-	client, err := v1.NewClient()
+	client, err := v1.NewClient(clientOptsFromFlags(c.baseCommand)...)
 	if err != nil {
 		c.ui.ErrorWithContext(err, "failed to initialize client", errorContext.GetAll()...)
 		return 255
@@ -120,7 +120,7 @@ func (c *PlanCommand) Run(args []string) int {
 func (c *PlanCommand) Flags() *flag.Sets {
 	c.packConfig = &cache.PackConfig{}
 
-	return c.flagSet(flagSetOperation, func(set *flag.Sets) {
+	return c.flagSet(flagSetOperation|flagSetNomadClient, func(set *flag.Sets) {
 		f := set.NewSet("Plan Options")
 
 		c.jobConfig = &job.CLIConfig{
@@ -151,14 +151,15 @@ Using ref with a file path is not supported.`,
 			Target:  &c.jobConfig.PlanConfig.Diff,
 			Default: true,
 			Usage: `Determines whether the diff between the remote job and planned 
-                    job is shown. Defaults to true.`,
+                    job is shown.`,
 		})
 
 		f.BoolVar(&flag.BoolVar{
 			Name:    "policy-override",
 			Target:  &c.jobConfig.PlanConfig.PolicyOverride,
 			Default: false,
-			Usage:   `Sets the flag to force override any soft mandatory Sentinel policies.`,
+			Usage: `Sets the flag to force override any soft mandatory Sentinel
+					policies.`,
 		})
 
 		f.BoolVar(&flag.BoolVar{
@@ -202,8 +203,8 @@ func (c *PlanCommand) Help() string {
 	# Plan an example pack without showing the diff
 	nomad-pack plan example --diff=false
 
-    # Plan a pack under development from the filesystem - supports current working 
-    # directory or relative path
+	# Plan a pack under development from the filesystem - supports current working 
+	# directory or relative path
 	nomad-pack plan . 
 	`
 

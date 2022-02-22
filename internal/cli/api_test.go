@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"path"
 	"testing"
-	"time"
 
 	v1 "github.com/hashicorp/nomad-openapi/v1"
 	"github.com/hashicorp/nomad/command/agent"
@@ -15,15 +14,6 @@ import (
 const (
 	globalRegion     = "global"
 	defaultNamespace = "default"
-)
-
-var (
-	queryOpts = v1.DefaultQueryOpts().
-			WithAllowStale(true).
-			WithWaitIndex(1000).
-			WithWaitTime(100 * time.Second)
-
-	writeOpts = v1.DefaultWriteOpts()
 )
 
 // makeHTTPServer returns a test server whose logs will be written to
@@ -47,70 +37,6 @@ func NewTestClient(testAgent *agent.TestAgent) (*v1.Client, error) {
 	}
 
 	return c, nil
-}
-
-func TestSetQueryOptions(t *testing.T) {
-	httpTest(t, nil, func(s *agent.TestAgent) {
-
-		ctx := queryOpts.Ctx()
-		qCtx := ctx.Value("QueryOpts").(*v1.QueryOpts)
-
-		require.Equal(t, qCtx.Region, queryOpts.Region)
-		require.Equal(t, qCtx.Namespace, queryOpts.Namespace)
-		require.Equal(t, qCtx.AllowStale, queryOpts.AllowStale)
-		require.Equal(t, qCtx.WaitIndex, queryOpts.WaitIndex)
-		require.Equal(t, qCtx.WaitTime, queryOpts.WaitTime)
-		require.Equal(t, qCtx.AuthToken, queryOpts.AuthToken)
-		require.Equal(t, qCtx.PerPage, queryOpts.PerPage)
-		require.Equal(t, qCtx.NextToken, queryOpts.NextToken)
-		require.Equal(t, qCtx.Prefix, queryOpts.Prefix)
-	})
-}
-
-func TestSetWriteOptions(t *testing.T) {
-	httpTest(t, nil, func(s *agent.TestAgent) {
-		ctx := writeOpts.Ctx()
-		wCtx := ctx.Value("WriteOpts").(*v1.WriteOpts)
-
-		require.Equal(t, wCtx.Region, writeOpts.Region)
-		require.Equal(t, wCtx.Namespace, writeOpts.Namespace)
-		require.Equal(t, wCtx.AuthToken, writeOpts.AuthToken)
-		require.Equal(t, wCtx.IdempotencyToken, writeOpts.IdempotencyToken)
-	})
-}
-
-func TestACLBootstrap(t *testing.T) {
-	enableACL := func(c *agent.Config) {
-		c.NomadConfig.ACLEnabled = true
-	}
-	httpTest(t, enableACL, func(s *agent.TestAgent) {
-		client, err := NewTestClient(s)
-		require.NoError(t, err)
-
-		q := &v1.QueryOpts{
-			Region:    globalRegion,
-			Namespace: defaultNamespace,
-		}
-		token, wMeta, err := client.ACL().Bootstrap(q.Ctx())
-		require.NoError(t, err)
-		require.NotNil(t, wMeta)
-		require.NotNil(t, token)
-
-		// Test query without token now that bootstrapped
-		_, qMeta, err := client.Jobs().GetJobs(q.Ctx())
-		require.Error(t, err)
-		require.Nil(t, qMeta)
-
-		t.Log(err)
-
-		q.WithAuthToken(*token.SecretID)
-
-		// Test query with token now that bootstrapped
-		result, qMeta, err := client.Jobs().GetJobs(q.Ctx())
-		require.NoError(t, err)
-		require.NotNil(t, qMeta)
-		require.NotNil(t, result)
-	})
 }
 
 func mTLSFixturePath(nodeType, pemType string) string {

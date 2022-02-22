@@ -11,13 +11,12 @@ import (
 // it will return a new error that's string is its Body() value.
 // Otherwise it returns the err it was passed.
 func UnwrapAPIError(err error) error {
-	var openApiErr v1client.GenericOpenAPIError
-	if errors.As(err, &openApiErr) {
-		return errors.New(string(openApiErr.Body()))
+	switch e := err.(type) {
+	case v1client.GenericOpenAPIError:
+		return errors.New(string(e.Body()))
+	case *v1.APIError:
+		return errors.New(string(e.Body()))
+	default:
+		return e
 	}
-	var apiErr v1.APIError
-	if errors.As(err, &apiErr) {
-		return errors.New(apiErr.Error())
-	}
-	return err
 }
