@@ -210,7 +210,7 @@ func (r *Runner) ParseTemplates() []*errors.WrappedUIContext {
 
 		job, err := r.client.Jobs().Parse(r.clientQueryOpts.Ctx(), tpl, true, r.cfg.RunConfig.HCL1)
 		if err != nil {
-			outputErrors = append(outputErrors, newValidationDeployerError(intHelper.UnwrapAPIError(err), validationSubjParseFailed, tplName))
+			outputErrors = append(outputErrors, newValidationDeployerError(err, validationSubjParseFailed, tplName))
 			continue
 		}
 

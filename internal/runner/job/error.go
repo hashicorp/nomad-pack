@@ -27,6 +27,7 @@ func newValidationDeployerError(err error, sub, tplName string) *errors.WrappedU
 		Subject: sub,
 		Context: errors.NewUIErrorContext(),
 	}
+
 	depErr.Context.Add(errors.UIContextPrefixTemplateName, tplName)
 	return &depErr
 }
