@@ -11,11 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const (
-	globalRegion     = "global"
-	defaultNamespace = "default"
-)
-
 // makeHTTPServer returns a test server whose logs will be written to
 // the passed writer. If the writer is nil, the logs are written to stderr.
 func makeHTTPServer(t testing.TB, cb func(c *agent.Config)) *agent.TestAgent {
@@ -75,8 +70,8 @@ func TestTLSEnabled(t *testing.T) {
 		require.NoError(t, err)
 
 		q := &v1.QueryOpts{
-			Region:    globalRegion,
-			Namespace: defaultNamespace,
+			Region:    v1.GlobalRegion,
+			Namespace: v1.DefaultNamespace,
 		}
 		result, err := client.Status().Leader(q.Ctx())
 		t.Logf("result: %q", *result)
