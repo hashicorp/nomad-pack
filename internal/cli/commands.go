@@ -10,6 +10,7 @@ import (
 	"runtime"
 
 	"github.com/hashicorp/go-hclog"
+	v1 "github.com/hashicorp/nomad-openapi/v1"
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	flag "github.com/hashicorp/nomad-pack/internal/pkg/flag"
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable"
@@ -467,4 +468,8 @@ func IsCanceled(err error) bool {
 	}
 
 	return s.Code() == codes.Canceled
+}
+
+func (c *baseCommand) GetAPIClient() (*v1.Client, error) {
+	return v1.NewClient(clientOptsFromFlags(c)...)
 }

@@ -9,7 +9,6 @@ import (
 	"path"
 	"strings"
 
-	v1 "github.com/hashicorp/nomad-openapi/v1"
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
@@ -191,7 +190,7 @@ func (c *RenderCommand) Run(args []string) int {
 		return 1
 	}
 
-	client, err := v1.NewClient()
+	client, err := c.GetAPIClient()
 	if err != nil {
 		c.ui.ErrorWithContext(err, "failed to initialize client", errorContext.GetAll()...)
 		return 1

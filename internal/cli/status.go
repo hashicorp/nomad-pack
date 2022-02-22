@@ -37,7 +37,7 @@ func (c *StatusCommand) Run(args []string) int {
 	errorContext := errors.NewUIErrorContext()
 	errorContext.Add(errors.UIContextPrefixPackName, c.packConfig.Name)
 
-	client, err := v1.NewClient()
+	client, err := c.GetAPIClient()
 	if err != nil {
 		c.ui.ErrorWithContext(err, "failed to initialize client", errorContext.GetAll()...)
 		return 1
@@ -97,7 +97,7 @@ func (c *StatusCommand) renderAllDeployedPacks(jobsApi *v1.Jobs, errorContext *e
 }
 
 func (c *StatusCommand) Flags() *flag.Sets {
-	return c.flagSet(0, func(set *flag.Sets) {
+	return c.flagSet(flagSetNomadClient, func(set *flag.Sets) {
 		c.packConfig = &cache.PackConfig{}
 
 		f := set.NewSet("Status Options")

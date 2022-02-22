@@ -3,7 +3,6 @@ package cli
 import (
 	"fmt"
 
-	v1 "github.com/hashicorp/nomad-openapi/v1"
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
@@ -57,7 +56,7 @@ func (c *RunCommand) run() int {
 	errorContext.Add(errors.UIContextPrefixDeploymentName, c.deploymentName)
 
 	// create the http client
-	client, err := v1.NewClient()
+	client, err := c.GetAPIClient()
 	if err != nil {
 		c.ui.ErrorWithContext(err, "failed to initialize client", errorContext.GetAll()...)
 		return 1
