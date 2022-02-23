@@ -524,6 +524,8 @@ github.com/hashicorp/nomad-openapi v0.0.0-20211120040829-8bd0a1f543b4 h1:DKZ+Gsd
 github.com/hashicorp/nomad-openapi v0.0.0-20211120040829-8bd0a1f543b4/go.mod h1:OGxRA/gkuueIqRZdHK+uQBsozMsBWONZ6I2zJ4MxR+Y=
 github.com/hashicorp/nomad-openapi v0.0.0-20220207152010-73a3f0e35f5b h1:86y8sI4NvSwRpRy/8EBHYlQ7JO/HYGZ03GDfBLYtwks=
 github.com/hashicorp/nomad-openapi v0.0.0-20220207152010-73a3f0e35f5b/go.mod h1:OGxRA/gkuueIqRZdHK+uQBsozMsBWONZ6I2zJ4MxR+Y=
+github.com/hashicorp/nomad-openapi v0.0.0-20220222223240-27714119c4f0 h1:YwjS1+KKavOmQ+e5YJJ6KAx9Dl/6r5P1/CuDQmIQwVE=
+github.com/hashicorp/nomad-openapi v0.0.0-20220222223240-27714119c4f0/go.mod h1:OGxRA/gkuueIqRZdHK+uQBsozMsBWONZ6I2zJ4MxR+Y=
 github.com/hashicorp/nomad/api v0.0.0-20200529203653-c4416b26d3eb/go.mod h1:DCi2k47yuUDzf2qWAK8E1RVmWgz/lc0jZQeEnICTxmY=
 github.com/hashicorp/nomad/api v0.0.0-20211119141705-873b0969e01e h1:t9rFv17irGbLKTJIthBJ8z+u1K/QJCXVF78fj9lpguo=
 github.com/hashicorp/nomad/api v0.0.0-20211119141705-873b0969e01e/go.mod h1:frsh5Spaei4BAuw3d9jnIxaL6H19UEIVvZRk0IVJ70Y=
