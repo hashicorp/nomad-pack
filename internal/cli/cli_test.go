@@ -313,6 +313,13 @@ var nomadAddr string
 var testPack = "simple_service"
 var badPack = "../fixtures/bad_pack"
 var testRefFlag = "--ref=48eb7d5"
+var testLogLevel = "WARN"
+
+func testFixturePath() string {
+	// This is a function to prevent a massive refactor if this ever needs to be
+	// dynamically determined.
+	return "../../fixtures/"
+}
 
 // reduce boilerplate copy pasta with a factory method.
 func baseCmd() *baseCommand {
