@@ -3,7 +3,6 @@ package cli
 import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
 	"github.com/hashicorp/nomad-pack/internal/pkg/version"
-	"github.com/mitchellh/go-glint"
 	"github.com/posener/complete"
 )
 
@@ -22,22 +21,7 @@ func (c *VersionCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Create our new glint document.
-	d := glint.New()
-
-	// Create our layout.
-	d.Append(glint.Layout(
-		glint.Style(
-			glint.Text("Nomad Pack"),
-			glint.Bold(),
-		),
-		glint.Text(" "),
-		glint.Text(version.HumanVersion()),
-	).Row())
-
-	// Essentially force a newline and render the output.
-	d.Append(glint.Text(""))
-	d.RenderFrame()
+	c.ui.Output("Nomad Pack %s\n", version.HumanVersion())
 
 	// Exit zero since we have completed successfully.
 	return 0
