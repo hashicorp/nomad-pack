@@ -3,7 +3,7 @@ module github.com/hashicorp/nomad-pack
 go 1.16
 
 replace (
-	github.com/hashicorp/hcl => github.com/hashicorp/hcl v1.0.1-0.20201016140508-a07e7d50bbee
+// 	github.com/hashicorp/hcl => github.com/hashicorp/hcl v1.0.1-0.20201016140508-a07e7d50bbee
 	github.com/hashicorp/hcl/v2 => github.com/hashicorp/hcl/v2 v2.9.2-0.20210407182552-eb14f8319bdc
 )
 
@@ -14,11 +14,12 @@ require (
 	github.com/containerd/console v1.0.3
 	github.com/davecgh/go-spew v1.1.1
 	github.com/fatih/color v1.13.0
+	github.com/gin-gonic/gin v1.5.0 // indirect
 	github.com/hashicorp/go-getter v1.5.11
 	github.com/hashicorp/go-hclog v1.1.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/hcl/v2 v2.11.1
-	github.com/hashicorp/nomad v1.2.6
+	github.com/hashicorp/nomad v1.2.7-0.20220223145120-88a80828c62d
 	github.com/hashicorp/nomad-openapi v0.0.0-20220222223240-27714119c4f0
 	github.com/hashicorp/nomad/api v0.0.0-20220211135303-4afc67b7002e // indirect
 	github.com/kr/text v0.2.0
