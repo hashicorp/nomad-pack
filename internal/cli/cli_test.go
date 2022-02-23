@@ -27,9 +27,6 @@ import (
 // TODO: Test outputPlannedJob that returns non-zero exit code
 
 func TestVersion(t *testing.T) {
-	testInit(t)
-	defer reset()
-
 	exitCode := Main([]string{"nomad-pack", "-v"})
 	require.Equal(t, 0, exitCode)
 }
