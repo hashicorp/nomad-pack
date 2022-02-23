@@ -23,7 +23,12 @@ dev:
 	@cp ./bin/nomad-pack $(GOPATH)/bin/nomad-pack
 	@echo "==> Done"
 
-test:
+fixtures/mtls/global-client-nomad-0-key.pem fixtures/mtls/global-client-nomad-0.pem fixtures/mtls/global-server-nomad-0-key.pem fixtures/mtls/global-server-nomad-0.pem fixtures/mtls/nomad-agent-ca-key.pem fixtures/mtls/nomad-agent-ca.pem &:
+	@echo "==> Generating mtls test fixtures..."
+	@pushd fixtures/mtls; ./gen_test_certs.sh; popd
+	@echo "==> Done"
+
+test: fixtures/mtls/global-client-nomad-0-key.pem fixtures/mtls/global-client-nomad-0.pem fixtures/mtls/global-server-nomad-0-key.pem fixtures/mtls/global-server-nomad-0.pem fixtures/mtls/nomad-agent-ca-key.pem fixtures/mtls/nomad-agent-ca.pem
 	go test ./... -v -count=1
 
 mod:
@@ -64,3 +69,7 @@ check-sdk: ## Checks the SDK is isolated
 .PHONY: gen-cli-docs
 gen-cli-docs:
 	go run ./tools/gendocs mdx
+
+clean:
+	@echo "==> Removing mtls test fixtures..."
+	@rm -f fixtures/mtls/*.pem
