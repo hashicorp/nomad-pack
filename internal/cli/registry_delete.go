@@ -91,20 +91,20 @@ func (c *RegistryDeleteCommand) Flags() *flag.Sets {
 			Name:    "target",
 			Target:  &c.target,
 			Default: "",
-			Usage: `A specific pack within the registry to be deleted. 
-If a ref flag has been added, only that ref of the target pack will be deleted.
-`,
+			Usage: `A specific pack within the registry to be deleted. If a ref
+					flag has been added, only that ref of the target pack will
+					be deleted.`,
 		})
 
 		f.StringVar(&flag.StringVar{
 			Name:    "ref",
 			Target:  &c.ref,
 			Default: "",
-			Usage: `Specific git ref of the registry or pack to be deleted. 
-Supports tags, SHA, and latest. If no ref is specified, defaults to 
-latest.
+			Usage: `Specific git ref of the registry or pack to be deleted.
+					Supports tags, SHA, and latest. If no ref is specified,
+					defaults to latest.
 
-Using ref with a file path is not supported.`,
+					Using ref with a file path is not supported.`,
 		})
 	})
 }

@@ -142,26 +142,27 @@ func (c *PlanCommand) Flags() *flag.Sets {
 			Name:    "ref",
 			Target:  &c.packConfig.Ref,
 			Default: "",
-			Usage: `Specific git ref of the pack to be planned. 
-Supports tags, SHA, and latest. If no ref is specified, defaults to 
-latest.
+			Usage: `Specific git ref of the pack to be planned.
+					Supports tags, SHA, and latest. If no ref is specified,
+					defaults to latest.
 
-Using ref with a file path is not supported.`,
+					Using ref with a file path is not supported.`,
 		})
 
 		f.BoolVar(&flag.BoolVar{
 			Name:    "diff",
 			Target:  &c.jobConfig.PlanConfig.Diff,
 			Default: true,
-			Usage: `Determines whether the diff between the remote job and planned 
-                    job is shown. Defaults to true.`,
+			Usage: `Determines whether the diff between the remote job and
+					planned job is shown. Defaults to true.`,
 		})
 
 		f.BoolVar(&flag.BoolVar{
 			Name:    "policy-override",
 			Target:  &c.jobConfig.PlanConfig.PolicyOverride,
 			Default: false,
-			Usage:   `Sets the flag to force override any soft mandatory Sentinel policies.`,
+			Usage: `Sets the flag to force override any soft mandatory
+					Sentinel policies.`,
 		})
 
 		f.BoolVar(&flag.BoolVar{
@@ -205,9 +206,9 @@ func (c *PlanCommand) Help() string {
 	# Plan an example pack without showing the diff
 	nomad-pack plan example --diff=false
 
-    # Plan a pack under development from the filesystem - supports current working 
-    # directory or relative path
-	nomad-pack plan . 
+	# Plan a pack under development from the filesystem - supports current
+	# working directory or relative path
+	nomad-pack plan .
 	`
 
 	return formatHelp(`
@@ -215,7 +216,7 @@ func (c *PlanCommand) Help() string {
 
 	Determine the effects of submitting a new or updated Nomad Pack
 
-    Plan will return one of the following exit codes:
+	Plan will return one of the following exit codes:
 		* code 0:   No objects will be created or destroyed.
 		* code 1:   Objects will be created or destroyed.
 		* code 255: An error occurred determining the plan.

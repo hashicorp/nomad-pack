@@ -124,13 +124,15 @@ func (c *RegistryAddCommand) Flags() *flag.Sets {
 			Name:    "ref",
 			Target:  &c.ref,
 			Default: "",
-			Usage: `Specific git ref of the registry or pack to be added. 
-Supports tags, SHA, and latest. If no ref is specified, defaults to latest. 
-Running "nomad registry add" multiple times for the same ref is idempotent, 
-however running "nomad-pack registry add" without specifying a ref, or when 
-specifying @latest, is destructive, and will overwrite current @latest in the global cache.
+			Usage: `Specific git ref of the registry or pack to be added.
+					Supports tags, SHA, and latest. If no ref is specified,
+					defaults to latest. Running "nomad registry add" multiple
+					times for the same ref is idempotent, however running
+					"nomad-pack registry add" without specifying a ref, or when
+					specifying @latest, is destructive, and will overwrite
+					current @latest in the global cache.
 
-Using ref with a file path is not supported.`,
+					Using ref with a file path is not supported.`,
 		})
 	})
 }

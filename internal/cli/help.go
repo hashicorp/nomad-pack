@@ -198,75 +198,63 @@ Subcommands:
 var helpText = map[string][2]string{
 	"run": {
 		"Run one or more Nomad packs",
-		`
-Run one or more Nomad packs.
-The run command is used to install a Nomad Pack to a configured Nomad cluster.
-Nomad Pack will search for packs in local repositories to match the pack name(s) specified
-in the run command.
-`,
+		`The "run" command is used to install a Nomad Pack to a configured Nomad
+		cluster. Nomad Pack will search for packs in local repositories to match
+		the pack name(s) specified in the run command.`,
 	},
 	"plan": {
-		"Plan invokes a dry-run of the scheduler to determine the effects of submitting either a new or updated version of a job",
-		`
-Plan invokes a dry-run of the scheduler to determine the effects of submitting
-either a new or updated version of a job. The plan will not result in any changes 
-to the cluster but gives insight into whether the pack could be run successfully 
-and how it would affect existing allocations.
-`,
+		"Plan invokes a dry-run of the scheduler",
+		`The "plan" command invokes a dry-run of the scheduler to determine the
+		effects of submitting either a new or updated version of a job. The plan
+		will not result in any changes to the cluster but gives insight into
+		whether the pack could be run successfully and how it would affect
+		existing allocations.`,
 	},
 	"stop": {
 		"Stop a running pack",
-		`
-The stop command stops a running pack. Purge is used to stop the pack and purge it from the system.
- If not set, the job(s) in the pack will still be queryable and will be purged by the garbage collector. 
-Global will stop a multi-region job in all its regions. By default, stop will stop 
-only a single region at a time. Ignored for single-region packs. After the deregister 
-command is submitted, a new evaluation ID is printed to the screen, which can be 
-used to examine the evaluation.
-`,
+		`The "stop" command stops a running pack. The --purge flag is used to
+		stop the pack and purge it from the system. If not set, the job(s) in
+		the pack will still be queryable and will be purged by Nomad's garbage
+		collector. The --global flag will stop a multi-region job in all its
+		regions. By default, stop will stop only a single region at a time.
+		Ignored for single-region packs. After the deregister command is
+		submitted, a new evaluation ID is printed to the screen, which can be
+		used to examine the evaluation.`,
 	},
 	"info": {
 		"Info gets information on a pack",
-		`
-Info reads from a pack's metadata.hcl and variables.hcl files and prints out the details
-of a pack.
-`,
+		`The "info" command reads from a pack's metadata.hcl and variables.hcl
+		files and prints out the details of a pack.`,
 	},
 	"destroy": {
 		"Delete an existing pack",
-		`
-Destroy stops a running pack and purges it from the system. If the pack is already stopped, destroy
-will delete it from the cluster. This is the equivalent of using the stop command with the purge option.
-`,
+		`The "destroy" command stops a running pack and purges it from the system.
+		If the pack is already stopped, destroy will delete it from the cluster.
+		This is the equivalent of using the stop command with the purge option.`,
 	},
 	"status": {
 		"Status gets information on deployed packs",
-		`
-Status returns information on packs deployed in a configured Nomad cluster. If no
-pack name is specified, it will return a list of all deployed packs. If pack name
-is provided, it will return a list of the jobs in that pack, along with their status, 
-and the pack deployment they belong to. The --name flag can be used with pack name
-to limit the list of jobs to a specific deployment of the pack.`,
+		`The "status" command returns information on packs deployed in a Nomad
+		cluster. If no pack name is specified, it will return a list of all
+		deployed packs. If pack name is provided, it will return a list of the
+		jobs in that pack, along with their status, and the pack deployment they
+		belong to. The --name flag can be used with pack name to limit the list
+		of jobs to a specific deployment of the pack.`,
 	},
 	"registry add": {
 		"Adds a pack registry or a specific pack from a registry",
-		`
-Registry add can be used to add a registry, or a specific pack from a registry at
-the latest ref or at a specific ref (tag/SHA).
-`,
+		`The "registry add" command can be used to add a registry or a specific
+		pack from a registry at the latest ref or at a specific ref (tag/SHA).`,
 	},
 	"registry delete": {
 		"Deletes a pack registry or specific pack from a registry",
-		`
-Registry delete can be used to delete a registry, or a specific pack from a registry
-at the latest ref or at a specific ref (tag/SHA).
-`,
+		`The "registry delete" command can be used used to delete a registry or
+		a specific pack from a registry at the latest ref or at a specific ref
+		(tag/SHA).`,
 	},
 	"registry list": {
 		"Lists all downloaded registries and packs",
-		`
-Registry list can be used to list all registries and associated packs that have
-been downloaded to the local environment.
-`,
+		`The "registry list" command lists all registries and associated packs
+		that have been downloaded to the local environment.`,
 	},
 }

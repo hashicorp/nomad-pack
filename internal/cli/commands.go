@@ -257,8 +257,9 @@ func (c *baseCommand) flagSet(bit flagSetBit, f func(*flag.Sets)) *flag.Sets {
 				Name:    "var-file",
 				Target:  &c.varFiles,
 				Default: make([]string, 0),
-				Usage: `Specifies the path to a variable override file. This can be provided 
-				multiple times on a single command to result in a list of files.`,
+				Usage: `Specifies the path to a variable override file. This can
+						be provided multiple times on a single command to result
+						in a list of files.`,
 				Completion: complete.PredictOr(complete.PredictFiles("*.var"), complete.PredictFiles("*.hcl")),
 			},
 			Shorthand: "f",
@@ -268,8 +269,8 @@ func (c *baseCommand) flagSet(bit flagSetBit, f func(*flag.Sets)) *flag.Sets {
 			Name:    "var",
 			Target:  &c.vars,
 			Default: make(map[string]string),
-			Usage: `Specifies single override variables in the form of HCL syntax and
-				can be specified multiple times per command.`,
+			Usage: `Specifies single override variables in the form of HCL
+					syntax and can be specified multiple times per command.`,
 		})
 
 		f.StringVar(&flag.StringVar{
@@ -277,17 +278,17 @@ func (c *baseCommand) flagSet(bit flagSetBit, f func(*flag.Sets)) *flag.Sets {
 			Target:  &c.deploymentName,
 			Default: "",
 			Usage: `If set, this will be the unique identifier of this deployed
-                      instance of the specified pack. If not set, the pack name will
-                      be used. This is useful for running more than one instance
-			of a pack within the same cluster. Note that this name
-                      must be globally unique within a cluster. Running the run
-                      command multiple times with the same name, will just re-submit
-	                the same pack, and apply changes if you have made any to
-                      the underlying pack. Be mindful that, whether you have made
-                      changes or not, the underlying Allocations will be replaced. 
-                      When managing packs, the name specified here is the name that
-                      should be passed to the plan or destroy commands.
-                      `,
+					instance of the specified pack. If not set, the pack name
+					will be used. This is useful for running more than one
+					instance of a pack within the same cluster. Note that this
+					name must be globally unique within a cluster. Running the
+					run command multiple times with the same name, will just
+					re-submit the same pack, and apply changes if you have made
+					any to the underlying pack. Be mindful that, whether you
+					have made changes or not, the underlying Allocations will be
+					replaced. When managing packs, the name specified here is
+					the name that should be passed to nomad-pack's plan and
+					destroy commands.`,
 		})
 	}
 	if bit&flagSetNeedsApproval != 0 {
@@ -297,7 +298,8 @@ func (c *baseCommand) flagSet(bit flagSetBit, f func(*flag.Sets)) *flag.Sets {
 				Name:    "auto-approve",
 				Target:  &c.autoApproved,
 				Default: false,
-				Usage:   `Automatically answer confirmation prompts in the affirmative.`,
+				Usage: `Automatically answer confirmation prompts in the
+						affirmative.`,
 			},
 			Shorthand: "y",
 		})

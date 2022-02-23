@@ -107,17 +107,18 @@ func (c *StatusCommand) Flags() *flag.Sets {
 			Target:  &c.packConfig.Registry,
 			Default: "",
 			Usage: `Specific registry name containing the pack to inspect.
-If not specified, the default registry will be used.`,
+					If not specified, the default registry will be used.`,
 		})
 
 		f.StringVar(&flag.StringVar{
 			Name:    "ref",
 			Target:  &c.packConfig.Ref,
 			Default: "",
-			Usage: `Specific git ref of the pack to inspect. 
-Supports tags, SHA, and latest. If no ref is specified, defaults to latest.
+			Usage: `Specific git ref of the pack to inspect.
+					Supports tags, SHA, and latest. If no ref is specified,
+					defaults to latest.
 
-Using ref with a file path is not supported.`,
+					Using ref with a file path is not supported.`,
 		})
 	})
 }
@@ -135,22 +136,26 @@ func (c *StatusCommand) Help() string {
 	# Get a list of all deployed packs and their registries
 	nomad-pack status
 	
-	# Get a list of all deployed jobs in pack example, along with their status and deployment names
+	# Get a list of all deployed jobs in pack example, along with their status
+	# and deployment names
 	nomad-pack status example
 
-	# Get a list of all deployed jobs and their status for an example pack in the deployment name "dev"
+	# Get a list of all deployed jobs and their status for an example pack in
+	# the deployment name "dev"
 	nomad-pack status example --name=dev
 
-    # Get a list of all deployed jobs and their status for an example pack in the deployment name "dev"
+	# Get a list of all deployed jobs and their status for an example pack in
+	# the deployment name "dev"
 	nomad-pack status example --name=dev --registry=community
 	`
 
 	return formatHelp(`
 	Usage: nomad-pack status <name> [options]
 
-	Get information on deployed Nomad Packs. If no pack name is specified, it will return
-	a list of all deployed packs. If pack name is specified, it will return a list of all
-	deployed jobs belonging to that pack, along with their status and deployment names.
+	Get information on deployed Nomad Packs. If no pack name is specified, it
+	will return	a list of all deployed packs. If pack name is specified, it will
+	return a list of all deployed jobs belonging to that pack, along with their
+	status and deployment names.
 
 ` + c.GetExample() + c.Flags().Help())
 }

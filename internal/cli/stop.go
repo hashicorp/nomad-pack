@@ -258,26 +258,29 @@ func (c *StopCommand) Flags() *flag.Sets {
 			Name:    "ref",
 			Target:  &c.packConfig.Ref,
 			Default: "",
-			Usage: `Specific git ref of the pack to be stopped. 
-Supports tags, SHA, and latest. If no ref is specified, defaults to latest.
+			Usage: `Specific git ref of the pack to be stopped.
+					Supports tags, SHA, and latest. If no ref is specified,
+					defaults to latest.
 
-Using ref with a file path is not supported.`,
+					Using ref with a file path is not supported.`,
 		})
 
 		f.BoolVar(&flag.BoolVar{
 			Name:    "purge",
 			Target:  &c.purge,
 			Default: false,
-			Usage: `Purge is used to stop packs and purge them from the system. 
-					If not set, packs will still be queryable and will be purged by the garbage collector.`,
+			Usage: `Purge is used to stop packs and purge them from the system.
+					If not set, packs will still be queryable and will be purged
+					by the garbage collector.`,
 		})
 
 		f.BoolVar(&flag.BoolVar{
 			Name:    "global",
 			Target:  &c.global,
 			Default: false,
-			Usage: `Stop multi-region pack in all its regions. By default, pack 
-					stop will stop only a single region at a time. Ignored for single-region jobs.`,
+			Usage: `Stop multi-region pack in all its regions. By default, pack
+					stop will stop only a single region at a time. Ignored for
+					single-region jobs.`,
 		})
 	})
 }
@@ -299,19 +302,21 @@ func (c *StopCommand) Help() string {
 	nomad-pack stop example --name=dev --purge
 
 	# Stop an example pack in deployment "dev" that has a job named "test"
-	# If the same pack has been installed in deployment "dev" but overriding the job 
-	# name to "hello", only "test" will be stopped
+	# If the same pack has been installed in deployment "dev" but overriding the
+	# job name to "hello", only "test" will be stopped
 	nomad-pack stop example --name=dev --var=job_name=test
 	`
 	return formatHelp(`
 	Usage: nomad-pack stop <pack name> [options]
 
-	Stop the specified Nomad Pack in the configured Nomad cluster. To delete the pack from
-	the cluster, specify "--purge", or use the command "nomad-pack destroy <pack name>."
-	By default, the stop command will stop ALL jobs in the pack deployment. If a pack
-	was run using var overrides to specify the job name(s), the var overrides MUST be
-	provided when stopping the pack to guarantee nomad-pack targets the correct job(s)
-	in the pack deployment.
+	Stop the specified Nomad Pack in the configured Nomad cluster. To delete the
+	pack from the cluster, specify "--purge", or use the "nomad-pack destroy"
+	command.
+
+	By default, the stop command will stop ALL jobs in the pack deployment. If a
+	pack was run using variable overrides to specify the job name(s), the same
+	variable overrides MUST be provided when stopping the pack to guarantee that
+	nomad-pack targets the correct job(s) in the pack deployment.
 	
 ` + c.GetExample() + c.Flags().Help())
 }

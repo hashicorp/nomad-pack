@@ -240,7 +240,7 @@ fmt.Println(s.Active())
 
 Feature suggested and write up by [dekz](https://github.com/dekz)
 
-Setting the Spinner Writer to Stderr helps show progress to the user, with the enhancement to chain, pipe or redirect the output. 
+Setting the Spinner Writer to Stderr helps show progress to the user, with the enhancement to chain, pipe or redirect the output.
 
 This is the preferred method of setting a Writer at this time.
 
@@ -269,9 +269,9 @@ Add additional output when the spinner/indicator has completed. The "final" outp
 ```Go
 s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 s.FinalMSG = "Complete!\nNew line!\nAnother one!\n"
-s.Start()                 
+s.Start()
 time.Sleep(4 * time.Second)
-s.Stop()                   
+s.Stop()
 ```
 
 Output

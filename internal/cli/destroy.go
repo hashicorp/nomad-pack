@@ -49,18 +49,19 @@ func (c *DestroyCommand) Flags() *flag.Sets {
 			Name:    "registry",
 			Target:  &c.packConfig.Registry,
 			Default: "",
-			Usage:   `Specific registry name containing the pack to be destroyed.`,
+			Usage: `Specific registry name containing the pack to be
+					destroyed.`,
 		})
 
 		f.StringVar(&flag.StringVar{
 			Name:    "ref",
 			Target:  &c.packConfig.Ref,
 			Default: "",
-			Usage: `Specific git ref of the pack to be destroyed. 
-Supports tags, SHA, and latest. If no ref is specified, defaults to 
-latest.
+			Usage: `Specific git ref of the pack to be destroyed.
+					Supports tags, SHA, and latest. If no ref is specified,
+					defaults to latest.
 
-Using ref with a file path is not supported.`,
+					Using ref with a file path is not supported.`,
 		})
 
 		// TODO: is there a way to reuse the flag from StopCommand so we're not just copy/pasting
@@ -68,8 +69,9 @@ Using ref with a file path is not supported.`,
 			Name:    "global",
 			Target:  &c.global,
 			Default: false,
-			Usage: `Destroy multi-region pack in all its regions. By default, pack 
-					destroy will destroy only a single region at a time. Ignored for single-region packs.`,
+			Usage: `Destroy multi-region pack in all its regions. By default,
+					pack destroy will destroy only a single region at a time.
+					Ignored for single-region packs.`,
 		})
 	})
 }
@@ -88,7 +90,7 @@ func (c *DestroyCommand) Help() string {
 	nomad-pack destroy example --name=dev
 
 	# Stop and delete an example pack in deployment "dev" that has a job named "test"
-	# If the same pack has been installed in deployment "dev" but overriding the job 
+	# If the same pack has been installed in deployment "dev" but overriding the job
 	# name to "hello", only "test" will be deleted
 	nomad-pack destroy example --name=dev --var=job_name=test	
 	`
@@ -97,9 +99,9 @@ func (c *DestroyCommand) Help() string {
 
 	Stop and delete the specified Nomad Pack from the configured Nomad cluster.
 	This is the same as using the command "nomad-pack stop <pack name> --purge".
-	By default, the destroy command will delete ALL jobs in the pack deployment. 
-	If a pack was run using var overrides to specify the job name(s), the var 
-	overrides MUST be provided when destroying the pack to guarantee nomad-pack 
+	By default, the destroy command will delete ALL jobs in the pack deployment.
+	If a pack was run using var overrides to specify the job name(s), the var
+	overrides MUST be provided when destroying the pack to guarantee nomad-pack
 	targets the correct job(s) in the pack deployment.
 	
 ` + c.GetExample() + c.Flags().Help())

@@ -116,19 +116,19 @@ func (c *InfoCommand) Flags() *flag.Sets {
 			Name:    "registry",
 			Target:  &c.packConfig.Registry,
 			Default: "",
-			Usage: `Specific registry name containing the pack to retrieve info about.
-If not specified, the default registry will be used.`,
+			Usage: `Specific registry name containing the pack to retrieve info
+					about. If not specified, the default registry will be used.`,
 		})
 
 		f.StringVar(&flag.StringVar{
 			Name:    "ref",
 			Target:  &c.packConfig.Ref,
 			Default: "",
-			Usage: `Specific git ref of the pack to retrieve info about. 
-Supports tags, SHA, and latest. If no ref is specified, defaults to 
-latest.
+			Usage: `Specific git ref of the pack to retrieve info about.
+					Supports tags, SHA, and latest. If no ref is specified,
+					defaults to latest.
 
-Using ref with a file path is not supported.`,
+					Using ref with a file path is not supported.`,
 		})
 	})
 }

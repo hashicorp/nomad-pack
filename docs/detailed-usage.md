@@ -26,7 +26,7 @@ The directory structure is as follows:
                 ├── ...files containing pack contents...
 ```
 
-The contents of the `.nomad/pack` directory are needed for Nomad Pack to work properly, 
+The contents of the `.nomad/pack` directory are needed for Nomad Pack to work properly,
 but users must not manually manage or change these files. Instead, use the `registry`
 commands.
 
@@ -98,8 +98,8 @@ To deploy the resources in a pack to Nomad, use the `run` command.
 nomad-pack run hello-world
 ```
 
-By passing a `--name` value into `run`, Nomad Pack deploys each resource in the 
-pack with a metadata value for "pack name". If no name is given, the pack name 
+By passing a `--name` value into `run`, Nomad Pack deploys each resource in the
+pack with a metadata value for "pack name". If no name is given, the pack name
 is used by default.
 
 This allows Nomad Pack to manage multiple deployments of the same pack.
