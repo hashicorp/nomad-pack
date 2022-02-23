@@ -13,8 +13,8 @@ First, make a pack registry. This will be a repository that provides the structu
 
 Cloning [hashicorp/example-nomad-pack-registry](https://github.com/hashicorp/example-nomad-pack-registry) can give you a head start.
 
-Each registry should have a README.md file that describes the packs in it, and 
-top-level directory named `packs` that contains a subdirectory for each individual 
+Each registry should have a README.md file that describes the packs in it, and
+top-level directory named `packs` that contains a subdirectory for each individual
 pack. Conventionally, the pack subdirectory name matches the pack name.
 
 The top level of a pack registry looks like the following:
@@ -265,7 +265,7 @@ This would allow templates of "simple_service" to use "demo_dep"'s helper templa
 ## Step Four: Testing your Pack
 
 As you write your pack, you will probably want to test it. To do this, pass the
-directory path as the name of the pack to the `run`, `plan`, `render`, `info`, 
+directory path as the name of the pack to the `run`, `plan`, `render`, `info`,
 `stop`, or `destroy` commands. Relative paths are supported.
 
 For instance, if your current working directory is the directory where you are

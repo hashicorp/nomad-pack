@@ -45,8 +45,8 @@ func (c *VersionCommand) Synopsis() string {
 
 func (c *VersionCommand) Help() string {
 	return formatHelp(`
-Usage: nomad-pack version
+	Usage: nomad-pack version
 
-  Prints the version information for Nomad Pack.
+	Prints the version information for Nomad Pack.
 `)
 }

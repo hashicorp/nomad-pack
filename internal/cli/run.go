@@ -167,22 +167,24 @@ func (c *RunCommand) Flags() *flag.Sets {
 			Name:    "ref",
 			Target:  &c.packConfig.Ref,
 			Default: "",
-			Usage: `Specific git ref of the pack to be run. 
-Supports tags, SHA, and latest. If no ref is specified, defaults to latest.
+			Usage: `Specific git ref of the pack to be run.
+					Supports tags, SHA, and latest. If no ref is specified,
+					defaults to latest.
 
-Using ref with a file path is not supported.`,
+					Using ref with a file path is not supported.`,
 		})
 
 		f.Uint64Var(&flag.Uint64Var{
 			Name:    "check-index",
 			Target:  &c.jobConfig.RunConfig.CheckIndex,
 			Default: 0,
-			Usage: `If set, the job is only registered or updated if the passed 
-                   job modify index matches the server side version. If a check-index
-                   value of zero is passed, the job is only registered if it does
-                   not yet exist. If a non-zero value is passed, it ensures that
-                   the job is being updated from a known state. The use of this
-                   flag is most common in conjunction with job plan command.`,
+			Usage: `If set, the job is only registered or updated if the passed
+					job modify index matches the server side version. If a
+					check-index value of zero is passed, the job is only
+					registered if it does not yet exist. If a non-zero value is
+					passed, it ensures that the job is being updated from a
+					known state. The use of this flag is most common in
+					conjunction with job plan command.`,
 		})
 
 		f.StringVar(&flag.StringVar{
@@ -190,23 +192,23 @@ Using ref with a file path is not supported.`,
 			Target:  &c.jobConfig.RunConfig.ConsulToken,
 			Default: "",
 			Usage: `If set, the passed Consul token is stored in the job before
-                      sending to the Nomad servers. This allows passing the Consul
-                      token without storing it in the job file. This overrides the
-                      token found in the $CONSUL_HTTP_TOKEN environment variable
-                      and that found in the job.`,
+					sending to the Nomad servers. This allows passing the Consul
+					token without storing it in the job file. This overrides the
+					token found in the $CONSUL_HTTP_TOKEN environment variable
+					and that found in the job.`,
 		})
 
 		f.StringVar(&flag.StringVar{
 			Name:    "consul-namespace",
 			Target:  &c.jobConfig.RunConfig.ConsulNamespace,
 			Default: "",
-			Usage: `If set, any services in the job will be registered into the 
-                    specified Consul namespace. Any template stanza reading from 
-                    Consul KV will be scoped to the the specified Consul namespace. 
-                    If Consul ACLs are enabled and the allow_unauthenticated Nomad 
-                    server Consul configuration is not enabled, then a Consul token 
-                    must be supplied with appropriate service and kv Consul ACL 
-                    policy permissions.`,
+			Usage: `If set, any services in the job will be registered into the
+					specified Consul namespace. Any template stanza reading from
+					Consul KV will be scoped to the the specified Consul
+					namespace. If Consul ACLs are enabled and the
+					allow_unauthenticated Nomad server Consul configuration is
+					not enabled, then a Consul token must be supplied with
+					appropriate service and KV Consul ACL policy permissions.`,
 		})
 
 		f.StringVar(&flag.StringVar{
@@ -214,41 +216,42 @@ Using ref with a file path is not supported.`,
 			Target:  &c.jobConfig.RunConfig.VaultToken,
 			Default: "",
 			Usage: `If set, the passed Vault token is stored in the job before
-                      sending to the Nomad servers. This allows passing the Vault 
-                      token without storing it in the job file. This overrides the 
-                      token found in the $VAULT_TOKEN environment variable and 
-                      that found in the job.`,
+					sending to the Nomad servers. This allows passing the Vault
+					token without storing it in the job file. This overrides the
+					token found in the $VAULT_TOKEN environment variable and
+					that found in the job.`,
 		})
 
 		f.StringVar(&flag.StringVar{
 			Name:    "vault-namespace",
 			Target:  &c.jobConfig.RunConfig.VaultNamespace,
 			Default: "",
-			Usage: `If set, the passed Vault namespace is stored in the job before 
-                    sending to the Nomad servers.`,
+			Usage: `If set, the passed Vault namespace is stored in the job
+					before sending to the Nomad servers.`,
 		})
 
 		f.BoolVar(&flag.BoolVar{
 			Name:    "policy-override",
 			Target:  &c.jobConfig.RunConfig.PolicyOverride,
 			Default: false,
-			Usage: `Sets the flag to force override any soft mandatory Sentinel 
-                      policies.`,
+			Usage: `Sets the flag to force override any soft mandatory Sentinel
+					policies.`,
 		})
 
 		f.BoolVar(&flag.BoolVar{
 			Name:    "preserve-counts",
 			Target:  &c.jobConfig.RunConfig.PreserveCounts,
 			Default: false,
-			Usage: `If set, the existing task group counts will be preserved 
-                      when updating a job.`,
+			Usage: `If set, the existing task group counts will be preserved
+					when updating a job.`,
 		})
 
 		f.BoolVar(&flag.BoolVar{
 			Name:    "hcl1",
 			Target:  &c.jobConfig.RunConfig.HCL1,
 			Default: false,
-			Usage:   `If set, the hcl V1 parser will be used to parse the job file.`,
+			Usage: `If set, the hcl V1 parser will be used to parse the job
+					file.`,
 		})
 
 		f.BoolVar(&flag.BoolVar{
@@ -257,7 +260,7 @@ Using ref with a file path is not supported.`,
 			Target:  &c.jobConfig.RunConfig.EnableRollback,
 			Default: false,
 			Usage: `EXPERIMENTAL. If set, any pack failure will cause nomad pack
-                       to attempt to rollback the entire deployment.`,
+					to attempt to rollback the entire deployment.`,
 		})
 	})
 }
@@ -277,7 +280,7 @@ func (c *RunCommand) Help() string {
 	nomad-pack run example
 
 	# Run an example pack with the specified deployment name "dev"
-	nomad-pack run example --name=dev 
+	nomad-pack run example --name=dev
 
 	# Run an example pack with override variables in a variable file
 	nomad-pack run example --var-file="./overrides.hcl"
@@ -285,9 +288,9 @@ func (c *RunCommand) Help() string {
 	# Run an example pack with cli variable overrides
 	nomad-pack run example --var="redis_image_version=latest" --var="redis_resources={"cpu": "1000", "memory": "512"}"
 
-	# Run a pack under development from the filesystem - supports current working 
-    # directory or relative path
-	nomad-pack run . 
+	# Run a pack under development from the filesystem - supports current
+	# working directory or relative path
+	nomad-pack run .
 	`
 
 	return formatHelp(`

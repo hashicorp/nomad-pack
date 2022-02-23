@@ -272,17 +272,18 @@ func (c *RenderCommand) Flags() *flag.Sets {
 			Target:  &c.packConfig.Registry,
 			Default: "",
 			Usage: `Specific registry name containing the pack to be rendered.
-If not specified, the default registry will be used.`,
+					If not specified, the default registry will be used.`,
 		})
 
 		f.StringVar(&flag.StringVar{
 			Name:    "ref",
 			Target:  &c.packConfig.Ref,
 			Default: "",
-			Usage: `Specific git ref of the pack to be rendered. 
-Supports tags, SHA, and latest. If no ref is specified, defaults to latest.
+			Usage: `Specific git ref of the pack to be rendered.
+					Supports tags, SHA, and latest. If no ref is specified,
+					defaults to latest.
 
-Using ref with a file path is not supported.`,
+					Using ref with a file path is not supported.`,
 		})
 
 		f.BoolVar(&flag.BoolVar{
@@ -290,20 +291,18 @@ Using ref with a file path is not supported.`,
 			Target:  &c.renderOutputTemplate,
 			Default: false,
 			Usage: `Controls whether or not the output template file within the
-                      pack is rendered and displayed.`,
+					pack is rendered and displayed.`,
 		})
 
 		f.StringVarP(&flag.StringVarP{
 			StringVar: &flag.StringVar{
 				Name:   "to-dir",
 				Target: &c.renderToDir,
-				Usage: `Path to write rendered job files to in addition to standard
-				output.`,
-				// Aliases: []string{"to"},
+				Usage: `Path to write rendered job files to in addition to
+						standard output.`,
 			},
 			Shorthand: "o",
 		})
-
 	})
 }
 
@@ -334,9 +333,9 @@ func (c *RenderCommand) Help() string {
 	# overwrite existing files.
 	nomad-pack render example --to-dir ~/out --auto-approve
 
-    # Render a pack under development from the filesystem - supports current working 
-    # directory or relative path
-	nomad-pack render . 
+	# Render a pack under development from the filesystem - supports current
+	# working directory or relative path
+	nomad-pack render .
 	`
 
 	return formatHelp(`
