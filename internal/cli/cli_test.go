@@ -18,7 +18,7 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/logging"
 	"github.com/hashicorp/nomad-pack/internal/pkg/version"
 	"github.com/hashicorp/nomad-pack/internal/runner/job"
-	"github.com/hashicorp/nomad-pack/internal/testUI"
+	"github.com/hashicorp/nomad-pack/internal/testui"
 	"github.com/hashicorp/nomad/command/agent"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
@@ -410,7 +410,7 @@ func runPackCmd(t *testing.T, args []string) PackCommandResult {
 	defer closer()
 
 	// Make a test UI
-	ui := testUI.NonInteractiveTestUI(ctx, cmdOut, cmdErr)
+	ui := testui.NonInteractiveTestUI(ctx, cmdOut, cmdErr)
 
 	// Get our base command
 	fset := flag.NewSets()
