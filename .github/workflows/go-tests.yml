@@ -1,0 +1,40 @@
+name: Go Tests
+on: [push]
+jobs:
+  build:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout your project with git
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      # Install Go on the VM running the action.
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.16
+
+      # install deps using go install
+      - name: Install test dependencies
+        run: |
+          go install github.com/haveyoudebuggedit/gotestfmt/v2/cmd/gotestfmt@v2.3.0
+          wget --no-verbose https://releases.hashicorp.com/nomad/1.2.6/nomad_1.2.6_linux_amd64.zip
+          unzip nomad_1.2.6_linux_amd64.zip
+          cp nomad /usr/local/bin
+          make test-certs
+        
+      # Run tests with nice formatting. Save the original log in /tmp/gotest.log
+      - name: Run tests
+        run: |
+          set -euo pipefail
+          go test -json -v ./... 2>&1 | tee /tmp/gotest.log | gotestfmt
+
+      # Upload the original go test log as an artifact for later review.
+      - name: Upload test log
+        uses: actions/upload-artifact@v2
+        if: always()
+        with:
+          name: test-log
+          path: /tmp/gotest.log
+          if-no-files-found: error
