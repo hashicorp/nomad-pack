@@ -1,4 +1,4 @@
-package testUI
+package testui
 
 import (
 	"bytes"
@@ -119,11 +119,6 @@ func (ui *nonInteractiveTestUI) NamedValues(rows []terminal.NamedValue, opts ...
 	ui.mu.Lock()
 	defer ui.mu.Unlock()
 
-	// cfg := &config{Writer: color.Output}
-	// for _, opt := range opts {
-	// 	opt(cfg)
-	// }
-
 	var buf bytes.Buffer
 	tr := tabwriter.NewWriter(&buf, 1, 8, 0, ' ', tabwriter.AlignRight)
 	for _, row := range rows {
@@ -166,12 +161,6 @@ func (ui *nonInteractiveTestUI) StepGroup() terminal.StepGroup {
 func (ui *nonInteractiveTestUI) Table(tbl *terminal.Table, opts ...terminal.Option) {
 	ui.mu.Lock()
 	defer ui.mu.Unlock()
-
-	// Build our config and set our options
-	// cfg := &config{Writer: color.Output}
-	// for _, opt := range opts {
-	// 	opt(cfg)
-	// }
 
 	table := tablewriter.NewWriter(ui.OutWriter)
 	table.SetHeader(tbl.Headers)
