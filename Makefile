@@ -7,12 +7,17 @@ GIT_IMPORT="github.com/hashicorp/nomad-pack/internal/pkg/version"
 GO_LDFLAGS="-s -w -X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY)"
 
 .PHONY: bootstrap
-bootstrap: lint-deps # Install all dependencies
+bootstrap: lint-deps test-deps # Install all dependencies
 
 .PHONY: lint-deps
 lint-deps: ## Install linter dependencies
 	@echo "==> Updating linter dependencies..."
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.42.0
+
+.PHONY: test-deps
+lint-deps: ## Install linter dependencies
+	@echo "==> Updating test dependencies..."
+	go install gotest.tools/gotestsum@latest
 
 .PHONY: dev
 dev: GOPATH=$(shell go env GOPATH)
@@ -33,7 +38,7 @@ $(mtlsCerts) &:
 test-certs: $(mtlsCerts)
 
 test: $(mtlsCerts)
-	go test ./... -v -count=1
+	gotestsum -f testname -- ./... -count=1
 
 mod:
 	go mod tidy
