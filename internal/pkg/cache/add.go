@@ -64,21 +64,24 @@ func (c *Cache) addFromURI(opts *AddOpts) (cachedRegistry *Registry, err error) 
 		opts.Ref = DefaultRef
 	}
 
+	// Set up a defer function so that the temp directory always gets removed
+	defer func() {
+		// remove the tmp directory
+		if _, err := os.Stat(c.clonePath()); errors.Is(err, os.ErrNotExist) {
+			return // there's nothing to clean up
+		}
+
+		err = os.RemoveAll(c.clonePath())
+		if err != nil {
+			logger.Debug(fmt.Sprintf("add completed with errors - %s directory not deleted: %s", c.clonePath(), err.Error()))
+		}
+		logger.Info("temp directory deleted")
+	}()
+
 	err = c.cloneRemoteGitRegistry(opts)
 	if err != nil {
 		return
 	}
-
-	// Set up a defer function so that the temp directory always gets removed
-	defer func() {
-		// remove the tmp directory
-		err = os.RemoveAll(c.clonePath())
-		if err != nil {
-			logger.Debug(fmt.Sprintf("add completed with errors - %s directory not deleted: %s", c.clonePath(), err.Error()))
-
-		}
-		logger.Info("temp directory deleted")
-	}()
 
 	logger.Debug(fmt.Sprintf("Processing pack entries at %s", c.clonePath()))
 
