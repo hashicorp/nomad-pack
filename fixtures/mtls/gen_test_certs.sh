@@ -3,7 +3,7 @@
 GOOS=`go env GOOS`
 GOARCH=`go env GOARCH`
 
-wget https://releases.hashicorp.com/consul/1.11.3/consul_1.11.3_${GOOS}_${GOARCH}.zip
+wget --no-verbose https://releases.hashicorp.com/consul/1.11.3/consul_1.11.3_${GOOS}_${GOARCH}.zip
 
 unzip consul_1.11.3_${GOOS}_${GOARCH}.zip
 rm -f consul_1.11.3_${GOOS}_${GOARCH}.zip
