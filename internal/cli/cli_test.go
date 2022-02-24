@@ -544,7 +544,8 @@ func expectGoodPackPlan(t *testing.T, r PackCommandResult) {
 func createTestRegistry(t *testing.T) (regName, regDir string) {
 	// Fake a clone
 	regDir = path.Join(cache.DefaultCachePath(), fmt.Sprintf("test-%v", time.Now().UnixMilli()))
-	err := os.MkdirAll(regDir, 0644)
+	err := filesystem.MaybeCreateDestinationDir(regDir)
+
 	require.NoError(t, err)
 	regName = path.Base(regDir)
 

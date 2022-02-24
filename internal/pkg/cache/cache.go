@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
+	"github.com/hashicorp/nomad-pack/internal/pkg/helper/filesystem"
 	"github.com/hashicorp/nomad-pack/internal/pkg/logging"
 )
 
@@ -45,7 +46,7 @@ func NewCache(cfg *CacheConfig) (cache *Cache, err error) {
 }
 
 func (c *Cache) ensureGlobalCache() error {
-	return os.MkdirAll(c.cfg.Path, 0755)
+	return filesystem.MaybeCreateDestinationDir(c.cfg.Path)
 }
 
 // DefaultCachePath returns the default cache path.
