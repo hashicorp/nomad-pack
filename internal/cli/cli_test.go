@@ -37,6 +37,35 @@ const (
 	testLogLevel = "ERROR"
 )
 
+func Test_CreateTestRegistry(t *testing.T) {
+	// This test is here to help setup the pack registry cache. It needs to be
+	// the first one in the file and can not be `Parallel()`
+	regName, regPath := createTestRegistry(t)
+	defer cleanTestRegistry(t, regPath)
+	t.Logf("regName: %v\n", regName)
+	t.Logf("regPath: %v\n", regPath)
+	err := filepath.Walk(regPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		t.Logf("dir: %v: name: %s\n", info.IsDir(), path)
+		return nil
+	})
+	if err != nil {
+		t.Log(err)
+	}
+
+	result := runPackCmd(t, []string{"registry", "list"})
+	out := result.cmdOut.String()
+	packRegex := regexp.MustCompile(`(?m)^ +` + testPack + ` +\| ` + testRef + ` +\| 0\.0\.1 +\| ` + regName + ` +\|[^\n]+?$`)
+	matches := packRegex.FindAllString(out, -1)
+	for i, match := range matches {
+		t.Logf("match %v:  %v\n", i, match)
+	}
+	require.Regexp(t, packRegex, out)
+	require.Equal(t, 0, result.exitCode)
+}
+
 func TestVersion(t *testing.T) {
 	t.Parallel()
 	// This test doesn't require a Nomad cluster.
@@ -528,33 +557,6 @@ func createTestRegistry(t *testing.T) (regName, regDir string) {
 
 func cleanTestRegistry(t *testing.T, regPath string) {
 	os.RemoveAll(regPath)
-}
-
-func Test_CreateTestRegistry(t *testing.T) {
-	regName, regPath := createTestRegistry(t)
-	defer cleanTestRegistry(t, regPath)
-	t.Logf("regName: %v\n", regName)
-	t.Logf("regPath: %v\n", regPath)
-	err := filepath.Walk(regPath, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		t.Logf("dir: %v: name: %s\n", info.IsDir(), path)
-		return nil
-	})
-	if err != nil {
-		t.Log(err)
-	}
-
-	result := runPackCmd(t, []string{"registry", "list"})
-	out := result.cmdOut.String()
-	packRegex := regexp.MustCompile(`(?m)^ +` + testPack + ` +\| ` + testRef + ` +\| 0\.0\.1 +\| ` + regName + ` +\|[^\n]+?$`)
-	matches := packRegex.FindAllString(out, -1)
-	for i, match := range matches {
-		t.Logf("match %v:  %v\n", i, match)
-	}
-	require.Regexp(t, packRegex, out)
-	require.Equal(t, 0, result.exitCode)
 }
 
 // func nomadCleanupJob(t *testing.T, s *agent.TestAgent) {
