@@ -17,7 +17,10 @@ func makeHTTPServer(t testing.TB, cb func(c *agent.Config)) *agent.TestAgent {
 	return agent.NewTestAgent(t, t.Name(), cb)
 }
 
-func httpTest(t testing.TB, cb func(c *agent.Config), f func(srv *agent.TestAgent)) {
+func httpTest(t *testing.T, cb func(c *agent.Config), f func(srv *agent.TestAgent)) {
+	// Since any test that uses httpTest has a distinct TestAgent, we can
+	// automatically parallelize these tests
+	t.Parallel()
 	s := makeHTTPServer(t, cb)
 	defer s.Shutdown()
 	testutil.WaitForLeader(t, s.Agent.RPC)
