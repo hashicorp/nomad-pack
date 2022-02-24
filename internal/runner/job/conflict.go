@@ -33,7 +33,6 @@ func (r *Runner) CheckForConflicts(errCtx *errors.UIErrorContext) []*errors.Wrap
 // supplied job is found. If the job is found, we confirm if it belongs to this
 // Nomad Pack deployment. In the event it doesn't this will result in an error.
 func (r *Runner) checkForConflict(jobName string) error {
-
 	existing, _, err := r.client.Jobs().GetJob(r.clientQueryOpts.Ctx(), jobName)
 	if err != nil {
 		if err.Error() != "job not found" {
@@ -50,7 +49,7 @@ func (r *Runner) checkForConflict(jobName string) error {
 	// created by something other than the package manager and this
 	// process should fail.
 	if existing.Meta == nil {
-		return fmt.Errorf("job with id %q already exists and is not manage by nomad pack", *existing.ID)
+		return ErrExistsNonPack{*existing.ID}
 	}
 
 	meta := *existing.Meta
@@ -60,15 +59,31 @@ func (r *Runner) checkForConflict(jobName string) error {
 	// process should abort.
 	existingDeploymentName, ok := meta[PackDeploymentNameKey]
 	if !ok {
-		return fmt.Errorf("job with id %q already exists and is not manage by nomad pack", *existing.ID)
+		return ErrExistsNonPack{*existing.ID}
 	}
 
 	// If there is a job with this ID, and a different deployment name, this
 	// process should abort.
 	if existingDeploymentName != r.runnerCfg.DeploymentName {
-		return fmt.Errorf("job with id %q' already exists and is part of deployment %q",
-			*existing.ID, existingDeploymentName)
+		return ErrExistsInDeployment{*existing.ID, existingDeploymentName}
 	}
 
 	return nil
+}
+
+type ErrExistsNonPack struct {
+	JobID string
+}
+
+func (e ErrExistsNonPack) Error() string {
+	return fmt.Sprintf("job with id %q already exists and is not manage by nomad pack", e.JobID)
+}
+
+type ErrExistsInDeployment struct {
+	JobID      string
+	Deployment string
+}
+
+func (e ErrExistsInDeployment) Error() string {
+	return fmt.Sprintf("job with id %q already exists and is part of deployment %q", e.JobID, e.Deployment)
 }
