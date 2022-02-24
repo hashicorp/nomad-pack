@@ -93,6 +93,6 @@ func (c *RegistryListCommand) Help() string {
 	Usage: nomad-pack registry list
 
 	List nomad pack registries.
-	
+
 ` + c.GetExample() + c.Flags().Help())
 }

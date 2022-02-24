@@ -135,7 +135,7 @@ func (c *StatusCommand) Help() string {
 	c.Example = `
 	# Get a list of all deployed packs and their registries
 	nomad-pack status
-	
+
 	# Get a list of all deployed jobs in pack example, along with their status
 	# and deployment names
 	nomad-pack status example

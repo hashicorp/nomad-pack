@@ -317,7 +317,7 @@ func (c *StopCommand) Help() string {
 	pack was run using variable overrides to specify the job name(s), the same
 	variable overrides MUST be provided when stopping the pack to guarantee that
 	nomad-pack targets the correct job(s) in the pack deployment.
-	
+
 ` + c.GetExample() + c.Flags().Help())
 }
 

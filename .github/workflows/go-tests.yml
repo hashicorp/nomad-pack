@@ -23,7 +23,7 @@ jobs:
           unzip nomad_1.2.6_linux_amd64.zip
           cp nomad /usr/local/bin
           make test-certs
-        
+
       # Run tests with nice formatting. Save the original log in /tmp/gotest.log
       - name: Run tests
         run: |

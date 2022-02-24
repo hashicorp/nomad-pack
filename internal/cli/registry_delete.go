@@ -132,6 +132,6 @@ func (c *RegistryDeleteCommand) Help() string {
 	Usage: nomad-pack registry delete <name> [options]
 
 	Delete nomad pack registries or packs.
-	
+
 ` + c.GetExample() + c.Flags().Help())
 }

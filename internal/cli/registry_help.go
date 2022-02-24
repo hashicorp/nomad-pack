@@ -49,6 +49,6 @@ func (c *RegistryHelpCommand) Help() string {
 	Usage: nomad-pack registry <subcommand> [options]
 
 	Manage nomad-pack registries or packs.
-	
+
 ` + c.GetExample() + c.Flags().Help())
 }
