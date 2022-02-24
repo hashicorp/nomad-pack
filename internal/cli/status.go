@@ -97,7 +97,7 @@ func (c *StatusCommand) renderAllDeployedPacks(jobsApi *v1.Jobs, errorContext *e
 }
 
 func (c *StatusCommand) Flags() *flag.Sets {
-	return c.flagSet(0, func(set *flag.Sets) {
+	return c.flagSet(flagSetOperation, func(set *flag.Sets) {
 		c.packConfig = &cache.PackConfig{}
 
 		f := set.NewSet("Status Options")
