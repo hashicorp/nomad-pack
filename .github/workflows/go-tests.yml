@@ -18,7 +18,7 @@ jobs:
       # install deps using go install
       - name: Install test dependencies
         run: |
-          go install github.com/haveyoudebuggedit/gotestfmt/v2/cmd/gotestfmt@v2.3.0
+          go install gotest.tools/gotestsum@latest
           wget --no-verbose https://releases.hashicorp.com/nomad/1.2.6/nomad_1.2.6_linux_amd64.zip
           unzip nomad_1.2.6_linux_amd64.zip
           cp nomad /usr/local/bin
@@ -27,8 +27,8 @@ jobs:
       # Run tests with nice formatting. Save the original log in /tmp/gotest.log
       - name: Run tests
         run: |
-          set -euo pipefail
-          go test -json -v ./... 2>&1 | tee /tmp/gotest.log | gotestfmt
+          gotestsum -f testname -- ./...
+          
 
       # Upload the original go test log as an artifact for later review.
       - name: Upload test log
