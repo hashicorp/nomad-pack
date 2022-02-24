@@ -258,7 +258,7 @@ job "countdash" {
       # The "dns" stanza allows operators to override the DNS configuration
       # inherited by the host client.
       # dns {
-      #   servers = ["1.1.1.1"]
+      #   servers = ["1.1.1.1"] 
       # }
     }
     # The "service" stanza enables Consul Connect.
