@@ -302,8 +302,11 @@ func TestStatusFails(t *testing.T) {
 	defer reset()
 	statusCmd := &StatusCommand{baseCommand: baseCmd()}
 
+	// test validation for name flag without pack
 	exitCode := statusCmd.Run([]string{"--name=foo"})
 	require.Equal(t, 1, exitCode)
+	// TODO: Check for correct output (this test has been passing, but has actually been broken)
+	// "--name can only be used if pack name is provided"
 }
 
 var nomadAddr string

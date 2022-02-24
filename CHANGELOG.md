@@ -1,6 +1,7 @@
 ## UNRELEASED
 
 BUG FIXES:
+* cli: Add missing --name flag for status command [[GH-212](https://github.com/hashicorp/nomad-pack/pull/212)]
 
 IMPROVEMENTS:
 
