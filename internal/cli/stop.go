@@ -54,7 +54,7 @@ func (c *StopCommand) Run(args []string) int {
 	// Set the packConfig defaults if necessary and generate our UI error context.
 	errorContext := initPackCommand(c.packConfig)
 
-	client, err := v1.NewClient()
+	client, err := c.getAPIClient()
 	if err != nil {
 		c.ui.ErrorWithContext(err, "failed to initialize client", errorContext.GetAll()...)
 		return 1
@@ -103,7 +103,7 @@ func (c *StopCommand) Run(args []string) int {
 
 			// get job struct from template
 			// TODO: Should we add an hcl1 flag?
-			job, err := parseJob(c.ui, tpl, false, tplErrorContext)
+			job, err := parseJob(c.baseCommand, tpl, false, tplErrorContext)
 			if err != nil {
 				// err output is handled by parseJob
 				return 1
@@ -243,7 +243,7 @@ func (c *StopCommand) confirmStop() bool {
 }
 
 func (c *StopCommand) Flags() *flag.Sets {
-	return c.flagSet(flagSetOperation, func(set *flag.Sets) {
+	return c.flagSet(flagSetOperation|flagSetNomadClient, func(set *flag.Sets) {
 		c.packConfig = &cache.PackConfig{}
 
 		f := set.NewSet("Stop Options")

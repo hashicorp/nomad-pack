@@ -38,7 +38,7 @@ func (c *DestroyCommand) Run(args []string) int {
 }
 
 func (c *DestroyCommand) Flags() *flag.Sets {
-	return c.flagSet(flagSetOperation, func(set *flag.Sets) {
+	return c.flagSet(flagSetOperation|flagSetNomadClient, func(set *flag.Sets) {
 		c.packConfig = &cache.PackConfig{}
 
 		set.HideUnusedFlags("Operation Options", []string{"var", "var-file"})
