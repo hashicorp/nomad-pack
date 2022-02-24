@@ -23,12 +23,16 @@ dev:
 	@cp ./bin/nomad-pack $(GOPATH)/bin/nomad-pack
 	@echo "==> Done"
 
-fixtures/mtls/global-client-nomad-0-key.pem fixtures/mtls/global-client-nomad-0.pem fixtures/mtls/global-server-nomad-0-key.pem fixtures/mtls/global-server-nomad-0.pem fixtures/mtls/nomad-agent-ca-key.pem fixtures/mtls/nomad-agent-ca.pem &:
+mtlsCerts = fixtures/mtls/global-client-nomad-0-key.pem fixtures/mtls/global-client-nomad-0.pem fixtures/mtls/global-server-nomad-0-key.pem fixtures/mtls/global-server-nomad-0.pem fixtures/mtls/nomad-agent-ca-key.pem fixtures/mtls/nomad-agent-ca.pem
+
+$(mtlsCerts) &:
 	@echo "==> Generating mtls test fixtures..."
 	@pushd fixtures/mtls; ./gen_test_certs.sh; popd
 	@echo "==> Done"
 
-test: fixtures/mtls/global-client-nomad-0-key.pem fixtures/mtls/global-client-nomad-0.pem fixtures/mtls/global-server-nomad-0-key.pem fixtures/mtls/global-server-nomad-0.pem fixtures/mtls/nomad-agent-ca-key.pem fixtures/mtls/nomad-agent-ca.pem
+test-certs: $(mtlsCerts)
+
+test: $(mtlsCerts)
 	go test ./... -v -count=1
 
 mod:
