@@ -1,6 +1,6 @@
 # Variable Test Pack
 
-This pack can be used to test variable passing into nomad-pack.git
+This pack can be used to test variable passing into nomad-pack.
 
 ## Inputs
 

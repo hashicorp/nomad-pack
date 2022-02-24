@@ -3,7 +3,6 @@ package cli
 import (
 	"fmt"
 
-	v1 "github.com/hashicorp/nomad-openapi/v1"
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
@@ -57,7 +56,7 @@ func (c *RunCommand) run() int {
 	errorContext.Add(errors.UIContextPrefixDeploymentName, c.deploymentName)
 
 	// create the http client
-	client, err := v1.NewClient()
+	client, err := c.getAPIClient()
 	if err != nil {
 		c.ui.ErrorWithContext(err, "failed to initialize client", errorContext.GetAll()...)
 		return 1
@@ -147,7 +146,7 @@ func (c *RunCommand) run() int {
 
 // Flags defines the flag.Sets for the operation.
 func (c *RunCommand) Flags() *flag.Sets {
-	return c.flagSet(flagSetOperation, func(set *flag.Sets) {
+	return c.flagSet(flagSetOperation|flagSetNomadClient, func(set *flag.Sets) {
 		f := set.NewSet("Run Options")
 
 		c.packConfig = &cache.PackConfig{}

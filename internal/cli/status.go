@@ -37,7 +37,7 @@ func (c *StatusCommand) Run(args []string) int {
 	errorContext := errors.NewUIErrorContext()
 	errorContext.Add(errors.UIContextPrefixPackName, c.packConfig.Name)
 
-	client, err := v1.NewClient()
+	client, err := c.getAPIClient()
 	if err != nil {
 		c.ui.ErrorWithContext(err, "failed to initialize client", errorContext.GetAll()...)
 		return 1
@@ -97,7 +97,7 @@ func (c *StatusCommand) renderAllDeployedPacks(jobsApi *v1.Jobs, errorContext *e
 }
 
 func (c *StatusCommand) Flags() *flag.Sets {
-	return c.flagSet(flagSetOperation, func(set *flag.Sets) {
+	return c.flagSet(flagSetOperation|flagSetNomadClient, func(set *flag.Sets) {
 		c.packConfig = &cache.PackConfig{}
 
 		f := set.NewSet("Status Options")
@@ -135,7 +135,7 @@ func (c *StatusCommand) Help() string {
 	c.Example = `
 	# Get a list of all deployed packs and their registries
 	nomad-pack status
-	
+
 	# Get a list of all deployed jobs in pack example, along with their status
 	# and deployment names
 	nomad-pack status example

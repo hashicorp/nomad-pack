@@ -1,8 +1,10 @@
 package filesystem
 
 import (
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 
@@ -105,7 +107,12 @@ func CopyDir(sourceDir string, destinationDir string, logger logging.Logger) (er
 	}
 
 	// Make the destination direction and copy the file permissions
-	err = os.MkdirAll(destinationDir, sourceDirInfo.Mode())
+	err = MaybeCreateDestinationDir(
+		destinationDir,
+		WithFileMode(sourceDirInfo.Mode()),
+		ErrOnExists(),
+	)
+
 	if err != nil {
 		logger.Debug(fmt.Sprintf("error creating destination directory: %s", err))
 		return
@@ -145,4 +152,51 @@ func CopyDir(sourceDir string, destinationDir string, logger logging.Logger) (er
 	}
 
 	return nil
+}
+func MaybeCreateDestinationDir(path string, opts ...CreateOption) error {
+	co := &createOpts{
+		perms: 0755,
+	}
+
+	for _, opt := range opts {
+		opt(co)
+	}
+
+	_, err := os.Stat(path)
+
+	if err == nil && co.errOnExists {
+		return &fs.PathError{
+			Op:   "MaybeCreateDestinationDir",
+			Path: path,
+			Err:  fs.ErrExist,
+		}
+	}
+	// If the directory doesn't exist, create it.
+	if errors.Is(err, fs.ErrNotExist) {
+		err := os.MkdirAll(path, co.perms)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func WithFileMode(m fs.FileMode) CreateOption {
+	return func(c *createOpts) {
+		c.perms = m
+	}
+}
+
+func ErrOnExists() CreateOption {
+	return func(c *createOpts) {
+		c.errOnExists = true
+	}
+}
+
+type CreateOption func(c *createOpts)
+
+type createOpts struct {
+	errOnExists bool
+	perms       fs.FileMode
 }

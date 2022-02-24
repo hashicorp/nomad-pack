@@ -38,7 +38,7 @@ func (c *DestroyCommand) Run(args []string) int {
 }
 
 func (c *DestroyCommand) Flags() *flag.Sets {
-	return c.flagSet(flagSetOperation, func(set *flag.Sets) {
+	return c.flagSet(flagSetOperation|flagSetNomadClient, func(set *flag.Sets) {
 		c.packConfig = &cache.PackConfig{}
 
 		set.HideUnusedFlags("Operation Options", []string{"var", "var-file"})
@@ -92,7 +92,7 @@ func (c *DestroyCommand) Help() string {
 	# Stop and delete an example pack in deployment "dev" that has a job named "test"
 	# If the same pack has been installed in deployment "dev" but overriding the job
 	# name to "hello", only "test" will be deleted
-	nomad-pack destroy example --name=dev --var=job_name=test	
+	nomad-pack destroy example --name=dev --var=job_name=test
 	`
 	return formatHelp(`
 	Usage: nomad-pack destroy <pack name> [options]
@@ -103,7 +103,7 @@ func (c *DestroyCommand) Help() string {
 	If a pack was run using var overrides to specify the job name(s), the var
 	overrides MUST be provided when destroying the pack to guarantee nomad-pack
 	targets the correct job(s) in the pack deployment.
-	
+
 ` + c.GetExample() + c.Flags().Help())
 }
 

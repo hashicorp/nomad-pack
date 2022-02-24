@@ -4,6 +4,7 @@ BUG FIXES:
 * cli: Add missing --name flag for status command [[GH-212](https://github.com/hashicorp/nomad-pack/pull/212)]
 
 IMPROVEMENTS:
+* cli: Add flags to configure Nomad API client [[GH-213](https://github.com/hashicorp/nomad-pack/pull/213)]
 
 ## 0.0.1-techpreview2 (February 07, 2022)
 

@@ -10,6 +10,7 @@ import (
 	"runtime"
 
 	"github.com/hashicorp/go-hclog"
+	v1 "github.com/hashicorp/nomad-openapi/v1"
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	flag "github.com/hashicorp/nomad-pack/internal/pkg/flag"
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable"
@@ -80,6 +81,9 @@ type baseCommand struct {
 	homeConfigPath string
 
 	ExposeDocs bool
+
+	// configuration struct to carry nomad client config values from flags.
+	nomadConfig nomadConfig
 }
 
 func (c *baseCommand) Help() string {
@@ -131,6 +135,18 @@ type baseConfig struct {
 	AppTargetRequired bool
 	UI                terminal.UI
 	Validation        ValidationFn
+}
+
+type nomadConfig struct {
+	address       string
+	namespace     string
+	region        string
+	token         string
+	tlsSkipVerify bool
+	tlsServerName string
+	caCert        string
+	clientCert    string
+	clientKey     string
 }
 
 // Init initializes the command by parsing flags, parsing the configuration,
@@ -305,6 +321,87 @@ func (c *baseCommand) flagSet(bit flagSetBit, f func(*flag.Sets)) *flag.Sets {
 		})
 	}
 
+	if bit&flagSetNomadClient != 0 {
+		f := set.NewSet("Nomad Cluster Options")
+		f.StringVar(&flag.StringVar{
+			Name:    "address",
+			Target:  &c.nomadConfig.address,
+			Default: "",
+			Usage: `The address of the Nomad server.
+					Overrides the NOMAD_ADDR environment variable if set.`,
+		})
+
+		f.StringVar(&flag.StringVar{
+			Name:    "namespace",
+			Target:  &c.nomadConfig.namespace,
+			Default: "",
+			Usage: `The target namespace for queries and actions bound to a namespace.
+					Overrides the NOMAD_NAMESPACE environment variable if set.`,
+		})
+
+		f.StringVar(&flag.StringVar{
+			Name:    "region",
+			Target:  &c.nomadConfig.region,
+			Default: "",
+			Usage: `The region of the Nomad servers to forward commands to.
+					Overrides the NOMAD_REGION environment variable if set.`,
+		})
+
+		f.StringVar(&flag.StringVar{
+			Name:    "ca-cert",
+			Target:  &c.nomadConfig.caCert,
+			Default: "",
+			Usage: `Path to a PEM encoded CA cert file to use to verify the
+					Nomad server SSL certificate. Overrides the NOMAD_CACERT
+					environment variable if set.`,
+		})
+
+		f.StringVar(&flag.StringVar{
+			Name:    "client-cert",
+			Target:  &c.nomadConfig.clientCert,
+			Default: "",
+			Usage: `Path to a PEM encoded client certificate for TLS authentication
+					to the Nomad server. Must also specify --client-key. Overrides
+					the NOMAD_CLIENT_CERT environment variable if set.`,
+		})
+
+		f.StringVar(&flag.StringVar{
+			Name:    "client-key",
+			Target:  &c.nomadConfig.clientKey,
+			Default: "",
+			Usage: `Path to an unencrypted PEM encoded private key matching the
+					client certificate from --client-cert. Overrides the
+					NOMAD_CLIENT_KEY environment variable if set.`,
+		})
+
+		f.StringVar(&flag.StringVar{
+			Name:    "tls-server-name",
+			Target:  &c.nomadConfig.tlsServerName,
+			Default: "",
+			Usage: `The server name to use as the SNI host when connecting via
+					TLS. Overrides the NOMAD_TLS_SERVER_NAME environment variable
+					if set.`,
+		})
+
+		f.StringVar(&flag.StringVar{
+			Name:    "token",
+			Target:  &c.nomadConfig.token,
+			Default: "",
+			Usage: `The SecretID of an ACL token to use to authenticate API requests with.
+					Overrides the NOMAD_TOKEN environment variable if set.`,
+		})
+
+		f.BoolVarP(&flag.BoolVarP{
+			BoolVar: &flag.BoolVar{
+				Name:    "tls-skip-verify",
+				Target:  &c.nomadConfig.tlsSkipVerify,
+				Default: false,
+				Usage: `Do not verify TLS certificate. This is highly not recommended.
+						Verification will also be skipped if NOMAD_SKIP_VERIFY is set.`,
+			},
+		})
+	}
+
 	if f != nil {
 		// Configure our values
 		f(set)
@@ -329,6 +426,7 @@ const (
 	flagSetNone          flagSetBit = 1 << iota
 	flagSetOperation                // shared flags for operations (run, plan, etc)
 	flagSetNeedsApproval            // adds the -y flag for commands that require approval to run
+	flagSetNomadClient              // adds client config flags
 )
 
 var (
@@ -370,4 +468,8 @@ func IsCanceled(err error) bool {
 	}
 
 	return s.Code() == codes.Canceled
+}
+
+func (c *baseCommand) getAPIClient() (*v1.Client, error) {
+	return v1.NewClient(clientOptsFromFlags(c)...)
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
+	"github.com/hashicorp/nomad-pack/internal/pkg/helper/filesystem"
 	"github.com/hashicorp/nomad-pack/terminal"
 	"github.com/posener/complete"
 )
@@ -56,7 +57,7 @@ func (r Render) toFile(c *RenderCommand, ec *errors.UIErrorContext) error {
 	outDir := path.Join(renderToDir, filePath)
 	outFile := path.Join(outDir, fileName)
 
-	maybeCreateDestinationDir(outDir)
+	filesystem.MaybeCreateDestinationDir(outDir)
 
 	err = writeFile(c, outFile, r.Content)
 	if err != nil {

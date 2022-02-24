@@ -7,12 +7,17 @@ GIT_IMPORT="github.com/hashicorp/nomad-pack/internal/pkg/version"
 GO_LDFLAGS="-s -w -X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY)"
 
 .PHONY: bootstrap
-bootstrap: lint-deps # Install all dependencies
+bootstrap: lint-deps test-deps # Install all dependencies
 
 .PHONY: lint-deps
 lint-deps: ## Install linter dependencies
 	@echo "==> Updating linter dependencies..."
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.42.0
+
+.PHONY: test-deps
+lint-deps: ## Install linter dependencies
+	@echo "==> Updating test dependencies..."
+	go install gotest.tools/gotestsum@latest
 
 .PHONY: dev
 dev: GOPATH=$(shell go env GOPATH)
@@ -23,8 +28,17 @@ dev:
 	@cp ./bin/nomad-pack $(GOPATH)/bin/nomad-pack
 	@echo "==> Done"
 
-test:
-	go test ./... -v -count=1
+mtlsCerts = fixtures/mtls/global-client-nomad-0-key.pem fixtures/mtls/global-client-nomad-0.pem fixtures/mtls/global-server-nomad-0-key.pem fixtures/mtls/global-server-nomad-0.pem fixtures/mtls/nomad-agent-ca-key.pem fixtures/mtls/nomad-agent-ca.pem
+
+$(mtlsCerts) &:
+	@echo "==> Generating mtls test fixtures..."
+	@pushd fixtures/mtls; ./gen_test_certs.sh; popd
+	@echo "==> Done"
+
+test-certs: $(mtlsCerts)
+
+test: $(mtlsCerts)
+	gotestsum -f testname -- ./... -count=1
 
 mod:
 	go mod tidy
@@ -64,3 +78,7 @@ check-sdk: ## Checks the SDK is isolated
 .PHONY: gen-cli-docs
 gen-cli-docs:
 	go run ./tools/gendocs mdx
+
+clean:
+	@echo "==> Removing mtls test fixtures..."
+	@rm -f fixtures/mtls/*.pem

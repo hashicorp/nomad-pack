@@ -164,6 +164,6 @@ func (c *RegistryAddCommand) Help() string {
 	Usage: nomad-pack registry add <name> <source> [options]
 
 	Add nomad pack registries.
-	
+
 ` + c.GetExample() + c.Flags().Help())
 }

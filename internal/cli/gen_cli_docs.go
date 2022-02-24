@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
+	"github.com/hashicorp/nomad-pack/internal/pkg/helper/filesystem"
 	"github.com/mitchellh/cli"
 )
 
@@ -34,11 +35,11 @@ func (c *DocGenerateCommand) Run(args []string) int {
 
 	c.mode = args[0]
 	var mErr *multierror.Error
-	mErr = multierror.Append(mErr, os.MkdirAll("./website/content/commands", 0755))
-	mErr = multierror.Append(mErr, os.MkdirAll("./website/data/", 0755))
+	mErr = multierror.Append(mErr, filesystem.MaybeCreateDestinationDir("./website/content/commands"))
+	mErr = multierror.Append(mErr, filesystem.MaybeCreateDestinationDir("./website/data/"))
 
 	if c.mode == "mdx" {
-		mErr = multierror.Append(mErr, os.MkdirAll("./website/content/partials/commands", 0755))
+		mErr = multierror.Append(mErr, filesystem.MaybeCreateDestinationDir("./website/content/partials/commands"))
 	}
 
 	if mErr != nil && mErr.Len() > 0 {

@@ -8,7 +8,6 @@ import (
 	v1 "github.com/hashicorp/nomad-openapi/v1"
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
-	intHelper "github.com/hashicorp/nomad-pack/internal/pkg/helper"
 	"github.com/hashicorp/nomad-pack/internal/pkg/manager"
 	"github.com/hashicorp/nomad-pack/internal/pkg/renderer"
 	"github.com/hashicorp/nomad-pack/internal/runner"
@@ -125,18 +124,18 @@ func renderPack(manager *manager.PackManager, ui terminal.UI, errCtx *errors.UIE
 // between layers.
 // Uses open api client to parse rendered hcl templates to
 // open api jobs to send to nomad
-func parseJob(ui terminal.UI, hcl string, hclV1 bool, errCtx *errors.UIErrorContext) (*v1client.Job, error) {
+func parseJob(cmd *baseCommand, hcl string, hclV1 bool, errCtx *errors.UIErrorContext) (*v1client.Job, error) {
 	// instantiate client to parse hcl
-	c, err := v1.NewClient()
+	c, err := cmd.getAPIClient()
 	if err != nil {
-		ui.ErrorWithContext(err, "failed to initialize client", errCtx.GetAll()...)
+		cmd.ui.ErrorWithContext(err, "failed to initialize client", errCtx.GetAll()...)
 		return nil, err
 	}
 
 	opts := newQueryOpts()
 	parsedJob, err := c.Jobs().Parse(opts.Ctx(), hcl, true, hclV1)
 	if err != nil {
-		ui.ErrorWithContext(intHelper.UnwrapAPIError(err), "failed to parse job specification", errCtx.GetAll()...)
+		cmd.ui.ErrorWithContext(err, "failed to parse job specification", errCtx.GetAll()...)
 		return nil, err
 	}
 	return parsedJob, nil
@@ -350,4 +349,35 @@ func newQueryOpts() *v1.QueryOpts {
 func newWriteOpts() *v1.WriteOpts {
 	opts := v1.WriteOpts{}
 	return opts.WithAuthToken(os.Getenv("NOMAD_TOKEN"))
+}
+
+func clientOptsFromFlags(c *baseCommand) []v1.ClientOption {
+	cfg := c.nomadConfig
+	opts := make([]v1.ClientOption, 0)
+	if cfg.address != "" {
+		opts = append(opts, v1.WithAddress(cfg.address))
+	}
+	if cfg.namespace != "" {
+		opts = append(opts, v1.WithDefaultNamespace(cfg.namespace))
+	}
+	if cfg.region != "" {
+		opts = append(opts, v1.WithDefaultRegion(cfg.region))
+	}
+	if cfg.token != "" {
+		opts = append(opts, v1.WithToken(cfg.token))
+	}
+	if cfg.clientCert != "" && cfg.clientKey != "" {
+		opts = append(opts, v1.WithClientCert(cfg.clientCert, cfg.clientKey))
+	}
+	if cfg.caCert != "" {
+		opts = append(opts, v1.WithCACert(cfg.caCert))
+	}
+	if cfg.tlsServerName != "" {
+		opts = append(opts, v1.WithTLSServerName(cfg.tlsServerName))
+	}
+	if cfg.tlsSkipVerify {
+		opts = append(opts, v1.WithTLSSkipVerify())
+	}
+
+	return opts
 }

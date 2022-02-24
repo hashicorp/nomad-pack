@@ -1,7 +1,6 @@
 package cli
 
 import (
-	v1 "github.com/hashicorp/nomad-openapi/v1"
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
@@ -44,7 +43,7 @@ func (c *PlanCommand) Run(args []string) int {
 	c.deploymentName = getDeploymentName(c.baseCommand, c.packConfig)
 	errorContext.Add(errors.UIContextPrefixDeploymentName, c.deploymentName)
 
-	client, err := v1.NewClient()
+	client, err := c.getAPIClient()
 	if err != nil {
 		c.ui.ErrorWithContext(err, "failed to initialize client", errorContext.GetAll()...)
 		return 255
@@ -123,7 +122,7 @@ func (c *PlanCommand) Run(args []string) int {
 func (c *PlanCommand) Flags() *flag.Sets {
 	c.packConfig = &cache.PackConfig{}
 
-	return c.flagSet(flagSetOperation, func(set *flag.Sets) {
+	return c.flagSet(flagSetOperation|flagSetNomadClient, func(set *flag.Sets) {
 		f := set.NewSet("Plan Options")
 
 		c.jobConfig = &job.CLIConfig{
