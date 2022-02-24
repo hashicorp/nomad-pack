@@ -37,7 +37,7 @@ const (
 	testLogLevel = "ERROR"
 )
 
-func Test_CreateTestRegistry(t *testing.T) {
+func TestCreateTestRegistry(t *testing.T) {
 	// This test is here to help setup the pack registry cache. It needs to be
 	// the first one in the file and can not be `Parallel()`
 	regName, regPath := createTestRegistry(t)
@@ -543,7 +543,8 @@ func expectGoodPackPlan(t *testing.T, r PackCommandResult) {
 
 func createTestRegistry(t *testing.T) (regName, regDir string) {
 	// Fake a clone
-	regDir, err := os.MkdirTemp(cache.DefaultCachePath(), fmt.Sprintf("test-%v", time.Now().UnixMilli()))
+	regDir = path.Join(cache.DefaultCachePath(), fmt.Sprintf("test-%v", time.Now().UnixMilli()))
+	err := os.MkdirAll(regDir, 0644)
 	require.NoError(t, err)
 	regName = path.Base(regDir)
 
