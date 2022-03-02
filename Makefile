@@ -15,7 +15,7 @@ lint-deps: ## Install linter dependencies
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.42.0
 
 .PHONY: test-deps
-test-deps: ## Install linter dependencies
+test-deps: ## Install test dependencies
 	@echo "==> Updating test dependencies..."
 	go install gotest.tools/gotestsum@latest
 
