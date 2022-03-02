@@ -45,7 +45,7 @@ func (l *FmtLogger) Error(message string) {
 // ErrorWithContext logs at the ERROR log level including additional context so
 // users can easily identify issues.
 func (l *FmtLogger) ErrorWithContext(err error, sub string, ctx ...string) {
-	fmt.Println(fmt.Sprintf("err: %s", err))
+	fmt.Printf("err: %s\n", err)
 	fmt.Println(sub)
 
 	for _, entry := range ctx {

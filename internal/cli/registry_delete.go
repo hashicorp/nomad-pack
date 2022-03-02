@@ -13,10 +13,9 @@ import (
 // RegistryDeleteCommand deletes a registry from the global cache.
 type RegistryDeleteCommand struct {
 	*baseCommand
-	command string
-	name    string
-	target  string
-	ref     string
+	name   string
+	target string
+	ref    string
 }
 
 func (c *RegistryDeleteCommand) Run(args []string) int {

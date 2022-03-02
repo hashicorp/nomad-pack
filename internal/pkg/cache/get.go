@@ -46,7 +46,7 @@ type GetOpts struct {
 	// are passed.
 	cachePath string
 	// Optional Name or alias of the registry the get operation will be performed
-	//against.
+	// against.
 	RegistryName string
 	// Optional name of pack to get from cache
 	PackName string

@@ -22,15 +22,11 @@ var spinnerSet = spinner.CharSets[11]
 type DisplayEntry struct {
 	d       *Display
 	line    uint
-	index   int
 	indent  int
 	spinner bool
 	text    string
 	status  string
-
-	body []string
-
-	next *DisplayEntry
+	body    []string
 }
 
 type Display struct {

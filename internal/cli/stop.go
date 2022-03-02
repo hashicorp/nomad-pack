@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
+	"github.com/hashicorp/nomad-pack/internal/pkg/renderer"
 	"github.com/posener/complete"
 )
 
@@ -81,8 +82,10 @@ func (c *StopCommand) Run(args []string) int {
 	if hasVarOverrides(c.baseCommand) {
 		packManager := generatePackManager(c.baseCommand, client, c.packConfig)
 
+		var r *renderer.Rendered
+
 		// render the pack
-		r, err := renderPack(packManager, c.baseCommand.ui, errorContext)
+		r, err = renderPack(packManager, c.baseCommand.ui, errorContext)
 		if err != nil {
 			return 255
 		}
@@ -103,7 +106,8 @@ func (c *StopCommand) Run(args []string) int {
 
 			// get job struct from template
 			// TODO: Should we add an hcl1 flag?
-			job, err := parseJob(c.baseCommand, tpl, false, tplErrorContext)
+			var job *v1client.Job
+			job, err = parseJob(c.baseCommand, tpl, false, tplErrorContext)
 			if err != nil {
 				// err output is handled by parseJob
 				return 1
@@ -198,48 +202,9 @@ func (c *StopCommand) checkForConflicts(jobsApi *v1.Jobs, jobName string) error 
 
 // TODO: Add interactive support
 func (c *StopCommand) confirmStop() bool {
+	// TODO: Confirm the stop if the job was a prefix match
+	// TODO: Confirm we want to stop only a single region of a multiregion job
 	return true
-	//getConfirmation := func(question string) (int, bool) {
-	//	answer, err := c.ui.Input(question)
-	//	if err != nil {
-	//		c.ui.Output(fmt.Sprintf("Failed to parse answer: %v", err))
-	//		return 1, false
-	//	}
-	//
-	//	if answer == "" || strings.ToLower(answer)[0] == 'n' {
-	//		// No case
-	//		c.ui.Output("Cancelling job stop")
-	//		return 0, false
-	//	} else if strings.ToLower(answer)[0] == 'y' && len(answer) > 1 {
-	//		// Non-exact match yes
-	//		c.ui.Output("For confirmation, an exact ‘y’ is required.")
-	//		return 0, false
-	//	} else if answer != "y" {
-	//		c.ui.Output("No confirmation detected. For confirmation, an exact 'y' is required.")
-	//		return 1, false
-	//	}
-	//	return 0, true
-	//}
-
-	// Confirm the stop if the job was a prefix match
-	// TODO: Add interactive support
-	//if c.jobName != *job.ID {
-	//	question := fmt.Sprintf("Are you sure you want to stop job %q? [y/N]", *job.ID)
-	//	code, confirmed := getConfirmation(question)
-	//	if !confirmed {
-	//		return code
-	//	}
-	//}
-
-	// Confirm we want to stop only a single region of a multiregion job
-	// TODO: Add interactive support
-	//	question := fmt.Sprintf(
-	//		"Are you sure you want to stop multi-region job %q in a single region? [y/N]", *job.ID)
-	//	code, confirmed := getConfirmation(question)
-	//	if !confirmed {
-	//		return code
-	//	}
-	//}
 }
 
 func (c *StopCommand) Flags() *flag.Sets {
@@ -347,7 +312,7 @@ func createStatusListOutput(jobs []v1client.JobListStub, displayNS bool) string 
 				*job.JobSummary.Namespace,
 				getTypeString(&job),
 				job.Priority,
-				getStatusString(job.Status, job.Stop), formatTime(&t))
+				getStatusString(job.Status, job.Stop), formatTime(t))
 		}
 	} else {
 		out[0] = "ID|Type|Priority|Status|Submit Date"
@@ -361,7 +326,7 @@ func createStatusListOutput(jobs []v1client.JobListStub, displayNS bool) string 
 				*job.ID,
 				getTypeString(&job),
 				job.Priority,
-				getStatusString(job.Status, job.Stop), formatTime(&t))
+				getStatusString(job.Status, job.Stop), formatTime(t))
 		}
 	}
 	return formatList(out)

@@ -41,7 +41,7 @@ func (ui *nonInteractiveUI) Output(msg string, raw ...interface{}) {
 
 	switch style {
 	case DebugStyle:
-		msg = "debug: " + msg
+		msg = colorDebug.Sprintf("debug: %s\n" + msg)
 	case HeaderStyle:
 		msg = "\n» " + msg
 	case ErrorStyle, ErrorBoldStyle:
@@ -55,9 +55,9 @@ func (ui *nonInteractiveUI) Output(msg string, raw ...interface{}) {
 
 		return
 	case WarningStyle, WarningBoldStyle:
-		msg = "warning: " + msg
+		msg = colorWarning.Sprintf("warning: %s\n" + msg)
 	case TraceStyle:
-		msg = "trace: " + msg
+		msg = colorTrace.Sprintf("trace: %s\n" + msg)
 	case SuccessStyle, SuccessBoldStyle:
 
 	case InfoStyle:

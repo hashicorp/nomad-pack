@@ -81,8 +81,8 @@ func (d *durationValue) Set(s string) error {
 	return nil
 }
 
-func (d *durationValue) Get() interface{} { return time.Duration(*d.target) }
-func (d *durationValue) String() string   { return (*d.target).String() }
+func (d *durationValue) Get() interface{} { return *d.target }
+func (d *durationValue) String() string   { return d.target.String() }
 func (d *durationValue) Example() string  { return "duration" }
 func (d *durationValue) Hidden() bool     { return d.hidden }
 func (d *durationValue) Type() string     { return "duration" }

@@ -89,8 +89,8 @@ func (i *intValue) Set(s string) error {
 	return nil
 }
 
-func (i *intValue) Get() interface{} { return int(*i.target) }
-func (i *intValue) String() string   { return strconv.Itoa(int(*i.target)) }
+func (i *intValue) Get() interface{} { return *i.target }
+func (i *intValue) String() string   { return strconv.Itoa(*i.target) }
 func (i *intValue) Example() string  { return "int" }
 func (i *intValue) Hidden() bool     { return i.hidden }
 func (i *intValue) Type() string     { return "int" }
@@ -130,7 +130,7 @@ func (f *Set) Int64VarP(i *Int64VarP) {
 
 	def := ""
 	if i.Default != 0 {
-		def = strconv.FormatInt(int64(i.Default), 10)
+		def = strconv.FormatInt(i.Default, 10)
 	}
 
 	f.VarFlagP(&VarFlagP{
@@ -177,8 +177,8 @@ func (i *int64Value) Set(s string) error {
 	return nil
 }
 
-func (i *int64Value) Get() interface{} { return int64(*i.target) }
-func (i *int64Value) String() string   { return strconv.FormatInt(int64(*i.target), 10) }
+func (i *int64Value) Get() interface{} { return *i.target }
+func (i *int64Value) String() string   { return strconv.FormatInt(*i.target, 10) }
 func (i *int64Value) Example() string  { return "int" }
 func (i *int64Value) Hidden() bool     { return i.hidden }
 func (i *int64Value) Type() string     { return "int64" }
@@ -265,7 +265,7 @@ func (i *uintValue) Set(s string) error {
 	return nil
 }
 
-func (i *uintValue) Get() interface{} { return uint(*i.target) }
+func (i *uintValue) Get() interface{} { return uint64(*i.target) }
 func (i *uintValue) String() string   { return strconv.FormatUint(uint64(*i.target), 10) }
 func (i *uintValue) Example() string  { return "uint" }
 func (i *uintValue) Hidden() bool     { return i.hidden }
@@ -353,8 +353,8 @@ func (i *uint64Value) Set(s string) error {
 	return nil
 }
 
-func (i *uint64Value) Get() interface{} { return uint64(*i.target) }
-func (i *uint64Value) String() string   { return strconv.FormatUint(uint64(*i.target), 10) }
+func (i *uint64Value) Get() interface{} { return *i.target }
+func (i *uint64Value) String() string   { return strconv.FormatUint(*i.target, 10) }
 func (i *uint64Value) Example() string  { return "uint" }
 func (i *uint64Value) Hidden() bool     { return i.hidden }
 func (i *uint64Value) Type() string     { return "uint64" }

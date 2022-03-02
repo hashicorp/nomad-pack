@@ -421,7 +421,7 @@ func formatDryRun(resp *v1client.JobPlanResponse, job *v1client.Job, ui terminal
 	}
 
 	next := resp.NextPeriodicLaunch
-	if next != nil && (*next).IsZero() && !isParameterized(job) {
+	if next != nil && next.IsZero() && !isParameterized(job) {
 		loc, err := GetLocation(job.Periodic)
 		ui.Output("")
 		if err != nil {

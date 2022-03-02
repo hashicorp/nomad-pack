@@ -92,7 +92,7 @@ func (f *Set) VarFlagP(i *VarFlagP) {
 }
 
 // Var is a lower-level API for adding something to the flags. It should be used
-// wtih caution, since it bypasses all validation. Consider VarFlag instead.
+// with caution, since it bypasses all validation. Consider VarFlag instead.
 func (f *Set) Var(value flag.Value, name, usage string) {
 	f.unionSet.Var(value, name, usage)
 	f.flagSet.Var(value, name, usage)

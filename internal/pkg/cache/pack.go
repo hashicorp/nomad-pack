@@ -38,8 +38,6 @@ func (cfg *PackConfig) Init() {
 	} else {
 		cfg.initFromArgs()
 	}
-
-	return
 }
 
 func (cfg *PackConfig) initFromDirectory(packPath string) {
@@ -58,7 +56,6 @@ func (cfg *PackConfig) initFromArgs() {
 	if cfg.Ref != "" {
 		cfg.Path = AppendRef(cfg.Path, cfg.Ref)
 	}
-	return
 }
 
 // Pack wraps a pack.Pack add adds the local cache ref. Useful for
