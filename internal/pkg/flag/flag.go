@@ -32,14 +32,14 @@ type FlagVisibility interface {
 
 // helpers
 
-func envDefault(key, def string) string {
+func EnvDefault(key, def string) string {
 	if v, exist := os.LookupEnv(key); exist {
 		return v
 	}
 	return def
 }
 
-func envBoolDefault(key string, def bool) bool {
+func EnvBoolDefault(key string, def bool) bool {
 	if v, exist := os.LookupEnv(key); exist {
 		b, err := strconv.ParseBool(v)
 		if err != nil {
@@ -50,7 +50,7 @@ func envBoolDefault(key string, def bool) bool {
 	return def
 }
 
-func envDurationDefault(key string, def time.Duration) time.Duration {
+func EnvDurationDefault(key string, def time.Duration) time.Duration {
 	if v, exist := os.LookupEnv(key); exist {
 		d, err := time.ParseDuration(v)
 		if err != nil {
