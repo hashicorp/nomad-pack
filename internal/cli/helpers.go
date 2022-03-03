@@ -24,7 +24,9 @@ func initPackCommand(cfg *cache.PackConfig) (errorContext *errors.UIErrorContext
 	errorContext.Add(errors.UIContextPrefixRegistryName, cfg.Registry)
 	errorContext.Add(errors.UIContextPrefixPackName, cfg.Name)
 	errorContext.Add(errors.UIContextPrefixPackRef, cfg.Ref)
-
+	if cfg.Registry == cache.DevRegistryName && cfg.Ref == cache.DevRef {
+		errorContext.Add(errors.UIContextPrefixPackPath, cfg.Path)
+	}
 	return
 }
 
