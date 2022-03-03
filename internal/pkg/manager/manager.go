@@ -28,6 +28,9 @@ type PackManager struct {
 	cfg      *Config
 	client   *v1.Client
 	renderer *renderer.Renderer
+
+	// loadedPack is unavailable until the loadAndValidatePacks func is run.
+	loadedPack *pack.Pack
 }
 
 func NewPackManager(cfg *Config, client *v1.Client) *PackManager {
@@ -54,6 +57,8 @@ func (pm *PackManager) ProcessTemplates() (*renderer.Rendered, []*errors.Wrapped
 			Context: errors.NewUIErrorContext(),
 		}}
 	}
+
+	pm.loadedPack = loadedPack
 
 	// Root vars are nested under the parent pack name, which is currently
 	// just the pack name without the version. We want to slice the string
@@ -162,4 +167,17 @@ func (pm *PackManager) loadAndValidatePack(cur *pack.Pack, depsPath string) erro
 	}
 
 	return nil
+}
+
+func (pm *PackManager) PackName() string {
+	if pm.loadedPack != nil {
+		return pm.loadedPack.Name()
+	}
+
+	name := path.Base(pm.cfg.Path)
+	idx := strings.LastIndex(path.Base(pm.cfg.Path), "@")
+	if idx != -1 {
+		name = path.Base(pm.cfg.Path)[0:idx]
+	}
+	return name
 }
