@@ -106,6 +106,8 @@ func registryPackRow(cachedRegistry *cache.Registry, cachedPack *cache.Pack) []t
 func renderPack(manager *manager.PackManager, ui terminal.UI, errCtx *errors.UIErrorContext) (*renderer.Rendered, error) {
 	r, err := manager.ProcessTemplates()
 	if err != nil {
+		packName := manager.PackName()
+		errCtx.Add(errors.UIContextPrefixPackName, packName)
 		for i := range err {
 			err[i].Context.Append(errCtx)
 			ui.ErrorWithContext(err[i].Err, "failed to process pack", err[i].Context.GetAll()...)
