@@ -1,1 +1,1 @@
-[[.variable_test.input]]
+[[.variable_test_pack.input]]
