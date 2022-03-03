@@ -26,11 +26,12 @@ func convertCtyToInterface(val cty.Value) (interface{}, error) {
 		case cty.String:
 			return val.AsString(), nil
 		case cty.Number:
-			if val.RawEquals(cty.PositiveInfinity) {
+			switch {
+			case val.RawEquals(cty.PositiveInfinity):
 				return math.Inf(1), nil
-			} else if val.RawEquals(cty.NegativeInfinity) {
+			case val.RawEquals(cty.NegativeInfinity):
 				return math.Inf(-1), nil
-			} else {
+			default:
 				return smallestNumber(val.AsBigFloat()), nil
 			}
 		case cty.Bool:

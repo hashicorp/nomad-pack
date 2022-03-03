@@ -53,14 +53,14 @@ func symwalk(path string, info os.FileInfo, walkFn filepath.WalkFunc) error {
 		filename := filepath.Join(path, name)
 		fileInfo, err := os.Lstat(filename)
 		if err != nil {
-			if err := walkFn(filename, fileInfo, err); err != nil && err != filepath.SkipDir {
-				return err
+			if wErr := walkFn(filename, fileInfo, err); wErr != nil && wErr != filepath.SkipDir {
+				return wErr
 			}
 		} else {
-			err = symwalk(filename, fileInfo, walkFn)
-			if err != nil {
-				if (!fileInfo.IsDir() && !isSymlink(fileInfo)) || err != filepath.SkipDir {
-					return err
+			wErr := symwalk(filename, fileInfo, walkFn)
+			if wErr != nil {
+				if (!fileInfo.IsDir() && !isSymlink(fileInfo)) || wErr != filepath.SkipDir {
+					return wErr
 				}
 			}
 		}

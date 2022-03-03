@@ -16,7 +16,7 @@ func formatList(in []string) string {
 }
 
 // formatTime formats the time to string based on RFC822
-func formatTime(t *time.Time) string {
+func formatTime(t time.Time) string {
 	if t.Unix() < 1 {
 		// It's more confusing to display the UNIX epoch or a zero value than nothing
 		return ""

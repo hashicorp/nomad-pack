@@ -81,8 +81,8 @@ func (f *float64Value) Set(s string) error {
 	return nil
 }
 
-func (f *float64Value) Get() interface{} { return float64(*f.target) }
-func (f *float64Value) String() string   { return strconv.FormatFloat(float64(*f.target), 'g', -1, 64) }
+func (f *float64Value) Get() interface{} { return *f.target }
+func (f *float64Value) String() string   { return strconv.FormatFloat(*f.target, 'g', -1, 64) }
 func (f *float64Value) Example() string  { return "float" }
 func (f *float64Value) Hidden() bool     { return f.hidden }
 func (f *float64Value) Type() string     { return "float64" }

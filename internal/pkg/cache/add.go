@@ -67,7 +67,7 @@ func (c *Cache) addFromURI(opts *AddOpts) (cachedRegistry *Registry, err error) 
 	// Set up a defer function so that the temp directory always gets removed
 	defer func() {
 		// remove the tmp directory
-		if _, err := os.Stat(c.clonePath()); errors.Is(err, os.ErrNotExist) {
+		if _, sErr := os.Stat(c.clonePath()); errors.Is(sErr, os.ErrNotExist) {
 			return // there's nothing to clean up
 		}
 
@@ -175,12 +175,10 @@ func (c *Cache) processPackEntry(opts *AddOpts, packEntry os.DirEntry) (err erro
 		}
 		// Reset to nil to ensure it doesn't get returned later.
 		err = nil
-	} else {
+	} else if !opts.IsLatest() {
 		// If ref target is not latest, continue to next entry because ref already exists
-		if !opts.IsLatest() {
-			logger.Debug("Pack already exists at specified ref - skipping")
-			return nil
-		}
+		logger.Debug("Pack already exists at specified ref - skipping")
+		return nil
 	}
 
 	logger.Debug("Updating pack")

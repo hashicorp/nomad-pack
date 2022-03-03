@@ -123,26 +123,13 @@ func validateOutDir(path string) error {
 	return nil
 }
 
-func maybeCreateDestinationDir(path string) error {
-	_, err := os.Stat(path)
-
-	// If the directory doesn't exist, create it.
-	if errors.Is(err, fs.ErrNotExist) {
-		err := os.MkdirAll(path, 0755)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 func writeFile(c *RenderCommand, path string, content string) error {
 	// Check to see if the file already exists and validate against the value
 	// of overwrite.
 	_, err := os.Stat(path)
 	if err == nil {
-		overwrite, err := confirmOverwrite(c, path)
+		var overwrite bool
+		overwrite, err = confirmOverwrite(c, path)
 		if err != nil {
 			return err
 		}
@@ -235,7 +222,8 @@ func (c *RenderCommand) Run(args []string) int {
 	// can still display the pack templates from above. The error will be
 	// displayed before the template renders, so the UI looks OK.
 	if c.renderOutputTemplate {
-		outputRender, err := packManager.ProcessOutputTemplate()
+		var outputRender string
+		outputRender, err = packManager.ProcessOutputTemplate()
 		if err != nil {
 			c.ui.ErrorWithContext(err, "failed to render output template", errorContext.GetAll()...)
 		} else {

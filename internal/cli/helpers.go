@@ -66,10 +66,7 @@ func emptyRegistryTableRow(cachedRegistry *cache.Registry) []terminal.TableEntry
 		{
 			Value: cachedRegistry.Source,
 		},
-		//// TODO: The app version
-		//{
-		//	Value: registryPack.Metadata.App.Version,
-		//},
+		// TODO: The app version
 	}
 }
 
@@ -95,10 +92,7 @@ func registryPackRow(cachedRegistry *cache.Registry, cachedPack *cache.Pack) []t
 		{
 			Value: cachedRegistry.Source,
 		},
-		//// TODO: The app version
-		//{
-		//	Value: registryPack.Metadata.App.Version,
-		//},
+		// TODO: The app version
 	}
 }
 

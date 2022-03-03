@@ -64,7 +64,7 @@ func HumanVersion() string {
 	}
 
 	// Strip off any single quotes added by the git information.
-	return strings.Replace(version, "'", "", -1)
+	return strings.ReplaceAll(version, "'", "")
 }
 
 // GitSHA gets the git sha of a pack by directory. Requires git

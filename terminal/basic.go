@@ -10,7 +10,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	sshterm "golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 
 	"github.com/bgentry/speakeasy"
 	"github.com/containerd/console"
@@ -30,7 +30,7 @@ func ConsoleUI(ctx context.Context) UI {
 	// We do both of these checks because some sneaky environments fool
 	// one or the other and we really only want the glint-based UI in
 	// truly interactive environments.
-	glint := isatty.IsTerminal(os.Stdout.Fd()) && sshterm.IsTerminal(int(os.Stdout.Fd()))
+	glint := isatty.IsTerminal(os.Stdout.Fd()) && term.IsTerminal(int(os.Stdout.Fd()))
 	if glint {
 		glint = false
 		if c, err := console.ConsoleFromFile(os.Stdout); err == nil {
@@ -112,6 +112,10 @@ func (ui *basicUI) Output(msg string, raw ...interface{}) {
 		msg = colorSuccess.Sprint(msg)
 	case SuccessBoldStyle:
 		msg = colorSuccessBold.Sprint(msg)
+	case DebugStyle:
+		msg = colorDebug.Sprintf("debug: %s\n", msg)
+	case TraceStyle:
+		msg = colorTrace.Sprintf("trace: %s\n", msg)
 	case InfoStyle:
 		lines := strings.Split(msg, "\n")
 		for i, line := range lines {

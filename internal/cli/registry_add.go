@@ -10,14 +10,13 @@ import (
 	"github.com/posener/complete"
 )
 
-// RegistryAddCommand adds a regsitry to the global cache.
+// RegistryAddCommand adds a registry to the global cache.
 type RegistryAddCommand struct {
 	*baseCommand
-	command string
-	source  string
-	name    string
-	target  string
-	ref     string
+	source string
+	name   string
+	target string
+	ref    string
 }
 
 func (c *RegistryAddCommand) Run(args []string) int {

@@ -16,7 +16,6 @@ type PlanCommand struct {
 }
 
 func (c *PlanCommand) Run(args []string) int {
-	var err error
 	c.cmdKey = "plan" // Add cmdKey here to print out helpUsageMessage on Init error
 	// Initialize. If we fail, we just exit since Init handles the UI.
 	if err := c.Init(
@@ -35,7 +34,7 @@ func (c *PlanCommand) Run(args []string) int {
 	errorContext := initPackCommand(c.packConfig)
 
 	// verify packs exist before planning jobs
-	if err = cache.VerifyPackExists(c.packConfig, errorContext, c.ui); err != nil {
+	if err := cache.VerifyPackExists(c.packConfig, errorContext, c.ui); err != nil {
 		return 255
 	}
 
@@ -107,10 +106,8 @@ func (c *PlanCommand) Run(args []string) int {
 	}
 
 	planExitCode, planErrs := jobRunner.PlanDeployment(c.ui, errorContext)
-	if planErrs != nil {
-		for _, planErrs := range planErrs {
-			c.ui.ErrorWithContext(planErrs.Err, planErrs.Subject, planErrs.Context.GetAll()...)
-		}
+	for _, planErrs := range planErrs {
+		c.ui.ErrorWithContext(planErrs.Err, planErrs.Subject, planErrs.Context.GetAll()...)
 	}
 
 	if planExitCode < 2 {

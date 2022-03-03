@@ -173,7 +173,6 @@ type Spinner struct {
 	ctx        context.Context
 	cancel     func()
 	done       chan struct{}
-	wg         sync.WaitGroup
 	mu         *sync.RWMutex                 //
 	Delay      time.Duration                 // Delay is the speed of the indicator
 	chars      []string                      // chars holds the chosen character set
