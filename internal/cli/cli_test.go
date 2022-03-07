@@ -353,7 +353,7 @@ func TestStatus(t *testing.T) {
 				args := append([]string{"status"}, tc.args...)
 				result := runTestPackCmd(t, s, args)
 				require.Equal(t, 0, result.exitCode)
-				require.Contains(t, result.cmdOut.String(), "simple_raw_exec | dev ")
+				require.Contains(t, result.cmdOut.String(), "simple_raw_exec | "+cache.DevRegistryName+" ")
 			})
 		}
 	})

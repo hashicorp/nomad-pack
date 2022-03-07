@@ -13,8 +13,20 @@ type ErrorContext struct {
 // NewErrorContext creates an empty ErrorContext.
 func NewErrorContext() *ErrorContext { return &ErrorContext{} }
 
-// Add formats and appends the passed prefix and value onto the error contexts.
+// Add formats and upserts the passed prefix and value onto the error contexts.
 func (ctx *ErrorContext) Add(prefix, val string) {
+	idx := -1
+	for i, c := range ctx.contexts {
+		if strings.HasPrefix(c, prefix) {
+			idx = i
+			break
+		}
+	}
+	if idx != -1 {
+		ctx.contexts[idx] = prefix + val
+		return
+	}
+
 	ctx.contexts = append(ctx.contexts, prefix+val)
 }
 
