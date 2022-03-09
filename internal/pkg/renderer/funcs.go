@@ -21,8 +21,8 @@ func funcMap(nomadClient *v1.Client) template.FuncMap {
 
 	// Add debugging functions. These are useful when debugging templates and
 	// variables.
-	f["spewDump"] = spewDump
-	f["spewPrintf"] = spewPrintf
+	f["spewDump"] = spew.Sdump
+	f["spewPrintf"] = spew.Sprintf
 
 	if nomadClient != nil {
 		f["nomadNamespaces"] = nomadNamespaces(nomadClient)
@@ -82,11 +82,3 @@ func toStringList(l []interface{}) (string, error) {
 	}
 	return "[" + out + "]", nil
 }
-
-// spewDump dumps the entire contents of the interface as a string. The output
-// includes the content types and values and is extremely useful for debugging.
-func spewDump(a interface{}) string { return spew.Sdump(a) }
-
-// spewPrintf dumps the supplied arguments into a string according to the
-// supplied format. This is useful when debugging.
-func spewPrintf(format string, args ...interface{}) string { return spew.Sprintf(format, args) }
