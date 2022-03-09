@@ -9,6 +9,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -373,6 +374,32 @@ func TestStatusFails(t *testing.T) {
 		require.Equal(t, 1, result.exitCode)
 		require.Contains(t, result.cmdOut.String(), "--name can only be used if pack name is provided")
 	})
+}
+
+func TestRenderMyAlias(t *testing.T) {
+	// This test has to do some extra shenanigans because dependent pack template
+	// output is not guaranteed to be ordered. This requires that the test handle
+	// either order.
+	expected := []string{
+		"child1/child1.nomad=child1",
+		"child2/child2.nomad=child2",
+		"deps_test/deps_test.nomad=deps_test",
+	}
+
+	result := runPackCmd(t, []string{
+		"render",
+		getTestPackPath("my_alias_test"),
+	})
+	require.Empty(t, result.cmdErr.String(), "cmdErr should be empty, but was %q", result.cmdErr.String())
+
+	// Performing a little clever string manipulation on the render output to
+	// prepare it for splitting into a slice of string enables us to use
+	// require.ElementsMatch to validate goodness.
+	outStr := strings.TrimSpace(result.cmdOut.String())
+	outStr = strings.ReplaceAll(outStr, ":\n\n", "=")
+	elems := strings.Split(outStr, "\n")
+
+	require.ElementsMatch(t, expected, elems)
 }
 
 type PackCommandResult struct {
