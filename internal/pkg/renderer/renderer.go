@@ -136,7 +136,7 @@ func (r *Renderer) RenderOutput() (string, error) {
 	return buf.String(), nil
 }
 
-// prepareTemplates recurses the pack and it's dependencies to populate to the
+// prepareTemplates recurses the pack and its dependencies to populate to the
 // passed map with the templates to render along with the variables which
 // correspond.
 func prepareTemplates(p *pack.Pack, templates map[string]toRender, variables map[string]interface{}) {
@@ -147,8 +147,9 @@ func prepareTemplates(p *pack.Pack, templates map[string]toRender, variables map
 	// variables. If the pack is the parent/root pack, then it has access to
 	// all.
 	if p.HasParent() {
-		if vars, ok := variables[p.Name()]; ok {
-			newVars[p.Name()] = vars
+		if v, ok := variables[p.Name()]; ok {
+			newVars["my"] = v
+			newVars[p.Name()] = v
 		}
 	} else {
 		newVars = variables
@@ -157,6 +158,10 @@ func prepareTemplates(p *pack.Pack, templates map[string]toRender, variables map
 	// Add the pack's metadata to the variable mapping.
 	newVars = p.Metadata.AddToInterfaceMap(newVars)
 
+	// Make the `my` alias for the parent pack.
+	if !p.HasParent() {
+		newVars["my"] = newVars[p.Name()]
+	}
 	// Iterate the dependencies and prepareTemplates for each.
 	for _, child := range p.Dependencies() {
 		prepareTemplates(child, templates, newVars)

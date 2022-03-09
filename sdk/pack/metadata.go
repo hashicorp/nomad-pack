@@ -70,8 +70,8 @@ func (md *Metadata) ConvertToMapInterface() map[string]interface{} {
 }
 
 // AddToInterfaceMap adds the metadata information to the provided map as a new
-// entry under the "nom" key. This is useful for adding this information to the
-// template rendering data.
+// entry under the "nomad_pack" key. This is useful for adding this information
+// to the template rendering data.
 func (md *Metadata) AddToInterfaceMap(m map[string]interface{}) map[string]interface{} {
 	m["nomad_pack"] = map[string]interface{}{
 		"app": map[string]interface{}{
