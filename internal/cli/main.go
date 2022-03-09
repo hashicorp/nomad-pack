@@ -176,6 +176,21 @@ func Commands(
 				baseCommand: baseCommand,
 			}, nil
 		},
+		"generate": func() (cli.Command, error) {
+			return &GenerateHelpCommand{
+				baseCommand: baseCommand,
+			}, nil
+		},
+		"generate pack": func() (cli.Command, error) {
+			return &GeneratePackCommand{
+				baseCommand: baseCommand,
+			}, nil
+		},
+		"generate registry": func() (cli.Command, error) {
+			return &GenerateRegistryCommand{
+				baseCommand: baseCommand,
+			}, nil
+		},
 	}
 
 	// register our aliases

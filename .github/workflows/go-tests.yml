@@ -28,7 +28,7 @@ jobs:
       - name: Run tests
         run: |
           gotestsum -f testname --jsonfile /tmp/test-output.log -- ./...
-          
+
 
       # Upload the original go test log as an artifact for later review.
       - name: Upload test log
