@@ -5,7 +5,6 @@ import (
 	"testing"
 	"text/template"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -44,143 +43,7 @@ const (
 	outM = "(renderer.Foo) {\n unexportedField: (renderer.Bar) {\n  <max depth reached>\n },\n ExportedField: (map[interface {}]interface {}) (len=1) {\n  <max depth reached>\n }\n}\n"
 )
 
-func TestSpewHelpers(t *testing.T) {
-	noPointerSpew := func() *spew.ConfigState {
-		cs := spew.NewDefaultConfig()
-		cs.DisablePointerAddresses = true
-		cs.SortKeys = true
-		return cs
-	}
-
-	testCases := []struct {
-		desc      string
-		input     func(*spew.ConfigState) interface{}
-		spew      func() *spew.ConfigState
-		expect    interface{}
-		expectErr bool
-	}{
-		{
-			desc:   "noop",
-			expect: outB,
-			spew:   noPointerSpew,
-			input: func(cs *spew.ConfigState) interface{} {
-				return cs
-			},
-		},
-		{
-			desc:   "indent",
-			expect: outI,
-			spew:   noPointerSpew,
-			input: func(cs *spew.ConfigState) interface{} {
-				s, err := withIndent("∫", cs)
-				if err != nil {
-					return err
-				}
-				return s
-			},
-		},
-		{
-			desc:      "maxdepth-bad",
-			expect:    "invalid parameter: expected int or int-like string, received string",
-			expectErr: true,
-			spew:      noPointerSpew,
-			input: func(cs *spew.ConfigState) interface{} {
-				s, err := withMaxDepth("BAD", cs)
-				if err != nil {
-					return err
-				}
-				return s
-			},
-		},
-		{
-			desc:   "maxdepth-string",
-			expect: outM,
-			spew:   noPointerSpew,
-			input: func(cs *spew.ConfigState) interface{} {
-				s, err := withMaxDepth("1", cs)
-				if err != nil {
-					return err
-				}
-				return s
-			},
-		},
-		{
-			desc:   "maxdepth-int",
-			expect: outM,
-			spew:   noPointerSpew,
-			input: func(cs *spew.ConfigState) interface{} {
-				s, err := withMaxDepth(1, cs)
-				if err != nil {
-					return err
-				}
-				return s
-			},
-		},
-		{
-			desc:   "good_bool",
-			expect: outB,
-			spew:   spew.NewDefaultConfig, // using the default which contains pointer addresses.
-			input: func(cs *spew.ConfigState) interface{} {
-				s, err := withDisablePointerAddresses("true", cs)
-				if err != nil {
-					return err
-				}
-				return s
-			},
-		},
-		{
-			desc:      "bad_bool",
-			expect:    "invalid parameter: expected bool or bool-like string, received string",
-			expectErr: true,
-			spew:      spew.NewDefaultConfig,
-			input: func(cs *spew.ConfigState) interface{} {
-				s, err := withDisablePointerAddresses("BAD", cs)
-				if err != nil {
-					return err
-				}
-				return s
-			},
-		},
-	}
-	type Bar struct {
-		data *uint
-	}
-
-	type Foo struct {
-		unexportedField Bar
-		ExportedField   map[interface{}]interface{}
-	}
-	var a uint = 100
-	bar := Bar{&a}
-	s1 := Foo{bar, map[interface{}]interface{}{"one": true}}
-
-	for _, tC := range testCases {
-		t.Run(tC.desc, func(t *testing.T) {
-			c := tC.spew()
-			o := tC.input(c)
-			switch o := o.(type) {
-			case *spew.ConfigState:
-				c = o
-			case error:
-				if tC.expectErr {
-					require.Error(t, o)
-					require.Equal(t, tC.expect, o.Error())
-					return
-				} else {
-					require.FailNow(t, "unexpected error", "error: %v", o)
-				}
-			default:
-				require.FailNow(t, "o not a *spew.ConfigState, got %T", o)
-			}
-
-			out := c.Sdump(s1)
-			require.Equal(t, tC.expect, out)
-		})
-	}
-}
-
 func TestSpewHelpersInTemplate(t *testing.T) {
-
 	testCases := []struct {
 		desc      string
 		input     string
@@ -190,28 +53,29 @@ func TestSpewHelpersInTemplate(t *testing.T) {
 		{
 			desc:   "baseline",
 			expect: outB,
-			input:  "[[ $A := customSpew | withDisablePointerAddresses true ]][[$A.Sdump .]]",
+			input:  "[[ $A := customSpew | withDisablePointerAddresses ]][[$A.Sdump .]]",
 		},
 		{
 			desc:   "indent",
 			expect: outI,
-			input:  `[[ $A := customSpew | withDisablePointerAddresses true | withIndent "∫"]][[$A.Sdump .]]`,
+			input:  `[[ $A := customSpew | withDisablePointerAddresses | withIndent "∫"]][[$A.Sdump .]]`,
 		},
 		{
 			desc:   "maxdepth-int",
 			expect: outM,
-			input:  "[[ $A := customSpew | withDisablePointerAddresses true | withMaxDepth 1 ]][[$A.Sdump .]]",
+			input:  "[[ $A := customSpew | withDisablePointerAddresses | withMaxDepth 1 ]][[$A.Sdump .]]",
 		},
 		{
-			desc:   "maxdepth-string",
-			expect: outM,
-			input:  `[[ $A := customSpew | withDisablePointerAddresses true | withMaxDepth "1" ]][[$A.Sdump .]]`,
+			desc:      "maxdepth-string",
+			expect:    `expected integer; found "1"`,
+			expectErr: true,
+			input:     `[[ $A := customSpew | withDisablePointerAddresses | withMaxDepth "1" ]][[$A.Sdump .]]`,
 		},
 		{
 			desc:      "maxdepth-bad",
-			expect:    "error calling withMaxDepth: invalid parameter: expected int or int-like string, received string",
+			expect:    `wrong type for value; expected int; got string`,
 			expectErr: true,
-			input:     `[[ $A := customSpew | withDisablePointerAddresses true | withMaxDepth "bad" ]][[$A.Sdump .]]`,
+			input:     `[[$I := "1"]][[ $A := customSpew | withDisablePointerAddresses | withMaxDepth $I ]][[$A.Sdump .]]`,
 		},
 	}
 	type Bar struct {

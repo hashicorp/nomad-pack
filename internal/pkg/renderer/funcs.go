@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"strconv"
 	"text/template"
 
 	"github.com/Masterminds/sprig/v3"
@@ -96,193 +95,47 @@ func toStringList(l []interface{}) (string, error) {
 }
 
 // Spew helper funcs
-func withIndent(in string, v interface{}) (interface{}, error) {
-	act := "withIndent"
-	spew, err := parseSpewParam(act, v)
-	if err != nil {
-		return nil, err
-	}
-	spew.Indent = in
-	return spew, nil
+func withIndent(in string, s *spew.ConfigState) interface{} {
+	s.Indent = in
+	return s
 }
 
-func withMaxDepth(in, inS interface{}) (interface{}, error) {
-	act := "withMaxDepth"
-	i, err := parseIntParam(act, in)
-	if err != nil {
-		return nil, err
-	}
+func withMaxDepth(in int, s *spew.ConfigState) interface{} {
+	s.MaxDepth = in
+	return s
+}
 
-	s, err := parseSpewParam(act, inS)
-	if err != nil {
-		return nil, err
-	}
-	s.MaxDepth = i
+func withDisableMethods(s *spew.ConfigState) interface{} {
+	s.DisableMethods = true
+	return s
+}
+
+func withDisablePointerMethods(s *spew.ConfigState) interface{} {
+	s.DisablePointerMethods = true
+	return s
+}
+
+func withDisablePointerAddresses(s *spew.ConfigState) interface{} {
+	s.DisablePointerAddresses = true
+	return s
+}
+
+func withDisableCapacities(s *spew.ConfigState) interface{} {
+	s.DisableCapacities = true
+	return s
+}
+
+func withContinueOnMethod(s *spew.ConfigState) (interface{}, error) {
+	s.ContinueOnMethod = true
 	return s, nil
 }
 
-func withDisableMethods(in, inS interface{}) (interface{}, error) {
-	act := "withDisableMethods"
-	b, err := parseBoolParam(act, in)
-	if err != nil {
-		return nil, err
-	}
-
-	s, err := parseSpewParam(act, inS)
-	if err != nil {
-		return nil, err
-	}
-	s.DisableMethods = b
-	return s, nil
+func withSortKeys(s *spew.ConfigState) interface{} {
+	s.SortKeys = true
+	return s
 }
 
-func withDisablePointerMethods(in, inS interface{}) (interface{}, error) {
-	act := "withDisablePointerMethods"
-	b, err := parseBoolParam(act, in)
-	if err != nil {
-		return nil, err
-	}
-
-	s, err := parseSpewParam(act, inS)
-	if err != nil {
-		return nil, err
-	}
-	s.DisablePointerMethods = b
-	return s, nil
-}
-
-func withDisablePointerAddresses(in, inS interface{}) (interface{}, error) {
-	act := "withDisablePointerAddresses"
-	b, err := parseBoolParam(act, in)
-	if err != nil {
-		return nil, err
-	}
-
-	s, err := parseSpewParam(act, inS)
-	if err != nil {
-		return nil, err
-	}
-	s.DisablePointerAddresses = b
-	return s, nil
-}
-
-func withDisableCapacities(in, inS interface{}) (interface{}, error) {
-	act := "withDisableCapacities"
-	b, err := parseBoolParam(act, in)
-	if err != nil {
-		return nil, err
-	}
-
-	s, err := parseSpewParam(act, inS)
-	if err != nil {
-		return nil, err
-	}
-	s.DisableCapacities = b
-	return s, nil
-}
-
-func withContinueOnMethod(in, inS interface{}) (interface{}, error) {
-	act := "withContinueOnMethod"
-	b, err := parseBoolParam(act, in)
-	if err != nil {
-		return nil, err
-	}
-
-	s, err := parseSpewParam(act, inS)
-	if err != nil {
-		return nil, err
-	}
-	s.ContinueOnMethod = b
-	return s, nil
-}
-
-func withSortKeys(in, inS interface{}) (interface{}, error) {
-	act := "withSortKeys"
-	b, err := parseBoolParam(act, in)
-	if err != nil {
-		return nil, err
-	}
-
-	s, err := parseSpewParam(act, inS)
-	if err != nil {
-		return nil, err
-	}
-	s.SortKeys = b
-	return s, nil
-}
-
-func withSpewKeys(in, inS interface{}) (interface{}, error) {
-	act := "withSpewKeys"
-	b, err := parseBoolParam(act, in)
-	if err != nil {
-		return nil, err
-	}
-
-	s, err := parseSpewParam(act, inS)
-	if err != nil {
-		return nil, err
-	}
-	s.SpewKeys = b
-	return s, nil
-}
-
-type ErrSpewConfig struct {
-	act    string
-	got    string
-	expect string
-}
-
-func newErrSpewConfig(act, expect string, got interface{}) ErrSpewConfig {
-	return ErrSpewConfig{
-		act:    act,
-		expect: expect,
-		got:    fmt.Sprintf("%T", got),
-	}
-}
-
-func (e ErrSpewConfig) Error() string {
-	return fmt.Sprintf("invalid parameter: expected %s, received %s", e.expect, e.got)
-}
-
-func parseBoolParam(act string, in interface{}) (bool, error) {
-	var b bool
-	switch in := in.(type) {
-	case bool:
-		b = in
-	case string:
-		var err error
-		b, err = strconv.ParseBool(in)
-		if err != nil {
-			return false, newErrSpewConfig(act, "bool or bool-like string", in)
-		}
-	default:
-		return false, newErrSpewConfig(act, "bool or bool-like string", in)
-	}
-	return b, nil
-}
-
-func parseIntParam(act string, in interface{}) (int, error) {
-	var i int
-	switch in := in.(type) {
-	case int:
-		i = in
-	case string:
-		var err error
-		pi, err := strconv.ParseInt(in, 0, 32)
-		i = int(pi)
-		if err != nil {
-			return -1, newErrSpewConfig(act, "int or int-like string", in)
-		}
-	default:
-		return -1, newErrSpewConfig(act, "int or int-like string", in)
-	}
-	return i, nil
-}
-
-func parseSpewParam(act string, in interface{}) (*spew.ConfigState, error) {
-	if spew, ok := in.(*spew.ConfigState); ok {
-		return spew, nil
-	} else {
-		return nil, newErrSpewConfig(act, "*spew.ConfigState", spew)
-	}
+func withSpewKeys(s *spew.ConfigState) interface{} {
+	s.SpewKeys = true
+	return s
 }
