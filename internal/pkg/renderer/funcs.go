@@ -21,8 +21,19 @@ func funcMap(nomadClient *v1.Client) template.FuncMap {
 
 	// Add debugging functions. These are useful when debugging templates and
 	// variables.
-	f["spewDump"] = spewDump
-	f["spewPrintf"] = spewPrintf
+	f["spewDump"] = spew.Sdump
+	f["spewPrintf"] = spew.Sprintf
+	f["customSpew"] = spew.NewDefaultConfig
+	f["withIndent"] = withIndent
+	f["withMaxDepth"] = withMaxDepth
+	f["withDisableMethods"] = withDisableMethods
+	f["withDisablePointerMethods"] = withDisablePointerMethods
+	f["withDisablePointerAddresses"] = withDisablePointerAddresses
+	f["withDisableCapacities"] = withDisableCapacities
+	f["withContinueOnMethod"] = withContinueOnMethod
+	f["withDisableMethods"] = withDisableMethods
+	f["withSortKeys"] = withSortKeys
+	f["withSpewKeys"] = withSpewKeys
 
 	if nomadClient != nil {
 		f["nomadNamespaces"] = nomadNamespaces(nomadClient)
@@ -83,10 +94,48 @@ func toStringList(l []interface{}) (string, error) {
 	return "[" + out + "]", nil
 }
 
-// spewDump dumps the entire contents of the interface as a string. The output
-// includes the content types and values and is extremely useful for debugging.
-func spewDump(a interface{}) string { return spew.Sdump(a) }
+// Spew helper funcs
+func withIndent(in string, s *spew.ConfigState) interface{} {
+	s.Indent = in
+	return s
+}
 
-// spewPrintf dumps the supplied arguments into a string according to the
-// supplied format. This is useful when debugging.
-func spewPrintf(format string, args ...interface{}) string { return spew.Sprintf(format, args) }
+func withMaxDepth(in int, s *spew.ConfigState) interface{} {
+	s.MaxDepth = in
+	return s
+}
+
+func withDisableMethods(s *spew.ConfigState) interface{} {
+	s.DisableMethods = true
+	return s
+}
+
+func withDisablePointerMethods(s *spew.ConfigState) interface{} {
+	s.DisablePointerMethods = true
+	return s
+}
+
+func withDisablePointerAddresses(s *spew.ConfigState) interface{} {
+	s.DisablePointerAddresses = true
+	return s
+}
+
+func withDisableCapacities(s *spew.ConfigState) interface{} {
+	s.DisableCapacities = true
+	return s
+}
+
+func withContinueOnMethod(s *spew.ConfigState) (interface{}, error) {
+	s.ContinueOnMethod = true
+	return s, nil
+}
+
+func withSortKeys(s *spew.ConfigState) interface{} {
+	s.SortKeys = true
+	return s
+}
+
+func withSpewKeys(s *spew.ConfigState) interface{} {
+	s.SpewKeys = true
+	return s
+}
