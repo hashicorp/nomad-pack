@@ -20,11 +20,11 @@ func (c *GenerateHelpCommand) Run(args []string) int {
 		WithNoConfig(),
 		WithClient(false),
 	); err != nil {
+		c.ui.Info("The generate command requires one of the following subcommands: pack, registry.")
 		return 1
 	}
 
 	c.ui.Info("The generate command requires one of the following subcommands: pack, registry.")
-
 	return 0
 }
 
