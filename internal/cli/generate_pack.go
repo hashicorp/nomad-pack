@@ -71,7 +71,7 @@ func (c *GeneratePackCommand) AutocompleteFlags() complete.Flags {
 }
 
 func (c *GeneratePackCommand) Synopsis() string {
-	return "Generate a sample pack."
+	return "Generate a new pack."
 }
 
 func (c *GeneratePackCommand) Help() string {
@@ -83,7 +83,7 @@ func (c *GeneratePackCommand) Help() string {
 	return formatHelp(`
 	Usage: nomad-pack generate pack <name>
 
-	Generate a sample pack.
+	Generate a new pack.
 
 ` + c.GetExample() + c.Flags().Help())
 }

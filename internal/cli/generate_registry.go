@@ -79,19 +79,19 @@ func (c *GenerateRegistryCommand) AutocompleteFlags() complete.Flags {
 }
 
 func (c *GenerateRegistryCommand) Synopsis() string {
-	return "Generate a sample pack."
+	return "Generate a new registry."
 }
 
 func (c *GenerateRegistryCommand) Help() string {
 	c.Example = `
-	# Create a new pack named "my-new-pack" in the current directory.
-	nomad-pack generate pack my-new-pack
+	# Create a new registry named "my-new-registry" in the current directory.
+	nomad-pack generate registry my-new-registry
 
 	`
 	return formatHelp(`
-	Usage: nomad-pack generate pack <name>
+	Usage: nomad-pack generate registry <name>
 
-	Generate a sample pack.
+	Generate a new registry.
 
 ` + c.GetExample() + c.Flags().Help())
 }

@@ -27,7 +27,7 @@ type PackConfig struct {
 	OutPath      string
 	AutoApproved bool
 
-	// Used for the "registry create" command
+	// Used for the "registry generate" command
 	CreateSamplePack bool
 
 	CacheConfig CacheConfig
