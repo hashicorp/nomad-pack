@@ -25,6 +25,7 @@ const (
 	UIContextPrefixRegistryName   = "Registry Name: "
 	UIContextPrefixRegistryPath   = "Registry Path: "
 	UIContextPrefixRegistryTarget = "Registry Target: "
+	UIContextPrefixOutputPath     = "Output Path: "
 )
 
 // UIErrorContext is used to store and manipulate error context strings used

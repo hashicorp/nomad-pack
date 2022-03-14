@@ -1,10 +1,18 @@
 ## UNRELEASED
 
+FEATURES:
+
+* **Generate Sample Pack or Registry** - Using the `nomad-pack generate` command,
+  you can get started writing your own pack or building your own pack registry
+  using built-in starting artifacts.
+
 BUG FIXES:
+
 * cli: Add missing --name flag for status command [[GH-212](https://github.com/hashicorp/nomad-pack/pull/212)]
 * cli: Use Pack metadata `Name` in error context once known [[GH-217](https://github.com/hashicorp/nomad-pack/pull/217)]
 
 IMPROVEMENTS:
+
 * cli: Add flags to configure Nomad API client [[GH-213](https://github.com/hashicorp/nomad-pack/pull/213)]
 * template: Add support for custom Spew configurations. [[GH-220](https://github.com/hashicorp/nomad-pack/pull/220)]
 * template: Create a `my` alias for the current pack [[GH-221](https://github.com/hashicorp/nomad-pack/pull/221)]
