@@ -1,10 +1,10 @@
 job [[ template "job_name" . ]] {
   [[ template "region" . ]]
-  datacenters = [[ .{{.PackName}}.datacenters  | toJson ]]
+  datacenters = [[ .my.datacenters  | toJson ]]
   type = "service"
 
   group "app" {
-    count = [[ .{{.PackName}}.count ]]
+    count = [[ .my.count ]]
 
     network {
       port "http" {
@@ -12,10 +12,10 @@ job [[ template "job_name" . ]] {
       }
     }
 
-    [[ if .{{.PackName}}.register_consul_service ]]
+    [[ if .my.register_consul_service ]]
     service {
-      name = "[[ .{{.PackName}}.consul_service_name ]]"
-      tags = [[ .{{.PackName}}.consul_service_tags | toJson ]]
+      name = "[[ .my.consul_service_name ]]"
+      tags = [[ .my.consul_service_tags | toJson ]]
       port = "http"
       check {
         name     = "alive"
@@ -43,7 +43,7 @@ job [[ template "job_name" . ]] {
       }
 
       env {
-        MESSAGE = [[.{{.PackName}}.message | quote]]
+        MESSAGE = [[.my.message | quote]]
       }
     }
   }
