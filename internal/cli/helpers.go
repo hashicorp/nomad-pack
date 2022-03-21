@@ -349,9 +349,65 @@ func newWriteOpts() *v1.WriteOpts {
 	return opts.WithAuthToken(os.Getenv("NOMAD_TOKEN"))
 }
 
+// clientOptionCount is used to help size the arrays that back the slices of
+// v1.ClientOption from the clientOptsFromEnvironment and clientOptsFromFlags
+// funcs. If it becomes lower than the truth, appends could happen, but that's
+// not the end of the world.
+const clientOptionCount = 8
+
+// clientOptsFromCLI emits a slice of v1.ClientOptions based on the environment
+// and flag set passed to the command.
+func clientOptsFromCLI(c *baseCommand) []v1.ClientOption {
+	// This implementation leverages the fact that flags always take precedence
+	// over environment variables to naively append the flags to the env
+	// settings.
+
+	// This will not handle the case where client_key is set in an env var and
+	// client_cert is set via flag, but that is currently the only case where
+	// two settings have a strong affinity.
+	opts := make([]v1.ClientOption, 0, 2*clientOptionCount)
+	opts = append(opts, clientOptsFromEnvironment()...)
+	opts = append(opts, clientOptsFromFlags(c)...)
+	return opts
+}
+
+// clientOptsFromEnvironment creates a slice of v1.ClientOptions based on the
+// environment variables present at the CLI's runtime.
+func clientOptsFromEnvironment() []v1.ClientOption {
+	opts := make([]v1.ClientOption, 0, clientOptionCount)
+	if v := os.Getenv("NOMAD_ADDR"); v != "" {
+		opts = append(opts, v1.WithAddress(v))
+	}
+	if v := os.Getenv("NOMAD_NAMESPACE"); v != "" {
+		opts = append(opts, v1.WithDefaultNamespace(v))
+	}
+	if v := os.Getenv("NOMAD_REGION"); v != "" {
+		opts = append(opts, v1.WithDefaultRegion(v))
+	}
+	if v := os.Getenv("NOMAD_TOKEN"); v != "" {
+		opts = append(opts, v1.WithToken(v))
+	}
+	if cc, ck := os.Getenv("NOMAD_CLIENT_CERT"), os.Getenv("NOMAD_CLIENT_KEY"); cc != "" && ck != "" {
+		opts = append(opts, v1.WithClientCert(cc, ck))
+	}
+	if v := os.Getenv("NOMAD_CACERT"); v != "" {
+		opts = append(opts, v1.WithCACert(v))
+	}
+	if v := os.Getenv("NOMAD_TLS_SERVER_NAME"); v != "" {
+		opts = append(opts, v1.WithTLSServerName(v))
+	}
+	if _, found := os.LookupEnv("NOMAD_SKIP_VERIFY"); found {
+		opts = append(opts, v1.WithTLSSkipVerify())
+	}
+
+	return opts
+}
+
+// clientOptsFromFlags creates a slice of v1.ClientOptions based on the flags
+// passed to the CLI at runtime.
 func clientOptsFromFlags(c *baseCommand) []v1.ClientOption {
 	cfg := c.nomadConfig
-	opts := make([]v1.ClientOption, 0)
+	opts := make([]v1.ClientOption, 0, clientOptionCount)
 	if cfg.address != "" {
 		opts = append(opts, v1.WithAddress(cfg.address))
 	}

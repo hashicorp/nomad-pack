@@ -469,5 +469,5 @@ func IsCanceled(err error) bool {
 }
 
 func (c *baseCommand) getAPIClient() (*v1.Client, error) {
-	return v1.NewClient(clientOptsFromFlags(c)...)
+	return v1.NewClient(clientOptsFromCLI(c)...)
 }
