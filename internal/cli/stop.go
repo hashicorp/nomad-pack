@@ -61,9 +61,6 @@ func (c *StopCommand) Run(args []string) int {
 		return 1
 	}
 
-	// set a local variable to the JobsApi
-	jobsApi := client.Jobs()
-
 	if c.deploymentName == "" {
 		// Add the path to the pack on the error context.
 		errorContext.Add(errors.UIContextPrefixPackPath, c.packConfig.Path)
@@ -119,7 +116,7 @@ func (c *StopCommand) Run(args []string) int {
 		}
 	} else {
 		// If no job names are specified, get all jobs belonging to the pack and deployment
-		jobs, err = getPackJobsByDeploy(jobsApi, c.packConfig, c.deploymentName)
+		jobs, err = getPackJobsByDeploy(client, c.packConfig, c.deploymentName)
 		if err != nil {
 			c.ui.ErrorWithContext(err, "failed to find jobs for pack", errorContext.GetAll()...)
 			return 1
@@ -133,7 +130,7 @@ func (c *StopCommand) Run(args []string) int {
 
 	var errs []error
 	for _, job := range jobs {
-		err = c.checkForConflicts(jobsApi, *job.ID)
+		err = c.checkForConflicts(client, *job.ID)
 
 		if err != nil {
 			errs = append(errs, err)
@@ -148,7 +145,8 @@ func (c *StopCommand) Run(args []string) int {
 		}
 
 		// Invoke the stop
-		writeOpts := newWriteOpts()
+		writeOpts := client.WriteOpts()
+		// FIXME: This is probably bad.
 		writeOpts.Region = *job.Region
 		writeOpts.Namespace = *job.Namespace
 
@@ -180,9 +178,10 @@ func (c *StopCommand) Run(args []string) int {
 	return 0
 }
 
-func (c *StopCommand) checkForConflicts(jobsApi *v1.Jobs, jobName string) error {
-	queryOpts := newQueryOpts()
+func (c *StopCommand) checkForConflicts(client *v1.Client, jobName string) error {
+	queryOpts := client.QueryOpts()
 	queryOpts.Prefix = jobName
+	jobsApi := client.Jobs()
 
 	jobs, _, err := jobsApi.GetJobs(queryOpts.Ctx())
 	if err != nil {

@@ -43,20 +43,17 @@ func (c *StatusCommand) Run(args []string) int {
 		return 1
 	}
 
-	jobsApi := client.Jobs()
-
 	// If pack name isn't specified, return all deployed packs
 	if c.packConfig.Name == "" {
-		return c.renderAllDeployedPacks(jobsApi, errorContext)
+		return c.renderAllDeployedPacks(client, errorContext)
 	}
 
-	return c.renderDeployedPackJobs(jobsApi, errorContext)
+	return c.renderDeployedPackJobs(client, errorContext)
 }
 
-func (c *StatusCommand) renderDeployedPackJobs(jobsApi *v1.Jobs, errorContext *errors.UIErrorContext) int {
+func (c *StatusCommand) renderDeployedPackJobs(client *v1.Client, errorContext *errors.UIErrorContext) int {
 	var err error
-
-	packJobs, jobErrs, err := getDeployedPackJobs(jobsApi, c.packConfig, c.deploymentName)
+	packJobs, jobErrs, err := getDeployedPackJobs(client, c.packConfig, c.deploymentName)
 	if err != nil {
 		c.ui.ErrorWithContext(err, "error retrieving jobs", errorContext.GetAll()...)
 		return 1
@@ -81,8 +78,8 @@ func (c *StatusCommand) renderDeployedPackJobs(jobsApi *v1.Jobs, errorContext *e
 	return 0
 }
 
-func (c *StatusCommand) renderAllDeployedPacks(jobsApi *v1.Jobs, errorContext *errors.UIErrorContext) int {
-	packRegistryMap, err := getDeployedPacks(jobsApi)
+func (c *StatusCommand) renderAllDeployedPacks(client *v1.Client, errorContext *errors.UIErrorContext) int {
+	packRegistryMap, err := getDeployedPacks(client)
 	if err != nil {
 		c.ui.ErrorWithContext(err, "error retrieving packs", errorContext.GetAll()...)
 		return 1
