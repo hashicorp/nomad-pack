@@ -1,9 +1,15 @@
 # {{.PackName}}
 
+<!-- Include a brief description of your pack -->
+
 This pack is a simple Nomad job that runs as a service and can be accessed via
 HTTP.
 
-## Changing the Message
+## Pack Usage
+
+<!-- Include information about how to use your pack -->
+
+### Changing the Message
 
 To change the message this server responds with, change the "message" variable
 when running the pack.
@@ -15,7 +21,7 @@ nomad-pack run {{.PackName}} --var message="Hola Mundo!"
 This tells Nomad Pack to tweak the `MESSAGE` environment variable that the
 service reads from.
 
-## Consul Service and Load Balancer Integration
+### Consul Service and Load Balancer Integration
 
 Optionally, it can configure a Consul service.
 
@@ -35,6 +41,8 @@ search for Consul services with the tags found in the default value of the
 
 ## Variables
 
+<!-- Include information on the variables from your pack -->
+
 - `message` (string) - The message your application will respond with
 - `count` (number) - The number of app instances to deploy
 - `job_name` (string) - The name to use as the job name which overrides using
@@ -48,7 +56,6 @@ search for Consul services with the tags found in the default value of the
   {{.PackName}} application
 - `consul_service_name` (string) - The consul service name for the {{.PackName}}
   application
-
 
 [pack-registry]: https://github.com/hashicorp/nomad-pack-community-registry
 [pack-nginx]: https://github.com/hashicorp/nomad-pack-community-registry/tree/main/packs/nginx/README.md

@@ -33,7 +33,7 @@
       service {
         name = [[ $service.service_name | quote ]]
         port = [[ $service.service_port_label | quote ]]
-        tags = [[ $service.service_tags | toJson ]]
+        tags = [[ $service.service_tags | toStringList ]]
         [[- if gt (len $service.upstreams) 0 ]]
         connect {
           sidecar_service {

@@ -1,6 +1,6 @@
 job [[ template "job_name" . ]] {
   [[ template "region" . ]]
-  datacenters = [[ .my.datacenters  | toJson ]]
+  datacenters = [[ .my.datacenters  | toStringList ]]
   type = "service"
 
   group "app" {
@@ -15,7 +15,7 @@ job [[ template "job_name" . ]] {
     [[ if .my.register_consul_service ]]
     service {
       name = "[[ .my.consul_service_name ]]"
-      tags = [[ .my.consul_service_tags | toJson ]]
+      tags = [[ .my.consul_service_tags | toStringList ]]
       port = "http"
       check {
         name     = "alive"
