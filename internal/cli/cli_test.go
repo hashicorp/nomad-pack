@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	client "github.com/hashicorp/nomad-openapi/clients/go/v1"
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	flag "github.com/hashicorp/nomad-pack/internal/pkg/flag"
 	"github.com/hashicorp/nomad-pack/internal/pkg/helper/filesystem"
@@ -400,6 +401,64 @@ func TestRenderMyAlias(t *testing.T) {
 	elems := strings.Split(outStr, "\n")
 
 	require.ElementsMatch(t, expected, elems)
+}
+
+func TestNomadClientNamespaceFromCLIFlag(t *testing.T) {
+	testCases := []struct {
+		desc   string
+		args   []string
+		env    map[string]string
+		expect nomadConfig
+	}{
+		{
+			desc: "all flags",
+			args: []string{
+				`--namespace=test`,
+			},
+			env: make(map[string]string, 0),
+		},
+	}
+
+	httpTest(t, WithDefaultConfig(), func(srv *agent.TestAgent) {
+		c, err := NewTestClient(srv)
+		require.NoError(t, err)
+		opts := c.WriteOpts()
+		testNs := client.NewNamespace()
+		{
+			name := "test"
+			desc := "Test Namespace"
+			testNs.Name = &name
+			testNs.Description = &desc
+		}
+
+		_, err = c.Namespaces().PostNamespace(opts.Ctx(), testNs)
+		require.NoError(t, err)
+
+		for _, tC := range testCases {
+			t.Run(tC.desc, func(t *testing.T) {
+				result := runTestPackCmd(t, srv, append([]string{
+					"run",
+					getTestPackPath(testPack),
+				},
+					tC.args...),
+				)
+				require.Empty(t, result.cmdErr.String(), "cmdErr should be empty, but was %q", result.cmdErr.String())
+				require.Contains(t, result.cmdOut.String(), "Pack successfully deployed", "Expected success message, received %q", result.cmdOut.String())
+				// check to see if the job is running in the test namespace
+				tOpt := c.QueryOpts()
+				tOpt.Namespace = "test"
+				tJobs, _, err := c.Jobs().GetJobs(tOpt.Ctx())
+				require.NoError(t, err)
+
+				dOpt := c.QueryOpts()
+				dJobs, _, err := c.Jobs().GetJobs(dOpt.Ctx())
+				require.NoError(t, err)
+
+				require.Equal(t, 0, len(*dJobs), "Expected no jobs in default namespace; found %v", len(*dJobs))
+				require.Equal(t, 1, len(*tJobs), "Expected 1 job in test namespace; found %v", len(*tJobs))
+			})
+		}
+	})
 }
 
 type PackCommandResult struct {

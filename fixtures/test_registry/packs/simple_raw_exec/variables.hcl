@@ -33,3 +33,9 @@ variable "env" {
   description = "environment variable collection"
   default = {}
 }
+
+variable "namespace" {
+  type = string
+  description = "namespace to run the job in"
+  default = ""
+}
