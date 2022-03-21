@@ -8,7 +8,6 @@ import (
 )
 
 func (r *Runner) CheckForConflicts(errCtx *errors.UIErrorContext) []*errors.WrappedUIContext {
-
 	var outputErrors []*errors.WrappedUIContext
 
 	if len(r.parsedTemplates) < 1 {
