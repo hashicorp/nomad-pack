@@ -902,7 +902,7 @@ func NomadRun(s *agent.TestAgent, path string, opts ...v1.ClientOption) error {
 	if err != nil {
 		return err
 	}
-	printRegistrationResponse(s.T, resp)
+	s.T.Log(FormatRegistrationResponse(resp))
 	return nil
 }
 
@@ -917,7 +917,7 @@ func NomadStop(s *agent.TestAgent, jobname string, opts ...v1.ClientOption) erro
 	if err != nil {
 		return err
 	}
-	printStopResponse(s.T, resp)
+	s.T.Log(FormatStopResponse(resp))
 	return nil
 }
 
@@ -935,7 +935,7 @@ func NomadPurge(s *agent.TestAgent, jobname string, opts ...v1.ClientOption) err
 	if err != nil {
 		return err
 	}
-	printStopResponse(s.T, resp)
+	s.T.Log(FormatStopResponse(resp))
 	return nil
 }
 
@@ -960,7 +960,7 @@ func NomadCleanup(s *agent.TestAgent, opts ...v1.ClientOption) (error, error) {
 	return nil, mErr.ErrorOrNil()
 }
 
-func printRegistrationResponse(t testing.TB, resp *client.JobRegisterResponse) {
+func FormatRegistrationResponse(resp *client.JobRegisterResponse) string {
 	var out strings.Builder
 	out.WriteString("Registration Response\n")
 	out.WriteString(fmt.Sprintf("  Evaluation ID: %s\n", resp.GetEvalID()))
@@ -970,37 +970,27 @@ func printRegistrationResponse(t testing.TB, resp *client.JobRegisterResponse) {
 		out.WriteString("\n")
 	}
 	out.WriteString("\n")
-	t.Log(out.String())
+	return out.String()
 }
 
-func printStopResponse(t testing.TB, resp *client.JobDeregisterResponse) {
+func FormatStopResponse(resp *client.JobDeregisterResponse) string {
 	var out strings.Builder
 	out.WriteString("Deregister Response\n")
 	out.WriteString(fmt.Sprintf("  Evaluation ID: %s\n", resp.GetEvalID()))
 	out.WriteString("\n")
-	t.Log(out.String())
+	return out.String()
 }
 
-func printAPIClientConfig(t testing.TB, c *v1.Client) {
+// FormatAPIClientConfig can be used during a test to emit a client's current
+// configuration.
+func FormatAPIClientConfig(c *v1.Client) string {
 	format := `
-+========================================+
-| API Client Configuration               |
-+----------------------------------------+
-|   Address: %s                          |
-|    Region: %s                          |
-| Namespace: %s                          |
-|     Token: %s                          |
-+========================================+
+API Client Configuration                  
+------------------------
+    Region: %s
+ Namespace: %s
+     Token: %s
 `
 	opts := c.QueryOpts()
-	var cCtx context.Context = c.QueryOpts().Ctx()
-	sVals := cCtx.Value(client.ContextServerVariables)
-	address := ""
-	switch sVal := sVals.(type) {
-	case map[string]string:
-		address = fmt.Sprintf("%s%s:%s", sVal["scheme"], sVal["address"], sVal["port"])
-	default:
-		address = fmt.Sprintf("«so very sad - sVal type: %T»", sVal)
-	}
-	t.Logf(format, address, opts.Region, opts.Namespace, opts.AuthToken)
+	return fmt.Sprintf(format, opts.Region, opts.Namespace, opts.AuthToken)
 }

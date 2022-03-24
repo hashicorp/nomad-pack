@@ -166,6 +166,7 @@ func NewTestClient(testAgent *agent.TestAgent, opts ...v1.ClientOption) (*v1.Cli
 		return nil, err
 	}
 
+	testAgent.T.Log(FormatAPIClientConfig(c))
 	return c, nil
 }
 
