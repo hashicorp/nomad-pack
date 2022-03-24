@@ -118,3 +118,15 @@ func NewTestLogger(log func(args ...interface{})) *TestLogger {
 		log: log,
 	}
 }
+
+// NoopLogger returns a logger that meets the Logger interface, but does nothing
+// for any of the methods. This can be useful for cases that require a Logger as
+// a parameter.
+type NoopLogger struct{}
+
+func (_ NoopLogger) Debug(_ string)                                  {}
+func (_ NoopLogger) Error(_ string)                                  {}
+func (_ NoopLogger) ErrorWithContext(_ error, _ string, _ ...string) {}
+func (_ NoopLogger) Info(_ string)                                   {}
+func (_ NoopLogger) Trace(_ string)                                  {}
+func (_ NoopLogger) Warning(_ string)                                {}
