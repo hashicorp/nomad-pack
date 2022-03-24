@@ -215,7 +215,7 @@ func (r *Runner) handlePeriodicJobResponse(ui terminal.UI, job *v1client.Job) {
 			ui.ErrorWithContext(intHelper.UnwrapAPIError(err), "failed to determine next launch time")
 		} else {
 			ui.Warning(fmt.Sprintf("Approximate next launch time: %s (%s from now)",
-				formatTime(&next), formatTimeDifference(now, next, time.Second)))
+				formatTime(next), formatTimeDifference(now, next, time.Second)))
 		}
 	}
 }

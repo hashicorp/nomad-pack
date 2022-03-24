@@ -42,7 +42,7 @@ func formatList(in []string) string {
 }
 
 // formatTime formats the time to string based on RFC822
-func formatTime(t *time.Time) string {
+func formatTime(t time.Time) string {
 	if t.Unix() < 1 {
 		// It's more confusing to display the UNIX epoch or a zero value than nothing
 		return ""
@@ -60,34 +60,24 @@ func formatTimeDifference(first, second time.Time, d time.Duration) string {
 
 //
 func formatJobDiff(job v1client.JobDiff, verbose bool, ui terminal.UI) {
-	marker, style, _ := getDiffString(*job.Type)
+	marker, style, _ := getDiffString(job.GetType())
 	ui.AppendToRow(marker, terminal.WithStyle(style))
-	ui.AppendToRow("Job: %q\n", *job.ID, terminal.WithStyle(terminal.BoldStyle))
+	ui.AppendToRow("Job: %q\n", job.GetID(), terminal.WithStyle(terminal.BoldStyle))
 
 	// Determine the longest markers and fields so that the output can be
 	// properly aligned.
-	longestField, longestMarker := getLongestPrefixes(job.Fields, job.Objects)
-	for _, tg := range *job.TaskGroups {
-		if _, _, l := getDiffString(*tg.Type); l > longestMarker {
+	longestField, longestMarker := getLongestPrefixes(job.GetFields(), job.GetObjects())
+	for _, tg := range job.GetTaskGroups() {
+		if _, _, l := getDiffString(tg.GetType()); l > longestMarker {
 			longestMarker = l
 		}
 	}
 
 	// Only show the job's field and object diffs if the job is edited or
 	// verbose mode is set.
-	if *job.Type == "Edited" || verbose {
-		var fields []v1client.FieldDiff
-		var objects []v1client.ObjectDiff
-		if job.Fields == nil {
-			fields = []v1client.FieldDiff{}
-		} else {
-			fields = *job.Fields
-		}
-		if job.Objects == nil {
-			objects = []v1client.ObjectDiff{}
-		} else {
-			objects = *job.Objects
-		}
+	if job.GetType() == "Edited" || verbose {
+		fields := job.GetFields()
+		objects := job.GetObjects()
 		alignedFieldAndObjects(fields, objects, 0, longestField, longestMarker, ui)
 		if len(fields) > 0 || len(objects) > 0 {
 			ui.AppendToRow("\n")
@@ -95,8 +85,8 @@ func formatJobDiff(job v1client.JobDiff, verbose bool, ui terminal.UI) {
 	}
 
 	// Print the task groups
-	for _, tg := range *job.TaskGroups {
-		_, _, mLength := getDiffString(*tg.Type)
+	for _, tg := range job.GetTaskGroups() {
+		_, _, mLength := getDiffString(tg.GetType())
 		kPrefix := longestMarker - mLength
 		formatTaskGroupDiff(tg, kPrefix, verbose, ui)
 	}
@@ -107,15 +97,15 @@ func formatJobDiff(job v1client.JobDiff, verbose bool, ui terminal.UI) {
 // the full object is an addition or removal. tgPrefix is the number of spaces to prefix
 // the output of the task group.
 func formatTaskGroupDiff(tg v1client.TaskGroupDiff, tgPrefix int, verbose bool, ui terminal.UI) {
-	marker, style, _ := getDiffString(*tg.Type)
+	marker, style, _ := getDiffString(tg.GetType())
 	ui.AppendToRow(marker, terminal.WithStyle(style))
 	ui.AppendToRow("%s", strings.Repeat("", tgPrefix))
-	ui.AppendToRow("Task Group: %q", *tg.Name, terminal.WithStyle(terminal.BoldStyle))
+	ui.AppendToRow("Task Group: %q", tg.GetName(), terminal.WithStyle(terminal.BoldStyle))
 
 	// Append the updates and colorize them
-	if l := len(*tg.Updates); l > 0 {
+	if l := len(tg.GetUpdates()); l > 0 {
 		order := make([]string, 0, l)
-		for updateType := range *tg.Updates {
+		for updateType := range tg.GetUpdates() {
 			order = append(order, updateType)
 		}
 
@@ -128,7 +118,7 @@ func formatTaskGroupDiff(tg v1client.TaskGroupDiff, tgPrefix int, verbose bool, 
 				ui.AppendToRow(", ")
 			}
 
-			count := (*tg.Updates)[updateType]
+			count := (tg.GetUpdates())[updateType]
 			var color string
 			switch updateType {
 			case updateTypeIgnore:
@@ -153,9 +143,9 @@ func formatTaskGroupDiff(tg v1client.TaskGroupDiff, tgPrefix int, verbose bool, 
 
 	// Determine the longest field and markers so the output is properly
 	// aligned
-	longestField, longestMarker := getLongestPrefixes(tg.Fields, tg.Objects)
-	for _, task := range *tg.Tasks {
-		if _, _, l := getDiffString(*task.Type); l > longestMarker {
+	longestField, longestMarker := getLongestPrefixes(tg.GetFields(), tg.GetObjects())
+	for _, task := range tg.GetTasks() {
+		if _, _, l := getDiffString(task.GetType()); l > longestMarker {
 			longestMarker = l
 		}
 	}
@@ -163,23 +153,14 @@ func formatTaskGroupDiff(tg v1client.TaskGroupDiff, tgPrefix int, verbose bool, 
 	// Only show the task groups's field and object diffs if the group is edited or
 	// verbose mode is set.
 	subStartPrefix := tgPrefix + 2
-	if *tg.Type == "Edited" || verbose {
+	if tg.GetType() == "Edited" || verbose {
 		// TODO: we check this several times, but the v1client diff isn't always the same type
 		// (e.g. job, task, task group). The v1client spec consistently returns pointers so maybe
 		// we can add an v1client diff interface with the methods Fields and Objects that returns
 		// those pointers so we can one nil check func that we call?
-		var fields []v1client.FieldDiff
-		var objects []v1client.ObjectDiff
-		if tg.Fields == nil {
-			fields = []v1client.FieldDiff{}
-		} else {
-			fields = *tg.Fields
-		}
-		if tg.Objects == nil {
-			objects = []v1client.ObjectDiff{}
-		} else {
-			objects = *tg.Objects
-		}
+		fields := tg.GetFields()
+		objects := tg.GetObjects()
+
 		alignedFieldAndObjects(fields, objects, subStartPrefix, longestField, longestMarker, ui)
 		if len(fields) > 0 || len(objects) > 0 {
 			ui.AppendToRow("\n")
@@ -187,8 +168,8 @@ func formatTaskGroupDiff(tg v1client.TaskGroupDiff, tgPrefix int, verbose bool, 
 	}
 
 	// Output the tasks
-	for _, task := range *tg.Tasks {
-		_, _, mLength := getDiffString(*task.Type)
+	for _, task := range tg.GetTasks() {
+		_, _, mLength := getDiffString(task.GetType())
 		prefix := longestMarker - mLength
 		formatTaskDiff(task, subStartPrefix, prefix, verbose, ui)
 	}
@@ -200,37 +181,28 @@ func formatTaskGroupDiff(tg v1client.TaskGroupDiff, tgPrefix int, verbose bool, 
 // the task and taskPrefix is the number of spaces to put between the marker and
 // task name output.
 func formatTaskDiff(task v1client.TaskDiff, startPrefix, taskPrefix int, verbose bool, ui terminal.UI) {
-	marker, style, _ := getDiffString(*task.Type)
+	marker, style, _ := getDiffString(task.GetType())
 	ui.AppendToRow("%s%s%s", strings.Repeat(" ", startPrefix), marker, strings.Repeat(" ", taskPrefix), terminal.WithStyle(style))
-	ui.AppendToRow("Task: %q", *task.Name, terminal.WithStyle(terminal.BoldStyle))
+	ui.AppendToRow("Task: %q", task.GetName(), terminal.WithStyle(terminal.BoldStyle))
 
-	if task.Annotations != nil {
-		printColorAnnotations(*task.Annotations, ui)
+	if task.HasAnnotations() {
+		printColorAnnotations(task.GetAnnotations(), ui)
 	}
 
-	if *task.Type == "None" {
+	if task.GetType() == "None" {
 		return
-	} else if (*task.Type == "Deleted" || *task.Type == "Added") && !verbose {
+	} else if (task.GetType() == "Deleted" || task.GetType() == "Added") && !verbose {
 		// Exit early if the job was not edited and it isn't verbose output
 		return
 	}
 
 	ui.AppendToRow("\n")
 	subStartPrefix := startPrefix + 2
-	longestField, longestMarker := getLongestPrefixes(task.Fields, task.Objects)
+	longestField, longestMarker := getLongestPrefixes(task.GetFields(), task.GetObjects())
 
-	var fields []v1client.FieldDiff
-	var objects []v1client.ObjectDiff
-	if task.Fields == nil {
-		fields = []v1client.FieldDiff{}
-	} else {
-		fields = *task.Fields
-	}
-	if task.Objects == nil {
-		objects = []v1client.ObjectDiff{}
-	} else {
-		objects = *task.Objects
-	}
+	fields := task.GetFields()
+	objects := task.GetObjects()
+
 	alignedFieldAndObjects(fields, objects, subStartPrefix, longestField, longestMarker, ui)
 }
 
@@ -247,22 +219,18 @@ func getDiffString(diffType string) (string, string, int) {
 	}
 }
 
-func getLongestPrefixes(fields *[]v1client.FieldDiff, objects *[]v1client.ObjectDiff) (longestField, longestMarker int) {
-	if fields != nil {
-		for _, field := range *fields {
-			if l := len(*field.Name); l > longestField {
-				longestField = l
-			}
-			if _, _, l := getDiffString(*field.Type); l > longestMarker {
-				longestMarker = l
-			}
+func getLongestPrefixes(fields []v1client.FieldDiff, objects []v1client.ObjectDiff) (longestField, longestMarker int) {
+	for _, field := range fields {
+		if l := len(field.GetName()); l > longestField {
+			longestField = l
+		}
+		if _, _, l := getDiffString(field.GetType()); l > longestMarker {
+			longestMarker = l
 		}
 	}
-	if objects != nil {
-		for _, obj := range *objects {
-			if _, _, l := getDiffString(*obj.Type); l > longestMarker {
-				longestMarker = l
-			}
+	for _, obj := range objects {
+		if _, _, l := getDiffString(obj.GetType()); l > longestMarker {
+			longestMarker = l
 		}
 	}
 	return longestField, longestMarker
@@ -275,10 +243,10 @@ func alignedFieldAndObjects(fields []v1client.FieldDiff, objects []v1client.Obje
 	numObjects := len(objects)
 	haveObjects := numObjects != 0
 	for i, field := range fields {
-		_, _, mLength := getDiffString(*field.Type)
+		_, _, mLength := getDiffString(field.GetType())
 		kPrefix := longestMarker - mLength
-		vPrefix := longestField - len(*field.Name)
-		formatFieldDiff(&field, startPrefix, kPrefix, vPrefix, ui)
+		vPrefix := longestField - len(field.GetName())
+		formatFieldDiff(field, startPrefix, kPrefix, vPrefix, ui)
 
 		// Avoid a dangling new line
 		if i+1 != numFields || haveObjects {
@@ -287,9 +255,9 @@ func alignedFieldAndObjects(fields []v1client.FieldDiff, objects []v1client.Obje
 	}
 
 	for i, object := range objects {
-		_, _, mLength := getDiffString(*object.Type)
+		_, _, mLength := getDiffString(object.GetType())
 		kPrefix := longestMarker - mLength
-		formatObjectDiff(&object, startPrefix, kPrefix, ui)
+		formatObjectDiff(object, startPrefix, kPrefix, ui)
 
 		// Avoid a dangling new line
 		if i+1 != numObjects {
@@ -298,37 +266,37 @@ func alignedFieldAndObjects(fields []v1client.FieldDiff, objects []v1client.Obje
 	}
 }
 
-func formatFieldDiff(diff *v1client.FieldDiff, startPrefix, keyPrefix, valuePrefix int, ui terminal.UI) {
-	marker, style, _ := getDiffString(*diff.Type)
+func formatFieldDiff(diff v1client.FieldDiff, startPrefix, keyPrefix, valuePrefix int, ui terminal.UI) {
+	marker, style, _ := getDiffString(diff.GetType())
 	ui.AppendToRow("%s%s", strings.Repeat(" ", startPrefix), marker, terminal.WithStyle(style))
-	ui.AppendToRow("%s%s: %s", strings.Repeat(" ", keyPrefix), *diff.Name, strings.Repeat(" ", valuePrefix))
+	ui.AppendToRow("%s%s: %s", strings.Repeat(" ", keyPrefix), diff.GetName(), strings.Repeat(" ", valuePrefix))
 
-	switch *diff.Type {
+	switch diff.GetType() {
 	case "Added":
-		ui.AppendToRow("%q", *diff.New)
+		ui.AppendToRow("%q", diff.GetNew())
 	case "Deleted":
-		ui.AppendToRow("%q", *diff.Old)
+		ui.AppendToRow("%q", diff.GetOld())
 	case "Edited":
-		ui.AppendToRow("%q => %q", *diff.Old, *diff.New)
+		ui.AppendToRow("%q => %q", diff.GetOld(), diff.GetNew())
 	default:
-		ui.AppendToRow("%q", *diff.New)
+		ui.AppendToRow("%q", diff.GetNew())
 	}
 
 	// Color the annotations where possible
-	if diff.Annotations != nil {
-		printColorAnnotations(*diff.Annotations, ui)
+	if diff.HasAnnotations() {
+		printColorAnnotations(diff.GetAnnotations(), ui)
 	}
 }
 
-func formatObjectDiff(diff *v1client.ObjectDiff, startPrefix, keyPrefix int, ui terminal.UI) {
+func formatObjectDiff(diff v1client.ObjectDiff, startPrefix, keyPrefix int, ui terminal.UI) {
 	start := strings.Repeat(" ", startPrefix)
-	marker, style, markerLen := getDiffString(*diff.Type)
+	marker, style, markerLen := getDiffString(diff.GetType())
 	ui.AppendToRow("%s%s", start, marker, terminal.WithStyle(style))
-	ui.AppendToRow("%s%s {\n", strings.Repeat(" ", keyPrefix), *diff.Name)
+	ui.AppendToRow("%s%s {\n", strings.Repeat(" ", keyPrefix), diff.GetName())
 
 	// Determine the length of the longest name and longest diff marker to
 	// properly align names and values
-	longestField, longestMarker := getLongestPrefixes(diff.Fields, diff.Objects)
+	longestField, longestMarker := getLongestPrefixes(diff.GetFields(), diff.GetObjects())
 	subStartPrefix := startPrefix + keyPrefix + 2
 
 	// Nil pointer check
@@ -396,22 +364,22 @@ func formatDryRun(resp *v1client.JobPlanResponse, job *v1client.Job, ui terminal
 		ui.Success("- All tasks successfully allocated.")
 	} else {
 		// Change the output depending on if we are a system job or not
-		if job.Type != nil && *job.Type == "system" {
+		if job.GetType() == "system" {
 			ui.WarningBold("- WARNING: Failed to place allocations on all nodes.")
 		} else {
 			ui.WarningBold("- WARNING: Failed to place all allocations.")
 		}
 
-		sorted := sortedTaskGroupFromMetrics(*resp.FailedTGAllocs)
+		sorted := sortedTaskGroupFromMetrics(resp.GetFailedTGAllocs())
 		for _, tg := range sorted {
-			metrics := (*resp.FailedTGAllocs)[tg]
+			metrics := (resp.GetFailedTGAllocs())[tg]
 
 			noun := "allocation"
-			if metrics.CoalescedFailures != nil {
+			if metrics.GetCoalescedFailures() > 1 {
 				noun += "s"
 			}
 			ui.Warning(fmt.Sprintf("%sTaskGroup %q (failed to place %d %s):\n",
-				strings.Repeat(" ", 2), tg, *metrics.CoalescedFailures+1, noun))
+				strings.Repeat(" ", 2), tg, metrics.GetCoalescedFailures(), noun))
 			formatAllocMetrics(metrics, strings.Repeat(" ", 4), ui)
 		}
 	}
@@ -420,8 +388,8 @@ func formatDryRun(resp *v1client.JobPlanResponse, job *v1client.Job, ui terminal
 		ui.Success(fmt.Sprintf("\n- Rolling update, next evaluation will be in %d.", *rolling.Wait))
 	}
 
-	next := resp.NextPeriodicLaunch
-	if next != nil && next.IsZero() && !isParameterized(job) {
+	next := resp.GetNextPeriodicLaunch()
+	if resp.HasNextPeriodicLaunch() && next.IsZero() && !isParameterized(job) {
 		loc, err := GetLocation(job.Periodic)
 		ui.Output("")
 		if err != nil {
@@ -429,7 +397,7 @@ func formatDryRun(resp *v1client.JobPlanResponse, job *v1client.Job, ui terminal
 		} else {
 			now := time.Now().In(loc)
 			ui.Success(fmt.Sprintf("- If submitted now, next periodic launch would be at %s (%s from now).",
-				formatTime(next), formatTimeDifference(now, *next, time.Second)))
+				formatTime(next), formatTimeDifference(now, next, time.Second)))
 		}
 	}
 }
