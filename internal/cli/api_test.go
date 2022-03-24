@@ -159,8 +159,8 @@ func NewTestClient(testAgent *agent.TestAgent, opts ...v1.ClientOption) (*v1.Cli
 
 	// Push the address and possible token to the end of the options list since
 	// they are applied in order to the client config.
-	cOpts := append(opts, v1.WithAddress(testAgent.HTTPAddr()), maybeTokenFn())
-	c, err := v1.NewClient(cOpts...)
+	opts = append(opts, v1.WithAddress(testAgent.HTTPAddr()), maybeTokenFn())
+	c, err := v1.NewClient(opts...)
 
 	if err != nil {
 		return nil, err
