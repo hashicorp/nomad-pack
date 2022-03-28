@@ -72,6 +72,7 @@ func (c *RunCommand) run() int {
 	}
 
 	renderedParents := r.ParentRenders()
+	renderedDeps := r.DependentRenders()
 
 	// TODO: Refactor to use PackConfig. Maybe PackConfig should be in a more common
 	// pkg than cache, or maybe it's ok for runner to depend on the cache.
@@ -92,7 +93,14 @@ func (c *RunCommand) run() int {
 	}
 
 	// Set the rendered templates on the job deployer.
-	runDeployer.SetTemplates(renderedParents)
+	templates := make(map[string]string, r.LenDependentRenders()+r.LenParentRenders())
+	for dn, ds := range renderedDeps {
+		templates[dn] = ds
+	}
+	for pn, ps := range renderedParents {
+		templates[pn] = ps
+	}
+	runDeployer.SetTemplates(templates)
 
 	// Parse the templates. If we have any error, output this and exit.
 	if validateErrs := runDeployer.ParseTemplates(); validateErrs != nil {
