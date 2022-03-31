@@ -10,6 +10,7 @@ BUG FIXES:
 
 * cli: Add missing --name flag for status command [[GH-212](https://github.com/hashicorp/nomad-pack/pull/212)]
 * cli: Use Pack metadata `Name` in error context once known [[GH-217](https://github.com/hashicorp/nomad-pack/pull/217)]
+* runner: Update runner to properly handle dependencies [[GH-229](https://github.com/hashicorp/nomad-pack/pull/229)]
 
 IMPROVEMENTS:
 
