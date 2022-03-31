@@ -1,52 +1,40 @@
 package cache
 
 import (
+	"bytes"
 	"fmt"
 	"os"
+	"os/exec"
 	"path"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
-	"github.com/hashicorp/nomad-pack/internal/pkg/logging"
+	"github.com/hashicorp/nomad-pack/internal/pkg/helper/filesystem"
 	"github.com/stretchr/testify/require"
 )
 
-var testRegistryURL = "github.com/hashicorp/nomad-pack-community-registry"
+var (
+	tReg         *TestGithubRegistry
+	tRegInitOnce sync.Once
+)
 
-func testAddOpts(registryName string) *AddOpts {
-	return &AddOpts{
-		Source:       testRegistryURL,
-		RegistryName: registryName,
-		PackName:     "",
-		Ref:          "",
-		Username:     "",
-		Password:     "",
-	}
-}
-
-func testPackCount(t *testing.T, opts cacheOperationProvider) int {
-	packCount := 0
-
-	dirEntries, err := os.ReadDir(opts.RegistryPath())
-	require.NoError(t, err)
-
-	for _, dirEntry := range dirEntries {
-		if opts.IsTarget(dirEntry) {
-			packCount += 1
-		}
-	}
-
-	return packCount
+func TestMain(m *testing.M) {
+	tReg = GetTestGithubRegistry()
+	exitCode := m.Run()
+	tReg.Cleanup()
+	os.Exit(exitCode)
 }
 
 func TestListRegistries(t *testing.T) {
+	t.Parallel()
 	cacheDir := t.TempDir()
 	opts := testAddOpts("list-registries")
 
 	cache, err := NewCache(&CacheConfig{
 		Path:   cacheDir,
-		Logger: logging.NewTestLogger(t.Log),
+		Logger: NewTestLogger(t),
 	})
 	require.NoError(t, err)
 	require.NotNil(t, cache)
@@ -60,12 +48,13 @@ func TestListRegistries(t *testing.T) {
 }
 
 func TestAddRegistry(t *testing.T) {
+	t.Parallel()
 	cacheDir := t.TempDir()
 	opts := testAddOpts("add-registry")
 
 	cache, err := NewCache(&CacheConfig{
 		Path:   cacheDir,
-		Logger: logging.NewTestLogger(t.Log),
+		Logger: NewTestLogger(t),
 	})
 	require.NoError(t, err)
 	require.NotNil(t, cache)
@@ -80,19 +69,20 @@ func TestAddRegistry(t *testing.T) {
 }
 
 func TestAddRegistryPacksAtMultipleRefs(t *testing.T) {
+	t.Parallel()
 	cacheDir := t.TempDir()
 	testOpts := testAddOpts("multiple-refs")
 	// Set opts at sha ref
 	addOpts := &AddOpts{
 		cachePath:    cacheDir,
 		RegistryName: "multiple-refs",
-		Source:       testRegistryURL,
-		Ref:          "a74b4e1",
+		Source:       tReg.SourceURL(),
+		Ref:          tReg.Ref1(),
 	}
 
 	cache, err := NewCache(&CacheConfig{
 		Path:   cacheDir,
-		Logger: logging.NewTestLogger(t.Log),
+		Logger: NewTestLogger(t),
 	})
 	require.NoError(t, err)
 	require.NotNil(t, cache)
@@ -122,19 +112,20 @@ func TestAddRegistryPacksAtMultipleRefs(t *testing.T) {
 }
 
 func TestAddRegistryWithTarget(t *testing.T) {
+	t.Parallel()
 	cacheDir := t.TempDir()
 
 	// Set opts at sha ref
 	addOpts := &AddOpts{
 		cachePath:    cacheDir,
 		RegistryName: "with-target",
-		PackName:     "traefik",
-		Source:       testRegistryURL,
+		PackName:     "simple_raw_exec",
+		Source:       tReg.SourceURL(),
 	}
 
 	cache, err := NewCache(&CacheConfig{
 		Path:   cacheDir,
-		Logger: logging.NewTestLogger(t.Log),
+		Logger: NewTestLogger(t),
 	})
 	require.NoError(t, err)
 	require.NotNil(t, cache)
@@ -148,18 +139,19 @@ func TestAddRegistryWithTarget(t *testing.T) {
 }
 
 func TestAddRegistryWithSHA(t *testing.T) {
+	t.Parallel()
 	cacheDir := t.TempDir()
 	// Set opts at sha ref
 	addOpts := &AddOpts{
 		cachePath:    cacheDir,
 		RegistryName: "with-sha",
-		Source:       testRegistryURL,
-		Ref:          "a74b4e1",
+		Source:       tReg.SourceURL(),
+		Ref:          tReg.Ref1(),
 	}
 
 	cache, err := NewCache(&CacheConfig{
 		Path:   cacheDir,
-		Logger: logging.NewTestLogger(t.Log),
+		Logger: NewTestLogger(t),
 	})
 	require.NoError(t, err)
 	require.NotNil(t, cache)
@@ -176,19 +168,20 @@ func TestAddRegistryWithSHA(t *testing.T) {
 }
 
 func TestAddRegistryWithRefAndPackName(t *testing.T) {
+	t.Parallel()
 	cacheDir := t.TempDir()
 	// Set opts at sha ref
 	addOpts := &AddOpts{
 		cachePath:    cacheDir,
 		RegistryName: "with-ref-and-pack-name",
-		PackName:     "traefik",
-		Source:       testRegistryURL,
-		Ref:          "a74b4e1",
+		PackName:     "simple_raw_exec",
+		Source:       tReg.SourceURL(),
+		Ref:          tReg.Ref1(),
 	}
 
 	cache, err := NewCache(&CacheConfig{
 		Path:   cacheDir,
-		Logger: logging.NewTestLogger(t.Log),
+		Logger: NewTestLogger(t),
 	})
 	require.NoError(t, err)
 	require.NotNil(t, cache)
@@ -206,7 +199,7 @@ func TestAddRegistryNoCacheDir(t *testing.T) {
 
 	cache, err := NewCache(&CacheConfig{
 		Path:   "",
-		Logger: logging.NewTestLogger(t.Log),
+		Logger: NewTestLogger(t),
 	})
 	require.Error(t, err)
 
@@ -218,13 +211,14 @@ func TestAddRegistryNoCacheDir(t *testing.T) {
 }
 
 func TestAddRegistryNoSource(t *testing.T) {
+	t.Parallel()
 	cacheDir := t.TempDir()
 	opts := testAddOpts("no-source")
 	opts.Source = ""
 
 	cache, err := NewCache(&CacheConfig{
 		Path:   cacheDir,
-		Logger: logging.NewTestLogger(t.Log),
+		Logger: NewTestLogger(t),
 	})
 	require.NoError(t, err)
 	require.NotNil(t, cache)
@@ -237,12 +231,13 @@ func TestAddRegistryNoSource(t *testing.T) {
 }
 
 func TestDeleteRegistry(t *testing.T) {
+	t.Parallel()
 	cacheDir := t.TempDir()
 	opts := testAddOpts("delete-registry")
 
 	cache, err := NewCache(&CacheConfig{
 		Path:   cacheDir,
-		Logger: logging.NewTestLogger(t.Log),
+		Logger: NewTestLogger(t),
 	})
 	require.NoError(t, err)
 	require.NotNil(t, cache)
@@ -270,12 +265,13 @@ func TestDeleteRegistry(t *testing.T) {
 }
 
 func TestDeletePack(t *testing.T) {
+	t.Parallel()
 	cacheDir := t.TempDir()
 	opts := testAddOpts("delete-pack")
 
 	cache, err := NewCache(&CacheConfig{
 		Path:   cacheDir,
-		Logger: logging.NewTestLogger(t.Log),
+		Logger: NewTestLogger(t),
 	})
 	require.NoError(t, err)
 	require.NotNil(t, cache)
@@ -288,7 +284,7 @@ func TestDeletePack(t *testing.T) {
 
 	deleteOpts := &DeleteOpts{
 		RegistryName: opts.RegistryName,
-		PackName:     "traefik",
+		PackName:     "simple_raw_exec",
 		Ref:          opts.Ref,
 	}
 
@@ -309,12 +305,13 @@ func TestDeletePack(t *testing.T) {
 }
 
 func TestDeletePackByRef(t *testing.T) {
+	t.Parallel()
 	cacheDir := t.TempDir()
 	opts := testAddOpts("delete-pack-by-ref")
 
 	cache, err := NewCache(&CacheConfig{
 		Path:   cacheDir,
-		Logger: logging.NewTestLogger(t.Log),
+		Logger: NewTestLogger(t),
 	})
 	require.NoError(t, err)
 	require.NotNil(t, cache)
@@ -324,7 +321,7 @@ func TestDeletePackByRef(t *testing.T) {
 	require.NotNil(t, registry)
 
 	// Now add at different ref
-	opts.Ref = "a74b4e1"
+	opts.Ref = tReg.Ref1()
 	registry, err = cache.Add(opts)
 	require.NoError(t, err)
 	require.NotNil(t, registry)
@@ -333,7 +330,7 @@ func TestDeletePackByRef(t *testing.T) {
 
 	deleteOpts := &DeleteOpts{
 		RegistryName: opts.RegistryName,
-		PackName:     "traefik",
+		PackName:     "simple_raw_exec",
 		Ref:          opts.Ref,
 	}
 
@@ -354,6 +351,7 @@ func TestDeletePackByRef(t *testing.T) {
 }
 
 func TestParsePackURL(t *testing.T) {
+	t.Parallel()
 	reg := &Registry{}
 
 	testCases := []struct {
@@ -391,7 +389,7 @@ func TestParsePackURL(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			ok := reg.parsePackURL(tc.path)
-			fmt.Printf("  path: %s\nsource: %s\n    ok: %v\n\n", tc.path, reg.Source, ok)
+			t.Logf("  path: %s\nsource: %s\n    ok: %v\n\n", tc.path, reg.Source, ok)
 			if tc.expectOk {
 				require.True(t, ok)
 				require.Equal(t, tc.expectedResult, reg.Source)
@@ -402,4 +400,230 @@ func TestParsePackURL(t *testing.T) {
 			}
 		})
 	}
+}
+
+type TestLogger struct {
+	t *testing.T
+}
+
+// Debug logs at the DEBUG log level
+func (l *TestLogger) Debug(message string) {
+	l.t.Helper()
+	l.t.Log(message)
+}
+
+// Error logs at the ERROR log level
+func (l *TestLogger) Error(message string) {
+	l.t.Helper()
+	l.t.Log(message)
+}
+
+// ErrorWithContext logs at the ERROR log level including additional context so
+// users can easily identify issues.
+func (l *TestLogger) ErrorWithContext(err error, sub string, ctx ...string) {
+	l.t.Helper()
+	l.t.Log(fmt.Sprintf("err: %s", err))
+	l.t.Log(sub)
+	for _, entry := range ctx {
+		l.t.Log(entry)
+	}
+}
+
+// Info logs at the INFO log level
+func (l *TestLogger) Info(message string) {
+	l.t.Helper()
+	l.t.Log(message)
+}
+
+// Trace logs at the TRACE log level
+func (l *TestLogger) Trace(message string) {
+	l.t.Helper()
+	l.t.Log(message)
+}
+
+// Warning logs at the WARN log level
+func (l *TestLogger) Warning(message string) {
+	l.t.Helper()
+	l.t.Log(message)
+}
+
+// NewTestLogger returns a test logger suitable for use with the go testing.T log function.
+func NewTestLogger(t *testing.T) *TestLogger {
+	return &TestLogger{
+		t: t,
+	}
+}
+
+// NoopLogger returns a logger that meets the Logger interface, but does nothing
+// for any of the methods. This can be useful for cases that require a Logger as
+// a parameter.
+type NoopLogger struct{}
+
+func (_ NoopLogger) Debug(_ string)                                  {}
+func (_ NoopLogger) Error(_ string)                                  {}
+func (_ NoopLogger) ErrorWithContext(_ error, _ string, _ ...string) {}
+func (_ NoopLogger) Info(_ string)                                   {}
+func (_ NoopLogger) Trace(_ string)                                  {}
+func (_ NoopLogger) Warning(_ string)                                {}
+
+type TestGithubRegistry struct {
+	sourceURL string
+	ref1      string
+	ref2      string
+	cleanupFn func()
+	tmpDir    string
+}
+
+// initialize is protected from being called more than once by a sync.Once.
+func initialize() {
+	tRegInitOnce.Do(func() {
+		tReg = new(TestGithubRegistry)
+		makeTestRegRepo(tReg)
+	})
+}
+
+// GetTestGithubRegistry will initialize a cloneable local git registry containing
+// the contents of test_registry in the fixtures folder of the project. This local
+// git repo is then used to reduce network impacts of registry clone actions in
+// the cache test suite.
+func GetTestGithubRegistry() *TestGithubRegistry {
+	initialize()
+	return tReg
+}
+
+// SourceURL returns the TestGithubRegistry's SourceURL. Used to make AddOpts
+func (t *TestGithubRegistry) SourceURL() string {
+	return t.sourceURL
+}
+
+// Ref1 returns the TestGithubRegistry's SourceURL. Used to make AddOpts
+// for tests that add registries at a reference.
+func (t *TestGithubRegistry) Ref1() string {
+	return t.ref1
+}
+
+// Cleanup is the proper way to run the TestGithubRegistry's internal cleanup
+// function.
+func (t *TestGithubRegistry) Cleanup() {
+	t.cleanupFn()
+}
+
+func makeTestRegRepo(tReg *TestGithubRegistry) {
+	var err error
+	tReg.tmpDir, err = os.MkdirTemp("", "cache-test-*")
+	if err != nil {
+		panic(err)
+	}
+	tReg.cleanupFn = func() { os.RemoveAll(tReg.tmpDir) }
+	maybeFatal := func(err error) {
+		if err != nil {
+			var out string
+
+			switch err := err.(type) {
+			case *exec.ExitError:
+				out = fmt.Sprintf("Error: %v \nStdErr:\n%s", err, string(err.Stderr))
+			default:
+				out = fmt.Sprintf("Error: (%T) %v ", err, err)
+			}
+
+			tReg.Cleanup()
+			panic(out)
+		}
+	}
+
+	tReg.sourceURL = path.Join(tReg.tmpDir, "test_registry.git")
+	maybeFatal(filesystem.CopyDir("../../../fixtures/test_registry", tReg.SourceURL(), NoopLogger{}))
+	var exitErr *exec.ExitError
+
+	formatPanic := func(res GitCommandResult) {
+		var out strings.Builder
+		out.WriteString(fmt.Sprintf("git err: %v running %v\n", res.err.Error(), res.cmd))
+		out.WriteString(fmt.Sprintf("stdout:\n%s\nstderr:\n%s\n", res.stdout, res.stderr))
+		// If these setup git commands fail, there's no use in continuing
+		// because almost all of the cache tests will fail. Could these
+		// be refactored into a sync.Once and a check for cache tests?
+		tReg.Cleanup()
+		panic(out)
+	}
+
+	handleInitError := func(res GitCommandResult) GitCommandResult {
+		if res.err != nil && errors.As(res.err, &exitErr) && !strings.Contains(
+			res.stdout,
+			"Initialized empty Git repository",
+		) {
+			formatPanic(res)
+		}
+		return res
+	}
+
+	handleGitError := func(res GitCommandResult) GitCommandResult {
+		if res.err != nil {
+			formatPanic(res)
+		}
+		return res
+	}
+
+	handleInitError(git("init"))
+	handleGitError(git("config", "user.email", "test@example.com"))
+	handleGitError(git("config", "user.name", "Github Action Test User"))
+	handleGitError(git("add", "."))
+	handleGitError(git("commit", "-m", "Initial Commit"))
+	res := handleGitError(git("log", "-1", `--pretty=%H`))
+	tReg.ref1 = strings.TrimSpace(res.stdout)
+
+	handleGitError(git("commit", "--allow-empty", "-m", "Second Commit"))
+	res = handleGitError(git("log", "-1", `--pretty=%H`))
+	tReg.ref2 = strings.TrimSpace(res.stdout)
+}
+
+func git(args ...string) GitCommandResult {
+	git := exec.Command("git", args...)
+	git.Dir = tReg.SourceURL()
+	oB := new(bytes.Buffer)
+	eB := new(bytes.Buffer)
+	git.Stdout = oB
+	git.Stderr = eB
+	err := git.Run()
+	res := GitCommandResult{
+		exitCode: git.ProcessState.ExitCode(),
+		cmd:      git,
+		err:      err,
+		stdout:   oB.String(),
+		stderr:   eB.String(),
+	}
+	return res
+}
+
+type GitCommandResult struct {
+	cmd      *exec.Cmd
+	exitCode int
+	err      error
+	stdout   string
+	stderr   string
+}
+
+func testAddOpts(registryName string) *AddOpts {
+	return &AddOpts{
+		Source:       tReg.SourceURL(),
+		RegistryName: registryName,
+		PackName:     "",
+		Ref:          "",
+		Username:     "",
+		Password:     "",
+	}
+}
+
+func testPackCount(t *testing.T, opts cacheOperationProvider) int {
+	packCount := 0
+
+	dirEntries, err := os.ReadDir(opts.RegistryPath())
+	require.NoError(t, err)
+
+	for _, dirEntry := range dirEntries {
+		if opts.IsTarget(dirEntry) {
+			packCount += 1
+		}
+	}
+
+	return packCount
 }
