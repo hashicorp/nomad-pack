@@ -446,7 +446,7 @@ func TestNomadClientNamespaceFromCLIFlag(t *testing.T) {
 			args: []string{
 				`--namespace=flag`,
 			},
-			env: make(map[string]string, 0),
+			env: make(map[string]string),
 			expect: map[string]int{
 				"job":  0,
 				"flag": 1,
@@ -459,7 +459,7 @@ func TestNomadClientNamespaceFromCLIFlag(t *testing.T) {
 				`--var=namespace=job`,
 				`--namespace=flag`,
 			},
-			env: make(map[string]string, 0),
+			env: make(map[string]string),
 			expect: map[string]int{
 				"job":  1,
 				"flag": 0,
@@ -472,7 +472,7 @@ func TestNomadClientNamespaceFromCLIFlag(t *testing.T) {
 				`--namespace=job`,
 				`--namespace=flag`,
 			},
-			env: make(map[string]string, 0),
+			env: make(map[string]string),
 			expect: map[string]int{
 				"job":  0,
 				"flag": 1,

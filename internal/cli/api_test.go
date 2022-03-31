@@ -232,6 +232,21 @@ func Test_MultiRegionCluster(t *testing.T) {
 	)
 }
 
+func Test_MultiRegionClusterParallel(t *testing.T) {
+	httpTestMultiRegionClusterParallel(t,
+		WithAgentConfig(LogLevel(testLogLevel), Region("rA")),
+		WithAgentConfig(LogLevel(testLogLevel), Region("rB")),
+		func(s1, s2 *agent.TestAgent) {
+			c1, err := NewTestClient(s1)
+			require.NoError(t, err)
+			r, err := c1.Regions().GetRegions(c1.QueryOpts().Ctx())
+			require.NoError(t, err)
+
+			require.ElementsMatch(t, []string{"rA", "rB"}, *r)
+		},
+	)
+}
+
 // TestAgent configuration helpers
 
 // AgentOption is a functional option used as an argument to `WithAgentConfig`

@@ -346,9 +346,9 @@ func newQueryOpts(c *v1.Client) *v1.QueryOpts {
 	return c.QueryOpts()
 }
 
-func newWriteOpts(c *v1.Client) *v1.WriteOpts {
-	return c.WriteOpts()
-}
+// func newWriteOpts(c *v1.Client) *v1.WriteOpts {
+// 	return c.WriteOpts()
+// }
 
 // clientOptionCount is used to help size the arrays that back the slices of
 // v1.ClientOption from the clientOptsFromEnvironment and clientOptsFromFlags
