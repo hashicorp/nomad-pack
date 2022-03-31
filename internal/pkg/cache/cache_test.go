@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
@@ -15,140 +16,15 @@ import (
 )
 
 var (
-	// path to be used for cache building clones. Set in TestMain.
-	testRegistryURL *string = new(string)
-	// testRegistryRef1 is the hash of the first commit in the repo. Set in TestMain.
-	testRegistryRef1 *string = new(string)
-	// testRegistryRef2 is the hash of the second commit in the repo. Set in TestMain.
-	testRegistryRef2 *string = new(string)
+	tReg         *TestGithubRegistry
+	tRegInitOnce sync.Once
 )
 
-func testAddOpts(registryName string) *AddOpts {
-	return &AddOpts{
-		Source:       *testRegistryURL,
-		RegistryName: registryName,
-		PackName:     "",
-		Ref:          "",
-		Username:     "",
-		Password:     "",
-	}
-}
-
-func testPackCount(t *testing.T, opts cacheOperationProvider) int {
-	packCount := 0
-
-	dirEntries, err := os.ReadDir(opts.RegistryPath())
-	require.NoError(t, err)
-
-	for _, dirEntry := range dirEntries {
-		if opts.IsTarget(dirEntry) {
-			packCount += 1
-		}
-	}
-
-	return packCount
-}
-
 func TestMain(m *testing.M) {
-	cleanup := makeTestRegRepo()
+	tReg = GetTestGithubRegistry()
 	exitCode := m.Run()
-	cleanup()
+	tReg.Cleanup()
 	os.Exit(exitCode)
-}
-
-func makeTestRegRepo() func() {
-	dirName, err := os.MkdirTemp("", "cache-test-*")
-	if err != nil {
-		panic(err)
-	}
-	cleanup := func() { os.RemoveAll(dirName) }
-	maybeFatal := func(err error) {
-		if err != nil {
-			var out string
-
-			switch err := err.(type) {
-			case *exec.ExitError:
-				out = fmt.Sprintf("Error: %v \nStdErr:\n%s", err, string(err.Stderr))
-			default:
-				out = fmt.Sprintf("Error: (%T) %v ", err, err)
-			}
-
-			cleanup()
-			panic(out)
-		}
-	}
-	// fmt.Printf("Temp Dir: %s\n", dirName)
-
-	*testRegistryURL = path.Join(dirName, "test_registry.git")
-	maybeFatal(filesystem.CopyDir("../../../fixtures/test_registry", *testRegistryURL, NoopLogger{}))
-	var exitErr *exec.ExitError
-
-	formatPanic := func(res GitCommandResult) {
-		var out strings.Builder
-		out.WriteString(fmt.Sprintf("git err: %v running %v\n", res.err.Error(), res.cmd))
-		out.WriteString(fmt.Sprintf("stdout:\n%s\nstderr:\n%s\n", res.stdout, res.stderr))
-		// If these setup git commands fail, there's no use in continuing
-		// because almost all of the cache tests will fail. Could these
-		// be refactored into a sync.Once and a check for cache tests?
-		cleanup()
-		panic(out)
-	}
-
-	handleInitError := func(res GitCommandResult) {
-		if res.err != nil && errors.As(res.err, &exitErr) && !strings.Contains(
-			res.stdout,
-			"Initialized empty Git repository",
-		) {
-			formatPanic(res)
-		}
-	}
-
-	handleGitError := func(res GitCommandResult) {
-		if res.err != nil {
-			formatPanic(res)
-		}
-	}
-
-	git(handleInitError, "init")
-	git(handleGitError, "config", "user.email", "test@example.com")
-	git(handleGitError, "config", "user.name", "Github Action Test User")
-	git(handleGitError, "add", ".")
-	git(handleGitError, "commit", "-m", "Initial Commit")
-	res := git(handleGitError, "log", "-1", `--pretty=%H`)
-	*testRegistryRef1 = strings.TrimSpace(res.stdout)
-
-	git(handleGitError, "commit", "--allow-empty", "-m", "Second Commit")
-	res = git(handleGitError, "log", "-1", `--pretty=%H`)
-	*testRegistryRef2 = strings.TrimSpace(res.stdout)
-
-	return cleanup
-}
-
-func git(errFn func(GitCommandResult), args ...string) GitCommandResult {
-	git := exec.Command("git", args...)
-	git.Dir = *testRegistryURL
-	oB := new(bytes.Buffer)
-	eB := new(bytes.Buffer)
-	git.Stdout = oB
-	git.Stderr = eB
-	err := git.Run()
-	res := GitCommandResult{
-		exitCode: git.ProcessState.ExitCode(),
-		cmd:      git,
-		err:      err,
-		stdout:   oB.String(),
-		stderr:   eB.String(),
-	}
-	errFn(res)
-	return res
-}
-
-type GitCommandResult struct {
-	cmd      *exec.Cmd
-	exitCode int
-	err      error
-	stdout   string
-	stderr   string
 }
 
 func TestListRegistries(t *testing.T) {
@@ -200,8 +76,8 @@ func TestAddRegistryPacksAtMultipleRefs(t *testing.T) {
 	addOpts := &AddOpts{
 		cachePath:    cacheDir,
 		RegistryName: "multiple-refs",
-		Source:       *testRegistryURL,
-		Ref:          *testRegistryRef1,
+		Source:       tReg.SourceURL(),
+		Ref:          tReg.Ref1(),
 	}
 
 	cache, err := NewCache(&CacheConfig{
@@ -244,7 +120,7 @@ func TestAddRegistryWithTarget(t *testing.T) {
 		cachePath:    cacheDir,
 		RegistryName: "with-target",
 		PackName:     "simple_raw_exec",
-		Source:       *testRegistryURL,
+		Source:       tReg.SourceURL(),
 	}
 
 	cache, err := NewCache(&CacheConfig{
@@ -269,8 +145,8 @@ func TestAddRegistryWithSHA(t *testing.T) {
 	addOpts := &AddOpts{
 		cachePath:    cacheDir,
 		RegistryName: "with-sha",
-		Source:       *testRegistryURL,
-		Ref:          *testRegistryRef1,
+		Source:       tReg.SourceURL(),
+		Ref:          tReg.Ref1(),
 	}
 
 	cache, err := NewCache(&CacheConfig{
@@ -299,8 +175,8 @@ func TestAddRegistryWithRefAndPackName(t *testing.T) {
 		cachePath:    cacheDir,
 		RegistryName: "with-ref-and-pack-name",
 		PackName:     "simple_raw_exec",
-		Source:       *testRegistryURL,
-		Ref:          *testRegistryRef1,
+		Source:       tReg.SourceURL(),
+		Ref:          tReg.Ref1(),
 	}
 
 	cache, err := NewCache(&CacheConfig{
@@ -445,7 +321,7 @@ func TestDeletePackByRef(t *testing.T) {
 	require.NotNil(t, registry)
 
 	// Now add at different ref
-	opts.Ref = *testRegistryRef1
+	opts.Ref = tReg.Ref1()
 	registry, err = cache.Add(opts)
 	require.NoError(t, err)
 	require.NotNil(t, registry)
@@ -589,3 +465,165 @@ func (_ NoopLogger) ErrorWithContext(_ error, _ string, _ ...string) {}
 func (_ NoopLogger) Info(_ string)                                   {}
 func (_ NoopLogger) Trace(_ string)                                  {}
 func (_ NoopLogger) Warning(_ string)                                {}
+
+type TestGithubRegistry struct {
+	sourceURL string
+	ref1      string
+	ref2      string
+	cleanupFn func()
+	tmpDir    string
+}
+
+// initialize is protected from being called more than once by a sync.Once.
+func initialize() {
+	tRegInitOnce.Do(func() {
+		tReg = new(TestGithubRegistry)
+		makeTestRegRepo(tReg)
+	})
+}
+
+// GetTestGithubRegistry will initialize a cloneable local git registry containing
+// the contents of test_registry in the fixtures folder of the project. This local
+// git repo is then used to reduce network impacts of registry clone actions in
+// the cache test suite.
+func GetTestGithubRegistry() *TestGithubRegistry {
+	initialize()
+	return tReg
+}
+
+// SourceURL returns the TestGithubRegistry's SourceURL. Used to make AddOpts
+func (t *TestGithubRegistry) SourceURL() string {
+	return t.sourceURL
+}
+
+// Ref1 returns the TestGithubRegistry's SourceURL. Used to make AddOpts
+// for tests that add registries at a reference.
+func (t *TestGithubRegistry) Ref1() string {
+	return t.ref1
+}
+
+// Cleanup is the proper way to run the TestGithubRegistry's internal cleanup
+// function.
+func (t *TestGithubRegistry) Cleanup() {
+	t.cleanupFn()
+}
+
+func makeTestRegRepo(tReg *TestGithubRegistry) {
+	var err error
+	tReg.tmpDir, err = os.MkdirTemp("", "cache-test-*")
+	if err != nil {
+		panic(err)
+	}
+	tReg.cleanupFn = func() { os.RemoveAll(tReg.tmpDir) }
+	maybeFatal := func(err error) {
+		if err != nil {
+			var out string
+
+			switch err := err.(type) {
+			case *exec.ExitError:
+				out = fmt.Sprintf("Error: %v \nStdErr:\n%s", err, string(err.Stderr))
+			default:
+				out = fmt.Sprintf("Error: (%T) %v ", err, err)
+			}
+
+			tReg.Cleanup()
+			panic(out)
+		}
+	}
+
+	tReg.sourceURL = path.Join(tReg.tmpDir, "test_registry.git")
+	maybeFatal(filesystem.CopyDir("../../../fixtures/test_registry", tReg.SourceURL(), NoopLogger{}))
+	var exitErr *exec.ExitError
+
+	formatPanic := func(res GitCommandResult) {
+		var out strings.Builder
+		out.WriteString(fmt.Sprintf("git err: %v running %v\n", res.err.Error(), res.cmd))
+		out.WriteString(fmt.Sprintf("stdout:\n%s\nstderr:\n%s\n", res.stdout, res.stderr))
+		// If these setup git commands fail, there's no use in continuing
+		// because almost all of the cache tests will fail. Could these
+		// be refactored into a sync.Once and a check for cache tests?
+		tReg.Cleanup()
+		panic(out)
+	}
+
+	handleInitError := func(res GitCommandResult) GitCommandResult {
+		if res.err != nil && errors.As(res.err, &exitErr) && !strings.Contains(
+			res.stdout,
+			"Initialized empty Git repository",
+		) {
+			formatPanic(res)
+		}
+		return res
+	}
+
+	handleGitError := func(res GitCommandResult) GitCommandResult {
+		if res.err != nil {
+			formatPanic(res)
+		}
+		return res
+	}
+
+	handleInitError(git("init"))
+	handleGitError(git("config", "user.email", "test@example.com"))
+	handleGitError(git("config", "user.name", "Github Action Test User"))
+	handleGitError(git("add", "."))
+	handleGitError(git("commit", "-m", "Initial Commit"))
+	res := handleGitError(git("log", "-1", `--pretty=%H`))
+	tReg.ref1 = strings.TrimSpace(res.stdout)
+
+	handleGitError(git("commit", "--allow-empty", "-m", "Second Commit"))
+	res = handleGitError(git("log", "-1", `--pretty=%H`))
+	tReg.ref2 = strings.TrimSpace(res.stdout)
+}
+
+func git(args ...string) GitCommandResult {
+	git := exec.Command("git", args...)
+	git.Dir = tReg.SourceURL()
+	oB := new(bytes.Buffer)
+	eB := new(bytes.Buffer)
+	git.Stdout = oB
+	git.Stderr = eB
+	err := git.Run()
+	res := GitCommandResult{
+		exitCode: git.ProcessState.ExitCode(),
+		cmd:      git,
+		err:      err,
+		stdout:   oB.String(),
+		stderr:   eB.String(),
+	}
+	return res
+}
+
+type GitCommandResult struct {
+	cmd      *exec.Cmd
+	exitCode int
+	err      error
+	stdout   string
+	stderr   string
+}
+
+func testAddOpts(registryName string) *AddOpts {
+	return &AddOpts{
+		Source:       tReg.SourceURL(),
+		RegistryName: registryName,
+		PackName:     "",
+		Ref:          "",
+		Username:     "",
+		Password:     "",
+	}
+}
+
+func testPackCount(t *testing.T, opts cacheOperationProvider) int {
+	packCount := 0
+
+	dirEntries, err := os.ReadDir(opts.RegistryPath())
+	require.NoError(t, err)
+
+	for _, dirEntry := range dirEntries {
+		if opts.IsTarget(dirEntry) {
+			packCount += 1
+		}
+	}
+
+	return packCount
+}
