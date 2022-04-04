@@ -587,19 +587,3 @@ func createTestRegistry(t *testing.T) (regName, regDir string) {
 func cleanTestRegistry(t *testing.T, regPath string) {
 	os.RemoveAll(regPath)
 }
-
-// func nomadCleanupJob(t *testing.T, s *agent.TestAgent) {
-// 	c, _ := NewTestClient(s)
-
-// 	wo := v1.DefaultWriteOpts()
-
-// 	wCtx, done := context.WithTimeout(wo.Ctx(), 5*time.Second)
-// 	resp, wMeta, err := c.Jobs().Delete(wCtx, jobName, purge, false)
-// 	done()
-
-// 	qCtx, done := context.WithTimeout(q.Ctx(), 5*time.Second)
-// 	resp, wMeta, err := c.Jobs().Delete(wCtx, jobName, purge, false)
-// 	done()
-
-// 	require.Nil(t, job)
-// }
