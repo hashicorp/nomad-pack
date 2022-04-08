@@ -19,4 +19,5 @@ jobs:
       - uses: actions/checkout@v2
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3.1.0
-        
+        with:
+          skip-cache: ${{ env.ACT == 'true' }}
