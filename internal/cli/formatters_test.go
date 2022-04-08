@@ -55,7 +55,7 @@ func Test_FormatTime(t *testing.T) {
 // truncating to a passed unit.
 // E.g. formatTimeDifference(first=1m22s33ms, second=1m28s55ms, time.Second) -> 6s
 func Test_FormatTimeDifference(t *testing.T) {
-	first := time.Now()
+	first := time.Now().Truncate(time.Second)
 	second := first.Add(6*time.Second + 22*time.Millisecond)
 	require.Equal(t, "6s", formatTimeDifference(first, second, time.Second))
 }
