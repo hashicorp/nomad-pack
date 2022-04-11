@@ -3,6 +3,7 @@ package cli
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -177,6 +178,47 @@ func TestJobPlanConflictingNonPackJob(t *testing.T) {
 		require.Empty(t, result.cmdErr.String(), "cmdErr should be empty, but was %q", result.cmdErr.String())
 		require.Contains(t, result.cmdOut.String(), job.ErrExistsNonPack{JobID: testPack}.Error())
 		require.Equal(t, 255, result.exitCode) // Should return 255 indicating an error
+	})
+}
+
+func TestPlan_OverrideExitCodes(t *testing.T) {
+	httpTest(t, WithDefaultConfig(), func(s *agent.TestAgent) {
+		// Plan against empty - should be makes-changes
+		result := runTestPackCmd(t, s, []string{"plan", "--exit-code-makes-changes=99", getTestPackPath(testPack)})
+		require.Empty(t, result.cmdErr.String(), "cmdErr should be empty, but was %q", result.cmdErr.String())
+		require.Contains(t, result.cmdOut.String(), "Plan succeeded\n")
+		require.Equal(t, 99, result.exitCode) // Should return 99 indicating no error
+
+		// Register non pack job
+		nomadExpectNoErr(t, s, []string{"run"}, []string{}, getTestNomadJobPath(testPack))
+
+		// Now try to register the pack, should make error
+		result = runTestPackCmd(t, s, []string{"plan", "--exit-code-error=42", getTestPackPath(testPack)})
+		require.Empty(t, result.cmdErr.String(), "cmdErr should be empty, but was %q", result.cmdErr.String())
+		require.Contains(t, result.cmdOut.String(), job.ErrExistsNonPack{JobID: testPack}.Error())
+		require.Equal(t, 42, result.exitCode) // Should return 255 indicating an error
+
+		nomadExpectNoErr(t, s, []string{"stop"}, []string{"-purge"}, testPack)
+		isGone := func() bool {
+			execErr := nomadExec(t, s, []string{"job", "status"}, []string{}, testPack)
+			var cliErr *ErrNomadExec
+			if errors.As(execErr, &cliErr) {
+				return cliErr.stderr == "No job(s) with prefix or id \"simple_raw_exec\" found\n"
+			}
+			return false
+		}
+		require.Eventually(t, isGone, 10*time.Second, 500*time.Millisecond)
+
+		result = runTestPackCmd(t, s, []string{"run", getTestPackPath(testPack)})
+		require.Empty(t, result.cmdErr.String(), "cmdErr should be empty, but was %q", result.cmdErr.String())
+		require.Contains(t, result.cmdOut.String(), "")
+		require.Equal(t, 0, result.exitCode) // Should return 255 indicating an error
+
+		// Plan against deployed - should be no-changes
+		result = runTestPackCmd(t, s, []string{"plan", "--exit-code-no-changes=19", getTestPackPath(testPack)})
+		require.Empty(t, result.cmdErr.String(), "cmdErr should be empty, but was %q", result.cmdErr.String())
+		require.Contains(t, result.cmdOut.String(), "Plan succeeded\n")
+		require.Equal(t, 19, result.exitCode) // Should return 19 indicating no error
 	})
 }
 
