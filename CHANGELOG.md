@@ -17,6 +17,7 @@ IMPROVEMENTS:
 * cli: Add flags to configure Nomad API client [[GH-213](https://github.com/hashicorp/nomad-pack/pull/213)]
 * template: Add support for custom Spew configurations. [[GH-220](https://github.com/hashicorp/nomad-pack/pull/220)]
 * template: Create a `my` alias for the current pack [[GH-221](https://github.com/hashicorp/nomad-pack/pull/221)]
+* cli: Add flags to override exit codes on `plan` command [[GH-236](https://github.com/hashicorp/nomad-pack/pull/236)]
 
 ## 0.0.1-techpreview2 (February 07, 2022)
 
