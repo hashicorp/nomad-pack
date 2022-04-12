@@ -3,7 +3,6 @@ package cli
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -195,7 +194,8 @@ func TestPlan_OverrideExitCodes(t *testing.T) {
 		require.Equal(t, 99, result.exitCode) // Should return 99 indicating no error
 
 		// Register non pack job
-		nomadExpectNoErr(t, s, []string{"run"}, []string{}, getTestNomadJobPath(testPack))
+		err := NomadRun(s, getTestNomadJobPath(testPack))
+		require.NoError(t, err)
 
 		// Now try to register the pack, should make error
 		result = runTestPackCmd(t, s, []string{"plan", "--exit-code-error=42", getTestPackPath(testPack)})
@@ -203,12 +203,13 @@ func TestPlan_OverrideExitCodes(t *testing.T) {
 		require.Contains(t, result.cmdOut.String(), job.ErrExistsNonPack{JobID: testPack}.Error())
 		require.Equal(t, 42, result.exitCode) // Should return 255 indicating an error
 
-		nomadExpectNoErr(t, s, []string{"stop"}, []string{"-purge"}, testPack)
+		err = NomadPurge(s, testPack)
+		require.NoError(t, err)
+
 		isGone := func() bool {
-			execErr := nomadExec(t, s, []string{"job", "status"}, []string{}, testPack)
-			var cliErr *ErrNomadExec
-			if errors.As(execErr, &cliErr) {
-				return cliErr.stderr == "No job(s) with prefix or id \"simple_raw_exec\" found\n"
+			_, err = NomadJobStatus(s, testPack)
+			if err != nil {
+				return err.Error() == "job not found"
 			}
 			return false
 		}
@@ -946,6 +947,18 @@ func NomadRun(s *agent.TestAgent, path string, opts ...v1.ClientOption) error {
 	}
 	s.T.Log(FormatRegistrationResponse(resp))
 	return nil
+}
+
+func NomadJobStatus(s *agent.TestAgent, jobname string, opts ...v1.ClientOption) (*client.Job, error) {
+	c, err := NewTestClient(s, opts...)
+	if err != nil {
+		return nil, err
+	}
+	resp, _, err := c.Jobs().GetJob(c.QueryOpts().Ctx(), jobname)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
 }
 
 func NomadStop(s *agent.TestAgent, jobname string, opts ...v1.ClientOption) error {
