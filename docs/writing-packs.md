@@ -225,7 +225,7 @@ Then in the parent templates, "job_a.nomad.tpl" and "job_b.nomad.tpl", we would 
 job "job_a" {
   type = "service"
 
-  [[template "region"]]
+  [[ template "region" . ]]
 
   ...etc...
 }
