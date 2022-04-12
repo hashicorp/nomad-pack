@@ -185,23 +185,35 @@ func TestJobPlanConflictingNonPackJob(t *testing.T) {
 	})
 }
 
-func TestPlan_OverrideExitCodes(t *testing.T) {
+func TestJobPlanOverrideExitCodes(t *testing.T) {
 	httpTest(t, WithDefaultConfig(), func(s *agent.TestAgent) {
 		// Plan against empty - should be makes-changes
-		result := runTestPackCmd(t, s, []string{"plan", "--exit-code-makes-changes=99", getTestPackPath(testPack)})
+		result := runTestPackCmd(t, s, []string{
+			"plan",
+			"--exit-code-makes-changes=91",
+			"--exit-code-no-changes=90",
+			"--exit-code-error=92",
+			getTestPackPath(testPack),
+		})
 		require.Empty(t, result.cmdErr.String(), "cmdErr should be empty, but was %q", result.cmdErr.String())
 		require.Contains(t, result.cmdOut.String(), "Plan succeeded\n")
-		require.Equal(t, 99, result.exitCode) // Should return 99 indicating no error
+		require.Equal(t, 91, result.exitCode) // Should return exit-code-makes-changes
 
 		// Register non pack job
 		err := NomadRun(s, getTestNomadJobPath(testPack))
 		require.NoError(t, err)
 
 		// Now try to register the pack, should make error
-		result = runTestPackCmd(t, s, []string{"plan", "--exit-code-error=42", getTestPackPath(testPack)})
+		result = runTestPackCmd(t, s, []string{
+			"plan",
+			"--exit-code-makes-changes=91",
+			"--exit-code-no-changes=90",
+			"--exit-code-error=92",
+			getTestPackPath(testPack),
+		})
 		require.Empty(t, result.cmdErr.String(), "cmdErr should be empty, but was %q", result.cmdErr.String())
 		require.Contains(t, result.cmdOut.String(), job.ErrExistsNonPack{JobID: testPack}.Error())
-		require.Equal(t, 42, result.exitCode) // Should return 255 indicating an error
+		require.Equal(t, 92, result.exitCode) // Should exit-code-error
 
 		err = NomadPurge(s, testPack)
 		require.NoError(t, err)
@@ -218,13 +230,27 @@ func TestPlan_OverrideExitCodes(t *testing.T) {
 		result = runTestPackCmd(t, s, []string{"run", getTestPackPath(testPack)})
 		require.Empty(t, result.cmdErr.String(), "cmdErr should be empty, but was %q", result.cmdErr.String())
 		require.Contains(t, result.cmdOut.String(), "")
-		require.Equal(t, 0, result.exitCode) // Should return 255 indicating an error
+		require.Equal(t, 0, result.exitCode) // Should return 0
+		isStarted := func() bool {
+			j, err := NomadJobStatus(s, testPack)
+			if err != nil {
+				return false
+			}
+			return j.GetStatus() == "running"
+		}
+		require.Eventually(t, isStarted, 10*time.Second, 500*time.Millisecond)
 
 		// Plan against deployed - should be no-changes
-		result = runTestPackCmd(t, s, []string{"plan", "--exit-code-no-changes=19", getTestPackPath(testPack)})
+		result = runTestPackCmd(t, s, []string{
+			"plan",
+			"--exit-code-makes-changes=91",
+			"--exit-code-no-changes=90",
+			"--exit-code-error=92",
+			getTestPackPath(testPack),
+		})
 		require.Empty(t, result.cmdErr.String(), "cmdErr should be empty, but was %q", result.cmdErr.String())
 		require.Contains(t, result.cmdOut.String(), "Plan succeeded\n")
-		require.Equal(t, 19, result.exitCode) // Should return 19 indicating no error
+		require.Equal(t, 90, result.exitCode) // Should return exit-code-no-changes
 	})
 }
 
