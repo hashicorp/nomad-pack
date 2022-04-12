@@ -11,11 +11,18 @@ import (
 
 type PlanCommand struct {
 	*baseCommand
-	packConfig *cache.PackConfig
-	jobConfig  *job.CLIConfig
+	packConfig        *cache.PackConfig
+	jobConfig         *job.CLIConfig
+	exitCodeNoChanges int
+	exitCodeChanges   int
+	exitCodeError     int
 }
 
 func (c *PlanCommand) Run(args []string) int {
+	c.exitCodeNoChanges = 0
+	c.exitCodeChanges = 1
+	c.exitCodeError = 255
+
 	c.cmdKey = "plan" // Add cmdKey here to print out helpUsageMessage on Init error
 	// Initialize. If we fail, we just exit since Init handles the UI.
 	if err := c.Init(
@@ -35,7 +42,7 @@ func (c *PlanCommand) Run(args []string) int {
 
 	// verify packs exist before planning jobs
 	if err := cache.VerifyPackExists(c.packConfig, errorContext, c.ui); err != nil {
-		return 255
+		return c.exitCodeError
 	}
 
 	// If no deploymentName set default to pack@ref
@@ -45,7 +52,7 @@ func (c *PlanCommand) Run(args []string) int {
 	client, err := c.getAPIClient()
 	if err != nil {
 		c.ui.ErrorWithContext(err, "failed to initialize client", errorContext.GetAll()...)
-		return 255
+		return c.exitCodeError
 	}
 
 	packManager := generatePackManager(c.baseCommand, client, c.packConfig)
@@ -53,14 +60,14 @@ func (c *PlanCommand) Run(args []string) int {
 	// load pack
 	r, err := renderPack(packManager, c.baseCommand.ui, errorContext)
 	if err != nil {
-		return 255
+		return c.exitCodeError
 	}
 
 	// Commands that render templates are required to render at least one
 	// parent template.
 	if r.LenParentRenders() < 1 {
 		c.ui.ErrorWithContext(errors.ErrNoTemplatesRendered, "no templates rendered", errorContext.GetAll()...)
-		return 255
+		return c.exitCodeError
 	}
 
 	depConfig := runner.Config{
@@ -75,7 +82,7 @@ func (c *PlanCommand) Run(args []string) int {
 	jobRunner, err := generateRunner(client, "job", c.jobConfig, &depConfig)
 	if err != nil {
 		c.ui.ErrorWithContext(err, "failed to generate deployer", errorContext.GetAll()...)
-		return 255
+		return c.exitCodeError
 	}
 
 	// Set the rendered templates on the job deployer.
@@ -87,7 +94,7 @@ func (c *PlanCommand) Run(args []string) int {
 			validateErr.Context.Append(errorContext)
 			c.ui.ErrorWithContext(validateErr.Err, validateErr.Subject, validateErr.Context.GetAll()...)
 		}
-		return 255
+		return c.exitCodeError
 	}
 
 	if canonicalizeErrs := jobRunner.CanonicalizeTemplates(); canonicalizeErrs != nil {
@@ -95,14 +102,14 @@ func (c *PlanCommand) Run(args []string) int {
 			canonicalizeErr.Context.Append(errorContext)
 			c.ui.ErrorWithContext(canonicalizeErr.Err, canonicalizeErr.Subject, canonicalizeErr.Context.GetAll()...)
 		}
-		return 1
+		return c.exitCodeError
 	}
 
 	if conflictErrs := jobRunner.CheckForConflicts(errorContext); conflictErrs != nil {
 		for _, conflictErr := range conflictErrs {
 			c.ui.ErrorWithContext(conflictErr.Err, conflictErr.Subject, conflictErr.Context.GetAll()...)
 		}
-		return 255
+		return c.exitCodeError
 	}
 
 	planExitCode, planErrs := jobRunner.PlanDeployment(c.ui, errorContext)
@@ -113,7 +120,18 @@ func (c *PlanCommand) Run(args []string) int {
 	if planExitCode < 2 {
 		c.ui.Success("Plan succeeded")
 	}
-	return planExitCode
+
+	// Map planExitCode to replacement values.
+	switch planExitCode {
+	case 0:
+		return c.exitCodeNoChanges
+	case 1:
+		return c.exitCodeChanges
+	case 255:
+		return c.exitCodeError
+	default: // protect from unexpected new exit codes.
+		return planExitCode
+	}
 }
 
 func (c *PlanCommand) Flags() *flag.Sets {
@@ -176,6 +194,26 @@ func (c *PlanCommand) Flags() *flag.Sets {
 				Usage:   `Increase diff verbosity.`,
 			},
 			Shorthand: "v",
+		})
+		f.IntVar(&flag.IntVar{
+			Name:    "exit-code-no-changes",
+			Target:  &c.exitCodeNoChanges,
+			Default: 0,
+			Usage:   `Override exit code returned when the plan shown no changes.`,
+		})
+
+		f.IntVar(&flag.IntVar{
+			Name:    "exit-code-makes-changes",
+			Target:  &c.exitCodeChanges,
+			Default: 1,
+			Usage:   `Override exit code returned when the plan shows changes.`,
+		})
+
+		f.IntVar(&flag.IntVar{
+			Name:    "exit-code-error",
+			Target:  &c.exitCodeError,
+			Default: 255,
+			Usage:   `Override exit code returned when there is an error.`,
 		})
 	})
 }
