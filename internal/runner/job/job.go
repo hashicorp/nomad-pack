@@ -28,11 +28,32 @@ type Runner struct {
 	// have to do this again when deploying the jobs. There is no concurrent,
 	// multi-routine access to these maps, so we don't need a lock.
 	rawTemplates    map[string]string
-	parsedTemplates map[string]*v1client.Job
+	parsedTemplates map[string]ParsedTemplate
 
 	// deployedJobs tracks the jobs that have successfully been deployed to
 	// Nomad so that in the event of a failure, we can attempt to rollback.
-	deployedJobs []*v1client.Job
+	deployedJobs []ParsedTemplate
+}
+
+type ParsedTemplate struct {
+	original  *v1client.Job
+	canonical *v1client.Job
+}
+
+func (p *ParsedTemplate) GetName() string {
+	return p.canonical.GetName()
+}
+
+func (p *ParsedTemplate) HasRegion() bool {
+	return p.original.HasRegion()
+}
+
+func (p *ParsedTemplate) HasNamespace() bool {
+	return p.original.HasNamespace()
+}
+
+func (p *ParsedTemplate) Job() *v1client.Job {
+	return p.canonical
 }
 
 // NewDeployer returns the job implementation of deploy.Deployer. This is
@@ -43,10 +64,10 @@ type Runner struct {
 func NewDeployer(client *v1.Client, cfg *CLIConfig) runner.Runner {
 	return &Runner{
 		client:          client,
-		clientQueryOpts: newQueryOpts(),
+		clientQueryOpts: client.QueryOpts(),
 		cfg:             cfg,
 		rawTemplates:    make(map[string]string),
-		parsedTemplates: make(map[string]*v1client.Job),
+		parsedTemplates: make(map[string]ParsedTemplate),
 	}
 }
 
@@ -61,8 +82,8 @@ func (r *Runner) CanonicalizeTemplates() []*errors.WrappedUIContext {
 	}
 
 	for _, jobSpec := range r.parsedTemplates {
-		r.handleConsulAndVault(jobSpec)
-		r.setJobMeta(jobSpec)
+		r.handleConsulAndVault(jobSpec.Job())
+		r.setJobMeta(jobSpec.Job())
 	}
 
 	return nil
@@ -93,7 +114,7 @@ func (r *Runner) Deploy(ui terminal.UI, errorContext *errors.UIErrorContext) *er
 		}
 
 		// Submit the job
-		result, _, err := r.client.Jobs().Register(newWriteOptsFromJob(jobSpec).Ctx(), jobSpec, &registerOpts)
+		result, _, err := r.client.Jobs().Register(r.newWriteOptsFromJob(jobSpec).Ctx(), jobSpec.Job(), &registerOpts)
 		if err != nil {
 			r.rollback(ui)
 			return generateRegisterError(intHelper.UnwrapAPIError(err), tplErrorContext, jobSpec.GetName())
@@ -105,15 +126,15 @@ func (r *Runner) Deploy(ui terminal.UI, errorContext *errors.UIErrorContext) *er
 		}
 
 		// Handle output formatting based on job configuration
-		if r.client.Jobs().IsPeriodic(jobSpec) && !r.client.Jobs().IsParameterized(jobSpec) {
-			r.handlePeriodicJobResponse(ui, jobSpec)
-		} else if !r.client.Jobs().IsParameterized(jobSpec) {
+		if r.client.Jobs().IsPeriodic(jobSpec.Job()) && !r.client.Jobs().IsParameterized(jobSpec.Job()) {
+			r.handlePeriodicJobResponse(ui, jobSpec.Job())
+		} else if !r.client.Jobs().IsParameterized(jobSpec.Job()) {
 			ui.Info(fmt.Sprintf("Evaluation ID: %s", *result.EvalID))
 		}
 
 		r.deployedJobs = append(r.deployedJobs, jobSpec)
 		ui.Info(fmt.Sprintf("Job '%s' in pack deployment '%s' registered successfully",
-			*jobSpec.ID, r.runnerCfg.DeploymentName))
+			jobSpec.Job().GetID(), r.runnerCfg.DeploymentName))
 	}
 
 	return nil
@@ -131,12 +152,12 @@ func (r *Runner) rollback(ui terminal.UI) {
 	ui.Info("attempting rollback...")
 
 	for _, job := range r.deployedJobs {
-		ui.Info(fmt.Sprintf("attempting rollback of job '%s'", *job.ID))
-		_, _, err := r.client.Jobs().Delete(newWriteOptsFromJob(job).Ctx(), *job.ID, true, true)
+		ui.Info(fmt.Sprintf("attempting rollback of job '%s'", job.Job().GetID()))
+		_, _, err := r.client.Jobs().Delete(r.newWriteOptsFromJob(job).Ctx(), job.Job().GetID(), true, true)
 		if err != nil {
-			ui.ErrorWithContext(intHelper.UnwrapAPIError(err), fmt.Sprintf("rollback failed for job '%s'", *job.ID))
+			ui.ErrorWithContext(intHelper.UnwrapAPIError(err), fmt.Sprintf("rollback failed for job '%s'", job.Job().GetID()))
 		} else {
-			ui.Info(fmt.Sprintf("rollback of job '%s' succeeded", *job.ID))
+			ui.Info(fmt.Sprintf("rollback of job '%s' succeeded", job.Job().GetID()))
 		}
 	}
 }
@@ -194,7 +215,7 @@ func (r *Runner) handlePeriodicJobResponse(ui terminal.UI, job *v1client.Job) {
 			ui.ErrorWithContext(intHelper.UnwrapAPIError(err), "failed to determine next launch time")
 		} else {
 			ui.Warning(fmt.Sprintf("Approximate next launch time: %s (%s from now)",
-				formatTime(&next), formatTimeDifference(now, next, time.Second)))
+				formatTime(next), formatTimeDifference(now, next, time.Second)))
 		}
 	}
 }
@@ -202,11 +223,16 @@ func (r *Runner) handlePeriodicJobResponse(ui terminal.UI, job *v1client.Job) {
 // ParseTemplates satisfies the ParseTemplates function of the deploy.Deployer
 // interface.
 func (r *Runner) ParseTemplates() []*errors.WrappedUIContext {
-
 	// outputErrors collects all encountered error during the validation run.
 	var outputErrors []*errors.WrappedUIContext
 
 	for tplName, tpl := range r.rawTemplates {
+
+		ncJob, err := r.client.Jobs().Parse(r.clientQueryOpts.Ctx(), tpl, false, r.cfg.RunConfig.HCL1)
+		if err != nil {
+			outputErrors = append(outputErrors, newValidationDeployerError(intHelper.UnwrapAPIError(err), validationSubjParseFailed, tplName))
+			continue
+		}
 
 		job, err := r.client.Jobs().Parse(r.clientQueryOpts.Ctx(), tpl, true, r.cfg.RunConfig.HCL1)
 		if err != nil {
@@ -215,8 +241,16 @@ func (r *Runner) ParseTemplates() []*errors.WrappedUIContext {
 		}
 
 		// Store the parsed job file. This means we do not have to do this
-		// again when moving onto the actual deployment.
-		r.parsedTemplates[tplName] = job
+		// again when moving onto the actual deployment. Keeping the original
+		// and the canonicalized version of the job allows us to inspect the
+		// original spec's region and namespace.
+
+		// This could probably be a leaner object, but this will provide the
+		// highest resolution view of the original parsed job.
+		r.parsedTemplates[tplName] = ParsedTemplate{
+			original:  ncJob,
+			canonical: job,
+		}
 	}
 
 	return outputErrors

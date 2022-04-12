@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -14,6 +13,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-multierror"
+	client "github.com/hashicorp/nomad-openapi/clients/go/v1"
+	v1 "github.com/hashicorp/nomad-openapi/v1"
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	flag "github.com/hashicorp/nomad-pack/internal/pkg/flag"
 	"github.com/hashicorp/nomad-pack/internal/pkg/helper/filesystem"
@@ -76,14 +78,14 @@ func TestVersion(t *testing.T) {
 }
 
 func TestJobRun(t *testing.T) {
-	httpTest(t, WithDefaultConfig(), func(s *agent.TestAgent) {
+	httpTestParallel(t, WithDefaultConfig(), func(s *agent.TestAgent) {
 		expectGoodPackDeploy(t, runTestPackCmd(t, s, []string{"run", getTestPackPath(testPack)}))
 	})
 }
 
 // Confirm that another pack with the same job names but a different deployment name fails
 func TestJobRunConflictingDeployment(t *testing.T) {
-	httpTest(t, WithDefaultConfig(), func(s *agent.TestAgent) {
+	httpTestParallel(t, WithDefaultConfig(), func(s *agent.TestAgent) {
 		expectGoodPackDeploy(t, runTestPackCmd(t, s, []string{"run", getTestPackPath(testPack)}))
 
 		result := runTestPackCmd(t, s, []string{"run", getTestPackPath(testPack), "--name=with-name"})
@@ -98,9 +100,10 @@ func TestJobRunConflictingDeployment(t *testing.T) {
 
 // Check for conflict with non-pack job i.e. no meta
 func TestJobRunConflictingNonPackJob(t *testing.T) {
-	httpTest(t, WithDefaultConfig(), func(s *agent.TestAgent) {
+	httpTestParallel(t, WithDefaultConfig(), func(s *agent.TestAgent) {
 		// Register non pack job
-		nomadExpectNoErr(t, s, []string{"run"}, []string{"-detach"}, getTestNomadJobPath(testPack))
+		err := NomadRun(s, getTestNomadJobPath(testPack))
+		require.NoError(t, err)
 
 		// Now try to register the pack
 		result := runTestPackCmd(t, s, []string{"run", getTestPackPath(testPack)})
@@ -113,9 +116,10 @@ func TestJobRunConflictingNonPackJob(t *testing.T) {
 
 // Check for conflict with job that has meta
 func TestJobRunConflictingJobWithMeta(t *testing.T) {
-	httpTest(t, WithDefaultConfig(), func(s *agent.TestAgent) {
+	httpTestParallel(t, WithDefaultConfig(), func(s *agent.TestAgent) {
 		// Register non pack job
-		nomadExpectNoErr(t, s, []string{"run"}, []string{"-detach"}, getTestNomadJobPath("simple_raw_exec_with_meta"))
+		err := NomadRun(s, getTestNomadJobPath("simple_raw_exec_with_meta"))
+		require.NoError(t, err)
 
 		// Now try to register the pack
 		result := runTestPackCmd(t, s, []string{"run", getTestPackPath(testPack)})
@@ -136,13 +140,13 @@ func TestJobRunFails(t *testing.T) {
 }
 
 func TestJobPlan(t *testing.T) {
-	httpTest(t, WithDefaultConfig(), func(s *agent.TestAgent) {
+	httpTestParallel(t, WithDefaultConfig(), func(s *agent.TestAgent) {
 		expectGoodPackPlan(t, runTestPackCmd(t, s, []string{"plan", getTestPackPath(testPack)}))
 	})
 }
 
 func TestJobPlan_BadJob(t *testing.T) {
-	httpTest(t, WithDefaultConfig(), func(s *agent.TestAgent) {
+	httpTestParallel(t, WithDefaultConfig(), func(s *agent.TestAgent) {
 		result := runTestPackCmd(t, s, []string{"plan", "fake-job"})
 
 		require.Empty(t, result.cmdErr.String(), "cmdErr should be empty, but was %q", result.cmdErr.String())
@@ -153,7 +157,7 @@ func TestJobPlan_BadJob(t *testing.T) {
 
 // Confirm that another pack with the same job names but a different deployment name fails
 func TestJobPlanConflictingDeployment(t *testing.T) {
-	httpTest(t, WithDefaultConfig(), func(s *agent.TestAgent) {
+	httpTestParallel(t, WithDefaultConfig(), func(s *agent.TestAgent) {
 		regName, regPath := createTestRegistry(t)
 		defer cleanTestRegistry(t, regPath)
 
@@ -169,9 +173,10 @@ func TestJobPlanConflictingDeployment(t *testing.T) {
 
 // Check for conflict with non-pack job i.e. no meta
 func TestJobPlanConflictingNonPackJob(t *testing.T) {
-	httpTest(t, WithDefaultConfig(), func(s *agent.TestAgent) {
+	httpTestParallel(t, WithDefaultConfig(), func(s *agent.TestAgent) {
 		// Register non pack job
-		nomadExpectNoErr(t, s, []string{"run"}, []string{"-detach"}, getTestNomadJobPath(testPack))
+		err := NomadRun(s, getTestNomadJobPath(testPack))
+		require.NoError(t, err)
 
 		// Now try to register the pack
 		result := runTestPackCmd(t, s, []string{"plan", getTestPackPath(testPack)})
@@ -223,7 +228,7 @@ func TestPlan_OverrideExitCodes(t *testing.T) {
 }
 
 func TestJobStop(t *testing.T) {
-	httpTest(t, WithDefaultConfig(), func(s *agent.TestAgent) {
+	httpTestParallel(t, WithDefaultConfig(), func(s *agent.TestAgent) {
 		expectGoodPackDeploy(t, runTestPackCmd(t, s, []string{"run", getTestPackPath(testPack)}))
 
 		result := runTestPackCmd(t, s, []string{"stop", getTestPackPath(testPack), "--purge=true"})
@@ -234,47 +239,68 @@ func TestJobStop(t *testing.T) {
 }
 
 func TestJobStopConflicts(t *testing.T) {
-	httpTest(t, WithDefaultConfig(), func(s *agent.TestAgent) {
+	httpTestParallel(t, WithDefaultConfig(), func(s *agent.TestAgent) {
 
-		cases := []struct {
-			name           string
+		testCases := []struct {
+			desc           string
 			nonPackJob     bool
 			packName       string
 			deploymentName string
 			jobName        string
+			namespace      string
 		}{
 			// Give these each different job names so there's no conflicts
 			// between the different tests cases when running
 			{
-				name:           "non-pack-job",
+				desc:           "non-pack-job",
 				nonPackJob:     true,
 				packName:       testPack,
 				deploymentName: "",
 				jobName:        testPack,
 			},
 			{
-				name:           "same-pack-diff-deploy",
+				desc:           "same-pack-diff-deploy",
 				nonPackJob:     false,
 				packName:       testPack,
 				deploymentName: "foo",
 				jobName:        "job2",
 			},
+			{
+				desc:           "same-pack-diff-namespace",
+				nonPackJob:     false,
+				packName:       testPack,
+				deploymentName: "",
+				jobName:        testPack,
+				namespace:      "job",
+			},
 		}
+		client, err := NewTestClient(s)
+		require.NoError(t, err)
+		for _, tC := range testCases {
+			t.Run(tC.desc, func(t *testing.T) {
+				defer NomadCleanup(s)
 
-		for _, c := range cases {
-			t.Run(c.name, func(t *testing.T) {
-				defer nomadExec(t, s, []string{"stop"}, []string{"-purge"}, c.jobName)
+				if tC.namespace != "" {
+					makeTestNamespaces(t, client)
+				}
+
 				// Create job
-				if c.nonPackJob {
-					nomadExpectNoErr(t, s, []string{"run"}, []string{"-detach"}, getTestNomadJobPath(testPack))
+				if tC.nonPackJob {
+					err = NomadRun(s, getTestNomadJobPath(testPack))
+					require.NoError(t, err)
 				} else {
-					deploymentName := fmt.Sprintf("--name=%s", c.deploymentName)
-					varJobName := fmt.Sprintf("--var=job_name=%s", c.jobName)
-					expectGoodPackDeploy(t, runTestPackCmd(t, s, []string{"run", getTestPackPath(testPack), deploymentName, varJobName}))
+					deploymentName := fmt.Sprintf("--name=%s", tC.deploymentName)
+					varJobName := fmt.Sprintf("--var=job_name=%s", tC.jobName)
+					if tC.namespace != "" {
+						namespaceFlag := fmt.Sprintf("--namespace=%s", tC.namespace)
+						expectGoodPackDeploy(t, runTestPackCmd(t, s, []string{"run", getTestPackPath(testPack), deploymentName, varJobName, namespaceFlag}))
+					} else {
+						expectGoodPackDeploy(t, runTestPackCmd(t, s, []string{"run", getTestPackPath(testPack), deploymentName, varJobName}))
+					}
 				}
 
 				// Try to stop job
-				result := runTestPackCmd(t, s, []string{"stop", c.packName})
+				result := runTestPackCmd(t, s, []string{"stop", tC.packName})
 				require.Equal(t, 1, result.exitCode)
 			})
 		}
@@ -284,7 +310,7 @@ func TestJobStopConflicts(t *testing.T) {
 // Destroy is just an alias for stop --purge so we only need to
 // test that specific functionality
 func TestJobDestroy(t *testing.T) {
-	httpTest(t, WithDefaultConfig(), func(s *agent.TestAgent) {
+	httpTestParallel(t, WithDefaultConfig(), func(s *agent.TestAgent) {
 		expectGoodPackDeploy(t, runTestPackCmd(t, s, []string{"run", getTestPackPath(testPack)}))
 
 		result := runTestPackCmd(t, s, []string{"destroy", getTestPackPath(testPack)})
@@ -292,13 +318,18 @@ func TestJobDestroy(t *testing.T) {
 		require.Equal(t, 0, result.exitCode)
 
 		// Assert job no longer queryable
-		nomadExpectErr(t, s, []string{"status"}, []string{}, testPack)
+		c, err := NewTestClient(s)
+		require.NoError(t, err)
+
+		r, _, err := c.Jobs().GetJob(c.QueryOpts().Ctx(), testPack)
+		require.Nil(t, r)
+		require.EqualError(t, err, "job not found")
 	})
 }
 
 // Test that destroy properly uses var overrides to target the job
 func TestJobDestroyWithOverrides(t *testing.T) {
-	httpTest(t, WithDefaultConfig(), func(s *agent.TestAgent) {
+	httpTestParallel(t, WithDefaultConfig(), func(s *agent.TestAgent) {
 		c, err := NewTestClient(s)
 		require.NoError(t, err)
 		// Because this test uses ref, it requires a populated pack cache.
@@ -365,7 +396,7 @@ func TestFlagProvidedButNotDefined(t *testing.T) {
 }
 
 func TestStatus(t *testing.T) {
-	httpTest(t, WithDefaultConfig(), func(s *agent.TestAgent) {
+	httpTestParallel(t, WithDefaultConfig(), func(s *agent.TestAgent) {
 		result := runTestPackCmd(t, s, []string{"run", getTestPackPath(testPack)})
 		require.Equal(t, 0, result.exitCode)
 
@@ -403,7 +434,7 @@ func TestStatus(t *testing.T) {
 }
 
 func TestStatusFails(t *testing.T) {
-	httpTest(t, WithDefaultConfig(), func(s *agent.TestAgent) {
+	httpTestParallel(t, WithDefaultConfig(), func(s *agent.TestAgent) {
 		// test for status on missing pack
 		result := runTestPackCmd(t, s, []string{"status", getTestPackPath(testPack)})
 		require.Empty(t, result.cmdErr.String(), "cmdErr should be empty, but was %q", result.cmdErr.String())
@@ -419,6 +450,7 @@ func TestStatusFails(t *testing.T) {
 }
 
 func TestRenderMyAlias(t *testing.T) {
+	t.Parallel()
 	// This test has to do some extra shenanigans because dependent pack template
 	// output is not guaranteed to be ordered. This requires that the test handle
 	// either order.
@@ -442,6 +474,235 @@ func TestRenderMyAlias(t *testing.T) {
 	elems := strings.Split(outStr, "\n")
 
 	require.ElementsMatch(t, expected, elems)
+}
+
+func TestNomadClientNamespaceFromCLIFlag(t *testing.T) {
+	testCases := []struct {
+		desc   string
+		args   []string
+		env    map[string]string
+		expect map[string]int
+	}{
+		{
+			desc: "flags vs unspecified",
+			args: []string{
+				`--namespace=flag`,
+			},
+			env: make(map[string]string),
+			expect: map[string]int{
+				"job":  0,
+				"flag": 1,
+				"env":  0,
+			},
+		},
+		{
+			desc: "flags vs job",
+			args: []string{
+				`--var=namespace=job`,
+				`--namespace=flag`,
+			},
+			env: make(map[string]string),
+			expect: map[string]int{
+				"job":  1,
+				"flag": 0,
+				"env":  0,
+			},
+		},
+		{
+			desc: "flags vs second flag",
+			args: []string{
+				`--namespace=job`,
+				`--namespace=flag`,
+			},
+			env: make(map[string]string),
+			expect: map[string]int{
+				"job":  0,
+				"flag": 1,
+				"env":  0,
+			},
+		},
+	}
+	for _, tC := range testCases {
+		t.Run(tC.desc, func(t *testing.T) {
+			httpTestParallel(t, WithDefaultConfig(), func(srv *agent.TestAgent) {
+				c, err := NewTestClient(srv)
+				require.NoError(t, err)
+
+				makeTestNamespaces(t, c)
+
+				result := runTestPackCmd(t, srv, append([]string{
+					"run",
+					getTestPackPath(testPack),
+				},
+					tC.args...),
+				)
+				require.Empty(t, result.cmdErr.String(), "cmdErr should be empty, but was %q", result.cmdErr.String())
+				require.Contains(t, result.cmdOut.String(), "Pack successfully deployed", "Expected success message, received %q", result.cmdOut.String())
+
+				for ns, count := range tC.expect {
+					tOpt := c.QueryOpts()
+					tOpt.Namespace = ns
+					tJobs, _, err := c.Jobs().GetJobs(tOpt.Ctx())
+					require.NoError(t, err)
+					require.Equal(t, count, len(*tJobs), "Expected %v job(s) in %q namespace; found %v", count, ns, len(*tJobs))
+				}
+			})
+		})
+	}
+}
+
+func TestNomadTokenFromCLIFlag(t *testing.T) {
+	httpTestWithACLParallel(t, WithDefaultConfig(), func(srv *agent.TestAgent) {
+		c, err := NewTestClient(srv)
+		require.NoError(t, err)
+
+		makeTestNamespaces(t, c)
+
+		result := runTestPackCmd(t, srv, []string{
+			"run",
+			getTestPackPath(testPack),
+			"--token=bad00000-bad0-bad0-bad0-badbadbadbad",
+		})
+		require.Empty(t, result.cmdErr.String(), "cmdErr should be empty, but was %q", result.cmdErr.String())
+		require.Contains(t, result.cmdOut.String(), "Error: ACL token not found", "Expected token not found error, received %q", result.cmdOut.String())
+
+		result = runTestPackCmd(t, srv, []string{
+			"run",
+			getTestPackPath(testPack),
+			"--token=" + srv.Config.Client.Meta["token"],
+		})
+
+		require.Empty(t, result.cmdErr.String(), "cmdErr should be empty, but was %q", result.cmdErr.String())
+		require.Contains(t, result.cmdOut.String(), "Pack successfully deployed", "Expected success message, received %q", result.cmdOut.String())
+	})
+}
+
+func TestNomadTokenFromEnv(t *testing.T) {
+	httpTestWithACL(t, WithDefaultConfig(), func(srv *agent.TestAgent) {
+		c, err := NewTestClient(srv)
+		require.NoError(t, err)
+
+		// Garbage token - Should fail
+		t.Setenv("NOMAD_TOKEN", badACLToken)
+
+		result := runTestPackCmd(t, srv, []string{
+			"run",
+			getTestPackPath(testPack),
+		})
+		require.Empty(t, result.cmdErr.String(), "cmdErr should be empty, but was %q", result.cmdErr.String())
+		require.Contains(t, result.cmdOut.String(), "Error: ACL token not found", "Expected token not found error, received %q", result.cmdOut.String())
+
+		// Good token - Should run
+		t.Setenv("NOMAD_TOKEN", c.QueryOpts().AuthToken)
+		result = runTestPackCmd(t, srv, []string{
+			"run",
+			getTestPackPath(testPack),
+		})
+
+		require.Empty(t, result.cmdErr.String(), "cmdErr should be empty, but was %q", result.cmdErr.String())
+		require.Contains(t, result.cmdOut.String(), "Pack successfully deployed", "Expected success message, received %q", result.cmdOut.String())
+	})
+}
+
+// This test can't benefit from parallelism since it mutates the environment
+func TestNomadClientNamespaceFromEnvVar(t *testing.T) {
+	testCases := []struct {
+		desc   string
+		args   []string
+		env    map[string]string
+		expect map[string]int
+	}{
+		{
+			desc: "flags vs unspecified",
+			args: []string{},
+			expect: map[string]int{
+				"job":  0,
+				"flag": 0,
+				"env":  1,
+			},
+		},
+		{
+			desc: "env vs job",
+			args: []string{
+				`--var=namespace=job`,
+			},
+			expect: map[string]int{
+				"job":  1,
+				"flag": 0,
+				"env":  0,
+			},
+		},
+		{
+			desc: "env vs flag",
+			args: []string{
+				`--namespace=flag`,
+			},
+			expect: map[string]int{
+				"job":  0,
+				"flag": 1,
+				"env":  0,
+			},
+		},
+		{
+			desc: "env vs flag vs job",
+			args: []string{
+				`--namespace=flag`,
+				`--var=namespace=job`,
+			},
+			expect: map[string]int{
+				"job":  1,
+				"flag": 0,
+				"env":  0,
+			},
+		},
+	}
+	for _, tC := range testCases {
+		t.Run(tC.desc, func(t *testing.T) {
+			httpTest(t, WithDefaultConfig(), func(srv *agent.TestAgent) {
+				c, err := NewTestClient(srv)
+				require.NoError(t, err)
+
+				makeTestNamespaces(t, c)
+
+				// Always set the namespace environment variable
+				t.Setenv("NOMAD_NAMESPACE", "env")
+				result := runTestPackCmd(t, srv, append([]string{
+					"run",
+					getTestPackPath(testPack),
+				},
+					tC.args...),
+				)
+				require.Empty(t, result.cmdErr.String(), "cmdErr should be empty, but was %q", result.cmdErr.String())
+				require.Contains(t, result.cmdOut.String(), "Pack successfully deployed", "Expected success message, received %q", result.cmdOut.String())
+
+				for ns, count := range tC.expect {
+					tOpt := c.QueryOpts()
+					tOpt.Namespace = ns
+					tJobs, _, err := c.Jobs().GetJobs(tOpt.Ctx())
+					require.NoError(t, err)
+					require.Equal(t, count, len(*tJobs), "Expected %v job(s) in %q namespace; found %v", count, ns, len(*tJobs))
+				}
+			})
+		})
+	}
+}
+
+func makeTestNamespaces(t *testing.T, c *v1.Client) {
+	opts := c.WriteOpts()
+	{
+		testNs := client.NewNamespace()
+		namespaces := map[string]string{
+			"job":  "job namespace",
+			"flag": "flag namespace",
+			"env":  "env namespace",
+		}
+		for nsName, nsDesc := range namespaces {
+			testNs.Name = &nsName
+			testNs.Description = &nsDesc
+			_, err := c.Namespaces().PostNamespace(opts.Ctx(), testNs)
+			require.NoError(t, err)
+		}
+	}
 }
 
 type PackCommandResult struct {
@@ -515,59 +776,6 @@ func runPackCmd(t *testing.T, args []string) PackCommandResult {
 	}
 }
 
-// Test Helpers for calling the Nomad command.
-// TODO: Replace with API client calls.
-func nomadExpectNoErr(t *testing.T, srv *agent.TestAgent, commands []string, flags []string, args ...string) {
-	err := nomadExec(t, srv, commands, flags, args...)
-	if err != nil {
-		execErr, _ := err.(ErrNomadExec)
-		require.NoError(t, err, "stdout: %q \nstderr: %q", execErr.stdout, execErr.stderr)
-	}
-}
-
-func nomadExpectErr(t *testing.T, srv *agent.TestAgent, commands []string, flags []string, args ...string) {
-	err := nomadExec(t, srv, commands, flags, args...)
-	require.Error(t, err)
-}
-
-func nomadExec(t *testing.T, srv *agent.TestAgent, commands []string, flags []string, args ...string) error {
-	t.Helper()
-
-	flags = append(flags, AddressFromTestServer(srv)...)
-
-	cmdArgs := make([]string, 0, len(commands)+len(flags)+len(args))
-	cmdArgs = append(cmdArgs, commands...)
-	cmdArgs = append(cmdArgs, flags...)
-	cmdArgs = append(cmdArgs, args...)
-
-	var outb, errb bytes.Buffer
-	nomadPath, err := exec.LookPath("nomad")
-	require.NoError(t, err)
-
-	nomadCmd := exec.Command(nomadPath, cmdArgs...)
-	nomadCmd.Stdout = &outb
-	nomadCmd.Stderr = &errb
-	err = nomadCmd.Run()
-	if err != nil {
-		return &ErrNomadExec{err: err, stdout: outb.String(), stderr: errb.String()}
-	}
-	return nil
-}
-
-// ErrNomadExec is returned when calls to the Nomad CLI do not run as expected.
-// stdout and stderr contain the output from the corresponding streams
-type ErrNomadExec struct {
-	err    error
-	stdout string
-	stderr string
-}
-
-// Error fulfills the error interface and provides a nicely formatted version of
-// a ErrNomadExec struct
-func (e ErrNomadExec) Error() string {
-	return fmt.Sprintf("nomad exec error: %s \n  stdout: \n%s \n  stderr: \n%s", e.err.Error(), e.stdout, e.stderr)
-}
-
 // Test Helper functions
 
 // getTestPackPath returns the full path to a pack in the test fixtures folder.
@@ -628,4 +836,203 @@ func createTestRegistry(t *testing.T) (regName, regDir string) {
 
 func cleanTestRegistry(t *testing.T, regPath string) {
 	os.RemoveAll(regPath)
+}
+
+const badACLToken = "bad00000-bad0-bad0-bad0-badbadbadbad"
+
+func Test_NomadRun(t *testing.T) {
+	httpTestParallel(t, WithDefaultConfig(), func(srv *agent.TestAgent) {
+		NomadRun(srv, getTestNomadJobPath("simple_raw_exec"))
+		c, err := NewTestClient(srv)
+		require.NoError(t, err)
+		jR, _, err := c.Jobs().GetJobs(c.QueryOpts().Ctx())
+		require.NoError(t, err)
+		require.Equal(t, 1, len(*jR))
+	})
+}
+
+func Test_NomadStop(t *testing.T) {
+	httpTestParallel(t, WithDefaultConfig(), func(srv *agent.TestAgent) {
+		c, err := NewTestClient(srv)
+		require.NoError(t, err)
+
+		NomadRun(srv, getTestNomadJobPath("simple_raw_exec"))
+		jR, _, err := c.Jobs().GetJobs(c.QueryOpts().Ctx())
+		require.NoError(t, err)
+		require.Equal(t, 1, len(*jR))
+
+		NomadStop(srv, "simple_raw_exec")
+		job, _, err := c.Jobs().GetJob(c.QueryOpts().Ctx(), "simple_raw_exec")
+		require.NoError(t, err)
+		require.True(t, job.GetStop())
+	})
+}
+
+func Test_NomadPurge(t *testing.T) {
+	httpTestParallel(t, WithDefaultConfig(), func(srv *agent.TestAgent) {
+		c, err := NewTestClient(srv)
+		require.NoError(t, err)
+
+		NomadRun(srv, getTestNomadJobPath("simple_raw_exec"))
+		jR, _, err := c.Jobs().GetJobs(c.QueryOpts().Ctx())
+		require.NoError(t, err)
+		require.Equal(t, 1, len(*jR))
+
+		NomadPurge(srv, "simple_raw_exec")
+		jR, _, err = c.Jobs().GetJobs(c.QueryOpts().Ctx())
+		require.NoError(t, err)
+		require.Equal(t, 0, len(*jR))
+	})
+}
+
+func Test_NomadCleanup(t *testing.T) {
+	httpTestParallel(t, WithDefaultConfig(), func(srv *agent.TestAgent) {
+		c, err := NewTestClient(srv)
+		require.NoError(t, err)
+		makeTestNamespaces(t, c)
+
+		qoAllNS := c.QueryOpts().WithNamespace("*")
+
+		err = NomadRun(srv, getTestNomadJobPath("simple_raw_exec"))
+		require.NoError(t, err)
+
+		err = NomadRun(srv, getTestNomadJobPath("simple_raw_exec"), v1.WithDefaultNamespace("env"))
+		require.NoError(t, err)
+
+		jR, qm, err := c.Jobs().GetJobs(qoAllNS.Ctx())
+		fmt.Printf("\n\n-- qm: %+#v\n\n", qm)
+		require.NoError(t, err)
+		require.Equal(t, 2, len(*jR))
+
+		err, warn := NomadCleanup(srv)
+		require.NoError(t, err)
+
+		if warn != nil {
+			t.Log("warnings cleaning cluster", "warn", warn.Error())
+		}
+
+		jR, _, err = c.Jobs().GetJobs(qoAllNS.Ctx())
+		require.NoError(t, err)
+		require.Equal(t, 0, len(*jR))
+	})
+}
+
+func NomadRun(s *agent.TestAgent, path string, opts ...v1.ClientOption) error {
+	c, err := NewTestClient(s, opts...)
+	if err != nil {
+		return err
+	}
+
+	// Apply client options
+	for _, opt := range opts {
+		opt(c)
+	}
+
+	// Get Job
+	jB, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	// Parse into JSON Jobspec
+	j, err := c.Jobs().Parse(c.WriteOpts().Ctx(), string(jB), true, false)
+	if err != nil {
+		return err
+	}
+
+	// Run parsed job
+	resp, _, err := c.Jobs().Register(c.WriteOpts().Ctx(), j, &v1.RegisterOpts{})
+	if err != nil {
+		return err
+	}
+	s.T.Log(FormatRegistrationResponse(resp))
+	return nil
+}
+
+func NomadStop(s *agent.TestAgent, jobname string, opts ...v1.ClientOption) error {
+	c, err := NewTestClient(s, opts...)
+
+	if err != nil {
+		return err
+	}
+
+	resp, _, err := c.Jobs().Delete(c.WriteOpts().Ctx(), jobname, false, false)
+	if err != nil {
+		return err
+	}
+	s.T.Log(FormatStopResponse(resp))
+	return nil
+}
+
+func NomadPurge(s *agent.TestAgent, jobname string, opts ...v1.ClientOption) error {
+	c, err := NewTestClient(s, opts...)
+	for _, opt := range opts {
+		opt(c)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	resp, _, err := c.Jobs().Delete(c.WriteOpts().Ctx(), jobname, true, false)
+	if err != nil {
+		return err
+	}
+	s.T.Log(FormatStopResponse(resp))
+	return nil
+}
+
+func NomadCleanup(s *agent.TestAgent, opts ...v1.ClientOption) (error, error) {
+	c, err := NewTestClient(s)
+	if err != nil {
+		return err, nil
+	}
+	qo := c.QueryOpts()
+	qo.Namespace = "*"
+
+	jR, _, err := c.Jobs().GetJobs(qo.Ctx())
+	if err != nil {
+		return err, nil
+	}
+
+	var mErr *multierror.Error
+	for _, job := range *jR {
+		err := NomadPurge(s, job.GetName(), v1.WithDefaultNamespace(job.GetNamespace()))
+		mErr = multierror.Append(mErr, err)
+	}
+	return nil, mErr.ErrorOrNil()
+}
+
+func FormatRegistrationResponse(resp *client.JobRegisterResponse) string {
+	var out strings.Builder
+	out.WriteString("Registration Response\n")
+	out.WriteString(fmt.Sprintf("  Evaluation ID: %s\n", resp.GetEvalID()))
+	if resp.GetWarnings() != "" {
+		out.WriteString("  Warnings:\n")
+		out.WriteString(fmt.Sprintf("    %s", resp.GetWarnings()))
+		out.WriteString("\n")
+	}
+	out.WriteString("\n")
+	return out.String()
+}
+
+func FormatStopResponse(resp *client.JobDeregisterResponse) string {
+	var out strings.Builder
+	out.WriteString("Deregister Response\n")
+	out.WriteString(fmt.Sprintf("  Evaluation ID: %s\n", resp.GetEvalID()))
+	out.WriteString("\n")
+	return out.String()
+}
+
+// FormatAPIClientConfig can be used during a test to emit a client's current
+// configuration.
+func FormatAPIClientConfig(c *v1.Client) string {
+	format := `
+API Client Configuration                  
+------------------------
+    Region: %s
+ Namespace: %s
+     Token: %s
+`
+	opts := c.QueryOpts()
+	return fmt.Sprintf(format, opts.Region, opts.Namespace, opts.AuthToken)
 }

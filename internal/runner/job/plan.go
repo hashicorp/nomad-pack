@@ -39,12 +39,12 @@ func (r *Runner) PlanDeployment(ui terminal.UI, errCtx *errors.UIErrorContext) (
 			PolicyOverride: r.cfg.PlanConfig.PolicyOverride,
 		}
 
-		if r.client.Jobs().IsMultiRegion(parsedJob) {
-			return r.multiRegionPlan(&planOpts, parsedJob, ui, tplErrorContext)
+		if r.client.Jobs().IsMultiRegion(parsedJob.Job()) {
+			return r.multiRegionPlan(&planOpts, parsedJob.Job(), ui, tplErrorContext)
 		}
 
 		// Submit the job
-		planResponse, _, err := r.client.Jobs().PlanOpts(newWriteOptsFromJob(parsedJob).Ctx(), parsedJob, &planOpts)
+		planResponse, _, err := r.client.Jobs().PlanOpts(r.newWriteOptsFromJob(parsedJob).Ctx(), parsedJob.Job(), &planOpts)
 		if err != nil {
 			outputErrors = append(outputErrors, &errors.WrappedUIContext{
 				Err:     intHelper.UnwrapAPIError(err),
@@ -55,7 +55,7 @@ func (r *Runner) PlanDeployment(ui terminal.UI, errCtx *errors.UIErrorContext) (
 			continue
 		}
 
-		exitCode = runner.HigherPlanCode(exitCode, r.outputPlannedJob(ui, parsedJob, planResponse))
+		exitCode = runner.HigherPlanCode(exitCode, r.outputPlannedJob(ui, parsedJob.Job(), planResponse))
 	}
 
 	if outputErrors != nil || len(outputErrors) > 0 {
@@ -87,7 +87,7 @@ func (r *Runner) multiRegionPlan(
 		regionCtx.Add(errors.UIContextPrefixRegion, *region.Name)
 
 		// Submit the job for this region
-		result, _, err := r.client.Jobs().PlanOpts(newQueryOptsFromJob(job).Ctx(), job, opts)
+		result, _, err := r.client.Jobs().PlanOpts(r.newQueryOptsFromClientJob(job).Ctx(), job, opts)
 		if err != nil {
 			outputErrors = append(outputErrors, &errors.WrappedUIContext{
 				Err:     intHelper.UnwrapAPIError(err),

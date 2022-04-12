@@ -2,6 +2,9 @@ job [[ coalesce .simple_raw_exec.job_name .nomad_pack.pack.name ]] {
   [[- if empty .simple_raw_exec.region | not ]]
   region = [[quote .simple_raw_exec.region ]]
   [[- end ]]
+  [[- if empty .simple_raw_exec.namespace | not ]]
+  namespace = [[quote .simple_raw_exec.namespace ]]
+  [[- end ]]
   datacenters = [[ .simple_raw_exec.datacenters | toJson ]]
   type = "service"
 

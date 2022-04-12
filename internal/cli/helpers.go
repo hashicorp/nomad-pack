@@ -130,7 +130,7 @@ func parseJob(cmd *baseCommand, hcl string, hclV1 bool, errCtx *errors.UIErrorCo
 		return nil, err
 	}
 
-	opts := newQueryOpts()
+	opts := newQueryOpts(c)
 	parsedJob, err := c.Jobs().Parse(opts.Ctx(), hcl, true, hclV1)
 	if err != nil {
 		cmd.ui.ErrorWithContext(err, "failed to parse job specification", errCtx.GetAll()...)
@@ -148,8 +148,9 @@ func getDeploymentName(c *baseCommand, cfg *cache.PackConfig) string {
 }
 
 // TODO: Move to a domain specific package.
-func getPackJobsByDeploy(jobsApi *v1.Jobs, cfg *cache.PackConfig, deploymentName string) ([]*v1client.Job, error) {
-	opts := newQueryOpts()
+func getPackJobsByDeploy(c *v1.Client, cfg *cache.PackConfig, deploymentName string) ([]*v1client.Job, error) {
+	opts := newQueryOpts(c)
+	jobsApi := c.Jobs()
 	jobs, _, err := jobsApi.GetJobs(opts.Ctx())
 	if err != nil {
 		return nil, fmt.Errorf("error finding jobs for pack %s: %s", cfg.Name, err)
@@ -237,8 +238,9 @@ func hasVarOverrides(c *baseCommand) bool {
 }
 
 // TODO: Move to a domain specific package.
-func getDeployedPacks(jobsApi *v1.Jobs) (map[string]map[string]struct{}, error) {
-	opts := newQueryOpts()
+func getDeployedPacks(c *v1.Client) (map[string]map[string]struct{}, error) {
+	opts := newQueryOpts(c)
+	jobsApi := c.Jobs()
 	jobStubs, _, err := jobsApi.GetJobs(opts.Ctx())
 	if err != nil {
 		return nil, fmt.Errorf("error finding jobs: %s", err)
@@ -296,8 +298,9 @@ type JobStatusError struct {
 }
 
 // TODO: Move to a domain specific package.
-func getDeployedPackJobs(jobsApi *v1.Jobs, cfg *cache.PackConfig, deploymentName string) ([]JobStatusInfo, []JobStatusError, error) {
-	opts := newQueryOpts()
+func getDeployedPackJobs(c *v1.Client, cfg *cache.PackConfig, deploymentName string) ([]JobStatusInfo, []JobStatusError, error) {
+	opts := newQueryOpts(c)
+	jobsApi := c.Jobs()
 	jobs, _, err := jobsApi.GetJobs(opts.Ctx())
 	if err != nil {
 		return nil, nil, fmt.Errorf("error finding jobs for pack %s: %s", cfg.Name, err)
@@ -339,19 +342,73 @@ func getDeployedPackJobs(jobsApi *v1.Jobs, cfg *cache.PackConfig, deploymentName
 	return packJobs, jobErrs, nil
 }
 
-func newQueryOpts() *v1.QueryOpts {
-	opts := v1.QueryOpts{}
-	return opts.WithAuthToken(os.Getenv("NOMAD_TOKEN"))
+func newQueryOpts(c *v1.Client) *v1.QueryOpts {
+	return c.QueryOpts()
 }
 
-func newWriteOpts() *v1.WriteOpts {
-	opts := v1.WriteOpts{}
-	return opts.WithAuthToken(os.Getenv("NOMAD_TOKEN"))
+// func newWriteOpts(c *v1.Client) *v1.WriteOpts {
+// 	return c.WriteOpts()
+// }
+
+// clientOptionCount is used to help size the arrays that back the slices of
+// v1.ClientOption from the clientOptsFromEnvironment and clientOptsFromFlags
+// funcs. If it becomes lower than the truth, the underlying array could be grown
+// but that's not the end of the world.
+const clientOptionCount = 8
+
+// clientOptsFromCLI emits a slice of v1.ClientOptions based on the environment
+// and flag set passed to the command.
+func clientOptsFromCLI(c *baseCommand) []v1.ClientOption {
+	// This implementation leverages the fact that flags always take precedence
+	// over environment variables to naively append the flags to the env
+	// settings.
+
+	// This will not handle the case where client_key is set in an env var and
+	// client_cert is set via flag, but that is currently the only case where
+	// two settings have a strong affinity.
+	opts := make([]v1.ClientOption, 0, 2*clientOptionCount)
+	opts = append(opts, clientOptsFromEnvironment()...)
+	opts = append(opts, clientOptsFromFlags(c)...)
+	return opts
 }
 
+// clientOptsFromEnvironment creates a slice of v1.ClientOptions based on the
+// environment variables present at the CLI's runtime.
+func clientOptsFromEnvironment() []v1.ClientOption {
+	opts := make([]v1.ClientOption, 0, clientOptionCount)
+	if v := os.Getenv("NOMAD_ADDR"); v != "" {
+		opts = append(opts, v1.WithAddress(v))
+	}
+	if v := os.Getenv("NOMAD_NAMESPACE"); v != "" {
+		opts = append(opts, v1.WithDefaultNamespace(v))
+	}
+	if v := os.Getenv("NOMAD_REGION"); v != "" {
+		opts = append(opts, v1.WithDefaultRegion(v))
+	}
+	if v := os.Getenv("NOMAD_TOKEN"); v != "" {
+		opts = append(opts, v1.WithToken(v))
+	}
+	if cc, ck := os.Getenv("NOMAD_CLIENT_CERT"), os.Getenv("NOMAD_CLIENT_KEY"); cc != "" && ck != "" {
+		opts = append(opts, v1.WithClientCert(cc, ck))
+	}
+	if v := os.Getenv("NOMAD_CACERT"); v != "" {
+		opts = append(opts, v1.WithCACert(v))
+	}
+	if v := os.Getenv("NOMAD_TLS_SERVER_NAME"); v != "" {
+		opts = append(opts, v1.WithTLSServerName(v))
+	}
+	if _, found := os.LookupEnv("NOMAD_SKIP_VERIFY"); found {
+		opts = append(opts, v1.WithTLSSkipVerify())
+	}
+
+	return opts
+}
+
+// clientOptsFromFlags creates a slice of v1.ClientOptions based on the flags
+// passed to the CLI at runtime.
 func clientOptsFromFlags(c *baseCommand) []v1.ClientOption {
 	cfg := c.nomadConfig
-	opts := make([]v1.ClientOption, 0)
+	opts := make([]v1.ClientOption, 0, clientOptionCount)
 	if cfg.address != "" {
 		opts = append(opts, v1.WithAddress(cfg.address))
 	}
