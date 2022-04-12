@@ -3,7 +3,7 @@
 [[- if eq .my.job_name "" -]]
 [[- .nomad_pack.pack.name | quote -]]
 [[- else -]]
-[[- .myjob_name | quote -]]
+[[- .my.job_name | quote -]]
 [[- end ]]
 [[- end ]]
 
