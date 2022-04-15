@@ -12,7 +12,7 @@ bootstrap: lint-deps test-deps # Install all dependencies
 .PHONY: lint-deps
 lint-deps: ## Install linter dependencies
 	@echo "==> Updating linter dependencies..."
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.42.0
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.45.2
 
 .PHONY: test-deps
 test-deps: ## Install test dependencies
