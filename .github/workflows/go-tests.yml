@@ -29,8 +29,7 @@ jobs:
 
       # Upload the original go test log as an artifact for later review.
       - name: Upload test log
-        uses: actions/upload-artifact@v2
-        if: ${{ !env.ACT }}
+        uses: actions/upload-artifact@v3
         with:
           name: test-log
           path: /tmp/test-output.log
