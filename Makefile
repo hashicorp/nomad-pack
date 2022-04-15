@@ -82,3 +82,10 @@ gen-cli-docs:
 clean:
 	@echo "==> Removing mtls test fixtures..."
 	@rm -f fixtures/mtls/*.pem
+	@echo "==> Removing act artifacts"
+	@rm -rf ./act_artifacts
+
+act:
+# because Nomad needs to be able to run the mount command for secrets
+# act needs to run the containers with SYS_ADMIN capabilities
+	@act --artifact-server-path ./act_artifacts --container-cap-add SYS_ADMIN
