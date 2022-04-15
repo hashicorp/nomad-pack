@@ -1,20 +1,32 @@
-package cli
+package testhelper
 
 import (
 	"fmt"
+	"os"
 	"path"
 	"testing"
 
+	"github.com/hashicorp/go-multierror"
+	client "github.com/hashicorp/nomad-openapi/clients/go/v1"
 	v1 "github.com/hashicorp/nomad-openapi/v1"
 	"github.com/hashicorp/nomad/command/agent"
 	"github.com/hashicorp/nomad/testutil"
 	"github.com/stretchr/testify/require"
 )
 
+const testLogLevel = "ERROR"
+
 // makeHTTPServer returns a test server whose logs will be written to
 // the passed writer. If the writer is nil, the logs are written to stderr.
 func makeHTTPServer(t testing.TB, cb func(c *agent.Config)) *agent.TestAgent {
-	return agent.NewTestAgent(t, t.Name(), cb)
+	srv := agent.NewTestAgent(t, t.Name(), cb)
+	t.Logf(
+		"Started Nomad Test Agent. http: %v, rpc: %v, serf: %v",
+		srv.Config.Ports.HTTP,
+		srv.Config.Ports.RPC,
+		srv.Config.Ports.Serf,
+	)
+	return srv
 }
 
 // makeHTTPServer returns a test server whose logs will be written to
@@ -39,21 +51,21 @@ func makeACLEnabledHTTPServer(t testing.TB, cb func(c *agent.Config)) *agent.Tes
 	return srv
 }
 
-// httpTestWithACLParallel generates a ACL enabled single node cluster and
+// HTTPTestWithACLParallel generates a ACL enabled single node cluster and
 // automatically enables test parallelism.
-func httpTestWithACLParallel(t *testing.T, cb func(c *agent.Config), f func(srv *agent.TestAgent)) {
-	httpTestWithACLs(t, cb, f, true)
+func HTTPTestWithACLParallel(t *testing.T, cb func(c *agent.Config), f func(srv *agent.TestAgent)) {
+	httpTestWithACL(t, cb, f, true)
 }
 
-// httpTestWithACL generates an ACL enabled single node cluster, without
+// HTTPTestWithACL generates an ACL enabled single node cluster, without
 // automatically enabling test parallelism. This is necessary for any test that
 // uses the environment.
-func httpTestWithACL(t *testing.T, cb func(c *agent.Config), f func(srv *agent.TestAgent)) {
-	httpTestWithACLs(t, cb, f, false)
+func HTTPTestWithACL(t *testing.T, cb func(c *agent.Config), f func(srv *agent.TestAgent)) {
+	httpTestWithACL(t, cb, f, false)
 }
 
 // Use httpTestWithACLParallel or httpTestWithACL instead.
-func httpTestWithACLs(t *testing.T, cb func(c *agent.Config), f func(srv *agent.TestAgent), parallel bool) {
+func httpTestWithACL(t *testing.T, cb func(c *agent.Config), f func(srv *agent.TestAgent), parallel bool) {
 	if parallel {
 		t.Parallel()
 	}
@@ -63,23 +75,23 @@ func httpTestWithACLs(t *testing.T, cb func(c *agent.Config), f func(srv *agent.
 	f(s)
 }
 
-// httpTest generates a non-ACL enabled single node cluster, without automatically
+// HTTPTest generates a non-ACL enabled single node cluster, without automatically
 // enabling test parallelism. This is necessary for any test that uses the
 // environment.
-func httpTest(t *testing.T, cb func(c *agent.Config), f func(srv *agent.TestAgent)) {
-	httpTests(t, cb, f, false)
+func HTTPTest(t *testing.T, cb func(c *agent.Config), f func(srv *agent.TestAgent)) {
+	httpTest(t, cb, f, false)
 }
 
-// httpTest generates a non-ACL enabled single node cluster and automatically
+// HTTPTestParallel generates a non-ACL enabled single node cluster and automatically
 // enables test parallelism.
-func httpTestParallel(t *testing.T, cb func(c *agent.Config), f func(srv *agent.TestAgent)) {
+func HTTPTestParallel(t *testing.T, cb func(c *agent.Config), f func(srv *agent.TestAgent)) {
 	// Since any test that uses httpTest has a distinct TestAgent, we can
 	// automatically parallelize these tests
-	httpTests(t, cb, f, true)
+	httpTest(t, cb, f, true)
 }
 
 // Use httpTestParallel or httpTest instead.
-func httpTests(t *testing.T, cb func(c *agent.Config), f func(srv *agent.TestAgent), parallel bool) {
+func httpTest(t *testing.T, cb func(c *agent.Config), f func(srv *agent.TestAgent), parallel bool) {
 	if parallel {
 		t.Parallel()
 	}
@@ -92,14 +104,14 @@ func httpTests(t *testing.T, cb func(c *agent.Config), f func(srv *agent.TestAge
 // httpTestMultiRegionCluster generates a multi-region two node cluster and
 // automatically enables test parallelism. This will panic on test which use
 // the environment. For those, use httpTestMultiRegionCluster instead.
-func httpTestMultiRegionClusterParallel(t *testing.T, cb1, cb2 func(c *agent.Config), f func(s1 *agent.TestAgent, s2 *agent.TestAgent)) {
+func HTTPTestMultiRegionClusterParallel(t *testing.T, cb1, cb2 func(c *agent.Config), f func(s1 *agent.TestAgent, s2 *agent.TestAgent)) {
 	httpTestMultiRegionClusters(t, cb1, cb2, f, true)
 }
 
-// httpTestMultiRegionCluster generates a multi-region two node cluster, without
+// HTTPTestMultiRegionCluster generates a multi-region two node cluster, without
 // automatically enabling test parallelism. This is necessary for any test that
 // uses the environment.
-func httpTestMultiRegionCluster(t *testing.T, cb1, cb2 func(c *agent.Config), f func(s1 *agent.TestAgent, s2 *agent.TestAgent)) {
+func HTTPTestMultiRegionCluster(t *testing.T, cb1, cb2 func(c *agent.Config), f func(s1 *agent.TestAgent, s2 *agent.TestAgent)) {
 	httpTestMultiRegionClusters(t, cb1, cb2, f, false)
 }
 
@@ -150,9 +162,8 @@ func NewTestClient(testAgent *agent.TestAgent, opts ...v1.ClientOption) (*v1.Cli
 	maybeTokenFn := func() func(*v1.Client) { return func(*v1.Client) {} }
 
 	if token := testAgent.Config.Client.Meta["token"]; token != "" {
-		testAgent.T.Logf("building test client with token %q", token)
 		maybeTokenFn = func() func(*v1.Client) {
-			fmt.Printf("applying token %q\n", token)
+			testAgent.T.Logf("building test client with token %q", token)
 			return v1.WithToken(token)
 		}
 	}
@@ -168,83 +179,6 @@ func NewTestClient(testAgent *agent.TestAgent, opts ...v1.ClientOption) (*v1.Cli
 
 	testAgent.T.Log(FormatAPIClientConfig(c))
 	return c, nil
-}
-
-func Test_TestAgent_Simple(t *testing.T) {
-	httpTestParallel(t, WithDefaultConfig(), func(s *agent.TestAgent) {
-		client, err := NewTestClient(s)
-		require.NoError(t, err)
-
-		q := &v1.QueryOpts{
-			Region:    v1.GlobalRegion,
-			Namespace: v1.DefaultNamespace,
-		}
-
-		result, err := client.Status().Leader(q.Ctx())
-		t.Logf("result: %q", *result)
-		require.NoError(t, err)
-		require.NotNil(t, result)
-	})
-}
-
-func Test_TestAgent_TLSEnabled(t *testing.T) {
-	httpTestParallel(t,
-		WithAgentConfig(
-			TLSEnabled(),
-			LogLevel(testLogLevel),
-		),
-		func(s *agent.TestAgent) {
-			client, err := v1.NewClient(
-				v1.WithTLSCerts(
-					mTLSFixturePath("client", "cafile"),
-					mTLSFixturePath("client", "certfile"),
-					mTLSFixturePath("client", "keyfile"),
-				),
-				v1.WithAddress(s.HTTPAddr()),
-			)
-
-			require.NoError(t, err)
-
-			q := &v1.QueryOpts{
-				Region:    v1.GlobalRegion,
-				Namespace: v1.DefaultNamespace,
-			}
-			result, err := client.Status().Leader(q.Ctx())
-			t.Logf("result: %q", *result)
-			require.NoError(t, err)
-			require.NotNil(t, result)
-		},
-	)
-}
-
-func Test_MultiRegionCluster(t *testing.T) {
-	httpTestMultiRegionCluster(t,
-		WithAgentConfig(LogLevel(testLogLevel), Region("rA")),
-		WithAgentConfig(LogLevel(testLogLevel), Region("rB")),
-		func(s1, s2 *agent.TestAgent) {
-			c1, err := NewTestClient(s1)
-			require.NoError(t, err)
-			r, err := c1.Regions().GetRegions(c1.QueryOpts().Ctx())
-			require.NoError(t, err)
-
-			require.ElementsMatch(t, []string{"rA", "rB"}, *r)
-		},
-	)
-}
-
-func Test_MultiRegionClusterParallel(t *testing.T) {
-	httpTestMultiRegionClusterParallel(t,
-		WithAgentConfig(LogLevel(testLogLevel), Region("rA")),
-		WithAgentConfig(LogLevel(testLogLevel), Region("rB")),
-		func(s1, s2 *agent.TestAgent) {
-			c1, err := NewTestClient(s1)
-			require.NoError(t, err)
-			r, err := c1.Regions().GetRegions(c1.QueryOpts().Ctx())
-			require.NoError(t, err)
-
-			require.ElementsMatch(t, []string{"rA", "rB"}, *r)
-		},
-	)
 }
 
 // TestAgent configuration helpers
@@ -315,4 +249,150 @@ func mTLSFixturePath(nodeType, pemType string) string {
 	}
 
 	return path.Join(testFixturePath(), "mtls", filename)
+}
+
+func MakeTestNamespaces(t *testing.T, c *v1.Client) {
+	opts := c.WriteOpts()
+	{
+		testNs := client.NewNamespace()
+		namespaces := map[string]string{
+			"job":  "job namespace",
+			"flag": "flag namespace",
+			"env":  "env namespace",
+		}
+		for nsName, nsDesc := range namespaces {
+			testNs.Name = &nsName
+			testNs.Description = &nsDesc
+			_, err := c.Namespaces().PostNamespace(opts.Ctx(), testNs)
+			require.NoError(t, err)
+		}
+	}
+}
+
+func NomadRun(s *agent.TestAgent, path string, opts ...v1.ClientOption) error {
+	c, err := NewTestClient(s, opts...)
+	if err != nil {
+		return err
+	}
+
+	// Apply client options
+	for _, opt := range opts {
+		opt(c)
+	}
+
+	// Get Job
+	jB, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	// Parse into JSON Jobspec
+	j, err := c.Jobs().Parse(c.WriteOpts().Ctx(), string(jB), true, false)
+	if err != nil {
+		return err
+	}
+
+	// Run parsed job
+	resp, _, err := c.Jobs().Register(c.WriteOpts().Ctx(), j, &v1.RegisterOpts{})
+	if err != nil {
+		return err
+	}
+	s.T.Log(FormatRegistrationResponse(resp))
+	return nil
+}
+
+func NomadJobStatus(s *agent.TestAgent, jobname string, opts ...v1.ClientOption) (*client.Job, error) {
+	c, err := NewTestClient(s, opts...)
+	if err != nil {
+		return nil, err
+	}
+	resp, _, err := c.Jobs().GetJob(c.QueryOpts().Ctx(), jobname)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func NomadStop(s *agent.TestAgent, jobname string, opts ...v1.ClientOption) error {
+	c, err := NewTestClient(s, opts...)
+
+	if err != nil {
+		return err
+	}
+
+	resp, _, err := c.Jobs().Delete(c.WriteOpts().Ctx(), jobname, false, false)
+	if err != nil {
+		return err
+	}
+	s.T.Log(FormatStopResponse(resp))
+	return nil
+}
+
+func NomadPurge(s *agent.TestAgent, jobname string, opts ...v1.ClientOption) error {
+	c, err := NewTestClient(s, opts...)
+	for _, opt := range opts {
+		opt(c)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	resp, _, err := c.Jobs().Delete(c.WriteOpts().Ctx(), jobname, true, false)
+	if err != nil {
+		return err
+	}
+	s.T.Log(FormatStopResponse(resp))
+	return nil
+}
+
+func NomadCleanup(s *agent.TestAgent, opts ...v1.ClientOption) (error, error) {
+	c, err := NewTestClient(s)
+	if err != nil {
+		return err, nil
+	}
+	qo := c.QueryOpts()
+	qo.Namespace = "*"
+
+	jR, _, err := c.Jobs().GetJobs(qo.Ctx())
+	if err != nil {
+		return err, nil
+	}
+
+	var mErr *multierror.Error
+	for _, job := range *jR {
+		err := NomadPurge(s, job.GetName(), v1.WithDefaultNamespace(job.GetNamespace()))
+		mErr = multierror.Append(mErr, err)
+	}
+	return nil, mErr.ErrorOrNil()
+}
+
+func FormatRegistrationResponse(resp *client.JobRegisterResponse) string {
+	format := `register response. eval_id: %q warnings: %q`
+	return fmt.Sprintf(format, resp.GetEvalID(), resp.GetWarnings())
+}
+
+func FormatStopResponse(resp *client.JobDeregisterResponse) string {
+	format := `deregister response. eval_id: %q`
+	return fmt.Sprintf(format, resp.GetEvalID())
+}
+
+// FormatAPIClientConfig can be used during a test to emit a client's current
+// configuration.
+func FormatAPIClientConfig(c *v1.Client) string {
+	format := `current API client config. region: %q, namespace: %q, token: %q`
+	opts := c.QueryOpts()
+	return fmt.Sprintf(format, opts.Region, opts.Namespace, opts.AuthToken)
+}
+
+// getTestNomadJobPath returns the full path to a pack in the test
+// fixtures/jobspecs folder. The `.nomad` extension will be added
+// for you.
+func getTestNomadJobPath(job string) string {
+	return path.Join(testFixturePath(), "jobspecs", job+".nomad")
+}
+
+func testFixturePath() string {
+	// This is a function to prevent a massive refactor if this ever needs to be
+	// dynamically determined.
+	return "../../../fixtures/"
 }
