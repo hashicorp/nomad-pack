@@ -21,3 +21,6 @@ vendor/
 
 # Ignore generated OpenAPI docs
 openapi/client/docs/
+
+# Ignore act generated artifacts
+act_artifacts/
