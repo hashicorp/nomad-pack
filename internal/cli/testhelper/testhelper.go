@@ -253,20 +253,20 @@ func mTLSFixturePath(nodeType, pemType string) string {
 
 func MakeTestNamespaces(t *testing.T, c *v1.Client) {
 	opts := c.WriteOpts()
-	{
-		testNs := client.NewNamespace()
-		namespaces := map[string]string{
-			"job":  "job namespace",
-			"flag": "flag namespace",
-			"env":  "env namespace",
-		}
-		for nsName, nsDesc := range namespaces {
-			testNs.Name = &nsName
-			testNs.Description = &nsDesc
-			_, err := c.Namespaces().PostNamespace(opts.Ctx(), testNs)
-			require.NoError(t, err)
-		}
+
+	testNs := client.NewNamespace()
+	namespaces := map[string]string{
+		"job":  "job namespace",
+		"flag": "flag namespace",
+		"env":  "env namespace",
 	}
+	for nsName, nsDesc := range namespaces {
+		testNs.Name = &nsName
+		testNs.Description = &nsDesc
+		_, err := c.Namespaces().PostNamespace(opts.Ctx(), testNs)
+		require.NoError(t, err)
+	}
+
 }
 
 func NomadRun(s *agent.TestAgent, path string, opts ...v1.ClientOption) error {
