@@ -98,8 +98,7 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
         run: |
-          mkdir dist out
-          go build -o dist/ .
+          make bin
           zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip dist/
 
       - uses: actions/upload-artifact@v2
@@ -134,8 +133,7 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
         run: |
-          mkdir dist out
-          go build -o dist/ .
+          make bin
           zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip dist/
 
       - uses: actions/upload-artifact@v2
@@ -203,8 +201,7 @@ jobs:
 
       - name: Build
         run: |
-          mkdir dist out
-          go build -tags netcgo -o dist/
+          make bin
           zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip dist/
 
       - uses: actions/upload-artifact@v2
