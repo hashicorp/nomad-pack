@@ -5,6 +5,14 @@ GIT_COMMIT=$$(git rev-parse --short HEAD)
 GIT_DIRTY=$$(test -n "`git status --porcelain`" && echo "+CHANGES" || true)
 GIT_IMPORT="github.com/hashicorp/nomad-pack/internal/pkg/version"
 GO_LDFLAGS="-s -w -X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY)"
+VERSION = $(shell ./build-scripts/version.sh internal/pkg/version/version.go)
+
+# Get latest revision (no dirty check for now).
+REVISION = $(shell git rev-parse HEAD)
+
+.PHONY: version
+version:
+	@echo $(VERSION)
 
 .PHONY: bootstrap
 bootstrap: lint-deps test-deps # Install all dependencies
