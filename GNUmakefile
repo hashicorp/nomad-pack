@@ -23,6 +23,9 @@ PLATFORM ?= $(OS)/$(ARCH)
 DIST     = dist/$(PLATFORM)
 BIN      = $(DIST)/$(BIN_NAME)
 
+ifeq ($(firstword $(subst /, ,$(PLATFORM))), windows)
+BIN = $(DIST)/$(BIN_NAME).exe
+endif
 
 .PHONY: version
 version:
