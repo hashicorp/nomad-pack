@@ -138,6 +138,7 @@ jobs:
           mkdir -p out
           make bin
           zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip $(make binpath)
+          echo "BIN_PATH=$(make binpath)" >> $GITHUB_ENV
 
       - uses: actions/upload-artifact@v2
         with:
@@ -155,9 +156,9 @@ jobs:
           maintainer: "HashiCorp"
           homepage: "https://github.com/hashicorp/nomad-pack"
           license: "MPL-2.0"
-          binary: "dist/${{ env.PKG_NAME }}"
-          deb_depends: "libc6,openssl,git"
-          rpm_depends: "libc6,openssl,git"
+          binary: ${{ env.BIN_PATH }}
+          deb_depends: "openssl,git"
+          rpm_depends: "openssl,git"
 
       - name: Set Package Names
         if: ${{ matrix.goos == 'linux' }}
