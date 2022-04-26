@@ -16,7 +16,7 @@ REVISION = $(shell git rev-parse HEAD)
 
 # Get local ARCH; on Intel Mac, 'uname -m' returns x86_64 which we turn into amd64.
 # Not using 'go env GOOS/GOARCH' here so 'make docker' will work without local Go install.
-ARCH     = $(shell A=$$(uname -m); [ $$A = x86_64 ] && A=amd64; echo $$A)
+ARCH     = $(shell A=$$(uname -m); [ $$A = x86_64 ] && A=amd64 || [ $$A = aarch64 ] && A=arm64 ; echo $$A)
 OS       = $(shell uname | tr [[:upper:]] [[:lower:]])
 PLATFORM ?= $(OS)/$(ARCH)
 DIST     = dist/$(PLATFORM)
@@ -108,12 +108,15 @@ clean:
 
 
 dist:
-	mkdir -p $(DIST)
-	echo '*' > dist/.gitignore
+	@mkdir -p $(DIST)
 
 .PHONY: bin
 bin: dist
 	GOARCH=$(ARCH) GOOS=$(OS) go build -o $(BIN)
+
+.PHONY: binpath
+binpath:
+	@echo -n "$(BIN)"
 
 # Docker Stuff.
 export DOCKER_BUILDKIT=1
@@ -153,3 +156,6 @@ act:
 # because Nomad needs to be able to run the mount command for secrets
 # act needs to run the containers with SYS_ADMIN capabilities
 	@act --reuse --artifact-server-path ./act_artifacts --container-cap-add SYS_ADMIN $(args)
+
+act-clean:
+	@docker rm -f $$(docker ps -a --format '{{with .}}{{if eq (printf "%.4s" .Names) "act-"}}{{.Names}}{{end}}{{end}}')

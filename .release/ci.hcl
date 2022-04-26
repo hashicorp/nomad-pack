@@ -9,7 +9,7 @@ project "nomad-pack" {
   github {
     organization = "hashicorp"
     repository = "nomad-pack"
-    release_branches = ["main"]
+    release_branches = ["main", "crt-fix-linux-builds"]
   }
 }
 

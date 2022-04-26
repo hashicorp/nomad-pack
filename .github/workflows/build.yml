@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - "main"
+      - "crt-fix-linux-builds"
   workflow_dispatch:
 
 env:
@@ -98,9 +99,9 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
         run: |
-          mkdir out
+          mkdir -p out
           make bin
-          zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip dist/
+          zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip $(make binpath)
 
       - uses: actions/upload-artifact@v2
         with:
@@ -134,9 +135,9 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
         run: |
-          mkdir out
+          mkdir -p out
           make bin
-          zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip dist/
+          zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip $(make binpath)
 
       - uses: actions/upload-artifact@v2
         with:
@@ -203,9 +204,9 @@ jobs:
 
       - name: Build
         run: |
-          mkdir out
+          mkdir -p out
           make bin
-          zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip dist/
+          zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip $(make binpath)
 
       - uses: actions/upload-artifact@v2
         with:
@@ -257,14 +258,14 @@ jobs:
       - build-linux
     runs-on: ubuntu-latest
     env:
-      repo: ${{github.event.repository.name}}
-      version: ${{needs.get-product-version.outputs.product-version}}
+      repo: ${{ github.event.repository.name }}
+      version: ${{ needs.get-product-version.outputs.product-version }}
 
     steps:
       - uses: actions/checkout@v2
       - uses: hashicorp/actions-docker-build@v1
         with:
-          version: ${{env.version}}
+          version: ${{ env.version }}
           target: release
           arch: amd64
-          redhat_tag: scan.connect.redhat.com/ospid-62211e0d8bf2cabc69a39c7d/${{env.repo}}:${{env.version}}-ubi
+          redhat_tag: scan.connect.redhat.com/ospid-62211e0d8bf2cabc69a39c7d/${{ env.repo }}:${{ env.version }}-ubi

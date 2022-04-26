@@ -24,3 +24,6 @@ openapi/client/docs/
 
 # Ignore act generated artifacts
 act_artifacts/
+
+# Ignore output files
+dist/
