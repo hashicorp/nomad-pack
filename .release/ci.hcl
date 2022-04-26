@@ -95,21 +95,8 @@ event "notarize-darwin-arm64" {
   }
 }
 
-event "notarize-windows-386" {
-  depends = ["notarize-darwin-arm64"]
-  action "notarize-windows-386" {
-    organization = "hashicorp"
-    repository = "crt-workflows-common"
-    workflow = "notarize-windows-386"
-  }
-
-  notification {
-    on = "fail"
-  }
-}
-
 event "notarize-windows-amd64" {
-  depends = ["notarize-windows-386"]
+  depends = ["notarize-darwin-arm64"]
   action "notarize-windows-amd64" {
     organization = "hashicorp"
     repository = "crt-workflows-common"

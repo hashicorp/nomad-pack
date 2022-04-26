@@ -81,6 +81,8 @@ jobs:
         exclude:
           - goos: "windows"
             goarch: "arm"
+          - goos: "windows"
+            goarch: "386"
 
       fail-fast: true
 

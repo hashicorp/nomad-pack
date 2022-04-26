@@ -2,6 +2,7 @@ SHELL = bash
 default: check lint test dev
 
 GIT_COMMIT=$$(git rev-parse --short HEAD)
+GIT_BRANCH=$$(git branch --show-current)
 GIT_DIRTY=$$(test -n "`git status --porcelain`" && echo "+CHANGES" || true)
 GIT_IMPORT="github.com/hashicorp/nomad-pack/internal/pkg/version"
 GO_LDFLAGS="-s -w -X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY)"
@@ -159,3 +160,16 @@ act:
 
 act-clean:
 	@docker rm -f $$(docker ps -a --format '{{with .}}{{if eq (printf "%.4s" .Names) "act-"}}{{.Names}}{{end}}{{end}}')
+
+SLACK_CHANNEL = $(shell ./build-scripts/slack_channel.sh)
+staging:
+	@bob trigger-promotion \
+	  --product-name=$(PRODUCT_NAME) \
+	  --org=hashicorp \
+	  --repo=$(REPO_NAME) \
+	  --branch=$(GIT_BRANCH) \
+	  --product-version=$(VERSION) \
+	  --sha=$(REVISION) \
+	  --environment=nomad-oss \
+	  --slack-channel=$(SLACK_CHANNEL) \
+	  staging
