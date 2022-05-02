@@ -15,7 +15,7 @@ VERSION      = $(shell ./build-scripts/version.sh internal/pkg/version/version.g
 GIT_COMMIT = $$(git rev-parse --short HEAD)
 GIT_BRANCH = $$(git branch --show-current)
 GIT_DIRTY  = $$(test -n "`git status --porcelain`" && echo "+CHANGES" || true)
-GIT_SHA    = $$(shell git rev-parse HEAD)
+GIT_SHA    = $$(git rev-parse HEAD)
 GO_LDFLAGS = "-s -w -X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY)"
 
 OS   = $(strip $(shell echo -n $${GOOS:-$$(uname | tr [[:upper:]] [[:lower:]])}))
@@ -175,7 +175,7 @@ staging:
 	  --repo=$(REPO_NAME) \
 	  --branch=$(GIT_BRANCH) \
 	  --product-version=$(VERSION) \
-	  --sha=$(REVISION) \
+	  --sha=$(GIT_SHA) \
 	  --environment=nomad-oss \
 	  --slack-channel=$(SLACK_CHANNEL) \
 	  staging
