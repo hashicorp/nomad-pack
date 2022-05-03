@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - "main"
+      - "crt-fix-linux-builds"
   workflow_dispatch:
 
 env:
@@ -73,7 +74,6 @@ jobs:
           - "freebsd"
           - "windows"
         goarch:
-          - "386"
           - "amd64"
           - "arm"
           - "arm64"
@@ -98,9 +98,9 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
         run: |
-          mkdir out
+          mkdir -p out
           make bin
-          zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip dist/
+          zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip $(make binpath)
 
       - uses: actions/upload-artifact@v2
         with:
@@ -115,7 +115,7 @@ jobs:
     strategy:
       matrix:
         goos: ["linux"]
-        goarch: ["arm", "arm64", "386", "amd64"]
+        goarch: ["arm", "arm64", "amd64"]
 
       fail-fast: true
 
@@ -134,9 +134,10 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
         run: |
-          mkdir out
+          mkdir -p out
           make bin
-          zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip dist/
+          zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip $(make binpath)
+          echo "BIN_PATH=$(make binpath)" >> $GITHUB_ENV
 
       - uses: actions/upload-artifact@v2
         with:
@@ -154,9 +155,9 @@ jobs:
           maintainer: "HashiCorp"
           homepage: "https://github.com/hashicorp/nomad-pack"
           license: "MPL-2.0"
-          binary: "dist/${{ env.PKG_NAME }}"
-          deb_depends: "libc6,openssl,git"
-          rpm_depends: "libc6,openssl,git"
+          binary: ${{ env.BIN_PATH }}
+          deb_depends: "openssl,git"
+          rpm_depends: "openssl,git"
 
       - name: Set Package Names
         if: ${{ matrix.goos == 'linux' }}
@@ -203,9 +204,9 @@ jobs:
 
       - name: Build
         run: |
-          mkdir out
+          mkdir -p out
           make bin
-          zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip dist/
+          zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip $(make binpath)
 
       - uses: actions/upload-artifact@v2
         with:
@@ -220,7 +221,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        arch: ["arm", "arm64", "386", "amd64"]
+        arch: ["arm", "arm64", "amd64"]
     env:
       repo: ${{ github.event.repository.name }}
       version: ${{ needs.get-product-version.outputs.product-version }}
@@ -257,14 +258,14 @@ jobs:
       - build-linux
     runs-on: ubuntu-latest
     env:
-      repo: ${{github.event.repository.name}}
-      version: ${{needs.get-product-version.outputs.product-version}}
+      repo: ${{ github.event.repository.name }}
+      version: ${{ needs.get-product-version.outputs.product-version }}
 
     steps:
       - uses: actions/checkout@v2
       - uses: hashicorp/actions-docker-build@v1
         with:
-          version: ${{env.version}}
+          version: ${{ env.version }}
           target: release
           arch: amd64
-          redhat_tag: scan.connect.redhat.com/ospid-62211e0d8bf2cabc69a39c7d/${{env.repo}}:${{env.version}}-ubi
+          redhat_tag: scan.connect.redhat.com/ospid-62211e0d8bf2cabc69a39c7d/${{ env.repo }}:${{ env.version }}-ubi

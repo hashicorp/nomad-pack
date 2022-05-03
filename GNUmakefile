@@ -1,27 +1,33 @@
 SHELL = bash
 default: check lint test dev
 
-GIT_COMMIT=$$(git rev-parse --short HEAD)
-GIT_DIRTY=$$(test -n "`git status --porcelain`" && echo "+CHANGES" || true)
-GIT_IMPORT="github.com/hashicorp/nomad-pack/internal/pkg/version"
-GO_LDFLAGS="-s -w -X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY)"
-VERSION = $(shell ./build-scripts/version.sh internal/pkg/version/version.go)
+GIT := $(strip $(shell command -v git 2> /dev/null))
+GO := $(strip $(shell command -v go 2> /dev/null))
 
+GIT_IMPORT    = "github.com/hashicorp/nomad-pack/internal/pkg/version"
 REPO_NAME    ?= $(shell basename "$(CURDIR)")
 PRODUCT_NAME ?= $(REPO_NAME)
 BIN_NAME     ?= $(PRODUCT_NAME)
 
 # Get latest revision (no dirty check for now).
-REVISION = $(shell git rev-parse HEAD)
+VERSION      = $(shell ./build-scripts/version.sh internal/pkg/version/version.go)
 
-# Get local ARCH; on Intel Mac, 'uname -m' returns x86_64 which we turn into amd64.
-# Not using 'go env GOOS/GOARCH' here so 'make docker' will work without local Go install.
-ARCH     = $(shell A=$$(uname -m); [ $$A = x86_64 ] && A=amd64; echo $$A)
-OS       = $(shell uname | tr [[:upper:]] [[:lower:]])
+GIT_COMMIT = $$(git rev-parse --short HEAD)
+GIT_BRANCH = $$(git branch --show-current)
+GIT_DIRTY  = $$(test -n "`git status --porcelain`" && echo "+CHANGES" || true)
+GIT_SHA    = $$(git rev-parse HEAD)
+GO_LDFLAGS = "-s -w -X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY)"
+
+OS   = $(strip $(shell echo -n $${GOOS:-$$(uname | tr [[:upper:]] [[:lower:]])}))
+ARCH = $(strip $(shell echo -n $${GOARCH:-$$(A=$$(uname -m); [ $$A = x86_64 ] && A=amd64 || [ $$A = aarch64 ] && A=arm64 ; echo $$A)}))
+
 PLATFORM ?= $(OS)/$(ARCH)
-DIST     = dist/$(PLATFORM)
-BIN      = $(DIST)/$(BIN_NAME)
+DIST      = dist/$(PLATFORM)
+BIN       = $(DIST)/$(BIN_NAME)
 
+ifeq ($(firstword $(subst /, ,$(PLATFORM))), windows)
+BIN = $(DIST)/$(BIN_NAME).exe
+endif
 
 .PHONY: version
 version:
@@ -108,12 +114,16 @@ clean:
 
 
 dist:
-	mkdir -p $(DIST)
-	echo '*' > dist/.gitignore
+	@mkdir -p $(DIST)
 
 .PHONY: bin
 bin: dist
+	@echo $(ARCHBY)
 	GOARCH=$(ARCH) GOOS=$(OS) go build -o $(BIN)
+
+.PHONY: binpath
+binpath:
+	@echo -n "$(BIN)"
 
 # Docker Stuff.
 export DOCKER_BUILDKIT=1
@@ -153,3 +163,19 @@ act:
 # because Nomad needs to be able to run the mount command for secrets
 # act needs to run the containers with SYS_ADMIN capabilities
 	@act --reuse --artifact-server-path ./act_artifacts --container-cap-add SYS_ADMIN $(args)
+
+act-clean:
+	@docker rm -f $$(docker ps -a --format '{{with .}}{{if eq (printf "%.4s" .Names) "act-"}}{{.Names}}{{end}}{{end}}')
+
+SLACK_CHANNEL = $(shell ./build-scripts/slack_channel.sh)
+staging:
+	@bob trigger-promotion \
+	  --product-name=$(PRODUCT_NAME) \
+	  --org=hashicorp \
+	  --repo=$(REPO_NAME) \
+	  --branch=$(GIT_BRANCH) \
+	  --product-version=$(VERSION) \
+	  --sha=$(GIT_SHA) \
+	  --environment=nomad-oss \
+	  --slack-channel=$(SLACK_CHANNEL) \
+	  staging
