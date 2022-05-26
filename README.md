@@ -148,3 +148,12 @@ Nomad Pack Guides are available on [HashiCorp Learn](https://learn.hashicorp.com
 
 [hashicorp_releases]: (https://releases.hashicorp.com/nomad-pack/)
 [docker_hub]: (https://hub.docker.com/r/hashicorp/nomad-pack)
+
+
+
+### Instalation 
+Run this command
+```bash
+CGO_ENABLED=0 go build  -o ./bin/nomad-pack-new
+```
+and move binary to your path

@@ -27,3 +27,6 @@ act_*/
 
 # Ignore output files
 dist/
+
+# idea
+.idea/
