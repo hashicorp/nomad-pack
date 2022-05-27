@@ -1,5 +1,5 @@
 variable "input" {
-	type = string
-	description = "Test Heredoc"
-	default     = "default"
+  type        = string
+  description = "Test Heredoc"
+  default     = "default"
 }

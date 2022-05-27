@@ -8,8 +8,10 @@ project "nomad-pack" {
   }
   github {
     organization = "hashicorp"
-    repository = "nomad-pack"
-    release_branches = ["main", "crt-fix-linux-builds"]
+    repository   = "nomad-pack"
+    release_branches = [
+      "main",
+    ]
   }
 }
 
@@ -22,8 +24,8 @@ event "build" {
   depends = ["merge"]
   action "build" {
     organization = "hashicorp"
-    repository = "nomad-pack"
-    workflow = "build"
+    repository   = "nomad-pack"
+    workflow     = "build"
   }
 }
 
@@ -31,9 +33,9 @@ event "upload-dev" {
   depends = ["build"]
   action "upload-dev" {
     organization = "hashicorp"
-    repository = "crt-workflows-common"
-    workflow = "upload-dev"
-    depends = ["build"]
+    repository   = "crt-workflows-common"
+    workflow     = "upload-dev"
+    depends      = ["build"]
   }
 
   notification {
@@ -45,9 +47,9 @@ event "security-scan-binaries" {
   depends = ["upload-dev"]
   action "security-scan-binaries" {
     organization = "hashicorp"
-    repository = "crt-workflows-common"
-    workflow = "security-scan-binaries"
-    config = "security-scan.hcl"
+    repository   = "crt-workflows-common"
+    workflow     = "security-scan-binaries"
+    config       = "security-scan.hcl"
   }
 
   notification {
@@ -59,9 +61,9 @@ event "security-scan-containers" {
   depends = ["security-scan-binaries"]
   action "security-scan-containers" {
     organization = "hashicorp"
-    repository = "crt-workflows-common"
-    workflow = "security-scan-containers"
-    config = "security-scan.hcl"
+    repository   = "crt-workflows-common"
+    workflow     = "security-scan-containers"
+    config       = "security-scan.hcl"
   }
 
   notification {
@@ -73,8 +75,8 @@ event "notarize-darwin-amd64" {
   depends = ["security-scan-containers"]
   action "notarize-darwin-amd64" {
     organization = "hashicorp"
-    repository = "crt-workflows-common"
-    workflow = "notarize-darwin-amd64"
+    repository   = "crt-workflows-common"
+    workflow     = "notarize-darwin-amd64"
   }
 
   notification {
@@ -99,8 +101,8 @@ event "notarize-windows-amd64" {
   depends = ["notarize-darwin-arm64"]
   action "notarize-windows-amd64" {
     organization = "hashicorp"
-    repository = "crt-workflows-common"
-    workflow = "notarize-windows-amd64"
+    repository   = "crt-workflows-common"
+    workflow     = "notarize-windows-amd64"
   }
 
   notification {
@@ -112,8 +114,8 @@ event "notarize-windows-arm64" {
   depends = ["notarize-windows-amd64"]
   action "notarize-windows-arm64" {
     organization = "hashicorp"
-    repository = "crt-workflows-common"
-    workflow = "notarize-windows-arm64"
+    repository   = "crt-workflows-common"
+    workflow     = "notarize-windows-arm64"
   }
 
   notification {
@@ -125,8 +127,8 @@ event "sign" {
   depends = ["notarize-windows-arm64"]
   action "sign" {
     organization = "hashicorp"
-    repository = "crt-workflows-common"
-    workflow = "sign"
+    repository   = "crt-workflows-common"
+    workflow     = "sign"
   }
 
   notification {
@@ -138,8 +140,8 @@ event "sign-linux-rpms" {
   depends = ["sign"]
   action "sign-linux-rpms" {
     organization = "hashicorp"
-    repository = "crt-workflows-common"
-    workflow = "sign-linux-rpms"
+    repository   = "crt-workflows-common"
+    workflow     = "sign-linux-rpms"
   }
 
   notification {
@@ -151,8 +153,8 @@ event "verify" {
   depends = ["sign-linux-rpms"]
   action "verify" {
     organization = "hashicorp"
-    repository = "crt-workflows-common"
-    workflow = "verify"
+    repository   = "crt-workflows-common"
+    workflow     = "verify"
   }
 
   notification {
@@ -164,9 +166,9 @@ event "promote-dev-docker" {
   depends = ["verify"]
   action "promote-dev-docker" {
     organization = "hashicorp"
-    repository = "crt-workflows-common"
-    workflow = "promote-dev-docker"
-    depends = ["verify"]
+    repository   = "crt-workflows-common"
+    workflow     = "promote-dev-docker"
+    depends      = ["verify"]
   }
 
   notification {
@@ -178,8 +180,8 @@ event "fossa-scan" {
   depends = ["promote-dev-docker"]
   action "fossa-scan" {
     organization = "hashicorp"
-    repository = "crt-workflows-common"
-    workflow = "fossa-scan"
+    repository   = "crt-workflows-common"
+    workflow     = "fossa-scan"
   }
 }
 
@@ -187,16 +189,16 @@ event "fossa-scan" {
 ## they should be added to the end of the file after the verify event stanza.
 
 event "trigger-staging" {
-// This event is dispatched by the bob trigger-promotion command
-// and is required - do not delete.
+  // This event is dispatched by the bob trigger-promotion command
+  // and is required - do not delete.
 }
 
 event "promote-staging" {
   depends = ["trigger-staging"]
   action "promote-staging" {
     organization = "hashicorp"
-    repository = "crt-workflows-common"
-    workflow = "promote-staging"
+    repository   = "crt-workflows-common"
+    workflow     = "promote-staging"
   }
 
   notification {
@@ -208,8 +210,8 @@ event "promote-staging-docker" {
   depends = ["promote-staging"]
   action "promote-staging-docker" {
     organization = "hashicorp"
-    repository = "crt-workflows-common"
-    workflow = "promote-staging-docker"
+    repository   = "crt-workflows-common"
+    workflow     = "promote-staging-docker"
   }
 
   notification {
@@ -218,16 +220,16 @@ event "promote-staging-docker" {
 }
 
 event "trigger-production" {
-// This event is dispatched by the bob trigger-promotion command
-// and is required - do not delete.
+  // This event is dispatched by the bob trigger-promotion command
+  // and is required - do not delete.
 }
 
 event "promote-production" {
   depends = ["trigger-production"]
   action "promote-production" {
     organization = "hashicorp"
-    repository = "crt-workflows-common"
-    workflow = "promote-production"
+    repository   = "crt-workflows-common"
+    workflow     = "promote-production"
   }
 
   notification {
@@ -239,8 +241,8 @@ event "promote-production-docker" {
   depends = ["promote-production"]
   action "promote-production-docker" {
     organization = "hashicorp"
-    repository = "crt-workflows-common"
-    workflow = "promote-production-docker"
+    repository   = "crt-workflows-common"
+    workflow     = "promote-production-docker"
   }
 
   notification {
@@ -252,8 +254,8 @@ event "promote-production-packaging" {
   depends = ["promote-production-docker"]
   action "promote-production-packaging" {
     organization = "hashicorp"
-    repository = "crt-workflows-common"
-    workflow = "promote-production-packaging"
+    repository   = "crt-workflows-common"
+    workflow     = "promote-production-packaging"
   }
 
   notification {

@@ -1,6 +1,6 @@
 job "simple_service" {
 
-  datacenters = [ "dc1" ]
+  datacenters = ["dc1"]
 
   meta {
     my-key = "my-value"
@@ -20,8 +20,8 @@ job "simple_service" {
     restart {
       attempts = 2
       interval = "30m"
-      delay = "15s"
-      mode = "fail"
+      delay    = "15s"
+      mode     = "fail"
     }
 
     task "server" {

@@ -1,11 +1,11 @@
 app {
-  url = ""
+  url    = ""
   author = "HashiCorp"
 }
 
 pack {
-  name = "child1"
+  name        = "child1"
   description = "render-only child dependency"
-  url = "github.com/hashicorp/nomad-pack/fixtures/test_registry/packs/simple-raw-exec"
-  version = "0.0.1"
+  url         = "github.com/hashicorp/nomad-pack/fixtures/test_registry/packs/simple-raw-exec"
+  version     = "0.0.1"
 }

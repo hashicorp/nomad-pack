@@ -27,3 +27,6 @@ act_*/
 
 # Ignore output files
 dist/
+
+# assets download path when using bob CLI
+.bob
