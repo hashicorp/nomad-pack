@@ -43,7 +43,10 @@ else
 endif
 
 .PHONY: bootstrap
-bootstrap: lint-deps test-deps # Install all dependencies
+bootstrap: tools # Install all dependencies
+
+.PHONY: tools
+tools: lint-deps test-deps  # Install all tools
 
 .PHONY: lint-deps
 lint-deps: ## Install linter dependencies
@@ -62,6 +65,7 @@ hclfmt: ## Format HCL files with hclfmt
 	@find . -name '.git' -prune \
 	        -o \( -name '*.nomad' -o -name '*.hcl' -o -name '*.tf' \) \
 	      -print0 | xargs -0 hclfmt -w
+	@if (git status -s | grep -q -e '\.hcl$$' -e '\.nomad$$' -e '\.tf$$'); then echo the following HCL files are out of sync; git status -s | grep -e '\.hcl$$' -e '\.nomad$$' -e '\.tf$$'; exit 1; fi
 
 .PHONY: dev
 dev: GOPATH=$(shell go env GOPATH)
@@ -74,7 +78,7 @@ dev: lint
 
 pkg/%/nomad-pack: GO_OUT ?= $@
 pkg/windows_%/nomad-pack: GO_OUT = $@.exe
-pkg/%/nomad-pack: ## Build Nomad PACK for GOOS_GOARCH, e.g. pkg/linux_amd64/nomad-pack
+pkg/%/nomad-pack: ## Build Nomad Pack for GOOS_GOARCH, e.g. pkg/linux_amd64/nomad-pack
 	@echo "==> Building $@ with tags $(GO_TAGS)..."
 	@CGO_ENABLED=0 \
 		GOOS=$(firstword $(subst _, ,$*)) \
@@ -82,7 +86,7 @@ pkg/%/nomad-pack: ## Build Nomad PACK for GOOS_GOARCH, e.g. pkg/linux_amd64/noma
 		go build -trimpath -ldflags $(GO_LDFLAGS) -tags "$(GO_TAGS)" -o $(GO_OUT)
 
 .PRECIOUS: pkg/%/nomad-pack
-pkg/%.zip: pkg/%/nomad-pack
+pkg/%.zip: pkg/%/nomad-pack ## Build and zip Nomad Pack for GOOS_GOARCH, e.g. pkg/linux_amd64.zip
 	@echo "==> Packaging for $@..."
 	zip -j $@ $(dir $<)*
 
@@ -122,7 +126,7 @@ check-mod: ## Checks the Go mod is tidy
 	@echo "==> Done"
 
 .PHONY: lint
-lint: hclfmt ## Lint the source code
+lint: tools hclfmt ## Lint the source code
 	@echo "==> Linting source code..."
 	@golangci-lint run -j 1
 	@echo "==> Done"
