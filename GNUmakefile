@@ -4,18 +4,13 @@ default: check lint test dev
 GIT := $(strip $(shell command -v git 2> /dev/null))
 GO := $(strip $(shell command -v go 2> /dev/null))
 
-GIT_IMPORT    = "github.com/hashicorp/nomad-pack/internal/pkg/version"
 REPO_NAME    ?= $(shell basename "$(CURDIR)")
 PRODUCT_NAME ?= $(REPO_NAME)
 BIN_NAME     ?= $(PRODUCT_NAME)
 
-# Get latest revision (no dirty check for now).
-VERSION      = $(shell ./build-scripts/version.sh internal/pkg/version/version.go)
-
+GIT_IMPORT    = "github.com/hashicorp/nomad-pack/internal/pkg/version"
 GIT_COMMIT = $$(git rev-parse --short HEAD)
-GIT_BRANCH = $$(git branch --show-current)
 GIT_DIRTY  = $$(test -n "`git status --porcelain`" && echo "+CHANGES" || true)
-GIT_SHA    = $$(git rev-parse HEAD)
 GO_LDFLAGS = "-s -w -X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY)"
 
 OS   = $(strip $(shell echo -n $${GOOS:-$$(uname | tr [[:upper:]] [[:lower:]])}))
@@ -29,31 +24,71 @@ ifeq ($(firstword $(subst /, ,$(PLATFORM))), windows)
 BIN = $(DIST)/$(BIN_NAME).exe
 endif
 
+HELP_FORMAT="    \033[36m%-25s\033[0m %s\n"
+.PHONY: help
+help: ## Display this usage information
+	@echo "Valid targets:"
+	@grep -E '^[^ ]+:.*?## .*$$' $(MAKEFILE_LIST) | \
+		sort | \
+		awk 'BEGIN {FS = ":.*?## "}; \
+			{printf $(HELP_FORMAT), $$1, $$2}'
+	@echo ""
+
 .PHONY: version
 version:
-	@echo $(VERSION)
+ifneq (,$(wildcard internal/pkg/version/version_ent.go))
+	@$(CURDIR)/scripts/version.sh internal/pkg/version/version.go internal/pkg/version/version_ent.go
+else
+	@$(CURDIR)/scripts/version.sh internal/pkg/version/version.go internal/pkg/version/version.go
+endif
 
 .PHONY: bootstrap
-bootstrap: lint-deps test-deps # Install all dependencies
+bootstrap: tools # Install all dependencies
+
+.PHONY: tools
+tools: lint-deps test-deps  # Install all tools
 
 .PHONY: lint-deps
 lint-deps: ## Install linter dependencies
 	@echo "==> Updating linter dependencies..."
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.45.2
+	go install github.com/hashicorp/hcl/v2/cmd/hclfmt@d0c4fa8b0bbc2e4eeccd1ed2a32c2089ed8c5cf1
 
 .PHONY: test-deps
 test-deps: ## Install test dependencies
 	@echo "==> Updating test dependencies..."
 	go install gotest.tools/gotestsum@latest
 
+.PHONY: hclfmt
+hclfmt: ## Format HCL files with hclfmt
+	@echo "--> Formatting HCL"
+	@find . -name '.git' -prune \
+	        -o \( -name '*.nomad' -o -name '*.hcl' -o -name '*.tf' \) \
+	      -print0 | xargs -0 hclfmt -w
+	@if (git status -s | grep -q -e '\.hcl$$' -e '\.nomad$$' -e '\.tf$$'); then echo the following HCL files are out of sync; git status -s | grep -e '\.hcl$$' -e '\.nomad$$' -e '\.tf$$'; exit 1; fi
+
 .PHONY: dev
 dev: GOPATH=$(shell go env GOPATH)
-dev:
+dev: lint
 	@echo "==> Building nomad-pack..."
 	@CGO_ENABLED=0 go build -ldflags $(GO_LDFLAGS) -o ./bin/nomad-pack
 	@rm -f $(GOPATH)/bin/nomad-pack
 	@cp ./bin/nomad-pack $(GOPATH)/bin/nomad-pack
 	@echo "==> Done"
+
+pkg/%/nomad-pack: GO_OUT ?= $@
+pkg/windows_%/nomad-pack: GO_OUT = $@.exe
+pkg/%/nomad-pack: ## Build Nomad Pack for GOOS_GOARCH, e.g. pkg/linux_amd64/nomad-pack
+	@echo "==> Building $@ with tags $(GO_TAGS)..."
+	@CGO_ENABLED=0 \
+		GOOS=$(firstword $(subst _, ,$*)) \
+		GOARCH=$(lastword $(subst _, ,$*)) \
+		go build -trimpath -ldflags $(GO_LDFLAGS) -tags "$(GO_TAGS)" -o $(GO_OUT)
+
+.PRECIOUS: pkg/%/nomad-pack
+pkg/%.zip: pkg/%/nomad-pack ## Build and zip Nomad Pack for GOOS_GOARCH, e.g. pkg/linux_amd64.zip
+	@echo "==> Packaging for $@..."
+	zip -j $@ $(dir $<)*
 
 mtlsCerts = fixtures/mtls/global-client-nomad-0-key.pem fixtures/mtls/global-client-nomad-0.pem fixtures/mtls/global-server-nomad-0-key.pem fixtures/mtls/global-server-nomad-0.pem fixtures/mtls/nomad-agent-ca-key.pem fixtures/mtls/nomad-agent-ca.pem
 
@@ -64,9 +99,11 @@ $(mtlsCerts) &:
 
 test-certs: $(mtlsCerts)
 
+.PHONY: test
 test: $(mtlsCerts)
 	gotestsum -f testname -- ./... -count=1
 
+.PHONY: mod
 mod:
 	go mod tidy
 
@@ -89,7 +126,7 @@ check-mod: ## Checks the Go mod is tidy
 	@echo "==> Done"
 
 .PHONY: lint
-lint: ## Lint the source code
+lint: tools hclfmt ## Lint the source code
 	@echo "==> Linting source code..."
 	@golangci-lint run -j 1
 	@echo "==> Done"
@@ -106,24 +143,12 @@ check-sdk: ## Checks the SDK is isolated
 gen-cli-docs:
 	go run ./tools/gendocs mdx
 
+.PHONY: clean
 clean:
 	@echo "==> Removing mtls test fixtures..."
 	@rm -f fixtures/mtls/*.pem
 	@echo "==> Removing act artifacts"
 	@rm -rf ./act_artifacts
-
-
-dist:
-	@mkdir -p $(DIST)
-
-.PHONY: bin
-bin: dist
-	@echo $(ARCHBY)
-	GOARCH=$(ARCH) GOOS=$(OS) go build -o $(BIN)
-
-.PHONY: binpath
-binpath:
-	@echo -n "$(BIN)"
 
 # Docker Stuff.
 export DOCKER_BUILDKIT=1
@@ -159,23 +184,12 @@ $(eval $(call DOCKER_TARGET,release,bin))
 .PHONY: docker
 docker: docker/dev
 
+.PHONY: act
 act:
 # because Nomad needs to be able to run the mount command for secrets
 # act needs to run the containers with SYS_ADMIN capabilities
 	@act --reuse --artifact-server-path ./act_artifacts --container-cap-add SYS_ADMIN $(args)
 
+.PHONY: act-clean
 act-clean:
 	@docker rm -f $$(docker ps -a --format '{{with .}}{{if eq (printf "%.4s" .Names) "act-"}}{{.Names}}{{end}}{{end}}')
-
-SLACK_CHANNEL = $(shell ./build-scripts/slack_channel.sh)
-staging:
-	@bob trigger-promotion \
-	  --product-name=$(PRODUCT_NAME) \
-	  --org=hashicorp \
-	  --repo=$(REPO_NAME) \
-	  --branch=$(GIT_BRANCH) \
-	  --product-version=$(VERSION) \
-	  --sha=$(GIT_SHA) \
-	  --environment=nomad-oss \
-	  --slack-channel=$(SLACK_CHANNEL) \
-	  staging

@@ -7,27 +7,31 @@
 
 # devbuild compiles the binary
 # -----------------------------------
-FROM golang:latest AS devbuild
+FROM golang:1.17 AS devbuild
+
+# Disable CGO to make sure we build static binaries
+ENV CGO_ENABLED=0
+
 # Escape the GOPATH
 WORKDIR /build
 COPY . ./
-RUN go build -o nomad-pack
-
+RUN go build -o nomad-pack .
 
 # dev runs the binary from devbuild
 # -----------------------------------
-FROM alpine:latest AS dev
-RUN apk add --no-cache git libc6-compat 
+FROM alpine:3.15 AS dev
+
+RUN apk add --no-cache git libc6-compat
 COPY --from=devbuild /build/nomad-pack /bin/
+COPY ./scripts/docker-entrypoint.sh /
 
-ENTRYPOINT ["/bin/nomad-pack"] CMD ["help"]
-
+ENTRYPOINT ["/docker-entrypoint.sh"]
+CMD ["help"]
 
 # ===================================
 #   Release images.
 # ===================================
-
-FROM alpine:latest AS release
+FROM alpine:3.15 AS release
 
 ARG PRODUCT_NAME=nomad-pack
 ARG PRODUCT_VERSION
@@ -39,8 +43,10 @@ LABEL maintainer="Nomad Team <nomad@hashicorp.com>"
 LABEL version=${PRODUCT_VERSION}
 LABEL revision=${PRODUCT_REVISION}
 
-RUN apk add --no-cache git libc6-compat 
+RUN apk add --no-cache git libc6-compat
+
 COPY dist/$TARGETOS/$TARGETARCH/nomad-pack /bin/
+COPY ./scripts/docker-entrypoint.sh /
 
 # Create a non-root user to run the software.
 RUN addgroup $PRODUCT_NAME && \
@@ -49,7 +55,8 @@ RUN addgroup $PRODUCT_NAME && \
     chown $PRODUCT_NAME /home/$PRODUCT_NAME/.cache
 
 USER $PRODUCT_NAME
-ENTRYPOINT ["/bin/nomad-pack"] CMD ["help"]
+ENTRYPOINT ["/docker-entrypoint.sh"]
+CMD ["help"]
 
 # ===================================
 #   Set default target to 'dev'.

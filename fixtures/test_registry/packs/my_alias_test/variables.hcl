@@ -29,19 +29,19 @@ variable "count" {
 }
 
 variable "command" {
-	type = string
-	description = "bash command to run"
-	default     = "echo \"$(date) - Started.\"; while true; do sleep 300; echo -n .; done"
+  type        = string
+  description = "bash command to run"
+  default     = "echo \"$(date) - Started.\"; while true; do sleep 300; echo -n .; done"
 }
 
 variable "env" {
-  type = map(string)
+  type        = map(string)
   description = "environment variable collection"
-  default = {}
+  default     = {}
 }
 
 variable "test_name" {
-  type = string
+  type        = string
   description = "behavior modifying constant"
-  default = ""
+  default     = ""
 }

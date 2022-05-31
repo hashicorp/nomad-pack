@@ -1,13 +1,13 @@
 app {
-  url = ""
+  url    = ""
   author = "HashiCorp"
 }
 
 pack {
-  name = "deps_test"
+  name        = "deps_test"
   description = "This pack tests dependencies"
-  url = "github.com/hashicorp/nomad-pack/fixtures/test_registry/packs/deps_test"
-  version = "0.0.1"
+  url         = "github.com/hashicorp/nomad-pack/fixtures/test_registry/packs/deps_test"
+  version     = "0.0.1"
 }
 
 dependency "child1" {
