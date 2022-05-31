@@ -1,3 +1,3 @@
-much = 10000000
+much     = 10000000
 surprise = "very"
-wow = true
+wow      = true

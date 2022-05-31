@@ -28,5 +28,5 @@ act_*/
 # Ignore output files
 dist/
 
-# idea
-.idea/
+# assets download path when using bob CLI
+.bob

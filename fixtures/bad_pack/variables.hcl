@@ -44,23 +44,23 @@ variable "has_health_check" {
 variable "health_check" {
   description = ""
   type = object({
-    path = string
+    path     = string
     interval = string
-    timeout = string
+    timeout  = string
   })
 
   default = {
-    path = "/"
+    path     = "/"
     interval = "10s"
     timeout  = "2s"
   }
 }
 
 variable "upstreams" {
-description = ""
-type = list(object({
-  name   = string
-  port = string
+  description = ""
+  type = list(object({
+    name = string
+    port = string
   }))
 }
 
@@ -106,8 +106,8 @@ variable "consul_service_port" {
 
 variable "consul_tags" {
   description = ""
-  type = list(string)
-  default = []
+  type        = list(string)
+  default     = []
 }
 
 variable "resources" {
@@ -125,5 +125,5 @@ variable "resources" {
 variable "consul_tags" {
   description = "The consul service name for the hello-world application"
   type        = list(string)
-  default = []
+  default     = []
 }

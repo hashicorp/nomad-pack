@@ -30,6 +30,17 @@ machine, you can pull the latest image by running the following command:
 $ docker pull hashicorp/nomad-pack:0.0.1-techpreview1
 ```
 
+### Nightly Builds and Docker Image Preview
+
+Nomad Pack is under constant updates, so every day the [`nightly`
+release](https://github.com/hashicorp/nomad-autoscaler/releases/tag/nightly) is updated with
+binaries built off the latest code in the `main` branch. This should make it easier for you to try
+new features and bug fixes.
+
+Each commit to `main` also generates a preview Docker image that can be accessed from the
+[`hashicorppreview/nomad-autoscaler`](https://hub.docker.com/r/hashicorppreview/nomad-pack/tags)
+repository on Docker Hub.
+
 ## Usage
 
 ### Dependencies
