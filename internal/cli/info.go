@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/loader"
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable"
 	"github.com/mitchellh/go-glint"
+	"github.com/zclconf/go-cty/cty"
 )
 
 type InfoCommand struct {
@@ -94,9 +95,15 @@ func (c *InfoCommand) Run(args []string) int {
 		).Row())
 
 		for _, v := range variables {
+
+			varType := "unknown"
+			if !v.Type.Equals(cty.NilType) {
+				varType = v.Type.FriendlyName()
+			}
+
 			doc.Append(glint.Layout(
 				glint.Style(glint.Text(fmt.Sprintf("\t- %q (%s) - %s",
-					v.Name, v.Type.FriendlyName(), v.Description))),
+					v.Name, varType, v.Description))),
 			).Row())
 		}
 		glint.Text("\n")
