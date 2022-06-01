@@ -11,6 +11,7 @@ BUG FIXES:
 * cli: Add missing --name flag for status command [[GH-212](https://github.com/hashicorp/nomad-pack/pull/212)]
 * cli: Remove duplicate `this` in some command outputs [[GH-251](https://github.com/hashicorp/nomad-pack/pull/251)]
 * cli: Use Pack metadata `Name` in error context once known [[GH-217](https://github.com/hashicorp/nomad-pack/pull/217)]
+* cli: Fixed a panic in the `info` command when outputting a variable with a nil type [[GH-254](https://github.com/hashicorp/nomad-pack/pull/254)]
 * runner: Update runner to properly handle dependencies [[GH-229](https://github.com/hashicorp/nomad-pack/pull/229)]
 
 IMPROVEMENTS:
