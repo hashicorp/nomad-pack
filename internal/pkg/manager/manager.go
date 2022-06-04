@@ -147,8 +147,8 @@ func (pm *PackManager) loadAndValidatePack(cur *pack.Pack, depsPath string) erro
 			continue
 		}
 
-		// Download dependecy pack from source
-		err := loader.GetDependecy(dependency, depsPath)
+		// Download dependency pack from source
+		err := loader.GetDependency(dependency, depsPath)
 		if err != nil {
 			return err
 		}

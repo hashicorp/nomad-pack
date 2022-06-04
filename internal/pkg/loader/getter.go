@@ -12,7 +12,7 @@ import (
 	getter "github.com/hashicorp/go-getter"
 )
 
-func GetDependecy(dependency *pack.Dependency, depsPath string) error {
+func GetDependency(dependency *pack.Dependency, depsPath string) error {
 
 	var httpClient = &http.Client{
 		Transport: cleanhttp.DefaultPooledTransport(),
