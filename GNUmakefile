@@ -11,7 +11,7 @@ BIN_NAME     ?= $(PRODUCT_NAME)
 GIT_IMPORT    = "github.com/hashicorp/nomad-pack/internal/pkg/version"
 GIT_COMMIT = $$(git rev-parse --short HEAD)
 GIT_DIRTY  = $$(test -n "`git status --porcelain`" && echo "+CHANGES" || true)
-GO_LDFLAGS = "-s -w -X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY)"
+GO_LDFLAGS := "$(GO_LDFLAGS) -X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY)"
 
 OS   = $(strip $(shell echo -n $${GOOS:-$$(uname | tr [[:upper:]] [[:lower:]])}))
 ARCH = $(strip $(shell echo -n $${GOARCH:-$$(A=$$(uname -m); [ $$A = x86_64 ] && A=amd64 || [ $$A = aarch64 ] && A=arm64 ; echo $$A)}))
