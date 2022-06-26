@@ -11,6 +11,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/fatih/color"
+	"github.com/hashicorp/nomad-pack/sdk/helper"
 	"github.com/hashicorp/nomad-pack/terminal"
 	"github.com/olekukonko/tablewriter"
 )
@@ -199,7 +200,7 @@ func (ui *nonInteractiveTestUI) Error(msg string) {
 // ErrorWithContext satisfies the ErrorWithContext function on the UI
 // interface.
 func (ui *nonInteractiveTestUI) ErrorWithContext(err error, sub string, ctx ...string) {
-	ui.Error(strings.Title(sub))
+	ui.Error(helper.Title(sub))
 	ui.Error("  Error: " + err.Error())
 	ui.Error("  Context:")
 	max := 0

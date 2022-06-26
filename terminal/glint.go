@@ -12,6 +12,7 @@ import (
 
 	"github.com/bgentry/speakeasy"
 	"github.com/fatih/color"
+	"github.com/hashicorp/nomad-pack/sdk/helper"
 	"github.com/mattn/go-isatty"
 	"github.com/mitchellh/go-glint"
 	"github.com/olekukonko/tablewriter"
@@ -355,7 +356,7 @@ func (ui *glintUI) ErrorWithContext(err error, sub string, ctx ...string) {
 	// Title the error output in red with the subject.
 	d.Append(glint.Layout(
 		glint.Style(
-			glint.Text(fmt.Sprintf("! %s\n", strings.Title(sub))),
+			glint.Text(fmt.Sprintf("! %s\n", helper.Title(sub))),
 			glint.Color("red"),
 		),
 	).Row())
