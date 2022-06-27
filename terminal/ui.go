@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"strings"
 
 	"github.com/fatih/color"
+	"github.com/hashicorp/nomad-pack/sdk/helper"
 	"github.com/mitchellh/go-glint"
 )
 
@@ -261,7 +261,7 @@ func ErrorWithContext(err error, sub string, ctx ...string) {
 	// Title the error output in red with the subject.
 	d.Append(glint.Layout(
 		glint.Style(
-			glint.Text(fmt.Sprintf("! %s\n", strings.Title(sub))),
+			glint.Text(fmt.Sprintf("! %s\n", helper.Title(sub))),
 			glint.Color("red"),
 		),
 	).Row())

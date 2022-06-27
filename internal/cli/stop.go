@@ -2,7 +2,6 @@ package cli
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	v1client "github.com/hashicorp/nomad-openapi/clients/go/v1"
@@ -11,6 +10,7 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
 	"github.com/hashicorp/nomad-pack/internal/pkg/renderer"
+	"github.com/hashicorp/nomad-pack/sdk/helper"
 	"github.com/posener/complete"
 )
 
@@ -140,7 +140,7 @@ func (c *StopCommand) Run(args []string) int {
 
 		// TODO: add interactive support
 		if !c.confirmStop() {
-			c.ui.Info(fmt.Sprintf("%s job %q aborted by user", strings.Title(stopOrDestroy), job.GetID()))
+			c.ui.Info(fmt.Sprintf("%s job %q aborted by user", helper.Title(stopOrDestroy), job.GetID()))
 			continue
 		}
 

@@ -2,9 +2,9 @@ package variable
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/nomad-pack/sdk/helper"
 )
 
 func safeDiagnosticsAppend(base hcl.Diagnostics, new *hcl.Diagnostic) hcl.Diagnostics {
@@ -43,7 +43,7 @@ func diagnosticFailedToConvertCty(err error, sub *hcl.Range) *hcl.Diagnostic {
 	return &hcl.Diagnostic{
 		Severity: hcl.DiagError,
 		Summary:  "Failed to convert Cty to interface",
-		Detail:   strings.Title(err.Error()),
+		Detail:   helper.Title(err.Error()),
 		Subject:  sub,
 	}
 }
