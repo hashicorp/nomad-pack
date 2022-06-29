@@ -38,7 +38,7 @@ binaries built off the latest code in the `main` branch. This should make it eas
 new features and bug fixes.
 
 Each commit to `main` also generates a preview Docker image that can be accessed from the
-[`hashicorppreview/nomad-autoscaler`](https://hub.docker.com/r/hashicorppreview/nomad-pack/tags)
+[`hashicorppreview/nomad-pack`](https://hub.docker.com/r/hashicorppreview/nomad-pack/tags)
 repository on Docker Hub.
 
 ## Usage
