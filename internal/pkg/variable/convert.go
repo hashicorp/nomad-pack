@@ -117,7 +117,8 @@ func smallestNumber(b *big.Float) interface{} {
 
 func isCollectionOfMaps(t cty.Type) bool {
 	switch {
-	case t.IsCollectionType():
+	// t.IsCollectionType() also match when t is type Map
+	case t.IsCollectionType() && !t.IsMapType():
 		et := t.ElementType()
 		return et.IsMapType() || et.IsObjectType()
 	case t.IsTupleType():
