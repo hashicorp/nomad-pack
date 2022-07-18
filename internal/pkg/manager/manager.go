@@ -147,6 +147,12 @@ func (pm *PackManager) loadAndValidatePack(cur *pack.Pack, depsPath string) erro
 			continue
 		}
 
+		// Download dependency pack from source
+		err := loader.GetDependency(dependency, depsPath)
+		if err != nil {
+			return err
+		}
+
 		// Load and validate the dependent pack.
 		dependentPack, err := loader.Load(path.Join(depsPath, dependency.Name))
 		if err != nil {
