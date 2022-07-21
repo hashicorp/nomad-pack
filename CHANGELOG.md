@@ -12,6 +12,7 @@ BUG FIXES:
 * cli: Remove duplicate `this` in some command outputs [[GH-251](https://github.com/hashicorp/nomad-pack/pull/251)]
 * cli: Use Pack metadata `Name` in error context once known [[GH-217](https://github.com/hashicorp/nomad-pack/pull/217)]
 * cli: Fixed a panic in the `info` command when outputting a variable with a nil type [[GH-254](https://github.com/hashicorp/nomad-pack/pull/254)]
+* cli: Fixed a bug that prevented the use of map of maps variables [[GH-272](https://github.com/hashicorp/nomad-pack/pull/272)]
 * runner: Update runner to properly handle dependencies [[GH-229](https://github.com/hashicorp/nomad-pack/pull/229)]
 
 IMPROVEMENTS:
