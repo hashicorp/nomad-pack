@@ -11,6 +11,7 @@ project "nomad-pack" {
     repository   = "nomad-pack"
     release_branches = [
       "main",
+      "release/0.0.1-techpreview.3",
     ]
   }
 }
