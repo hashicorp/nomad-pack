@@ -10,6 +10,8 @@ To add packs, please contribute to the [Nomad Pack Community Registry](https://g
 - Git
 - Make
 
+Make sure you have `$GOHOME/bin` as part of your `$PATH` variable.
+
 ## Building and Running Locally
 
 Installing required tools:
