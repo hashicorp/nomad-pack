@@ -12,6 +12,12 @@ To add packs, please contribute to the [Nomad Pack Community Registry](https://g
 
 ## Building and Running Locally
 
+Installing required tools:
+
+```
+make bootstrap
+```
+
 Check Go mod and Go sum:
 
 ```
