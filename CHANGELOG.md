@@ -1,5 +1,7 @@
 ## UNRELEASED
 
+## 0.0.1-techpreview.3 (July 21, 2022)
+
 FEATURES:
 
 * **Generate Sample Pack or Registry** - Using the `nomad-pack generate` command,
