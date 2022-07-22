@@ -102,7 +102,7 @@ nomad-pack destroy hello_world
 
 When using Nomad Pack, the default registry for packs is
 [the Nomad Pack Community Registry](https://github.com/hashicorp/nomad-pack-community-registry).
-Packs from this registry will be made automatically availible.
+Packs from this registry will be made automatically available.
 
 You can add additional registries by using the `registry add` command. For instance, if you wanted
 to add [an example Gitlab registry](https://gitlab.com/mikenomitch/pack-registry),
@@ -145,17 +145,17 @@ Pull Requests and feedback on both repositories are welcome!
 - Pack search command
 - Integration into the official Nomad CLI
 
-## Additional Documentaion
+## Additional Documentation
 
 - [Detailed Usage Guide](/docs/detailed-usage.md)
 - [How to Write Your Own Pack](/docs/writing-packs.md)
 - [Contributing](/docs/contributing.md)
 
-<!-- TODO: add a direct link to the guides when availible -->
+## Tutorials
 
-<!-- ## Tutorials
+- [Introduction to Nomad Pack](https://learn.hashicorp.com/tutorials/nomad/nomad-pack-intro)
+- [Writing Custom Packs](https://learn.hashicorp.com/tutorials/nomad/nomad-pack-writing-packs)
 
-Nomad Pack Guides are available on [HashiCorp Learn](https://learn.hashicorp.com/nomad). -->
 
 [hashicorp_releases]: (https://releases.hashicorp.com/nomad-pack/)
 [docker_hub]: (https://hub.docker.com/r/hashicorp/nomad-pack)

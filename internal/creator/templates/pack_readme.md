@@ -28,7 +28,7 @@ Optionally, it can configure a Consul service.
 If the `register_consul_service` is unset or set to true, the Consul service
 will be registered.
 
-Several load balancers in the the [Nomad Pack Community Registry][pack-registry]
+Several load balancers in the [Nomad Pack Community Registry][pack-registry]
 are configured to connect to this service by default.
 
 The [NGINX][pack-nginx] and [HAProxy][pack-haproxy] packs are configured to

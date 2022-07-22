@@ -66,7 +66,7 @@ Optionally, this pack can configure a Consul service.
 
 If the `register_consul_service` is unset or set to true, the Consul service will be registered.
 
-Several load balancers in the [The Nomad Pack Community Registry](../README.md) are configured to connect to
+Several load balancers in the [Nomad Pack Community Registry](../README.md) are configured to connect to
 this service with ease.
 
 The [NginX](../nginx/README.md) and [HAProxy](../haproxy/README.md) packs can be configured to balance over the
