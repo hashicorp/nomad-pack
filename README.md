@@ -33,12 +33,12 @@ $ docker pull hashicorp/nomad-pack:0.0.1-techpreview1
 ### Nightly Builds and Docker Image Preview
 
 Nomad Pack is under constant updates, so every day the [`nightly`
-release](https://github.com/hashicorp/nomad-autoscaler/releases/tag/nightly) is updated with
+release](https://github.com/hashicorp/nomad-pack/releases/tag/nightly) is updated with
 binaries built off the latest code in the `main` branch. This should make it easier for you to try
 new features and bug fixes.
 
 Each commit to `main` also generates a preview Docker image that can be accessed from the
-[`hashicorppreview/nomad-autoscaler`](https://hub.docker.com/r/hashicorppreview/nomad-pack/tags)
+[`hashicorppreview/nomad-pack`](https://hub.docker.com/r/hashicorppreview/nomad-pack/tags)
 repository on Docker Hub.
 
 ## Usage
@@ -102,7 +102,7 @@ nomad-pack destroy hello_world
 
 When using Nomad Pack, the default registry for packs is
 [the Nomad Pack Community Registry](https://github.com/hashicorp/nomad-pack-community-registry).
-Packs from this registry will be made automatically availible.
+Packs from this registry will be made automatically available.
 
 You can add additional registries by using the `registry add` command. For instance, if you wanted
 to add [an example Gitlab registry](https://gitlab.com/mikenomitch/pack-registry),
@@ -145,17 +145,17 @@ Pull Requests and feedback on both repositories are welcome!
 - Pack search command
 - Integration into the official Nomad CLI
 
-## Additional Documentaion
+## Additional Documentation
 
 - [Detailed Usage Guide](/docs/detailed-usage.md)
 - [How to Write Your Own Pack](/docs/writing-packs.md)
 - [Contributing](/docs/contributing.md)
 
-<!-- TODO: add a direct link to the guides when availible -->
+## Tutorials
 
-<!-- ## Tutorials
+- [Introduction to Nomad Pack](https://learn.hashicorp.com/tutorials/nomad/nomad-pack-intro)
+- [Writing Custom Packs](https://learn.hashicorp.com/tutorials/nomad/nomad-pack-writing-packs)
 
-Nomad Pack Guides are available on [HashiCorp Learn](https://learn.hashicorp.com/nomad). -->
 
 [hashicorp_releases]: (https://releases.hashicorp.com/nomad-pack/)
 [docker_hub]: (https://hub.docker.com/r/hashicorp/nomad-pack)
