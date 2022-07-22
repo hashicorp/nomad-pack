@@ -48,10 +48,8 @@ The directory should have the following contents:
 The `metadata.hcl` file contains important key value information regarding the pack. It contains the following blocks and their associated fields:
 
 - "app {url}" - The HTTP(S) url to the homepage of the application to provide a quick reference to the documentation and help pages.
-- "app {author}" - An identifier to the author and maintainer of the pack.
 - "pack {name}" - The name of the pack.
 - "pack {description}" - A small overview of the application that is deployed by the pack.
-- "pack {url}" - The source URL for the pack itself.
 - "pack {version}" - The version of the pack.
 - "dependency {name}" - The dependencies that the pack has on other packs. Multiple dependencies can be supplied.
 - "dependency {source}" - The source URL for this dependency.
@@ -61,13 +59,11 @@ An example `metadata.hcl` file:
 ```
 app {
   url = "https://github.com/mikenomitch/hello_world_server"
-  author = "Mike Nomitch"
 }
 
 pack {
   name = "hello_world"
   description = "This pack contains a single job that renders hello world, or a different greeting, to the screen."
-  url = "https://github.com/hashicorp/nomad-pack-community-registry/hello_world"
   version = "0.3.2"
 }
 ```
