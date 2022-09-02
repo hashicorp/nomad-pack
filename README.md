@@ -145,11 +145,12 @@ Pull Requests and feedback on both repositories are welcome!
 - Pack search command
 - Integration into the official Nomad CLI
 
-## Additional Documentation
+## Additional Resources
 
 - [Detailed Usage Guide](/docs/detailed-usage.md)
 - [How to Write Your Own Pack](/docs/writing-packs.md)
 - [Contributing](/docs/contributing.md)
+- [GitHub Action for Nomad Pack](https://github.com/marketplace/actions/setup-hashicorp-nomad-pack)
 
 ## Tutorials
 
