@@ -5,7 +5,7 @@ This guide will go into detail on Nomad Pack usage and commands.
 For an overview on basic use, see the repository [README](../README.md).
 
 For more information on writing custom packs and registries, see the [Writing Packs Guide](./writing-packs.md)
-in th repository or in the [HashiCorp Learn Guides](https://learn.hashicorp.com/nomad).
+in the repository or in the [HashiCorp Learn Guides](https://learn.hashicorp.com/nomad).
 
 <!--  TODO: Get the link to the writing own packs guide once it is up  -->
 
@@ -78,7 +78,7 @@ nomad-pack registry delete community
 
 At times, you may wish to use Nomad Pack to render jobspecs, but you will not want to immediately deploy these to Nomad.
 
-This can be useful when writing a pack, debugging deployments, integrating Nomad Pack into a CI/CD environment, or if you have another mechanism for handlign Nomad deploys.
+This can be useful when writing a pack, debugging deployments, integrating Nomad Pack into a CI/CD environment, or if you have another mechanism for handling Nomad deploys.
 
 The `render` command takes the `--var` and `--var-file` flags that `run` takes.
 
