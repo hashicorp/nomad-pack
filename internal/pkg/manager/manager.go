@@ -45,8 +45,8 @@ func NewPackManager(cfg *Config, client *v1.Client) *PackManager {
 // rendered templates.
 //
 // TODO(jrasell) figure out whether we want an error or hcl.Diagnostics return
-//   object. If we stick to an error, then we need to come up with a way of
-//   nicely formatting them.
+// object. If we stick to an error, then we need to come up with a way of
+// nicely formatting them.
 func (pm *PackManager) ProcessTemplates() (*renderer.Rendered, []*errors.WrappedUIContext) {
 
 	loadedPack, err := pm.loadAndValidatePacks()

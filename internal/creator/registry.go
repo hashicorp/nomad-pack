@@ -17,11 +17,11 @@ type registryCreator struct {
 }
 
 // CreateRegistry build a skeleton registry containing:
-// - A README.md file containing a human-readable description of the registry,
-//   often including any dependency information.
-// - A CHANGELOG.md file that lists changes for each version of the pack.
-// - A packs folder that contains all of the packs present in the registry
-// - Optionally, a sample pack to get started with
+//   - A README.md file containing a human-readable description of the registry,
+//     often including any dependency information.
+//   - A CHANGELOG.md file that lists changes for each version of the pack.
+//   - A packs folder that contains all of the packs present in the registry
+//   - Optionally, a sample pack to get started with
 func CreateRegistry(c config.PackConfig) error {
 	ui := c.GetUI()
 	outPath := c.OutPath

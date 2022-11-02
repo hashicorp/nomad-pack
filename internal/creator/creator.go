@@ -7,6 +7,7 @@ import (
 
 // content holds the go-templates used by creator while
 // making packs and registries.
+//
 //go:embed templates/*
 var content embed.FS
 
