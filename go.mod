@@ -1,6 +1,6 @@
 module github.com/hashicorp/nomad-pack
 
-go 1.18
+go 1.19
 
 replace github.com/hashicorp/hcl/v2 => github.com/hashicorp/hcl/v2 v2.9.2-0.20210407182552-eb14f8319bdc
 
