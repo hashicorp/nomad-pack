@@ -14,9 +14,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: Determine Go version
+        id: get-go-version
+        run: |
+          echo "go-version=$(cat .go-version)" >> $GITHUB_OUTPUT
       - uses: actions/setup-go@v3
         with:
-          go-version: '1.18.6'
+          go-version: ${{ steps.get-go-version.outputs.go-version }}
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3.1.0
         with:
