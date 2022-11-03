@@ -60,7 +60,7 @@ func (p *ParsedTemplate) Job() *v1client.Job {
 // responsible for handling packs that contain job specifications.
 //
 // TODO(jrasell): design a nice method to have the QueryOpts setup once and
-//  available to all subsystems that use a Nomad client.
+// available to all subsystems that use a Nomad client.
 func NewDeployer(client *v1.Client, cfg *CLIConfig) runner.Runner {
 	return &Runner{
 		client:          client,

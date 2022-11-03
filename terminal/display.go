@@ -312,11 +312,7 @@ func (e *DisplayEntry) SetBody(line int, data string) {
 
 	if line >= len(e.body) {
 		nb := make([]string, line+1)
-
-		for i, s := range e.body {
-			nb[i] = s
-		}
-
+		copy(nb, e.body)
 		e.body = nb
 		resize = true
 	}

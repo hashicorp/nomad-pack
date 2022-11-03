@@ -58,7 +58,6 @@ func formatTimeDifference(first, second time.Time, d time.Duration) string {
 	return second.Truncate(d).Sub(first.Truncate(d)).String()
 }
 
-//
 func formatJobDiff(job v1client.JobDiff, verbose bool, ui terminal.UI) {
 	marker, style, _ := getDiffString(job.GetType())
 	ui.AppendToRow(marker, terminal.WithStyle(style))
@@ -412,7 +411,7 @@ func sortedTaskGroupFromMetrics(groups map[string]v1client.AllocationMetric) []s
 }
 
 // TODO: when we turn these into components, we can probably replace prefix
-//  (if empty) with glint padding/margin.
+// (if empty) with glint padding/margin.
 func formatAllocMetrics(metrics v1client.AllocationMetric, prefix string, ui terminal.UI) {
 	// Print a helpful message if we have an eligibility problem
 	if metrics.NodesEvaluated == nil {

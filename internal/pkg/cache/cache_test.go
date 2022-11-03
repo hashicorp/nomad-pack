@@ -422,7 +422,7 @@ func (l *TestLogger) Error(message string) {
 // users can easily identify issues.
 func (l *TestLogger) ErrorWithContext(err error, sub string, ctx ...string) {
 	l.t.Helper()
-	l.t.Log(fmt.Sprintf("err: %s", err))
+	l.t.Logf("err: %s", err)
 	l.t.Log(sub)
 	for _, entry := range ctx {
 		l.t.Log(entry)

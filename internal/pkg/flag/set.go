@@ -6,7 +6,6 @@ import (
 	goflag "flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"strings"
 
 	flag "github.com/spf13/pflag"
@@ -44,10 +43,10 @@ func NewSets() *Sets {
 	// checking on the result of Parse.
 	// Do the same thing for both posix and std lib flags
 	unionSet.Usage = func() {}
-	unionSet.SetOutput(ioutil.Discard)
+	unionSet.SetOutput(io.Discard)
 
 	goflagSet.Usage = func() {}
-	goflagSet.SetOutput(ioutil.Discard)
+	goflagSet.SetOutput(io.Discard)
 
 	return &Sets{
 		unionSet:    unionSet,

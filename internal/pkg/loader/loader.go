@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -55,7 +54,7 @@ func loadDir(dir string) (*pack.Pack, error) {
 			return fmt.Errorf("cannot load irregular file %q", name)
 		}
 
-		content, err := ioutil.ReadFile(name)
+		content, err := os.ReadFile(name)
 		if err != nil {
 			return fmt.Errorf("failed to read %s: %v", n, err)
 		}
