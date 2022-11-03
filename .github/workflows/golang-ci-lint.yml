@@ -22,7 +22,7 @@ jobs:
         with:
           go-version: ${{ steps.get-go-version.outputs.go-version }}
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v3.1.0
+        uses: golangci/golangci-lint-action@v3
         with:
-          version: v1.45.2
+          version: v1.50.1
           skip-cache: ${{ env.ACT == 'true' }}
