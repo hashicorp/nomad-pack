@@ -3,7 +3,7 @@ package renderer
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"text/template"
 
 	"github.com/Masterminds/sprig/v3"
@@ -50,7 +50,7 @@ func funcMap(nomadClient *v1.Client) template.FuncMap {
 
 // fileContents reads the passed path and returns the content as a string.
 func fileContents(file string) (string, error) {
-	content, err := ioutil.ReadFile(file)
+	content, err := os.ReadFile(file)
 	if err != nil {
 		return "", fmt.Errorf("failed to read %s: %v", file, err)
 	}
