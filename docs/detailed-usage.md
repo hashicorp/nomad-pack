@@ -156,7 +156,7 @@ nomad-pack info hello-world
 
 If you do not want to immediately deploy the pack, but instead want details on how it will be deployed, run the `plan` command.
 
-This invokes Nomad in a dry-run mode using the [Nomad Plan](https://www.nomadproject.io/api-docs/jobs#create-job-plan) API endpoint.
+This invokes Nomad in a dry-run mode using the [Nomad Plan](https://developer.hashicorp.com/nomad/api-docs/jobs#create-job-plan) API endpoint.
 
 ```
 nomad-pack plan hello-world

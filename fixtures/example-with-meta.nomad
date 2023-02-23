@@ -9,7 +9,7 @@
 # For more information and examples on the "job" stanza, please see
 # the online documentation at:
 #
-#     https://www.nomadproject.io/docs/job-specification/job
+#     https://developer.hashicorp.com/nomad/docs/job-specification/job
 #
 job "nomad_example" {
   # The "region" parameter specifies the region in which to execute the job.
@@ -32,7 +32,7 @@ job "nomad_example" {
   #
   # For more information, please see the online documentation at:
   #
-  #     https://www.nomadproject.io/docs/schedulers
+  #     https://developer.hashicorp.com/nomad/docs/schedulers
   #
   type = "service"
 
@@ -43,7 +43,7 @@ job "nomad_example" {
   # For more information and examples on the "constraint" stanza, please see
   # the online documentation at:
   #
-  #     https://www.nomadproject.io/docs/job-specification/constraint
+  #     https://developer.hashicorp.com/nomad/docs/job-specification/constraint
   #
   # constraint {
   #   attribute = "${attr.kernel.name}"
@@ -60,7 +60,7 @@ job "nomad_example" {
   # For more information and examples on the "update" stanza, please see
   # the online documentation at:
   #
-  #     https://www.nomadproject.io/docs/job-specification/update
+  #     https://developer.hashicorp.com/nomad/docs/job-specification/update
   #
   update {
     # The "max_parallel" parameter specifies the maximum number of updates to
@@ -110,7 +110,7 @@ job "nomad_example" {
   # For more information on the "migrate" stanza, please see
   # the online documentation at:
   #
-  #     https://www.nomadproject.io/docs/job-specification/migrate
+  #     https://developer.hashicorp.com/nomad/docs/job-specification/migrate
   #
   migrate {
     # Specifies the number of task groups that can be migrated at the same
@@ -139,7 +139,7 @@ job "nomad_example" {
   # For more information and examples on the "group" stanza, please see
   # the online documentation at:
   #
-  #     https://www.nomadproject.io/docs/job-specification/group
+  #     https://developer.hashicorp.com/nomad/docs/job-specification/group
   #
   group "cache" {
     # The "count" parameter specifies the number of the task groups that should
@@ -153,7 +153,7 @@ job "nomad_example" {
     # For more information and examples on the "network" stanza, please see
     # the online documentation at:
     #
-    #     https://www.nomadproject.io/docs/job-specification/network
+    #     https://developer.hashicorp.com/nomad/docs/job-specification/network
     #
     network {
       port "db" {
@@ -169,7 +169,7 @@ job "nomad_example" {
     # For more information and examples on the "service" stanza, please see
     # the online documentation at:
     #
-    #     https://www.nomadproject.io/docs/job-specification/service
+    #     https://developer.hashicorp.com/nomad/docs/job-specification/service
     #
     service {
       name = "redis-cache"
@@ -196,7 +196,7 @@ job "nomad_example" {
     # For more information and examples on the "restart" stanza, please see
     # the online documentation at:
     #
-    #     https://www.nomadproject.io/docs/job-specification/restart
+    #     https://developer.hashicorp.com/nomad/docs/job-specification/restart
     #
     restart {
       # The number of attempts to run the job within the specified interval.
@@ -222,7 +222,7 @@ job "nomad_example" {
     # For more information and examples on the "ephemeral_disk" stanza, please
     # see the online documentation at:
     #
-    #     https://www.nomadproject.io/docs/job-specification/ephemeral_disk
+    #     https://developer.hashicorp.com/nomad/docs/job-specification/ephemeral_disk
     #
     ephemeral_disk {
       # When sticky is true and the task group is updated, the scheduler
@@ -246,7 +246,7 @@ job "nomad_example" {
     # For more information and examples on the "affinity" stanza, please
     # see the online documentation at:
     #
-    #     https://www.nomadproject.io/docs/job-specification/affinity
+    #     https://developer.hashicorp.com/nomad/docs/job-specification/affinity
     #
     # affinity {
     # attribute specifies the name of a node attribute or metadata
@@ -271,7 +271,7 @@ job "nomad_example" {
     # For more information and examples on the "spread" stanza, please
     # see the online documentation at:
     #
-    #     https://www.nomadproject.io/docs/job-specification/spread
+    #     https://developer.hashicorp.com/nomad/docs/job-specification/spread
     #
     # spread {
     # attribute specifies the name of a node attribute or metadata
@@ -295,7 +295,7 @@ job "nomad_example" {
     # For more information and examples on the "task" stanza, please see
     # the online documentation at:
     #
-    #     https://www.nomadproject.io/docs/job-specification/task
+    #     https://developer.hashicorp.com/nomad/docs/job-specification/task
     #
     task "redis" {
       # The "driver" parameter specifies the task driver that should be used to
@@ -321,7 +321,7 @@ job "nomad_example" {
       # For more information and examples on the "artifact" stanza, please see
       # the online documentation at:
       #
-      #     https://www.nomadproject.io/docs/job-specification/artifact
+      #     https://developer.hashicorp.com/nomad/docs/job-specification/artifact
       #
       # artifact {
       #   source = "http://foo.com/artifact.tar.gz"
@@ -339,7 +339,7 @@ job "nomad_example" {
       # For more information and examples on the "logs" stanza, please see
       # the online documentation at:
       #
-      #     https://www.nomadproject.io/docs/job-specification/logs
+      #     https://developer.hashicorp.com/nomad/docs/job-specification/logs
       #
       # logs {
       #   max_files     = 10
@@ -354,7 +354,7 @@ job "nomad_example" {
       # For more information and examples on the "resources" stanza, please see
       # the online documentation at:
       #
-      #     https://www.nomadproject.io/docs/job-specification/resources
+      #     https://developer.hashicorp.com/nomad/docs/job-specification/resources
       #
       resources {
         cpu    = 500 # 500 MHz
@@ -369,7 +369,7 @@ job "nomad_example" {
       # For more information and examples on the "template" stanza, please see
       # the online documentation at:
       #
-      #     https://www.nomadproject.io/docs/job-specification/template
+      #     https://developer.hashicorp.com/nomad/docs/job-specification/template
       #
       # template {
       #   data          = "---\nkey: {{ key \"service/my-key\" }}"
@@ -398,7 +398,7 @@ job "nomad_example" {
       # For more information and examples on the "vault" stanza, please see
       # the online documentation at:
       #
-      #     https://www.nomadproject.io/docs/job-specification/vault
+      #     https://developer.hashicorp.com/nomad/docs/job-specification/vault
       #
       # vault {
       #   policies      = ["cdn", "frontend"]
