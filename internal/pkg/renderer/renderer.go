@@ -46,9 +46,11 @@ const (
 // template using the parsed variable map.
 func (r *Renderer) Render(p *pack.Pack, variables map[string]interface{}) (*Rendered, error) {
 
-	// templatesToRender stores all the template that should be rendered.
+	// templatesToRender stores all the template that should be rendered,
+	// auxFilesToRender stores all the auxiliary files that should be rendered.
 	templatesToRender := make(map[string]toRender)
-	prepareTemplates(p, templatesToRender, variables)
+	auxFilesToRender := make(map[string]toRender)
+	prepareFiles(p, templatesToRender, auxFilesToRender, variables)
 
 	// Set up our new template, add the function mapping, and set the
 	// delimiters.
@@ -136,10 +138,10 @@ func (r *Renderer) RenderOutput() (string, error) {
 	return buf.String(), nil
 }
 
-// prepareTemplates recurses the pack and its dependencies to populate to the
+// prepareFiles recurses the pack and its dependencies to populate to the
 // passed map with the templates to render along with the variables which
 // correspond.
-func prepareTemplates(p *pack.Pack, templates map[string]toRender, variables map[string]interface{}) {
+func prepareFiles(p *pack.Pack, templates map[string]toRender, auxFiles map[string]toRender, variables map[string]interface{}) {
 
 	newVars := make(map[string]interface{})
 
@@ -164,12 +166,17 @@ func prepareTemplates(p *pack.Pack, templates map[string]toRender, variables map
 	}
 	// Iterate the dependencies and prepareTemplates for each.
 	for _, child := range p.Dependencies() {
-		prepareTemplates(child, templates, newVars)
+		prepareFiles(child, templates, auxFiles, newVars)
 	}
 
 	// Add each template within the pack with scoped variables.
 	for _, t := range p.TemplateFiles {
 		templates[path.Join(p.Name(), t.Name)] = toRender{content: string(t.Content), variables: newVars}
+	}
+
+	// Add each aux file within the pack with scoped variables.
+	for _, f := range p.AuxiliaryFiles {
+		templates[path.Join(p.Name(), f.Name)] = toRender{content: string(f.Content), variables: newVars}
 	}
 }
 
