@@ -23,6 +23,10 @@ type Renderer struct {
 	// when accessing it.
 	Client *v1.Client
 
+	// RenderAuxFiles determines whether we should render auxiliary files found
+	// in template/ or not
+	RenderAuxFiles bool
+
 	// stores the pack information, variables and tpl, so we can perform the
 	// output template rendering after pack deployment.
 	pack      *pack.Pack
@@ -50,7 +54,7 @@ func (r *Renderer) Render(p *pack.Pack, variables map[string]interface{}) (*Rend
 	// auxFilesToRender stores all the auxiliary files that should be rendered.
 	templatesToRender := make(map[string]toRender)
 	auxFilesToRender := make(map[string]toRender)
-	prepareFiles(p, templatesToRender, auxFilesToRender, variables)
+	prepareFiles(p, templatesToRender, auxFilesToRender, variables, r.RenderAuxFiles)
 
 	// Set up our new template, add the function mapping, and set the
 	// delimiters.
@@ -138,10 +142,13 @@ func (r *Renderer) RenderOutput() (string, error) {
 	return buf.String(), nil
 }
 
-// prepareFiles recurses the pack and its dependencies to populate to the
-// passed map with the templates to render along with the variables which
-// correspond.
-func prepareFiles(p *pack.Pack, templates map[string]toRender, auxFiles map[string]toRender, variables map[string]interface{}) {
+// prepareFiles recurses the pack and its dependencies to populate to the passed
+// map with the templates to render along with the variables which correspond.
+func prepareFiles(p *pack.Pack,
+	templates map[string]toRender,
+	auxFiles map[string]toRender,
+	variables map[string]interface{},
+	renderAuxFiles bool) {
 
 	newVars := make(map[string]interface{})
 
@@ -166,7 +173,7 @@ func prepareFiles(p *pack.Pack, templates map[string]toRender, auxFiles map[stri
 	}
 	// Iterate the dependencies and prepareTemplates for each.
 	for _, child := range p.Dependencies() {
-		prepareFiles(child, templates, auxFiles, newVars)
+		prepareFiles(child, templates, auxFiles, newVars, renderAuxFiles)
 	}
 
 	// Add each template within the pack with scoped variables.
@@ -174,9 +181,11 @@ func prepareFiles(p *pack.Pack, templates map[string]toRender, auxFiles map[stri
 		templates[path.Join(p.Name(), t.Name)] = toRender{content: string(t.Content), variables: newVars}
 	}
 
-	// Add each aux file within the pack with scoped variables.
-	for _, f := range p.AuxiliaryFiles {
-		templates[path.Join(p.Name(), f.Name)] = toRender{content: string(f.Content), variables: newVars}
+	if renderAuxFiles {
+		// Add each aux file within the pack with scoped variables.
+		for _, f := range p.AuxiliaryFiles {
+			templates[path.Join(p.Name(), f.Name)] = toRender{content: string(f.Content), variables: newVars}
+		}
 	}
 }
 

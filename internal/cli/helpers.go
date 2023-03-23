@@ -6,6 +6,7 @@ import (
 
 	v1client "github.com/hashicorp/nomad-openapi/clients/go/v1"
 	v1 "github.com/hashicorp/nomad-openapi/v1"
+
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/manager"
@@ -103,8 +104,13 @@ func registryPackRow(cachedRegistry *cache.Registry, cachedPack *cache.Pack) []t
 // between layers.
 // Uses the pack manager to parse the templates, override template variables with var files
 // and cli vars as applicable
-func renderPack(manager *manager.PackManager, ui terminal.UI, errCtx *errors.UIErrorContext) (*renderer.Rendered, error) {
-	r, err := manager.ProcessTemplates()
+func renderPack(
+	manager *manager.PackManager,
+	ui terminal.UI,
+	renderAux bool,
+	errCtx *errors.UIErrorContext,
+) (*renderer.Rendered, error) {
+	r, err := manager.ProcessTemplates(renderAux)
 	if err != nil {
 		packName := manager.PackName()
 		errCtx.Add(errors.UIContextPrefixPackName, packName)

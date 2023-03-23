@@ -69,7 +69,7 @@ hclfmt: ## Format HCL files with hclfmt
 
 .PHONY: dev
 dev: GOPATH=$(shell go env GOPATH)
-dev: lint
+dev:
 	@echo "==> Building nomad-pack..."
 	@CGO_ENABLED=0 go build -ldflags $(GO_LDFLAGS) -o ./bin/nomad-pack
 	@rm -f $(GOPATH)/bin/nomad-pack
