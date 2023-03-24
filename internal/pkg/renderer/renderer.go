@@ -7,6 +7,8 @@ import (
 	"text/template"
 
 	v1 "github.com/hashicorp/nomad-openapi/v1"
+	"golang.org/x/exp/maps"
+
 	"github.com/hashicorp/nomad-pack/sdk/pack"
 )
 
@@ -50,11 +52,9 @@ const (
 // template using the parsed variable map.
 func (r *Renderer) Render(p *pack.Pack, variables map[string]interface{}) (*Rendered, error) {
 
-	// templatesToRender stores all the template that should be rendered,
-	// auxFilesToRender stores all the auxiliary files that should be rendered.
-	templatesToRender := make(map[string]toRender)
-	auxFilesToRender := make(map[string]toRender)
-	prepareFiles(p, templatesToRender, auxFilesToRender, variables, r.RenderAuxFiles)
+	// filesToRender stores all the templates and auxiliary files that should be
+	// rendered
+	filesToRender := prepareFiles(p, variables, r.RenderAuxFiles)
 
 	// Set up our new template, add the function mapping, and set the
 	// delimiters.
@@ -68,7 +68,7 @@ func (r *Renderer) Render(p *pack.Pack, variables map[string]interface{}) (*Rend
 		tpl.Option("missingkey=zero")
 	}
 
-	for name, src := range templatesToRender {
+	for name, src := range filesToRender {
 		if tpl.Lookup(name) == nil {
 			if _, err := tpl.New(name).Parse(src.content); err != nil {
 				return nil, err
@@ -82,7 +82,7 @@ func (r *Renderer) Render(p *pack.Pack, variables map[string]interface{}) (*Rend
 		dependentRenders: make(map[string]string),
 	}
 
-	for name, src := range templatesToRender {
+	for name, src := range filesToRender {
 
 		// Skip the helper templates as we don't need to render these. They are
 		// called and used from within full templates.
@@ -142,14 +142,15 @@ func (r *Renderer) RenderOutput() (string, error) {
 	return buf.String(), nil
 }
 
-// prepareFiles recurses the pack and its dependencies to populate to the passed
-// map with the templates to render along with the variables which correspond.
+// prepareFiles recurses the pack and its dependencies and returns a map
+// with the templates/auxiliary files to render along with the variables which
+// correspond.
 func prepareFiles(p *pack.Pack,
-	templates map[string]toRender,
-	auxFiles map[string]toRender,
 	variables map[string]interface{},
-	renderAuxFiles bool) {
+	renderAuxFiles bool,
+) map[string]toRender {
 
+	files := make(map[string]toRender)
 	newVars := make(map[string]interface{})
 
 	// If the pack is a dependency, it only has access to its namespaced
@@ -172,21 +173,24 @@ func prepareFiles(p *pack.Pack,
 		newVars["my"] = newVars[p.Name()]
 	}
 	// Iterate the dependencies and prepareTemplates for each.
+	deps := make(map[string]toRender)
 	for _, child := range p.Dependencies() {
-		prepareFiles(child, templates, auxFiles, newVars, renderAuxFiles)
+		deps = prepareFiles(child, newVars, renderAuxFiles)
 	}
+	maps.Copy(files, deps)
 
 	// Add each template within the pack with scoped variables.
 	for _, t := range p.TemplateFiles {
-		templates[path.Join(p.Name(), t.Name)] = toRender{content: string(t.Content), variables: newVars}
+		files[path.Join(p.Name(), t.Name)] = toRender{content: string(t.Content), variables: newVars}
 	}
 
 	if renderAuxFiles {
 		// Add each aux file within the pack with scoped variables.
 		for _, f := range p.AuxiliaryFiles {
-			templates[path.Join(p.Name(), f.Name)] = toRender{content: string(f.Content), variables: newVars}
+			files[path.Join(p.Name(), f.Name)] = toRender{content: string(f.Content), variables: newVars}
 		}
 	}
+	return files
 }
 
 // Rendered encapsulates all the rendered template files associated with the
