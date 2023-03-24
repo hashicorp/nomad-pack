@@ -7,8 +7,6 @@ import (
 	"text/template"
 
 	v1 "github.com/hashicorp/nomad-openapi/v1"
-	"golang.org/x/exp/maps"
-
 	"github.com/hashicorp/nomad-pack/sdk/pack"
 )
 
@@ -54,7 +52,8 @@ func (r *Renderer) Render(p *pack.Pack, variables map[string]interface{}) (*Rend
 
 	// filesToRender stores all the templates and auxiliary files that should be
 	// rendered
-	filesToRender := prepareFiles(p, variables, r.RenderAuxFiles)
+	filesToRender := map[string]toRender{}
+	prepareFiles(p, filesToRender, variables, r.RenderAuxFiles)
 
 	// Set up our new template, add the function mapping, and set the
 	// delimiters.
@@ -146,11 +145,11 @@ func (r *Renderer) RenderOutput() (string, error) {
 // with the templates/auxiliary files to render along with the variables which
 // correspond.
 func prepareFiles(p *pack.Pack,
+	files map[string]toRender,
 	variables map[string]interface{},
 	renderAuxFiles bool,
-) map[string]toRender {
+) {
 
-	files := make(map[string]toRender)
 	newVars := make(map[string]interface{})
 
 	// If the pack is a dependency, it only has access to its namespaced
@@ -173,11 +172,9 @@ func prepareFiles(p *pack.Pack,
 		newVars["my"] = newVars[p.Name()]
 	}
 	// Iterate the dependencies and prepareTemplates for each.
-	deps := make(map[string]toRender)
 	for _, child := range p.Dependencies() {
-		deps = prepareFiles(child, newVars, renderAuxFiles)
+		prepareFiles(child, files, newVars, renderAuxFiles)
 	}
-	maps.Copy(files, deps)
 
 	// Add each template within the pack with scoped variables.
 	for _, t := range p.TemplateFiles {
@@ -190,7 +187,6 @@ func prepareFiles(p *pack.Pack,
 			files[path.Join(p.Name(), f.Name)] = toRender{content: string(f.Content), variables: newVars}
 		}
 	}
-	return files
 }
 
 // Rendered encapsulates all the rendered template files associated with the
