@@ -124,8 +124,8 @@ func (r *Renderer) Render(p *pack.Pack, variables map[string]interface{}) (*Rend
 // RenderOutput performs the output template rendering.
 func (r *Renderer) RenderOutput() (string, error) {
 
-	// If we don't have a template file or any aux files, return early.
-	if r.pack.OutputTemplateFile == nil && r.pack.AuxiliaryFiles == nil {
+	// If we don't have a template file, return early.
+	if r.pack.OutputTemplateFile == nil {
 		return "", nil
 	}
 
