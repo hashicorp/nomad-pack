@@ -294,7 +294,7 @@ func (c *RenderCommand) Flags() *flag.Sets {
 			Target:  &c.renderAuxFiles,
 			Default: true,
 			Usage: `Controls whether or not the rendered output contains auxiliary
-					files found in templates/.`,
+					files found in the 'templates' folder.`,
 		})
 
 		f.StringVarP(&flag.StringVarP{
