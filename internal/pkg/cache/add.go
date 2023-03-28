@@ -133,7 +133,7 @@ func (c *Cache) cloneRemoteGitRegistry(opts *AddOpts) (err error) {
 
 	// Append the pack name to the go-getter url if a pack name was specified
 	if opts.PackName != "" {
-		src := strings.TrimRight(opts.Source, ".git") // to make the next command work consistently
+		src := strings.TrimSuffix(opts.Source, ".git") // to make the next command work consistently
 		url = fmt.Sprintf("%s.git//packs/%s", src, opts.PackName)
 	}
 
