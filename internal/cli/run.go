@@ -66,7 +66,7 @@ func (c *RunCommand) run() int {
 
 	// Render the pack now, before creating the deployer. If we get an error
 	// we won't make it to the deployer.
-	r, err := renderPack(packManager, c.baseCommand.ui, errorContext)
+	r, err := renderPack(packManager, c.baseCommand.ui, false, errorContext)
 	if err != nil {
 		return 255
 	}

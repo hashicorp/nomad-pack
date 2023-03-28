@@ -47,7 +47,7 @@ func NewPackManager(cfg *Config, client *v1.Client) *PackManager {
 // TODO(jrasell) figure out whether we want an error or hcl.Diagnostics return
 // object. If we stick to an error, then we need to come up with a way of
 // nicely formatting them.
-func (pm *PackManager) ProcessTemplates() (*renderer.Rendered, []*errors.WrappedUIContext) {
+func (pm *PackManager) ProcessTemplates(renderAux bool) (*renderer.Rendered, []*errors.WrappedUIContext) {
 
 	loadedPack, err := pm.loadAndValidatePacks()
 	if err != nil {
@@ -98,6 +98,9 @@ func (pm *PackManager) ProcessTemplates() (*renderer.Rendered, []*errors.Wrapped
 	r.Client = pm.client
 	pm.renderer = r
 
+	// should auxiliary files be rendered as well?
+	pm.renderer.RenderAuxFiles = renderAux
+
 	rendered, err := r.Render(loadedPack, mapVars)
 	if err != nil {
 		return nil, []*errors.WrappedUIContext{{
@@ -110,7 +113,9 @@ func (pm *PackManager) ProcessTemplates() (*renderer.Rendered, []*errors.Wrapped
 }
 
 // ProcessOutputTemplate performs the output template rendering.
-func (pm *PackManager) ProcessOutputTemplate() (string, error) { return pm.renderer.RenderOutput() }
+func (pm *PackManager) ProcessOutputTemplate() (string, error) {
+	return pm.renderer.RenderOutput()
+}
 
 // loadAndValidatePacks triggers the initial parent load and then starts the
 // dependent pack loader. The returned pack will therefore be fully populated.

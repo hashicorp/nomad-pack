@@ -30,6 +30,10 @@ type Pack struct {
 	// files within the list will be processed by the rendering engine.
 	TemplateFiles []*File
 
+	// AuxiliaryFiles are the files included in the "templates" directory of the
+	// Pack that will also be rendered, but not run.
+	AuxiliaryFiles []*File
+
 	// RootVariableFile is the file which contains the root variables that can
 	// include a description, type, and default value. This is parsed along
 	// with any override variables and stored within Variables.
