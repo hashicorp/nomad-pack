@@ -140,7 +140,7 @@ func (c *RunCommand) run() int {
 		c.ui.Success(fmt.Sprintf("Pack successfully deployed. Use %s with --ref=%s to manage this deployed instance with plan, stop, destroy, or info", c.packConfig.Name, c.packConfig.Ref))
 	}
 
-	output, err := packManager.ProcessOutputTemplate(false)
+	output, err := packManager.ProcessOutputTemplate()
 	if err != nil {
 		c.ui.ErrorWithContext(err, "failed to render output template", "Pack Name: "+c.packConfig.Name)
 		return 1

@@ -229,7 +229,7 @@ func (c *RenderCommand) Run(args []string) int {
 	// displayed before the template renders, so the UI looks OK.
 	if c.renderOutputTemplate {
 		var outputRender string
-		outputRender, err = packManager.ProcessOutputTemplate(c.renderAuxFiles)
+		outputRender, err = packManager.ProcessOutputTemplate()
 		if err != nil {
 			c.ui.ErrorWithContext(err, "failed to render output template", errorContext.GetAll()...)
 		} else {

@@ -113,8 +113,7 @@ func (pm *PackManager) ProcessTemplates(renderAux bool) (*renderer.Rendered, []*
 }
 
 // ProcessOutputTemplate performs the output template rendering.
-func (pm *PackManager) ProcessOutputTemplate(aux bool) (string, error) {
-	pm.renderer.RenderAuxFiles = aux
+func (pm *PackManager) ProcessOutputTemplate() (string, error) {
 	return pm.renderer.RenderOutput()
 }
 
