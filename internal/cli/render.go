@@ -156,7 +156,7 @@ func writeFile(c *RenderCommand, path string, content string) error {
 // name.
 func formatRenderName(name string) string {
 	outName := strings.Replace(name, "/templates/", "/", 1)
-	outName = strings.TrimRight(outName, ".tpl")
+	outName = strings.TrimSuffix(outName, ".tpl")
 
 	return outName
 }
