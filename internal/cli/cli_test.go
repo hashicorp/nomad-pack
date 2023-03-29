@@ -487,6 +487,7 @@ func TestCLI_PackRender_MyAlias(t *testing.T) {
 
 	result := runPackCmd(t, []string{
 		"render",
+		"--no-format=true",
 		getTestPackPath("my_alias_test"),
 	})
 	require.Empty(t, result.cmdErr.String(), "cmdErr should be empty, but was %q", result.cmdErr.String())
