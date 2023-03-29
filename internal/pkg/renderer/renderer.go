@@ -112,7 +112,7 @@ func (r *Renderer) Render(p *pack.Pack, variables map[string]interface{}) (*Rend
 		nameSplit := strings.Split(name, "/")
 
 		if r.Format {
-			// hclfmt the tempaltes
+			// hclfmt the templates
 			f, err := printer.Format([]byte(replacedTpl))
 			if err != nil {
 				return nil, fmt.Errorf("failed to format the template %s, %v", name, err)
