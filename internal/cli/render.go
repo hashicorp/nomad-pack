@@ -290,7 +290,7 @@ func (c *RenderCommand) Flags() *flag.Sets {
 		})
 
 		f.BoolVar(&flag.BoolVar{
-			Name:    "no-render-aux-files",
+			Name:    "skip-aux-files",
 			Target:  &c.noRenderAuxFiles,
 			Default: false,
 			Usage: `Controls whether or not the rendered output contains auxiliary
