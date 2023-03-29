@@ -6,7 +6,9 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/hashicorp/hcl/hcl/printer"
 	v1 "github.com/hashicorp/nomad-openapi/v1"
+
 	"github.com/hashicorp/nomad-pack/sdk/pack"
 )
 
@@ -26,6 +28,10 @@ type Renderer struct {
 	// RenderAuxFiles determines whether we should render auxiliary files found
 	// in template/ or not
 	RenderAuxFiles bool
+
+	// Format determines whether we should format templates before rendering them
+	// or not
+	Format bool
 
 	// stores the pack information, variables and tpl, so we can perform the
 	// output template rendering after pack deployment.
@@ -105,12 +111,21 @@ func (r *Renderer) Render(p *pack.Pack, variables map[string]interface{}) (*Rend
 		// Split the name so the element at index zero becomes the pack name.
 		nameSplit := strings.Split(name, "/")
 
+		if r.Format {
+			// hclfmt the tempaltes
+			f, err := printer.Format([]byte(replacedTpl))
+			if err != nil {
+				return nil, fmt.Errorf("failed to format the template %s, %v", name, err)
+			}
+			replacedTpl = string(f)
+		}
+
 		// Add the rendered pack template to our output, depending on whether
 		// it's name matches that of our parent.
 		if nameSplit[0] == p.Name() {
-			rendered.parentRenders[name] = replacedTpl
+			rendered.parentRenders[name] = string(replacedTpl)
 		} else {
-			rendered.dependentRenders[name] = replacedTpl
+			rendered.dependentRenders[name] = string(replacedTpl)
 		}
 	}
 

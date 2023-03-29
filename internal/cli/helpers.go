@@ -108,9 +108,10 @@ func renderPack(
 	manager *manager.PackManager,
 	ui terminal.UI,
 	renderAux bool,
+	format bool,
 	errCtx *errors.UIErrorContext,
 ) (*renderer.Rendered, error) {
-	r, err := manager.ProcessTemplates(renderAux)
+	r, err := manager.ProcessTemplates(renderAux, format)
 	if err != nil {
 		packName := manager.PackName()
 		errCtx.Add(errors.UIContextPrefixPackName, packName)

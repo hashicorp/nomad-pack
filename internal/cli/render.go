@@ -36,6 +36,10 @@ type RenderCommand struct {
 	// auxiliary files inside templates/
 	renderAuxFiles bool
 
+	// noFormat is a boolean flag to control whether we should hcl-format the
+	// templates before rendering them.
+	noFormat bool
+
 	// overwriteAll is set to true when someone specifies "a" to the y/n/a
 	overwriteAll bool
 }
@@ -197,7 +201,7 @@ func (c *RenderCommand) Run(args []string) int {
 	}
 	packManager := generatePackManager(c.baseCommand, client, c.packConfig)
 
-	renderOutput, err := renderPack(packManager, c.baseCommand.ui, c.renderAuxFiles, errorContext)
+	renderOutput, err := renderPack(packManager, c.baseCommand.ui, c.renderAuxFiles, !c.noFormat, errorContext)
 	if err != nil {
 		return 1
 	}
@@ -295,6 +299,13 @@ func (c *RenderCommand) Flags() *flag.Sets {
 			Default: true,
 			Usage: `Controls whether or not the rendered output contains auxiliary
 					files found in the 'templates' folder.`,
+		})
+
+		f.BoolVar(&flag.BoolVar{
+			Name:    "no-format",
+			Target:  &c.noFormat,
+			Default: false,
+			Usage:   `Controls whether or not to format templates before outputting.`,
 		})
 
 		f.StringVarP(&flag.StringVarP{
