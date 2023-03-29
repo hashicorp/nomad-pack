@@ -123,9 +123,9 @@ func (r *Renderer) Render(p *pack.Pack, variables map[string]interface{}) (*Rend
 		// Add the rendered pack template to our output, depending on whether
 		// it's name matches that of our parent.
 		if nameSplit[0] == p.Name() {
-			rendered.parentRenders[name] = string(replacedTpl)
+			rendered.parentRenders[name] = replacedTpl
 		} else {
-			rendered.dependentRenders[name] = string(replacedTpl)
+			rendered.dependentRenders[name] = replacedTpl
 		}
 	}
 
