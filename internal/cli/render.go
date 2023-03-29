@@ -32,9 +32,9 @@ type RenderCommand struct {
 	// standard output.
 	renderToDir string
 
-	// renderAuxFiles is a boolean flag to control whether we should also render
+	// noRenderAuxFiles is a boolean flag to control whether we should also render
 	// auxiliary files inside templates/
-	renderAuxFiles bool
+	noRenderAuxFiles bool
 
 	// overwriteAll is set to true when someone specifies "a" to the y/n/a
 	overwriteAll bool
@@ -197,7 +197,7 @@ func (c *RenderCommand) Run(args []string) int {
 	}
 	packManager := generatePackManager(c.baseCommand, client, c.packConfig)
 
-	renderOutput, err := renderPack(packManager, c.baseCommand.ui, c.renderAuxFiles, errorContext)
+	renderOutput, err := renderPack(packManager, c.baseCommand.ui, !c.noRenderAuxFiles, errorContext)
 	if err != nil {
 		return 1
 	}
@@ -291,8 +291,8 @@ func (c *RenderCommand) Flags() *flag.Sets {
 
 		f.BoolVar(&flag.BoolVar{
 			Name:    "render-aux-files",
-			Target:  &c.renderAuxFiles,
-			Default: true,
+			Target:  &c.noRenderAuxFiles,
+			Default: false,
 			Usage: `Controls whether or not the rendered output contains auxiliary
 					files found in the 'templates' folder.`,
 		})
