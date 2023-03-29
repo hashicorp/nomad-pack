@@ -32,9 +32,9 @@ type RenderCommand struct {
 	// standard output.
 	renderToDir string
 
-	// renderAuxFiles is a boolean flag to control whether we should also render
+	// noRenderAuxFiles is a boolean flag to control whether we should also render
 	// auxiliary files inside templates/
-	renderAuxFiles bool
+	noRenderAuxFiles bool
 
 	// noFormat is a boolean flag to control whether we should hcl-format the
 	// templates before rendering them.
@@ -201,7 +201,7 @@ func (c *RenderCommand) Run(args []string) int {
 	}
 	packManager := generatePackManager(c.baseCommand, client, c.packConfig)
 
-	renderOutput, err := renderPack(packManager, c.baseCommand.ui, c.renderAuxFiles, !c.noFormat, errorContext)
+	renderOutput, err := renderPack(packManager, c.baseCommand.ui, !c.noRenderAuxFiles, !c.noFormat, errorContext)
 	if err != nil {
 		return 1
 	}
@@ -294,9 +294,9 @@ func (c *RenderCommand) Flags() *flag.Sets {
 		})
 
 		f.BoolVar(&flag.BoolVar{
-			Name:    "render-aux-files",
-			Target:  &c.renderAuxFiles,
-			Default: true,
+			Name:    "skip-aux-files",
+			Target:  &c.noRenderAuxFiles,
+			Default: false,
 			Usage: `Controls whether or not the rendered output contains auxiliary
 					files found in the 'templates' folder.`,
 		})

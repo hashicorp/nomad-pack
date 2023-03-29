@@ -1,8 +1,8 @@
 ## UNRELEASED
 
 IMPROVEMENTS:
-* cli: Add flag `--render-aux-files` that allows to render any files found in `templates/` [[GH-303](https://github.com/hashicorp/nomad-pack/pull/303)]
 * deps: Update the Nomad OpenAPI depedency [[GH-288](https://github.com/hashicorp/nomad-pack/pull/288)] and require Go 1.18 as a build dependency
+* template: Render other templates than jobspecs inside `templates/` [[GH-303](https://github.com/hashicorp/nomad-pack/pull/303)]
 * template: Automatically format templates before outputting [[GH-311](https://github.com/hashicorp/nomad-pack/pull/311)]
 
 ## 0.0.1-techpreview.3 (July 21, 2022)
