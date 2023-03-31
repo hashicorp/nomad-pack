@@ -111,6 +111,12 @@ func (r *Renderer) Render(p *pack.Pack, variables map[string]interface{}) (*Rend
 		// Split the name so the element at index zero becomes the pack name.
 		nameSplit := strings.Split(name, "/")
 
+		// If we encounter a template that's empty (just renders to whitespace),
+		// we skip it.
+		if len(strings.TrimSpace(replacedTpl)) == 0 {
+			continue
+		}
+
 		if r.Format {
 			// hclfmt the templates
 			f, err := printer.Format([]byte(replacedTpl))
