@@ -5,6 +5,7 @@ IMPROVEMENTS:
 * template: Render other templates than jobspecs inside `templates/` [[GH-303](https://github.com/hashicorp/nomad-pack/pull/303)]
 * template: Automatically format templates before outputting [[GH-311](https://github.com/hashicorp/nomad-pack/pull/311)]
 * template: Skip templates that would render to just whitespace [[GH-313](https://github.com/hashicorp/nomad-pack/pull/313)]
+* vars: Produce a warning, not an error, if variable overrides refer to variables not present in the pack [[GH-315](https://github.com/hashicorp/nomad-pack/pull/315)]
 
 ## 0.0.1-techpreview.3 (July 21, 2022)
 
