@@ -220,7 +220,7 @@ func (c *baseCommand) ensureCache() error {
 	}
 
 	// Check if default registry exists
-	_, err = os.Stat(path.Join(cache.DefaultCachePath(), cache.DefaultRegistryName))
+	_, err = os.Stat(path.Join(cache.DefaultCachePath(), cache.DefaultRegistryName()))
 	// If it does not error, then the registry already exists
 	if err == nil {
 		return nil
@@ -228,8 +228,8 @@ func (c *baseCommand) ensureCache() error {
 
 	// Add the registry or registry target to the global cache
 	_, err = globalCache.Add(&cache.AddOpts{
-		RegistryName: cache.DefaultRegistryName,
-		Source:       cache.DefaultRegistrySource,
+		RegistryName: cache.DefaultRegistryName(),
+		Source:       cache.DefaultRegistrySource(),
 	})
 	if err != nil {
 		return err

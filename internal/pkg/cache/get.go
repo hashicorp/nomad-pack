@@ -25,7 +25,7 @@ func (c *Cache) Get(opts *GetOpts) (registry *Registry, err error) {
 
 	// Set mandatory defaults
 	if opts.RegistryName == "" {
-		opts.RegistryName = DefaultRegistryName
+		opts.RegistryName = DefaultRegistryName()
 	}
 
 	// If no errors, allocate the instance

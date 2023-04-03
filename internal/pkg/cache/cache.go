@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	DefaultRegistryName   = "default"
-	DefaultRegistrySource = "github.com/hashicorp/nomad-pack-community-registry"
+	defaultRegistryName   = "default"
+	defaultRegistrySource = "github.com/hashicorp/nomad-pack-community-registry"
 	DefaultRef            = "latest"
 	DevRegistryName       = "<<local folder>>"
 	DevRef                = "<<none>>"
@@ -50,6 +50,20 @@ func NewCache(cfg *CacheConfig) (cache *Cache, err error) {
 
 func (c *Cache) ensureGlobalCache() error {
 	return filesystem.MaybeCreateDestinationDir(c.cfg.Path)
+}
+
+func DefaultRegistryName() string {
+	if v := os.Getenv("NOMAD_PACK_REGISTRY_NAME"); v != "" {
+		return v
+	}
+	return defaultRegistryName
+}
+
+func DefaultRegistrySource() string {
+	if v := os.Getenv("NOMAD_PACK_REGISTRY_SOURCE"); v != "" {
+		return v
+	}
+	return defaultRegistrySource
 }
 
 // DefaultCachePath returns the default cache path.

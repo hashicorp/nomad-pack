@@ -30,7 +30,7 @@ func (c *Cache) Add(opts *AddOpts) (cachedRegistry *Registry, err error) {
 
 	// Set default if registry name is not defined.
 	if opts.RegistryName == "" {
-		opts.RegistryName = DefaultRegistryName
+		opts.RegistryName = DefaultRegistryName()
 	}
 
 	// Setup error context with input args

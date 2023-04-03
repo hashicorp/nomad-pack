@@ -24,7 +24,7 @@ type PackConfig struct {
 func (cfg *PackConfig) Init() {
 	// Set defaults on pack config
 	if cfg.Registry == "" {
-		cfg.Registry = DefaultRegistryName
+		cfg.Registry = DefaultRegistryName()
 	}
 
 	if cfg.Ref == "" {

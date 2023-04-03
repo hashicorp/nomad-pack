@@ -28,7 +28,7 @@ func (c *Cache) Delete(opts *DeleteOpts) (err error) {
 
 	// if registry name is empty set to default
 	if opts.RegistryName == "" {
-		opts.RegistryName = DefaultRegistryName
+		opts.RegistryName = DefaultRegistryName()
 	}
 
 	c.ErrorContext.Add(errors.RegistryContextPrefixCachePath, opts.cachePath)
