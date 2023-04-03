@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package job
 
 import v1client "github.com/hashicorp/nomad-openapi/clients/go/v1"
