@@ -53,6 +53,7 @@ func (c *InfoCommand) Run(args []string) int {
 	variableParser, err := variable.NewParser(&variable.ParserConfig{
 		ParentName:        path.Base(packPath),
 		RootVariableFiles: pack.RootVariableFiles(),
+		IgnoreMissingVars: c.baseCommand.ignoreMissingVars,
 	})
 	if err != nil {
 		return 1

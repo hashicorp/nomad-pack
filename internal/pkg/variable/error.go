@@ -23,8 +23,8 @@ func safeDiagnosticsExtend(base, new hcl.Diagnostics) hcl.Diagnostics {
 
 func diagnosticMissingRootVar(name string, sub *hcl.Range) *hcl.Diagnostic {
 	return &hcl.Diagnostic{
-		Severity: hcl.DiagWarning,
-		Summary:  fmt.Sprintf("Pack does not contain variable %s to override", name),
+		Severity: hcl.DiagError,
+		Summary:  "Missing base variable declaration to override",
 		Detail:   fmt.Sprintf(`There is no variable named %q. An override file can only override a variable that was already declared in a primary configuration file.`, name),
 		Subject:  sub,
 	}
