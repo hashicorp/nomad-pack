@@ -73,10 +73,6 @@ func invalidPackDefinition(provider cacheOperationProvider) *Pack {
 		Ref: provider.AtRef(),
 		Pack: &pack.Pack{
 			Metadata: &pack.Metadata{
-				App: &pack.MetadataApp{
-					URL:    "",
-					Author: "",
-				},
 				Pack: &pack.MetadataPack{
 					Name:        provider.ForPackName(),
 					Description: "",

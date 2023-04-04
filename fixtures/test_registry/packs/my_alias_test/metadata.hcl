@@ -3,7 +3,6 @@
 
 app {
   url    = ""
-  author = "HashiCorp"
 }
 
 pack {

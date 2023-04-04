@@ -11,6 +11,7 @@ import (
 	"time"
 
 	gg "github.com/hashicorp/go-getter"
+
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/helper/filesystem"
 	pkgVersion "github.com/hashicorp/nomad-pack/internal/pkg/version"
