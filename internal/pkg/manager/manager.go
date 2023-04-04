@@ -50,7 +50,7 @@ func NewPackManager(cfg *Config, client *v1.Client) *PackManager {
 // TODO(jrasell) figure out whether we want an error or hcl.Diagnostics return
 // object. If we stick to an error, then we need to come up with a way of
 // nicely formatting them.
-func (pm *PackManager) ProcessTemplates(renderAux bool, format bool) (*renderer.Rendered, []*errors.WrappedUIContext) {
+func (pm *PackManager) ProcessTemplates(renderAux bool, format bool, ignoreMissingVars bool) (*renderer.Rendered, []*errors.WrappedUIContext) {
 
 	loadedPack, err := pm.loadAndValidatePacks()
 	if err != nil {
@@ -78,6 +78,7 @@ func (pm *PackManager) ProcessTemplates(renderAux bool, format bool) (*renderer.
 		FileOverrides:     pm.cfg.VariableFiles,
 		CLIOverrides:      pm.cfg.VariableCLIArgs,
 		EnvOverrides:      pm.cfg.VariableEnvVars,
+		IgnoreMissingVars: ignoreMissingVars,
 	})
 	if err != nil {
 		return nil, []*errors.WrappedUIContext{{

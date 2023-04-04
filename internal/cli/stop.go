@@ -85,7 +85,14 @@ func (c *StopCommand) Run(args []string) int {
 		var r *renderer.Rendered
 
 		// render the pack
-		r, err = renderPack(packManager, c.baseCommand.ui, false, false, errorContext)
+		r, err = renderPack(
+			packManager,
+			c.baseCommand.ui,
+			false,
+			false,
+			c.baseCommand.ignoreMissingVars,
+			errorContext,
+		)
 		if err != nil {
 			return 255
 		}

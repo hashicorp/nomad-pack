@@ -61,7 +61,14 @@ func (c *PlanCommand) Run(args []string) int {
 	packManager := generatePackManager(c.baseCommand, client, c.packConfig)
 
 	// load pack
-	r, err := renderPack(packManager, c.baseCommand.ui, false, false, errorContext)
+	r, err := renderPack(
+		packManager,
+		c.baseCommand.ui,
+		false,
+		false,
+		c.baseCommand.ignoreMissingVars,
+		errorContext,
+	)
 	if err != nil {
 		return c.exitCodeError
 	}

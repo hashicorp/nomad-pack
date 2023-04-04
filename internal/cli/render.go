@@ -204,7 +204,14 @@ func (c *RenderCommand) Run(args []string) int {
 	}
 	packManager := generatePackManager(c.baseCommand, client, c.packConfig)
 
-	renderOutput, err := renderPack(packManager, c.baseCommand.ui, !c.noRenderAuxFiles, !c.noFormat, errorContext)
+	renderOutput, err := renderPack(
+		packManager,
+		c.baseCommand.ui,
+		!c.noRenderAuxFiles,
+		!c.noFormat,
+		c.baseCommand.ignoreMissingVars,
+		errorContext,
+	)
 	if err != nil {
 		return 1
 	}
