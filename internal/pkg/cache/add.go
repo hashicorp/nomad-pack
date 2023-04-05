@@ -7,11 +7,13 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path"
 	"strings"
 	"time"
 
 	gg "github.com/hashicorp/go-getter"
+
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/helper/filesystem"
 	pkgVersion "github.com/hashicorp/nomad-pack/internal/pkg/version"
@@ -158,6 +160,16 @@ func (c *Cache) cloneRemoteGitRegistry(opts *AddOpts) (err error) {
 		logger.ErrorWithContext(err, "could not install registry", c.ErrorContext.GetAll()...)
 		return
 	}
+
+	// Get ref of our local repo clone and store it
+	cmd := exec.Command("git", "rev-parse", "--short", "HEAD")
+	cmd.Dir = clonePath
+	stdout, err := cmd.Output()
+	if err != nil {
+		logger.ErrorWithContext(err, "could not get ref of a cloned repository", c.ErrorContext.GetAll()...)
+		return
+	}
+	opts.LocalRef = string(stdout)
 
 	logger.Debug(fmt.Sprintf("Registry successfully cloned at %s", c.clonePath()))
 
@@ -313,6 +325,8 @@ type AddOpts struct {
 	// Optional ref of pack or registry at which to add. Ignored it not
 	// specifying a git source. Defaults to latest.
 	Ref string
+	// Ref of a locally cloned repository.
+	LocalRef string
 	// Optional username for basic auth to a registry that requires authentication.
 	Username string
 	// Optional password for basic auth to a registry that requires authentication.
