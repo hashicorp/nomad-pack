@@ -13,9 +13,10 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/helper/filesystem"
-	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -566,20 +567,20 @@ func makeTestRegRepo(tReg *TestGithubRegistry) {
 		return res
 	}
 
-	handleInitError(git("init"))
-	handleGitError(git("config", "user.email", "test@example.com"))
-	handleGitError(git("config", "user.name", "Github Action Test User"))
-	handleGitError(git("add", "."))
-	handleGitError(git("commit", "-m", "Initial Commit"))
-	res := handleGitError(git("log", "-1", `--pretty=%H`))
+	handleInitError(gitCmd("init"))
+	handleGitError(gitCmd("config", "user.email", "test@example.com"))
+	handleGitError(gitCmd("config", "user.name", "Github Action Test User"))
+	handleGitError(gitCmd("add", "."))
+	handleGitError(gitCmd("commit", "-m", "Initial Commit"))
+	res := handleGitError(gitCmd("log", "-1", `--pretty=%H`))
 	tReg.ref1 = strings.TrimSpace(res.stdout)
 
-	handleGitError(git("commit", "--allow-empty", "-m", "Second Commit"))
-	res = handleGitError(git("log", "-1", `--pretty=%H`))
+	handleGitError(gitCmd("commit", "--allow-empty", "-m", "Second Commit"))
+	res = handleGitError(gitCmd("log", "-1", `--pretty=%H`))
 	tReg.ref2 = strings.TrimSpace(res.stdout)
 }
 
-func git(args ...string) GitCommandResult {
+func gitCmd(args ...string) GitCommandResult {
 	git := exec.Command("git", args...)
 	git.Dir = tReg.SourceURL()
 	oB := new(bytes.Buffer)

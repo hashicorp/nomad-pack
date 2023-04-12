@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	git "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5"
 	gg "github.com/hashicorp/go-getter"
 
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
