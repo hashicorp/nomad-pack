@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
-	"os/exec"
 	"path"
 	"strings"
 	"time"
 
+	git "github.com/go-git/go-git/v5"
 	gg "github.com/hashicorp/go-getter"
 
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
@@ -162,14 +162,17 @@ func (c *Cache) cloneRemoteGitRegistry(opts *AddOpts) (err error) {
 	}
 
 	// Get ref of our local repo clone and store it
-	cmd := exec.Command("git", "rev-parse", "--short", "HEAD")
-	cmd.Dir = clonePath
-	stdout, err := cmd.Output()
+	r, err := git.PlainOpen(clonePath)
+	if err != nil {
+		logger.ErrorWithContext(err, "could not read cloned repository", c.ErrorContext.GetAll()...)
+		return
+	}
+	head, err := r.Head()
 	if err != nil {
 		logger.ErrorWithContext(err, "could not get ref of a cloned repository", c.ErrorContext.GetAll()...)
 		return
 	}
-	opts.LocalRef = string(stdout)
+	opts.LocalRef = head.Hash().String()
 
 	logger.Debug(fmt.Sprintf("Registry successfully cloned at %s", c.clonePath()))
 
