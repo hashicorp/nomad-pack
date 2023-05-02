@@ -5,6 +5,7 @@ package cache
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 	"path"
 	"strings"
@@ -163,22 +164,20 @@ func (c *Cache) cloneRemoteGitRegistry(opts *AddOpts) (err error) {
 	return
 }
 
-func (c *Cache) processPackEntry(opts *AddOpts, packEntry os.DirEntry) (err error) {
+func (c *Cache) processPackEntry(opts *AddOpts, packEntry os.DirEntry) error {
 	logger := c.cfg.Logger
 	logger.Debug(fmt.Sprintf("Processing pack %s@%s", packEntry.Name(), opts.Ref))
 
 	// Check if folder exists
-	_, err = os.Stat(opts.PackPath())
-	if err != nil {
-		// If an error other than not exists is thrown, rethrow it,
-		// else the CopyDir operation below will create it.
-		if !os.IsNotExist(err) {
-			logger.ErrorWithContext(err, "error checking pack directory", c.ErrorContext.GetAll()...)
-			return
-		}
-		// Reset to nil to ensure it doesn't get returned later.
-		err = nil
-	} else if !opts.IsLatest() {
+	_, err := os.Stat(opts.PackPath())
+	if !errors.Is(err, fs.ErrNotExist) {
+		logger.ErrorWithContext(err, "error checking pack directory", c.ErrorContext.GetAll()...)
+		return err
+	}
+
+	// Here we could have err=fs.ErrNotExist or err=nil
+	// Only look for latest when the pack path is found.
+	if err == nil && !opts.IsLatest() {
 		// If ref target is not latest, continue to next entry because ref already exists
 		logger.Debug("Pack already exists at specified ref - skipping")
 		return nil
@@ -188,7 +187,7 @@ func (c *Cache) processPackEntry(opts *AddOpts, packEntry os.DirEntry) (err erro
 
 	// If we are getting latest, backup previous safely so that we can keep the latest.log.
 	if opts.IsLatest() {
-		err = c.removePreviousLatest(opts)
+		err := c.removePreviousLatest(opts)
 		if err != nil {
 			return err
 		}
@@ -196,10 +195,9 @@ func (c *Cache) processPackEntry(opts *AddOpts, packEntry os.DirEntry) (err erro
 
 	logger.Debug(fmt.Sprintf("Writing pack to %s", opts.PackPath()))
 
-	err = filesystem.CopyDir(opts.clonedPackPath(c), opts.PackPath(), c.cfg.Logger)
-	if err != nil {
+	if err := filesystem.CopyDir(opts.clonedPackPath(c), opts.PackPath(), c.cfg.Logger); err != nil {
 		logger.ErrorWithContext(err, fmt.Sprintf("error copying cloned pack %s to %s", opts.clonedPackPath(c), opts.PackPath()))
-		return
+		return err
 	}
 
 	// Load the pack to the output registry
@@ -208,12 +206,12 @@ func (c *Cache) processPackEntry(opts *AddOpts, packEntry os.DirEntry) (err erro
 	// log a history of the latest ref downloads - convenient for enabling users
 	// to trace download of last known good ref of latest. If ref is
 	// not latest, logLatest will exit without error.
-	err = c.logLatest(opts)
-	if err != nil {
-		return
+
+	if err := c.logLatest(opts); err != nil {
+		return err
 	}
 
-	return
+	return nil
 }
 
 // Safely removes the previous latest ref while preserving the log file
