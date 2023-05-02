@@ -1,6 +1,6 @@
 module github.com/hashicorp/nomad-pack
 
-go 1.19
+go 1.20
 
 replace github.com/hashicorp/hcl/v2 => github.com/hashicorp/hcl/v2 v2.9.2-0.20220525143345-ab3cae0737bc
 
@@ -14,6 +14,7 @@ require (
 	github.com/hashicorp/go-getter v1.6.2
 	github.com/hashicorp/go-hclog v1.3.1
 	github.com/hashicorp/go-multierror v1.1.1
+	github.com/hashicorp/hcl v1.0.1-vault-3
 	github.com/hashicorp/hcl/v2 v2.10.1
 	github.com/hashicorp/nomad v1.4.2
 	github.com/hashicorp/nomad-openapi v0.0.0-20221012231901-fc8faf7e8906
@@ -160,7 +161,6 @@ require (
 	github.com/hashicorp/go-uuid v1.0.3 // indirect
 	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
-	github.com/hashicorp/hcl v1.0.1-vault-3 // indirect
 	github.com/hashicorp/logutils v1.0.0 // indirect
 	github.com/hashicorp/mdns v1.0.4 // indirect
 	github.com/hashicorp/memberlist v0.4.0 // indirect
