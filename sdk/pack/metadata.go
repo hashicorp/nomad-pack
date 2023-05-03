@@ -27,7 +27,7 @@ type MetadataApp struct {
 	// OBSOLETED in nomad pack beta!
 	// Author is an identifier to the author and maintainer of the pack such as
 	// HashiCorp or James Rasell
-	Author string `hcl:"author"`
+	ExtraKeysHCL []string `hcl:",unusedKeys" json:"-"`
 
 	// TODO: Add Version here, may need to be a block or series of entries to
 	// support packs that contain multiple apps.
