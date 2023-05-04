@@ -24,8 +24,12 @@ type MetadataApp struct {
 	// quick reference to the documentation and help pages.
 	URL string `hcl:"url"`
 
-	// ExtraKeysHCL is used by hcl to surface unexpected keys.
-	ExtraKeysHCL []string `hcl:",unusedKeys" json:"-"`
+	// Author is an identifier to the author and maintainer of the pack such as
+	// HashiCorp or James Rasell
+	//
+	// Deprecated: Nomad Pack tech preview 4 removes this field, we keep it here for
+	// backwards compatibility only.
+	Author string `hcl:"author"`
 
 	// TODO: Add Version here, may need to be a block or series of entries to
 	// support packs that contain multiple apps.
