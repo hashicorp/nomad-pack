@@ -42,6 +42,7 @@ func decodeVariableBlock(block *hcl.Block) (*Variable, hcl.Diagnostics) {
 		diags = safeDiagnosticsExtend(diags, descDiags)
 
 		if val.Type() == cty.String {
+			v.hasDescription = true
 			v.Description = val.AsString()
 		} else {
 			diags = safeDiagnosticsAppend(diags, &hcl.Diagnostic{
@@ -59,6 +60,7 @@ func decodeVariableBlock(block *hcl.Block) (*Variable, hcl.Diagnostics) {
 	if attr, exists := content.Attributes[variableAttributeType]; exists {
 		ty, tyDiags := typeexpr.Type(attr.Expr)
 		diags = safeDiagnosticsExtend(diags, tyDiags)
+		v.hasType = true
 		v.Type = ty
 	}
 
@@ -75,7 +77,8 @@ func decodeVariableBlock(block *hcl.Block) (*Variable, hcl.Diagnostics) {
 			val, err = convertValUsingType(val, v.Type, attr.Expr.Range().Ptr())
 			diags = safeDiagnosticsAppend(diags, err)
 		}
-
+		v.hasDefault = true
+		v.Default = val
 		v.Value = val
 	}
 

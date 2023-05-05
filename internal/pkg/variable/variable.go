@@ -23,11 +23,19 @@ type Variable struct {
 
 	// Description is an optional field which provides additional context to
 	// users identifying what the variable is used for.
-	Description string
+	Description    string
+	hasDescription bool
+
+	// Default is an optional field which provides a default value to be used
+	// in the absence of a user-provided value. It is only in this struct for
+	// documentation purposes
+	Default    cty.Value
+	hasDefault bool
 
 	// Type represents the concrete cty type of this variable. If the type is
 	// unable to be parsed into a cty type, it is invalid.
-	Type cty.Type
+	Type    cty.Type
+	hasType bool
 
 	// Value stores the variable value and is used when converting the cty type
 	// value into a Go type value.
@@ -40,11 +48,17 @@ type Variable struct {
 
 func (v *Variable) merge(new *Variable) hcl.Diagnostics {
 	var diags hcl.Diagnostics
+	if new.Default != cty.NilVal {
+		v.hasDefault = new.hasDefault
+		v.Default = new.Default
+	}
 
 	if new.Value != cty.NilVal {
 		v.Value = new.Value
 	}
+
 	if new.Type != cty.NilType {
+		v.hasType = new.hasType
 		v.Type = new.Type
 	}
 
