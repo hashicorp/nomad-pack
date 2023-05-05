@@ -194,6 +194,11 @@ func Commands(
 				baseCommand: baseCommand,
 			}, nil
 		},
+		"generate var-file": func() (cli.Command, error) {
+			return &GenerateVarFileCommand{
+				baseCommand: baseCommand,
+			}, nil
+		},
 	}
 
 	// register our aliases

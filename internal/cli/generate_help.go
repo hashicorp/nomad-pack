@@ -23,11 +23,11 @@ func (c *GenerateHelpCommand) Run(args []string) int {
 		WithNoConfig(),
 		WithClient(false),
 	); err != nil {
-		c.ui.Info("The generate command requires one of the following subcommands: pack, registry.")
+		c.ui.Info("The generate command requires one of the following subcommands: pack, registry, var-file.")
 		return 1
 	}
 
-	c.ui.Info("The generate command requires one of the following subcommands: pack, registry.")
+	c.ui.Info("The generate command requires one of the following subcommands: pack, registry, var-file.")
 	return 0
 }
 
@@ -44,14 +44,15 @@ func (c *GenerateHelpCommand) AutocompleteFlags() complete.Flags {
 }
 
 func (c *GenerateHelpCommand) Synopsis() string {
-	return "Generate a sample nomad-pack registry or pack."
+	return "Generate a sample nomad-pack registry, pack, or variable overrides file for a pack."
 }
 
 func (c *GenerateHelpCommand) Help() string {
 	return formatHelp(`
 	Usage: nomad-pack generate <subcommand> [options]
 
-	Generate a sample nomad-pack registry or pack.
+	Generate a sample nomad-pack registry, pack, or variable overrides file for a
+	pack.
 
 ` + c.GetExample() + c.Flags().Help())
 }
