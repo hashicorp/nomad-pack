@@ -7,6 +7,9 @@ bin/*
 *.so
 *.dylib
 
+# binary when created in the project root with go build .
+./nomad-pack
+
 # Test binary, built with `go test -c`
 *.test
 
