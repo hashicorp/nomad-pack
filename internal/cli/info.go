@@ -86,12 +86,6 @@ func (c *InfoCommand) Run(args []string) int {
 		glint.Text(pack.Metadata.App.URL),
 	).Row())
 
-	doc.Append(glint.Layout(
-		glint.Style(glint.Text("Application Author "), glint.Bold()),
-		glint.Text(pack.Metadata.App.Author),
-		glint.Text("\n"),
-	).Row())
-
 	for pName, variables := range parsedVars.Vars {
 
 		doc.Append(glint.Layout(

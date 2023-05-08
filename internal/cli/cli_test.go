@@ -15,6 +15,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/nomad/command/agent"
+	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/require"
+
 	ct "github.com/hashicorp/nomad-pack/internal/cli/testhelper"
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	flag "github.com/hashicorp/nomad-pack/internal/pkg/flag"
@@ -23,9 +27,6 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/version"
 	"github.com/hashicorp/nomad-pack/internal/runner/job"
 	"github.com/hashicorp/nomad-pack/internal/testui"
-	"github.com/hashicorp/nomad/command/agent"
-	"github.com/mitchellh/cli"
-	"github.com/stretchr/testify/require"
 )
 
 // TODO: Test job run with diffs

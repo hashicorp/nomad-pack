@@ -18,8 +18,7 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 		{
 			inputMetadata: &Metadata{
 				App: &MetadataApp{
-					URL:    "https://example.com",
-					Author: "Timothy J. Berners-Lee",
+					URL: "https://example.com",
 				},
 				Pack: &MetadataPack{
 					Name:        "Example",
@@ -31,8 +30,7 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 			expectedOutput: map[string]interface{}{
 				"nomad_pack": map[string]interface{}{
 					"app": map[string]interface{}{
-						"url":    "https://example.com",
-						"author": "Timothy J. Berners-Lee",
+						"url": "https://example.com",
 					},
 					"pack": map[string]interface{}{
 						"name":        "Example",
@@ -58,8 +56,7 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 			expectedOutput: map[string]interface{}{
 				"nomad_pack": map[string]interface{}{
 					"app": map[string]interface{}{
-						"url":    "https://example.com",
-						"author": "",
+						"url": "https://example.com",
 					},
 					"pack": map[string]interface{}{
 						"name":        "Example",
@@ -70,6 +67,26 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 				},
 			},
 			name: "some metadata values populated",
+		},
+		{
+			inputMetadata: &Metadata{
+				App: &MetadataApp{
+					URL:    "https://example.com",
+					Author: "The Nomad Team",
+				},
+				Pack: &MetadataPack{},
+			},
+			expectedOutput: map[string]interface{}{
+				"nomad_pack": map[string]interface{}{
+					"app": map[string]interface{}{
+						"url": "https://example.com",
+					},
+					"pack": map[string]interface{}{"name": "", "description": "", "url": "", "version": ""},
+				},
+			},
+			// TODO test added to cover graceful failure while we're in the process of
+			// retiring "Author" metadata field. Can be removed later.
+			name: "author field ignored gracefully",
 		},
 	}
 
@@ -88,8 +105,7 @@ func TestMetadata_Validate(t *testing.T) {
 		{
 			inputMetadata: &Metadata{
 				App: &MetadataApp{
-					URL:    "https://example.com",
-					Author: "Timothy J. Berners-Lee",
+					URL: "https://example.com",
 				},
 				Pack: &MetadataPack{
 					Name:        "Example",

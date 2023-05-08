@@ -26,7 +26,10 @@ type MetadataApp struct {
 
 	// Author is an identifier to the author and maintainer of the pack such as
 	// HashiCorp or James Rasell
-	Author string `hcl:"author"`
+	//
+	// Deprecated: Nomad Pack tech preview 4 removes this field, we keep it here for
+	// backwards compatibility only.
+	Author string `hcl:"author,optional"`
 
 	// TODO: Add Version here, may need to be a block or series of entries to
 	// support packs that contain multiple apps.
@@ -59,8 +62,7 @@ func (md *Metadata) ConvertToMapInterface() map[string]interface{} {
 	return map[string]interface{}{
 		"nomad_pack": map[string]interface{}{
 			"app": map[string]interface{}{
-				"url":    md.App.URL,
-				"author": md.App.Author,
+				"url": md.App.URL,
 			},
 			"pack": map[string]interface{}{
 				"name":        md.Pack.Name,
@@ -78,8 +80,7 @@ func (md *Metadata) ConvertToMapInterface() map[string]interface{} {
 func (md *Metadata) AddToInterfaceMap(m map[string]interface{}) map[string]interface{} {
 	m["nomad_pack"] = map[string]interface{}{
 		"app": map[string]interface{}{
-			"url":    md.App.URL,
-			"author": md.App.Author,
+			"url": md.App.URL,
 		},
 		"pack": map[string]interface{}{
 			"name":        md.Pack.Name,

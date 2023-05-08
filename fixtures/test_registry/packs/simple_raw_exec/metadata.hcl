@@ -3,7 +3,7 @@
 
 app {
   url    = ""
-  author = "HashiCorp"
+  author = "Nomad Team" # author field deprecated, left here to make sure we don't panic and fail gracefully
 }
 
 pack {

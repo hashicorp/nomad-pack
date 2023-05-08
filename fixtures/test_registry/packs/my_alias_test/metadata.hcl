@@ -3,7 +3,7 @@
 
 app {
   url    = ""
-  author = "HashiCorp"
+  author = "Nomad Team"
 }
 
 pack {
