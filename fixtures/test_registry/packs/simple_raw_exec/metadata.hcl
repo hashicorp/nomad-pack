@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 app {
-  url = ""
+  url    = ""
   author = "Nomad Team" # author field deprecated, left here to make sure we don't panic and fail gracefully
 }
 

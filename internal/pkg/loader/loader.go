@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl/v2/hclsimple"
+
 	"github.com/hashicorp/nomad-pack/sdk/pack"
 )
 

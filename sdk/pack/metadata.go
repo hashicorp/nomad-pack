@@ -29,7 +29,7 @@ type MetadataApp struct {
 	//
 	// Deprecated: Nomad Pack tech preview 4 removes this field, we keep it here for
 	// backwards compatibility only.
-	Author string `hcl:"author"`
+	Author string `hcl:"author,optional"`
 
 	// TODO: Add Version here, may need to be a block or series of entries to
 	// support packs that contain multiple apps.
