@@ -4,8 +4,10 @@
 package cache
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/url"
 	"os"
 	"path"
@@ -17,10 +19,11 @@ import (
 
 // Registry represents a registry definition from the global cache.
 type Registry struct {
-	Name   string
-	Source string
-	Ref    string
-	Packs  []*Pack
+	Name     string  `json:"name,omitempty"`
+	Source   string  `json:"source,omitempty"`
+	Ref      string  `json:"ref,omitempty"`
+	LocalRef string  `json:"local_ref,omitempty"`
+	Packs    []*Pack `json:"-"`
 }
 
 // get will attempt to load the specified packs from a path, and then append them
@@ -45,6 +48,21 @@ func (r *Registry) get(opts *GetOpts, cache *Cache) (err error) {
 	for _, packEntry := range packEntries {
 		// Skip any entries not targeted.
 		if !opts.IsTarget(packEntry) {
+			continue
+		}
+
+		// Read the top-level metadata file but don't process it like a pack
+		if packEntry.Name() == "metadata.json" {
+			f, err := ioutil.ReadFile(path.Join(opts.RegistryPath(), packEntry.Name()))
+			if err != nil {
+				return err
+			}
+			cachedRegistry := &Registry{}
+			err = json.Unmarshal(f, cachedRegistry)
+			if err != nil {
+				return err
+			}
+			r.LocalRef = cachedRegistry.LocalRef
 			continue
 		}
 

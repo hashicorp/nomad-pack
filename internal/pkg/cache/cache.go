@@ -76,6 +76,8 @@ func defaultCacheConfig() *CacheConfig {
 type Cache struct {
 	cfg        *CacheConfig
 	registries []*Registry
+	// latestSHA keeps the ref to the last clone operation (if any)
+	latestSHA string
 	// ErrorContext stores any errors that were encountered along the way so that
 	// error handling can be dealt with in one place.
 	ErrorContext *errors.ErrorContext

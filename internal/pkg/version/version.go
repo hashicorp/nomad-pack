@@ -4,10 +4,7 @@
 package version
 
 import (
-	"bytes"
 	"fmt"
-	"os"
-	"os/exec"
 	"strings"
 )
 
@@ -68,33 +65,4 @@ func HumanVersion() string {
 
 	// Strip off any single quotes added by the git information.
 	return strings.ReplaceAll(version, "'", "")
-}
-
-// GitSHA gets the git sha of a pack by directory. Requires git
-// to be installed, pathPath to exist, and for packPath to be part of a git
-// repository.
-func GitSHA(packPath string) (string, error) {
-	if _, err := os.Stat(packPath); os.IsNotExist(err) {
-		return "", err
-	}
-
-	// TODO: OS Platform and security review
-	// Find the path of the git binary
-	gitPath, err := exec.LookPath("git")
-	if err != nil {
-		return "", err
-	}
-
-	// configure command to find the git sha of package directory
-	c := exec.Command(gitPath, "rev-list", "-1", "HEAD")
-	c.Dir = packPath
-	var out bytes.Buffer
-	c.Stdout = &out
-
-	err = c.Run()
-	if err != nil {
-		return "", err
-	}
-
-	return out.String()[:7], nil
 }
