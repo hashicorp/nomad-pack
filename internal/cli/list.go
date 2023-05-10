@@ -9,13 +9,13 @@ import (
 	"github.com/posener/complete"
 )
 
-// RegistryListCommand lists all registries and pack that have been downloaded
+// ListCommand lists all registries and pack that have been downloaded
 // to the current machine.
-type RegistryListCommand struct {
+type ListCommand struct {
 	*baseCommand
 }
 
-func (c *RegistryListCommand) Run(args []string) int {
+func (c *ListCommand) Run(args []string) int {
 	c.cmdKey = "registry list"
 	// Initialize. If we fail, we just exit since Init handles the UI.
 	if err := c.Init(
@@ -43,14 +43,15 @@ func (c *RegistryListCommand) Run(args []string) int {
 	}
 
 	// Initialize a table for a nice glint UI rendering
-	table := registryTable()
+	table := packTable()
 
 	// Iterate over the registries and build a table row for each cachedRegistry/pack
 	// entry at each ref. Hierarchically, this should equate to the default
 	// cachedRegistry and all its peers.
-	if len(globalCache.Registries()) >= 0 {
-		for _, registry := range globalCache.Registries() {
-			tableRow := registryTableRow(registry)
+	for _, cachedRegistry := range globalCache.Registries() {
+		for _, registryPack := range cachedRegistry.Packs {
+			tableRow := packRow(cachedRegistry, registryPack)
+			// append table row
 			table.Rows = append(table.Rows, tableRow)
 		}
 	}
@@ -61,31 +62,31 @@ func (c *RegistryListCommand) Run(args []string) int {
 	return 0
 }
 
-func (c *RegistryListCommand) Flags() *flag.Sets {
+func (c *ListCommand) Flags() *flag.Sets {
 	return c.flagSet(0, nil)
 }
 
-func (c *RegistryListCommand) AutocompleteArgs() complete.Predictor {
+func (c *ListCommand) AutocompleteArgs() complete.Predictor {
 	return complete.PredictNothing
 }
 
-func (c *RegistryListCommand) AutocompleteFlags() complete.Flags {
+func (c *ListCommand) AutocompleteFlags() complete.Flags {
 	return c.Flags().Completions()
 }
 
-func (c *RegistryListCommand) Synopsis() string {
-	return "List registries and packs available in the local environment."
+func (c *ListCommand) Synopsis() string {
+	return "List packs available in the local environment."
 }
 
-func (c *RegistryListCommand) Help() string {
+func (c *ListCommand) Help() string {
 	c.Example = `
-	# List all available registries and their packs
-	nomad-pack registry list
+	# List all available packs
+	nomad-pack list
 	`
 	return formatHelp(`
-	Usage: nomad-pack registry list
+	Usage: nomad-pack list
 
-	List nomad pack registries.
+	List nomad packs.
 
 ` + c.GetExample() + c.Flags().Help())
 }
