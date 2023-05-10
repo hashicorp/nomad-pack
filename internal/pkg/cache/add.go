@@ -22,11 +22,12 @@ import (
 const tmpDir = "nomad-pack-tmp"
 
 // Add adds a registry to a cache from the passed config.
-func (c *Cache) Add(opts *AddOpts) (cachedRegistry *Registry, err error) {
+func (c *Cache) Add(opts *AddOpts) (*Registry, error) {
+	cachedRegistry := &Registry{}
 	// Throw error if cache path not defined
 	if c.cfg.Path == "" {
-		err = errors.ErrCachePathRequired
-		return
+		err := errors.ErrCachePathRequired
+		return cachedRegistry, err
 	}
 
 	opts.cachePath = c.cfg.Path
@@ -47,13 +48,13 @@ func (c *Cache) Add(opts *AddOpts) (cachedRegistry *Registry, err error) {
 	// to look up the source URL, but invalid packs metadata can mess that up.
 	// Throw error if registry source is not defined
 	if opts.Source == "" {
-		err = errors.ErrRegistrySourceRequired
-		return
+		err := errors.ErrRegistrySourceRequired
+		return cachedRegistry, err
 	}
 
-	cachedRegistry, err = c.addFromURI(opts)
+	cachedRegistry, err := c.addFromURI(opts)
 	if err != nil {
-		return
+		return cachedRegistry, err
 	}
 
 	if cachedRegistry != nil {
@@ -70,7 +71,7 @@ func (c *Cache) Add(opts *AddOpts) (cachedRegistry *Registry, err error) {
 		}
 	}
 
-	return
+	return cachedRegistry, nil
 }
 
 // addFromURI loads a registry from a remote git repository. If addToCache is
