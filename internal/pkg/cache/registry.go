@@ -52,14 +52,14 @@ func (r *Registry) get(opts *GetOpts, cache *Cache) error {
 
 		// Read the top-level metadata file but don't process it like a pack
 		if packEntry.Name() == "metadata.json" {
-			f, err := os.ReadFile(path.Join(opts.RegistryPath(), packEntry.Name()))
-			if err != nil {
-				return err
+			f, err2 := os.ReadFile(path.Join(opts.RegistryPath(), packEntry.Name()))
+			if err2 != nil {
+				return err2
 			}
 			cachedRegistry := &Registry{}
-			err = json.Unmarshal(f, cachedRegistry)
-			if err != nil {
-				return err
+			err2 = json.Unmarshal(f, cachedRegistry)
+			if err2 != nil {
+				return err2
 			}
 			r.LocalRef = cachedRegistry.LocalRef
 			continue
@@ -111,9 +111,6 @@ func (r *Registry) get(opts *GetOpts, cache *Cache) error {
 
 		// Append the pack to the registry's packs field.
 		r.add(cachedPack)
-
-		// reset err to nil in case we handled a recoverable err
-		err = nil
 	}
 
 	// Set the registry URL from the first pack's URL if a pack exists
