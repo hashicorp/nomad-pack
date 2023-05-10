@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package cli
 
 import (
@@ -23,12 +26,23 @@ import (
 type RenderCommand struct {
 	*baseCommand
 	packConfig *cache.PackConfig
+
 	// renderOutputTemplate is a boolean flag to control whether the output
 	// template is rendered.
 	renderOutputTemplate bool
+
 	// renderToDir is the path to write rendered job files to in addition to
 	// standard output.
 	renderToDir string
+
+	// noRenderAuxFiles is a boolean flag to control whether we should also render
+	// auxiliary files inside templates/
+	noRenderAuxFiles bool
+
+	// noFormat is a boolean flag to control whether we should hcl-format the
+	// templates before rendering them.
+	noFormat bool
+
 	// overwriteAll is set to true when someone specifies "a" to the y/n/a
 	overwriteAll bool
 }
@@ -149,7 +163,7 @@ func writeFile(c *RenderCommand, path string, content string) error {
 // name.
 func formatRenderName(name string) string {
 	outName := strings.Replace(name, "/templates/", "/", 1)
-	outName = strings.TrimRight(outName, ".tpl")
+	outName = strings.TrimSuffix(outName, ".tpl")
 
 	return outName
 }
@@ -190,7 +204,14 @@ func (c *RenderCommand) Run(args []string) int {
 	}
 	packManager := generatePackManager(c.baseCommand, client, c.packConfig)
 
-	renderOutput, err := renderPack(packManager, c.baseCommand.ui, errorContext)
+	renderOutput, err := renderPack(
+		packManager,
+		c.baseCommand.ui,
+		!c.noRenderAuxFiles,
+		!c.noFormat,
+		c.baseCommand.ignoreMissingVars,
+		errorContext,
+	)
 	if err != nil {
 		return 1
 	}
@@ -202,7 +223,7 @@ func (c *RenderCommand) Run(args []string) int {
 		return 1
 	}
 
-	var renders = []Render{}
+	var renders []Render
 
 	// Iterate the rendered files and add these to the list of renders to
 	// output. This allows errors to surface and end things without emitting
@@ -280,6 +301,21 @@ func (c *RenderCommand) Flags() *flag.Sets {
 			Default: false,
 			Usage: `Controls whether or not the output template file within the
 					pack is rendered and displayed.`,
+		})
+
+		f.BoolVar(&flag.BoolVar{
+			Name:    "skip-aux-files",
+			Target:  &c.noRenderAuxFiles,
+			Default: false,
+			Usage: `Controls whether or not the rendered output contains auxiliary
+					files found in the 'templates' folder.`,
+		})
+
+		f.BoolVar(&flag.BoolVar{
+			Name:    "no-format",
+			Target:  &c.noFormat,
+			Default: false,
+			Usage:   `Controls whether or not to format templates before outputting.`,
 		})
 
 		f.StringVarP(&flag.StringVarP{

@@ -1,6 +1,9 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 app {
   url    = ""
-  author = "HashiCorp"
+  author = "Nomad Team"
 }
 
 pack {

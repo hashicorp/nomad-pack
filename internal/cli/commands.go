@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package cli
 
 import (
@@ -59,6 +62,10 @@ type baseCommand struct {
 	// varFiles is an HCL file(s) setting one or more values
 	// for defined input variables
 	varFiles []string
+
+	// ignoreMissingVars determines whether variable overrides that do not correspond
+	// to variables defined in the pack should be ignored or produce an error
+	ignoreMissingVars bool
 
 	// autoApproved is true when the user supplies the --auto-approve or -y flag
 	autoApproved bool
@@ -277,6 +284,14 @@ func (c *baseCommand) flagSet(bit flagSetBit, f func(*flag.Sets)) *flag.Sets {
 				Completion: complete.PredictOr(complete.PredictFiles("*.var"), complete.PredictFiles("*.hcl")),
 			},
 			Shorthand: "f",
+		})
+
+		f.BoolVar(&flag.BoolVar{
+			Name:    "ignore-missing-vars",
+			Target:  &c.ignoreMissingVars,
+			Default: false,
+			Usage: `Determines whether override variables not present in the
+					pack should be ignored or produce an error.`,
 		})
 
 		f.StringMapVar(&flag.StringMapVar{

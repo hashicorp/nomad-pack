@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package cli
 
 import (
@@ -58,7 +61,14 @@ func (c *PlanCommand) Run(args []string) int {
 	packManager := generatePackManager(c.baseCommand, client, c.packConfig)
 
 	// load pack
-	r, err := renderPack(packManager, c.baseCommand.ui, errorContext)
+	r, err := renderPack(
+		packManager,
+		c.baseCommand.ui,
+		false,
+		false,
+		c.baseCommand.ignoreMissingVars,
+		errorContext,
+	)
 	if err != nil {
 		return c.exitCodeError
 	}

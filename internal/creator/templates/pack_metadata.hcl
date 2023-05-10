@@ -1,6 +1,8 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 app {
-  url    = ""
-  author = ""
+  url = ""
 }
 pack {
   name        = "{{.PackName}}"

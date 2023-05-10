@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package job
 
 import (
@@ -75,7 +78,7 @@ type ErrExistsNonPack struct {
 }
 
 func (e ErrExistsNonPack) Error() string {
-	return fmt.Sprintf("job with id %q already exists and is not manage by nomad pack", e.JobID)
+	return fmt.Sprintf("job with id %q already exists and is not managed by nomad pack", e.JobID)
 }
 
 type ErrExistsInDeployment struct {

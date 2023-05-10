@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package loader
 
 import (
@@ -9,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl/v2/hclsimple"
+
 	"github.com/hashicorp/nomad-pack/sdk/pack"
 )
 
@@ -102,6 +106,12 @@ func loadFiles(files []*pack.File) (*pack.Pack, error) {
 			// The file is a pack template file. This catches both full Nomad
 			// object templates and helpers.
 			p.TemplateFiles = append(p.TemplateFiles, f)
+
+		case strings.HasPrefix(f.Name, "templates/") &&
+			strings.HasSuffix(f.Name, ".tpl"):
+			// if there are any other files inside the "templates/" directory,
+			// add them to the aux files array
+			p.AuxiliaryFiles = append(p.AuxiliaryFiles, f)
 
 		default:
 			// Do nothing with other files; this might change in the future.

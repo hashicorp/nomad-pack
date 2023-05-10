@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package cli
 
 import (
@@ -53,6 +56,7 @@ func (c *InfoCommand) Run(args []string) int {
 	variableParser, err := variable.NewParser(&variable.ParserConfig{
 		ParentName:        path.Base(packPath),
 		RootVariableFiles: pack.RootVariableFiles(),
+		IgnoreMissingVars: c.baseCommand.ignoreMissingVars,
 	})
 	if err != nil {
 		return 1
@@ -80,12 +84,6 @@ func (c *InfoCommand) Run(args []string) int {
 	doc.Append(glint.Layout(
 		glint.Style(glint.Text("Application URL    "), glint.Bold()),
 		glint.Text(pack.Metadata.App.URL),
-	).Row())
-
-	doc.Append(glint.Layout(
-		glint.Style(glint.Text("Application Author "), glint.Bold()),
-		glint.Text(pack.Metadata.App.Author),
-		glint.Text("\n"),
 	).Row())
 
 	for pName, variables := range parsedVars.Vars {

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package variable
 
 import (
@@ -56,6 +59,10 @@ type ParserConfig struct {
 	// CLIOverrides are key=value variables and take the highest precedence of
 	// all sources. If the same key is supplied twice, the last wins.
 	CLIOverrides map[string]string
+
+	// IgnoreMissingVars determines whether we error or not on variable overrides
+	// that don't have corresponding vars in the pack.
+	IgnoreMissingVars bool
 }
 
 func NewParser(cfg *ParserConfig) (*Parser, error) {
@@ -123,7 +130,9 @@ func (p *Parser) Parse() (*ParsedVariables, hcl.Diagnostics) {
 			for _, v := range variables {
 				existing, exists := p.rootVars[packName][v.Name]
 				if !exists {
-					diags = diags.Append(diagnosticMissingRootVar(v.Name, v.DeclRange.Ptr()))
+					if !p.cfg.IgnoreMissingVars {
+						diags = diags.Append(diagnosticMissingRootVar(v.Name, v.DeclRange.Ptr()))
+					}
 					continue
 				}
 				if mergeDiags := existing.merge(v); mergeDiags.HasErrors() {

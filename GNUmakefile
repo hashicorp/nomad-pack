@@ -68,13 +68,17 @@ hclfmt: ## Format HCL files with hclfmt
 	@if (git status -s | grep -q -e '\.hcl$$' -e '\.nomad$$' -e '\.tf$$'); then echo the following HCL files are out of sync; git status -s | grep -e '\.hcl$$' -e '\.nomad$$' -e '\.tf$$'; exit 1; fi
 
 .PHONY: dev
-dev: GOPATH=$(shell go env GOPATH)
-dev: lint
+dev:
+ifneq (,$(shell echo ${PACK_INSTALL_DEV}))
+	@echo "==> Building and installing nomad-pack..."
+	@CGO_ENABLED=0 go build -ldflags $(GO_LDFLAGS) -o ./bin/nomad-pack
+	@CGO_ENABLED=0 go install -ldflags $(GO_LDFLAGS)
+	@echo "==> Done"
+else
 	@echo "==> Building nomad-pack..."
 	@CGO_ENABLED=0 go build -ldflags $(GO_LDFLAGS) -o ./bin/nomad-pack
-	@rm -f $(GOPATH)/bin/nomad-pack
-	@cp ./bin/nomad-pack $(GOPATH)/bin/nomad-pack
 	@echo "==> Done"
+endif
 
 pkg/%/nomad-pack: GO_OUT ?= $@
 pkg/windows_%/nomad-pack: GO_OUT = $@.exe

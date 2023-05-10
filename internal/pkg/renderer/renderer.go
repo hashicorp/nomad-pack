@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package renderer
 
 import (
@@ -6,7 +9,9 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/hashicorp/hcl/hcl/printer"
 	v1 "github.com/hashicorp/nomad-openapi/v1"
+
 	"github.com/hashicorp/nomad-pack/sdk/pack"
 )
 
@@ -22,6 +27,14 @@ type Renderer struct {
 	// functions. It can potentially be nil, therefore care should be taken
 	// when accessing it.
 	Client *v1.Client
+
+	// RenderAuxFiles determines whether we should render auxiliary files found
+	// in template/ or not
+	RenderAuxFiles bool
+
+	// Format determines whether we should format templates before rendering them
+	// or not
+	Format bool
 
 	// stores the pack information, variables and tpl, so we can perform the
 	// output template rendering after pack deployment.
@@ -46,9 +59,10 @@ const (
 // template using the parsed variable map.
 func (r *Renderer) Render(p *pack.Pack, variables map[string]interface{}) (*Rendered, error) {
 
-	// templatesToRender stores all the template that should be rendered.
-	templatesToRender := make(map[string]toRender)
-	prepareTemplates(p, templatesToRender, variables)
+	// filesToRender stores all the templates and auxiliary files that should be
+	// rendered
+	filesToRender := map[string]toRender{}
+	prepareFiles(p, filesToRender, variables, r.RenderAuxFiles)
 
 	// Set up our new template, add the function mapping, and set the
 	// delimiters.
@@ -62,7 +76,7 @@ func (r *Renderer) Render(p *pack.Pack, variables map[string]interface{}) (*Rend
 		tpl.Option("missingkey=zero")
 	}
 
-	for name, src := range templatesToRender {
+	for name, src := range filesToRender {
 		if tpl.Lookup(name) == nil {
 			if _, err := tpl.New(name).Parse(src.content); err != nil {
 				return nil, err
@@ -76,7 +90,7 @@ func (r *Renderer) Render(p *pack.Pack, variables map[string]interface{}) (*Rend
 		dependentRenders: make(map[string]string),
 	}
 
-	for name, src := range templatesToRender {
+	for name, src := range filesToRender {
 
 		// Skip the helper templates as we don't need to render these. They are
 		// called and used from within full templates.
@@ -100,6 +114,21 @@ func (r *Renderer) Render(p *pack.Pack, variables map[string]interface{}) (*Rend
 		// Split the name so the element at index zero becomes the pack name.
 		nameSplit := strings.Split(name, "/")
 
+		// If we encounter a template that's empty (just renders to whitespace),
+		// we skip it.
+		if len(strings.TrimSpace(replacedTpl)) == 0 {
+			continue
+		}
+
+		if r.Format {
+			// hclfmt the templates
+			f, err := printer.Format([]byte(replacedTpl))
+			if err != nil {
+				return nil, fmt.Errorf("failed to format the template %s, %v", name, err)
+			}
+			replacedTpl = string(f)
+		}
+
 		// Add the rendered pack template to our output, depending on whether
 		// it's name matches that of our parent.
 		if nameSplit[0] == p.Name() {
@@ -119,7 +148,7 @@ func (r *Renderer) Render(p *pack.Pack, variables map[string]interface{}) (*Rend
 // RenderOutput performs the output template rendering.
 func (r *Renderer) RenderOutput() (string, error) {
 
-	// If we don't have a template file, then return early.
+	// If we don't have a template file, return early.
 	if r.pack.OutputTemplateFile == nil {
 		return "", nil
 	}
@@ -136,10 +165,14 @@ func (r *Renderer) RenderOutput() (string, error) {
 	return buf.String(), nil
 }
 
-// prepareTemplates recurses the pack and its dependencies to populate to the
-// passed map with the templates to render along with the variables which
+// prepareFiles recurses the pack and its dependencies and returns a map
+// with the templates/auxiliary files to render along with the variables which
 // correspond.
-func prepareTemplates(p *pack.Pack, templates map[string]toRender, variables map[string]interface{}) {
+func prepareFiles(p *pack.Pack,
+	files map[string]toRender,
+	variables map[string]interface{},
+	renderAuxFiles bool,
+) {
 
 	newVars := make(map[string]interface{})
 
@@ -164,12 +197,19 @@ func prepareTemplates(p *pack.Pack, templates map[string]toRender, variables map
 	}
 	// Iterate the dependencies and prepareTemplates for each.
 	for _, child := range p.Dependencies() {
-		prepareTemplates(child, templates, newVars)
+		prepareFiles(child, files, newVars, renderAuxFiles)
 	}
 
 	// Add each template within the pack with scoped variables.
 	for _, t := range p.TemplateFiles {
-		templates[path.Join(p.Name(), t.Name)] = toRender{content: string(t.Content), variables: newVars}
+		files[path.Join(p.Name(), t.Name)] = toRender{content: string(t.Content), variables: newVars}
+	}
+
+	if renderAuxFiles {
+		// Add each aux file within the pack with scoped variables.
+		for _, f := range p.AuxiliaryFiles {
+			files[path.Join(p.Name(), f.Name)] = toRender{content: string(f.Content), variables: newVars}
+		}
 	}
 }
 

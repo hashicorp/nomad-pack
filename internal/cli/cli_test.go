@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package cli
 
 import (
@@ -12,6 +15,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/nomad/command/agent"
+	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/require"
+
 	ct "github.com/hashicorp/nomad-pack/internal/cli/testhelper"
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	flag "github.com/hashicorp/nomad-pack/internal/pkg/flag"
@@ -20,9 +27,6 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/version"
 	"github.com/hashicorp/nomad-pack/internal/runner/job"
 	"github.com/hashicorp/nomad-pack/internal/testui"
-	"github.com/hashicorp/nomad/command/agent"
-	"github.com/mitchellh/cli"
-	"github.com/stretchr/testify/require"
 )
 
 // TODO: Test job run with diffs
@@ -487,6 +491,7 @@ func TestCLI_PackRender_MyAlias(t *testing.T) {
 
 	result := runPackCmd(t, []string{
 		"render",
+		"--no-format=true",
 		getTestPackPath("my_alias_test"),
 	})
 	require.Empty(t, result.cmdErr.String(), "cmdErr should be empty, but was %q", result.cmdErr.String())

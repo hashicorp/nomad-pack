@@ -1,6 +1,8 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 app {
   url    = "https://learn.hashicorp.com/tutorials/nomad/get-started-run?in=nomad/get-started"
-  author = "HashiCorp"
 }
 
 pack {

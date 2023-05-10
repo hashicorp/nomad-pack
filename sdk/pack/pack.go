@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package pack
 
 import "errors"
@@ -29,6 +32,10 @@ type Pack struct {
 	// list includes both helper templates and Nomad resource templates and all
 	// files within the list will be processed by the rendering engine.
 	TemplateFiles []*File
+
+	// AuxiliaryFiles are the files included in the "templates" directory of the
+	// Pack that will also be rendered, but not run.
+	AuxiliaryFiles []*File
 
 	// RootVariableFile is the file which contains the root variables that can
 	// include a description, type, and default value. This is parsed along

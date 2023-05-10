@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package pack
 
 import "github.com/hashicorp/nomad-pack/sdk/helper"

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 // Package flag is a thin layer over the spf13/pflag package. It's copied in
 // large part from waypoint's internal flag package, which wraps the stdlib
 // flag package and offers some added features such as aliasing, autocompletion

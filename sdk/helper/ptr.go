@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package helper
 
 // BoolToPtr returns a pointer to the input boolean value.

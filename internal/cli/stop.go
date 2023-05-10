@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package cli
 
 import (
@@ -82,7 +85,14 @@ func (c *StopCommand) Run(args []string) int {
 		var r *renderer.Rendered
 
 		// render the pack
-		r, err = renderPack(packManager, c.baseCommand.ui, errorContext)
+		r, err = renderPack(
+			packManager,
+			c.baseCommand.ui,
+			false,
+			false,
+			c.baseCommand.ignoreMissingVars,
+			errorContext,
+		)
 		if err != nil {
 			return 255
 		}
