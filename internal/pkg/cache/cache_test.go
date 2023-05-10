@@ -13,7 +13,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"github.com/shoenig/test/must"
 
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/helper/filesystem"
@@ -40,15 +40,15 @@ func TestListRegistries(t *testing.T) {
 		Path:   cacheDir,
 		Logger: NewTestLogger(t),
 	})
-	require.NoError(t, err)
-	require.NotNil(t, cache)
+	must.NoError(t, err)
+	must.NotNil(t, cache)
 
 	registry, err := cache.Add(opts)
-	require.NoError(t, err)
-	require.NotNil(t, registry)
+	must.NoError(t, err)
+	must.NotNil(t, registry)
 
 	expected := testPackCount(t, opts)
-	require.Equal(t, expected, len(registry.Packs))
+	must.Eq(t, expected, len(registry.Packs))
 }
 
 func TestAddRegistry(t *testing.T) {
@@ -60,16 +60,16 @@ func TestAddRegistry(t *testing.T) {
 		Path:   cacheDir,
 		Logger: NewTestLogger(t),
 	})
-	require.NoError(t, err)
-	require.NotNil(t, cache)
+	must.NoError(t, err)
+	must.NotNil(t, cache)
 
 	registry, err := cache.Add(opts)
-	require.NoError(t, err)
-	require.NotNil(t, registry)
+	must.NoError(t, err)
+	must.NotNil(t, registry)
 
 	expected := testPackCount(t, opts)
-	require.NoError(t, err)
-	require.Equal(t, expected, len(registry.Packs))
+	must.NoError(t, err)
+	must.Eq(t, expected, len(registry.Packs))
 }
 
 func TestAddRegistryPacksAtMultipleRefs(t *testing.T) {
@@ -88,31 +88,31 @@ func TestAddRegistryPacksAtMultipleRefs(t *testing.T) {
 		Path:   cacheDir,
 		Logger: NewTestLogger(t),
 	})
-	require.NoError(t, err)
-	require.NotNil(t, cache)
+	must.NoError(t, err)
+	must.NotNil(t, cache)
 
 	// Add at ref
 	registry, err := cache.Add(addOpts)
-	require.NoError(t, err)
-	require.NotNil(t, registry)
+	must.NoError(t, err)
+	must.NotNil(t, registry)
 
 	// Add at latest
 	registry, err = cache.Add(testOpts)
-	require.NoError(t, err)
-	require.NotNil(t, registry)
+	must.NoError(t, err)
+	must.NotNil(t, registry)
 
-	expected := testPackCount(t, testOpts)
+	expected := testPackCount(t, testOpts) + 1 // to account for top-level metadata.json
 
 	// test that registry still exists
 	registryEntries, err := os.ReadDir(cacheDir)
-	require.NoError(t, err)
-	require.Equal(t, 1, len(registryEntries))
+	must.NoError(t, err)
+	must.Eq(t, 1, len(registryEntries))
 
 	// test that multiple refs of pack exist
 	packEntries, err := os.ReadDir(path.Join(cacheDir, "multiple-refs"))
-	require.NoError(t, err)
+	must.NoError(t, err)
 
-	require.Equal(t, expected, len(packEntries))
+	must.Eq(t, expected, len(packEntries))
 }
 
 func TestAddRegistryWithTarget(t *testing.T) {
@@ -131,15 +131,15 @@ func TestAddRegistryWithTarget(t *testing.T) {
 		Path:   cacheDir,
 		Logger: NewTestLogger(t),
 	})
-	require.NoError(t, err)
-	require.NotNil(t, cache)
+	must.NoError(t, err)
+	must.NotNil(t, cache)
 
 	// Add at ref
 	registry, err := cache.Add(addOpts)
-	require.NoError(t, err)
-	require.NotNil(t, registry)
+	must.NoError(t, err)
+	must.NotNil(t, registry)
 
-	require.Len(t, registry.Packs, 1)
+	must.Eq(t, len(registry.Packs), 1)
 }
 
 func TestAddRegistryWithSHA(t *testing.T) {
@@ -157,18 +157,18 @@ func TestAddRegistryWithSHA(t *testing.T) {
 		Path:   cacheDir,
 		Logger: NewTestLogger(t),
 	})
-	require.NoError(t, err)
-	require.NotNil(t, cache)
+	must.NoError(t, err)
+	must.NotNil(t, cache)
 
 	// Add at SHA
 	registry, err := cache.Add(addOpts)
-	require.NoError(t, err)
-	require.NotNil(t, registry)
+	must.NoError(t, err)
+	must.NotNil(t, registry)
 
 	// expected testCount
 	expected := testPackCount(t, addOpts)
 
-	require.Equal(t, expected, len(registry.Packs))
+	must.Eq(t, expected, len(registry.Packs))
 }
 
 func TestAddRegistryWithRefAndPackName(t *testing.T) {
@@ -187,15 +187,15 @@ func TestAddRegistryWithRefAndPackName(t *testing.T) {
 		Path:   cacheDir,
 		Logger: NewTestLogger(t),
 	})
-	require.NoError(t, err)
-	require.NotNil(t, cache)
+	must.NoError(t, err)
+	must.NotNil(t, cache)
 
 	// Add Ref and PackName
 	registry, err := cache.Add(addOpts)
-	require.NoError(t, err)
-	require.NotNil(t, registry)
+	must.NoError(t, err)
+	must.NotNil(t, registry)
 
-	require.Len(t, registry.Packs, 1)
+	must.Eq(t, len(registry.Packs), 1)
 }
 
 func TestAddRegistryNoCacheDir(t *testing.T) {
@@ -205,13 +205,13 @@ func TestAddRegistryNoCacheDir(t *testing.T) {
 		Path:   "",
 		Logger: NewTestLogger(t),
 	})
-	require.Error(t, err)
+	must.Error(t, err)
 
 	registry, err := cache.Add(opts)
 
-	require.Error(t, err)
-	require.Nil(t, registry)
-	require.Equal(t, errors.ErrCachePathRequired, err)
+	must.Error(t, err)
+	must.Nil(t, registry)
+	must.Eq(t, errors.ErrCachePathRequired, err)
 }
 
 func TestAddRegistryNoSource(t *testing.T) {
@@ -224,14 +224,14 @@ func TestAddRegistryNoSource(t *testing.T) {
 		Path:   cacheDir,
 		Logger: NewTestLogger(t),
 	})
-	require.NoError(t, err)
-	require.NotNil(t, cache)
+	must.NoError(t, err)
+	must.NotNil(t, cache)
 
 	registry, err := cache.Add(opts)
 
-	require.Error(t, err)
-	require.Nil(t, registry)
-	require.Equal(t, errors.ErrRegistrySourceRequired, err)
+	must.Error(t, err)
+	must.Nil(t, registry)
+	must.Eq(t, errors.ErrRegistrySourceRequired, err)
 }
 
 func TestDeleteRegistry(t *testing.T) {
@@ -243,12 +243,12 @@ func TestDeleteRegistry(t *testing.T) {
 		Path:   cacheDir,
 		Logger: NewTestLogger(t),
 	})
-	require.NoError(t, err)
-	require.NotNil(t, cache)
+	must.NoError(t, err)
+	must.NotNil(t, cache)
 
 	registry, err := cache.Add(opts)
-	require.NoError(t, err)
-	require.NotNil(t, registry)
+	must.NoError(t, err)
+	must.NotNil(t, registry)
 
 	deleteOpts := &DeleteOpts{
 		RegistryName: opts.RegistryName,
@@ -257,14 +257,14 @@ func TestDeleteRegistry(t *testing.T) {
 	}
 
 	err = cache.Delete(deleteOpts)
-	require.NoError(t, err)
+	must.NoError(t, err)
 
 	// test that registry is gone
 	registryEntries, err := os.ReadDir(cacheDir)
-	require.NoError(t, err)
+	must.NoError(t, err)
 
 	for _, registryEntry := range registryEntries {
-		require.NotEqual(t, registryEntry.Name(), deleteOpts.RegistryName)
+		must.NotEq(t, registryEntry.Name(), deleteOpts.RegistryName)
 	}
 }
 
@@ -277,12 +277,12 @@ func TestDeletePack(t *testing.T) {
 		Path:   cacheDir,
 		Logger: NewTestLogger(t),
 	})
-	require.NoError(t, err)
-	require.NotNil(t, cache)
+	must.NoError(t, err)
+	must.NotNil(t, cache)
 
 	registry, err := cache.Add(opts)
-	require.NoError(t, err)
-	require.NotNil(t, registry)
+	must.NoError(t, err)
+	must.NotNil(t, registry)
 
 	packCount := testPackCount(t, opts)
 
@@ -293,19 +293,19 @@ func TestDeletePack(t *testing.T) {
 	}
 
 	err = cache.Delete(deleteOpts)
-	require.NoError(t, err)
+	must.NoError(t, err)
 
 	// test that pack is gone
 	registryEntries, err := os.ReadDir(opts.RegistryPath())
-	require.NoError(t, err)
+	must.NoError(t, err)
 
 	for _, packEntry := range registryEntries {
-		require.NotEqual(t, packEntry.Name(), deleteOpts.RegistryName)
+		must.NotEq(t, packEntry.Name(), deleteOpts.RegistryName)
 	}
 
 	// test that registry still exists, and other packs are still  there.
-	require.NotEqual(t, 0, packCount)
-	require.Equal(t, packCount-1, len(registryEntries))
+	must.NotEq(t, 0, packCount)
+	must.Eq(t, packCount-1, len(registryEntries)-1)
 }
 
 func TestDeletePackByRef(t *testing.T) {
@@ -317,18 +317,18 @@ func TestDeletePackByRef(t *testing.T) {
 		Path:   cacheDir,
 		Logger: NewTestLogger(t),
 	})
-	require.NoError(t, err)
-	require.NotNil(t, cache)
+	must.NoError(t, err)
+	must.NotNil(t, cache)
 
 	registry, err := cache.Add(opts)
-	require.NoError(t, err)
-	require.NotNil(t, registry)
+	must.NoError(t, err)
+	must.NotNil(t, registry)
 
 	// Now add at different ref
 	opts.Ref = tReg.Ref1()
 	registry, err = cache.Add(opts)
-	require.NoError(t, err)
-	require.NotNil(t, registry)
+	must.NoError(t, err)
+	must.NotNil(t, registry)
 
 	packCount := testPackCount(t, opts)
 
@@ -339,19 +339,19 @@ func TestDeletePackByRef(t *testing.T) {
 	}
 
 	err = cache.Delete(deleteOpts)
-	require.NoError(t, err)
+	must.NoError(t, err)
 
 	// test that pack is gone
 	registryEntries, err := os.ReadDir(opts.RegistryPath())
-	require.NoError(t, err)
+	must.NoError(t, err)
 
 	for _, packEntry := range registryEntries {
-		require.NotEqual(t, packEntry.Name(), deleteOpts.RegistryName)
+		must.NotEq(t, packEntry.Name(), deleteOpts.RegistryName)
 	}
 
 	// test that registry still exists, and other packs are still  there.
-	require.NotEqual(t, 0, packCount)
-	require.Equal(t, packCount-1, len(registryEntries))
+	must.NotEq(t, 0, packCount)
+	must.Eq(t, packCount-1, len(registryEntries)-1)
 }
 
 func TestParsePackURL(t *testing.T) {
@@ -395,12 +395,12 @@ func TestParsePackURL(t *testing.T) {
 			ok := reg.parsePackURL(tc.path)
 			t.Logf("  path: %s\nsource: %s\n    ok: %v\n\n", tc.path, reg.Source, ok)
 			if tc.expectOk {
-				require.True(t, ok)
-				require.Equal(t, tc.expectedResult, reg.Source)
+				must.True(t, ok)
+				must.Eq(t, tc.expectedResult, reg.Source)
 			} else {
-				require.False(t, ok)
+				must.False(t, ok)
 				// If we get an error, reg.Source should be unset.
-				require.True(t, strings.Contains(reg.Source, "invalid url") || reg.Source == "")
+				must.True(t, strings.Contains(reg.Source, "invalid url") || reg.Source == "")
 			}
 		})
 	}
@@ -459,7 +459,7 @@ func NewTestLogger(t *testing.T) *TestLogger {
 }
 
 // NoopLogger returns a logger that meets the Logger interface, but does nothing
-// for any of the methods. This can be useful for cases that require a Logger as
+// for any of the methods. This can be useful for cases that must a Logger as
 // a parameter.
 type NoopLogger struct{}
 
@@ -621,7 +621,7 @@ func testPackCount(t *testing.T, opts cacheOperationProvider) int {
 	packCount := 0
 
 	dirEntries, err := os.ReadDir(opts.RegistryPath())
-	require.NoError(t, err)
+	must.NoError(t, err)
 
 	for _, dirEntry := range dirEntries {
 		if opts.IsTarget(dirEntry) {

@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"path"
 	"strings"
@@ -57,16 +56,18 @@ func (c *Cache) Add(opts *AddOpts) (cachedRegistry *Registry, err error) {
 		return
 	}
 
-	// Store a metadata JSON file for the cached registry
-	b, err := json.MarshalIndent(cachedRegistry, "", "  ")
-	if err != nil {
-		return
-	}
+	if cachedRegistry != nil {
+		// Store a metadata JSON file for the cached registry
+		b, err := json.MarshalIndent(cachedRegistry, "", "  ")
+		if err != nil {
+			return cachedRegistry, err
+		}
 
-	metaPath := fmt.Sprintf("%s/%s/metadata.json", c.cfg.Path, opts.RegistryName)
-	err = ioutil.WriteFile(metaPath, b, 0644)
-	if err != nil {
-		return
+		metaPath := fmt.Sprintf("%s/%s/metadata.json", c.cfg.Path, opts.RegistryName)
+		err = os.WriteFile(metaPath, b, 0644)
+		if err != nil {
+			return cachedRegistry, err
+		}
 	}
 
 	return
