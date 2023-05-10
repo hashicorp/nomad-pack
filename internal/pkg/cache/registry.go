@@ -33,13 +33,13 @@ type Registry struct {
 // returned. This function is not exported, to enforce clients using the cache functions.
 // It will attempt resolve any errors so that it can continue loading potentially
 // valid packs.
-func (r *Registry) get(opts *GetOpts, cache *Cache) (err error) {
+func (r *Registry) get(opts *GetOpts, cache *Cache) error {
 	var packEntries []os.DirEntry
 	// Get the list of entries from the registry directory.
-	packEntries, err = os.ReadDir(opts.RegistryPath())
+	packEntries, err := os.ReadDir(opts.RegistryPath())
 	if err != nil {
 		// If we can't read the directory, return error.
-		return
+		return err
 	}
 
 	// Iterate over the packs in the registry and load each pack so that
@@ -119,7 +119,7 @@ func (r *Registry) get(opts *GetOpts, cache *Cache) (err error) {
 	// Set the registry URL from the first pack's URL if a pack exists
 	r.setURLFromPacks()
 
-	return
+	return nil
 }
 func (r *Registry) parsePackURL(packURL string) bool {
 	if packURL == "" {
