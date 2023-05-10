@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"path"
@@ -53,7 +52,7 @@ func (r *Registry) get(opts *GetOpts, cache *Cache) (err error) {
 
 		// Read the top-level metadata file but don't process it like a pack
 		if packEntry.Name() == "metadata.json" {
-			f, err := ioutil.ReadFile(path.Join(opts.RegistryPath(), packEntry.Name()))
+			f, err := os.ReadFile(path.Join(opts.RegistryPath(), packEntry.Name()))
 			if err != nil {
 				return err
 			}

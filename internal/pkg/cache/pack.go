@@ -64,8 +64,6 @@ func (cfg *PackConfig) initFromArgs() {
 // Pack wraps a pack.Pack add adds the local cache ref. Useful for
 // showing the registry in the global cache differentiated from the pack metadata.
 type Pack struct {
-	// Ref is the cache ref as specified by the user, i.e. either a git sha or
-	// "latest"
 	Ref string
 	*pack.Pack
 }
