@@ -23,7 +23,7 @@ const tmpDir = "nomad-pack-tmp"
 
 // Add adds a registry to a cache from the passed config.
 func (c *Cache) Add(opts *AddOpts) (*Registry, error) {
-	cachedRegistry := &Registry{}
+	var cachedRegistry *Registry
 	// Throw error if cache path not defined
 	if c.cfg.Path == "" {
 		err := errors.ErrCachePathRequired

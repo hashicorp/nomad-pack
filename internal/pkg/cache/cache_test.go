@@ -208,7 +208,6 @@ func TestAddRegistryNoCacheDir(t *testing.T) {
 	must.Error(t, err)
 
 	registry, err := cache.Add(opts)
-
 	must.Error(t, err)
 	must.Nil(t, registry)
 	must.Eq(t, errors.ErrCachePathRequired, err)
