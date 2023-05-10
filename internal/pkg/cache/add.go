@@ -153,9 +153,10 @@ func (c *Cache) addFromURI(opts *AddOpts) (cachedRegistry *Registry, err error) 
 
 // cloneRemoteGitRegistry clones a remote git repository to the cache. Returns
 // the SHA of the HEAD of the cloned repository.
-func (c *Cache) cloneRemoteGitRegistry(opts *AddOpts) (sha string, err error) {
+func (c *Cache) cloneRemoteGitRegistry(opts *AddOpts) (string, error) {
 	logger := c.cfg.Logger
 	url := opts.Source
+	sha := "unknown"
 
 	// Append the pack name to the go-getter url if a pack name was specified
 	if opts.PackName != "" {
@@ -175,28 +176,29 @@ func (c *Cache) cloneRemoteGitRegistry(opts *AddOpts) (sha string, err error) {
 	if opts.PackName != "" {
 		clonePath = path.Join(clonePath, "packs", opts.PackName)
 	}
-	err = gg.Get(clonePath, fmt.Sprintf("git::%s", url))
+	err := gg.Get(clonePath, fmt.Sprintf("git::%s", url))
 	if err != nil {
 		logger.ErrorWithContext(err, "could not install registry", c.ErrorContext.GetAll()...)
-		return
+		return sha, err
 	}
 
 	// Get ref of our local repo clone and store it
 	r, err := git.PlainOpen(clonePath)
 	if err != nil {
 		logger.ErrorWithContext(err, "could not read cloned repository", c.ErrorContext.GetAll()...)
-		return
 	}
-	head, err := r.Head()
-	if err != nil {
-		logger.ErrorWithContext(err, "could not get ref of a cloned repository", c.ErrorContext.GetAll()...)
-		return
+	if r != nil {
+		head, err := r.Head()
+		if err != nil {
+			logger.ErrorWithContext(err, "could not get ref of a cloned repository", c.ErrorContext.GetAll()...)
+			return sha, err
+		}
+		sha = head.Hash().String()
 	}
-	sha = head.Hash().String()
 
 	logger.Debug(fmt.Sprintf("Registry successfully cloned at %s", c.clonePath()))
 
-	return
+	return sha, nil
 }
 
 func (c *Cache) processPackEntry(opts *AddOpts, packEntry os.DirEntry) error {
