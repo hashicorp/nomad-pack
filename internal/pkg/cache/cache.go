@@ -9,6 +9,8 @@ import (
 	"path"
 	"strings"
 
+	"github.com/go-git/go-git/v5"
+
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/helper/filesystem"
 	"github.com/hashicorp/nomad-pack/internal/pkg/logging"
@@ -214,4 +216,22 @@ func refFromPackEntry(packEntry os.DirEntry) (ref string) {
 	}
 
 	return
+}
+
+// getGitHeadRef is a helper method that takes a directory which is a git
+// repository, and returns the SHA of the git HEAD of that repository.
+func getGitHeadRef(clonePath string) (string, error) {
+	sha := "n/a"
+	r, err := git.PlainOpen(clonePath)
+	if err != nil {
+		return sha, fmt.Errorf("could not read cloned repository: %v", err)
+	}
+	if r != nil {
+		head, err := r.Head()
+		if err != nil {
+			return sha, fmt.Errorf("could not get ref of a cloned repository: %v", err)
+		}
+		sha = head.Hash().String()
+	}
+	return sha, nil
 }

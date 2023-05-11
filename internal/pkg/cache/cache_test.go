@@ -5,6 +5,7 @@ package cache
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -167,8 +168,20 @@ func TestAddRegistryWithSHA(t *testing.T) {
 
 	// expected testCount
 	expected := testPackCount(t, addOpts)
-
 	must.Eq(t, expected, len(registry.Packs))
+
+	// Make sure the metadata file is there and that it contains what we want
+	f, err := os.ReadFile(path.Join(cacheDir + "/" + registry.Name + "/metadata.json"))
+	must.NoError(t, err)
+	r := &Registry{}
+	must.NoError(t, json.Unmarshal(f, r))
+	expectedRegistryMetadata := &Registry{
+		Name:     "with-sha",
+		Source:   "github.com/hashicorp/nomad-pack/fixtures/test_registry",
+		LocalRef: tReg.Ref1(),
+	}
+	must.Eq(t, expectedRegistryMetadata, r)
+
 }
 
 func TestAddRegistryWithRefAndPackName(t *testing.T) {

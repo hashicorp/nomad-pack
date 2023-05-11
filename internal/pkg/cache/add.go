@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-git/go-git/v5"
 	gg "github.com/hashicorp/go-getter"
 
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
@@ -157,7 +156,6 @@ func (c *Cache) addFromURI(opts *AddOpts) (cachedRegistry *Registry, err error) 
 func (c *Cache) cloneRemoteGitRegistry(opts *AddOpts) (string, error) {
 	logger := c.cfg.Logger
 	url := opts.Source
-	sha := "unknown"
 
 	// Append the pack name to the go-getter url if a pack name was specified
 	if opts.PackName != "" {
@@ -180,21 +178,13 @@ func (c *Cache) cloneRemoteGitRegistry(opts *AddOpts) (string, error) {
 	err := gg.Get(clonePath, fmt.Sprintf("git::%s", url))
 	if err != nil {
 		logger.ErrorWithContext(err, "could not install registry", c.ErrorContext.GetAll()...)
-		return sha, err
+		return "n/a", err
 	}
 
 	// Get ref of our local repo clone and store it
-	r, err := git.PlainOpen(clonePath)
+	sha, err := getGitHeadRef(clonePath)
 	if err != nil {
-		logger.ErrorWithContext(err, "could not read cloned repository", c.ErrorContext.GetAll()...)
-	}
-	if r != nil {
-		head, err := r.Head()
-		if err != nil {
-			logger.ErrorWithContext(err, "could not get ref of a cloned repository", c.ErrorContext.GetAll()...)
-			return sha, err
-		}
-		sha = head.Hash().String()
+		logger.ErrorWithContext(err, "error reading cloned repository", c.ErrorContext.GetAll()...)
 	}
 
 	logger.Debug(fmt.Sprintf("Registry successfully cloned at %s", c.clonePath()))
