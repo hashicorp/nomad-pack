@@ -4,16 +4,15 @@
 package cache
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
 	"path"
 	"strings"
 	"sync"
 	"testing"
 
+	"github.com/go-git/go-git/v5"
 	"github.com/shoenig/test/must"
 
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
@@ -528,94 +527,57 @@ func makeTestRegRepo(tReg *TestGithubRegistry) {
 	var err error
 	tReg.tmpDir, err = os.MkdirTemp("", "cache-test-*")
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("unable to create temp dir for test git repo: %w", err))
 	}
 	tReg.cleanupFn = func() { os.RemoveAll(tReg.tmpDir) }
-	maybeFatal := func(err error) {
-		if err != nil {
-			var out string
-
-			switch err := err.(type) {
-			case *exec.ExitError:
-				out = fmt.Sprintf("Error: %v \nStdErr:\n%s", err, string(err.Stderr))
-			default:
-				out = fmt.Sprintf("Error: (%T) %v ", err, err)
-			}
-
-			tReg.Cleanup()
-			panic(out)
-		}
-	}
 
 	tReg.sourceURL = path.Join(tReg.tmpDir, "test_registry.git")
-	maybeFatal(filesystem.CopyDir("../../../fixtures/test_registry", tReg.SourceURL(), NoopLogger{}))
-	var exitErr *exec.ExitError
-
-	formatPanic := func(res GitCommandResult) {
-		var out strings.Builder
-		out.WriteString(fmt.Sprintf("git err: %v running %v\n", res.err.Error(), res.cmd))
-		out.WriteString(fmt.Sprintf("stdout:\n%s\nstderr:\n%s\n", res.stdout, res.stderr))
-		// If these setup git commands fail, there's no use in continuing
-		// because almost all of the cache tests will fail. Could these
-		// be refactored into a sync.Once and a check for cache tests?
+	err = filesystem.CopyDir("../../../fixtures/test_registry", tReg.SourceURL(), NoopLogger{})
+	if err != nil {
 		tReg.Cleanup()
-		panic(out)
+		panic(fmt.Errorf("unable to copy test fixtures to test gir repo: %v", err))
 	}
 
-	handleInitError := func(res GitCommandResult) GitCommandResult {
-		if res.err != nil && errors.As(res.err, &exitErr) && !strings.Contains(
-			res.stdout,
-			"Initialized empty Git repository",
-		) {
-			formatPanic(res)
-		}
-		return res
+	// initialize git repo...
+	r, err := git.PlainInit(tReg.SourceURL(), false)
+	if err != nil {
+		tReg.Cleanup()
+		panic(fmt.Errorf("unable to initialize test git repo: %v", err))
+	}
+	// ...and worktree
+	w, err := r.Worktree()
+	if err != nil {
+		tReg.Cleanup()
+		panic(fmt.Errorf("unable to initialize worktree for test git repo: %v", err))
 	}
 
-	handleGitError := func(res GitCommandResult) GitCommandResult {
-		if res.err != nil {
-			formatPanic(res)
-		}
-		return res
+	_, err = w.Add(".")
+	if err != nil {
+		tReg.Cleanup()
+		panic(fmt.Errorf("unable to stage test files to test git repo: %v", err))
 	}
 
-	handleInitError(gitCmd("init"))
-	handleGitError(gitCmd("config", "user.email", "test@example.com"))
-	handleGitError(gitCmd("config", "user.name", "Github Action Test User"))
-	handleGitError(gitCmd("add", "."))
-	handleGitError(gitCmd("commit", "-m", "Initial Commit"))
-	res := handleGitError(gitCmd("log", "-1", `--pretty=%H`))
-	tReg.ref1 = strings.TrimSpace(res.stdout)
-
-	handleGitError(gitCmd("commit", "--allow-empty", "-m", "Second Commit"))
-	res = handleGitError(gitCmd("log", "-1", `--pretty=%H`))
-	tReg.ref2 = strings.TrimSpace(res.stdout)
-}
-
-func gitCmd(args ...string) GitCommandResult {
-	git := exec.Command("git", args...)
-	git.Dir = tReg.SourceURL()
-	oB := new(bytes.Buffer)
-	eB := new(bytes.Buffer)
-	git.Stdout = oB
-	git.Stderr = eB
-	err := git.Run()
-	res := GitCommandResult{
-		exitCode: git.ProcessState.ExitCode(),
-		cmd:      git,
-		err:      err,
-		stdout:   oB.String(),
-		stderr:   eB.String(),
+	_, err = w.Commit("Initial Commit", &git.CommitOptions{})
+	if err != nil {
+		tReg.Cleanup()
+		panic(fmt.Errorf("unable to commit test files to test git repo: %v", err))
 	}
-	return res
-}
+	head, err := r.Head()
+	if err != nil {
+		panic(fmt.Errorf("could not get ref of test git repo: %v", err))
+	}
+	tReg.ref1 = head.Hash().String()
 
-type GitCommandResult struct {
-	cmd      *exec.Cmd
-	exitCode int
-	err      error
-	stdout   string
-	stderr   string
+	_, err = w.Commit("Second Commit", &git.CommitOptions{AllowEmptyCommits: true})
+	if err != nil {
+		tReg.Cleanup()
+		panic(fmt.Errorf("unable to commit test files to test git repo: %v", err))
+	}
+	head, err = r.Head()
+	if err != nil {
+		panic(fmt.Errorf("could not get ref of test git repo: %v", err))
+	}
+	tReg.ref2 = head.Hash().String()
 }
 
 func testAddOpts(registryName string) *AddOpts {
