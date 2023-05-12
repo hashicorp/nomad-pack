@@ -11,8 +11,10 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/shoenig/test/must"
 
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
@@ -557,7 +559,13 @@ func makeTestRegRepo(tReg *TestGithubRegistry) {
 		panic(fmt.Errorf("unable to stage test files to test git repo: %v", err))
 	}
 
-	_, err = w.Commit("Initial Commit", &git.CommitOptions{})
+	commitOptions := &git.CommitOptions{Author: &object.Signature{
+		Name:  "Github Action Test User",
+		Email: "test@example.com",
+		When:  time.Now(),
+	}}
+
+	_, err = w.Commit("Initial Commit", commitOptions)
 	if err != nil {
 		tReg.Cleanup()
 		panic(fmt.Errorf("unable to commit test files to test git repo: %v", err))
@@ -568,7 +576,8 @@ func makeTestRegRepo(tReg *TestGithubRegistry) {
 	}
 	tReg.ref1 = head.Hash().String()
 
-	_, err = w.Commit("Second Commit", &git.CommitOptions{AllowEmptyCommits: true})
+	commitOptions.AllowEmptyCommits = true
+	_, err = w.Commit("Second Commit", commitOptions)
 	if err != nil {
 		tReg.Cleanup()
 		panic(fmt.Errorf("unable to commit test files to test git repo: %v", err))
