@@ -143,6 +143,7 @@ func (c *Cache) addFromURI(opts *AddOpts) (cachedRegistry *Registry, err error) 
 		Ref:          opts.Ref,
 	})
 	cachedRegistry.LocalRef = sha
+	cachedRegistry.RawSourceURL = opts.Source
 	if err != nil {
 		logger.ErrorWithContext(err, "error getting registry after add", c.ErrorContext.GetAll()...)
 		return

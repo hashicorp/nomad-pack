@@ -18,9 +18,16 @@ import (
 
 // Registry represents a registry definition from the global cache.
 type Registry struct {
-	Name     string  `json:"name,omitempty"`
-	Source   string  `json:"source,omitempty"`
-	Ref      string  `json:"ref,omitempty"`
+	// Name as defined by the user
+	Name string `json:"name,omitempty"`
+	// Source as it will be presented in the UI
+	Source string `json:"source,omitempty"`
+	// RawSourceURL is the full URL from where we got the registry
+	RawSourceURL string `json:"rawSourceURL,omitempty"`
+	// Ref is a reference of the registry as specified by the user (may be "latest"
+	// or an actual git ref)
+	Ref string `json:"ref,omitempty"`
+	// LocalRef is a reference to the git SHA that we have available locally
 	LocalRef string  `json:"local_ref,omitempty"`
 	Packs    []*Pack `json:"-"`
 }
