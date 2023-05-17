@@ -6,7 +6,6 @@ package errors
 import (
 	"testing"
 
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/shoenig/test/must"
 )
@@ -62,7 +61,7 @@ func TestWrappedUIContext_HCLDiagsToWrappedUIContext(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			must.SliceContainsAll(t, tc.expectedOutput, HCLDiagsToWrappedUIContext(tc.inputDiags), must.Cmp(cmpopts.EquateErrors()))
+			must.Eq(t, HCLDiagsToWrappedUIContext(tc.inputDiags), tc.expectedOutput)
 		})
 	}
 }
