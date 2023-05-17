@@ -845,7 +845,7 @@ func createTestRegistry(t *testing.T) (string, string) {
 	must.NoError(t, err)
 
 	// Put a sample metadata.json in the test registry
-	metaPath := fmt.Sprintf("%s/metadata.json", regDir)
+	metaPath := filepath.Join(regDir, "metadata.json")
 	b, _ := json.Marshal(&cache.Registry{Name: registryName, Source: "", Ref: testRef, LocalRef: testRef})
 	os.WriteFile(metaPath, b, 0644)
 

@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -61,7 +62,7 @@ func (c *Cache) Add(opts *AddOpts) (*Registry, error) {
 			return cachedRegistry, err
 		}
 
-		metaPath := fmt.Sprintf("%s/%s/metadata.json", c.cfg.Path, opts.RegistryName)
+		metaPath := filepath.Join(c.cfg.Path, opts.RegistryName, "/metadata.json")
 		if err = os.WriteFile(metaPath, b, 0644); err != nil {
 			return cachedRegistry, err
 		}
@@ -173,8 +174,7 @@ func (c *Cache) cloneRemoteGitRegistry(opts *AddOpts) (string, error) {
 	if opts.PackName != "" {
 		clonePath = path.Join(clonePath, "packs", opts.PackName)
 	}
-	err := gg.Get(clonePath, fmt.Sprintf("git::%s", url))
-	if err != nil {
+	if err := gg.Get(clonePath, fmt.Sprintf("git::%s", url)); err != nil {
 		logger.ErrorWithContext(err, "could not install registry", c.ErrorContext.GetAll()...)
 		return "n/a", err
 	}
