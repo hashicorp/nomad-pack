@@ -6,7 +6,7 @@ package pack
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/shoenig/test/must"
 )
 
 func TestPack_Name(t *testing.T) {
@@ -28,7 +28,7 @@ func TestPack_Name(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		assert.Equal(t, tc.expectedOutput, tc.inputPack.Name(), tc.name)
+		must.Eq(t, tc.expectedOutput, tc.inputPack.Name(), must.Sprint(tc.name))
 	}
 }
 
@@ -121,6 +121,6 @@ func TestPack_RootVariableFiles(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		assert.Equal(t, tc.expectedOutput, tc.inputPack.RootVariableFiles(), tc.name)
+		must.Eq(t, tc.expectedOutput, tc.inputPack.RootVariableFiles(), must.Sprint(tc.name))
 	}
 }

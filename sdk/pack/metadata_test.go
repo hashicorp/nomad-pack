@@ -6,7 +6,7 @@ package pack
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/shoenig/test/must"
 )
 
 func TestMetadata_ConvertToMapInterface(t *testing.T) {
@@ -92,7 +92,7 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 
 	for _, tc := range testCases {
 		actualOutput := tc.inputMetadata.ConvertToMapInterface()
-		assert.Equal(t, tc.expectedOutput, actualOutput, tc.name)
+		must.Eq(t, tc.expectedOutput, actualOutput, must.Sprint(tc.name))
 	}
 }
 
@@ -125,9 +125,9 @@ func TestMetadata_Validate(t *testing.T) {
 	for _, tc := range testCases {
 		err := tc.inputMetadata.Validate()
 		if tc.expectError {
-			assert.NotNil(t, err, tc.name)
+			must.NotNil(t, err, must.Sprint(tc.name))
 		} else {
-			assert.Nil(t, err, tc.name)
+			must.Nil(t, err, must.Sprint(tc.name))
 		}
 	}
 }

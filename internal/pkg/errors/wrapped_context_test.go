@@ -6,8 +6,9 @@ package errors
 import (
 	"testing"
 
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/hcl/v2"
-	"github.com/stretchr/testify/assert"
+	"github.com/shoenig/test/must"
 )
 
 func TestWrappedUIContext_Error(t *testing.T) {
@@ -29,7 +30,7 @@ func TestWrappedUIContext_Error(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			assert.Equal(t, tc.expectedOutput, tc.inputWrappedUIContext.Error(), tc.name)
+			must.Eq(t, tc.expectedOutput, tc.inputWrappedUIContext.Error())
 		})
 	}
 }
@@ -61,7 +62,7 @@ func TestWrappedUIContext_HCLDiagsToWrappedUIContext(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			assert.ElementsMatch(t, tc.expectedOutput, HCLDiagsToWrappedUIContext(tc.inputDiags), tc.name)
+			must.SliceContainsAll(t, tc.expectedOutput, HCLDiagsToWrappedUIContext(tc.inputDiags), must.Cmp(cmpopts.EquateErrors()))
 		})
 	}
 }

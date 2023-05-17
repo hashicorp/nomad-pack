@@ -6,7 +6,7 @@ package errors
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/shoenig/test/must"
 )
 
 func TestUIErrorContext_Add(t *testing.T) {
@@ -38,7 +38,7 @@ func TestUIErrorContext_Add(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			tc.inputUIErrorContext.Add(tc.inputPrefix, tc.inputVal)
-			assert.ElementsMatch(t, tc.expectedOutput, tc.inputUIErrorContext.GetAll(), tc.name)
+			must.SliceContainsAll(t, tc.expectedOutput, tc.inputUIErrorContext.GetAll())
 		})
 	}
 }
@@ -76,7 +76,7 @@ func TestUIErrorContext_Append(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			tc.inputUIErrorContext.Append(tc.inputAppendContext)
-			assert.ElementsMatch(t, tc.expectedOutput, tc.inputUIErrorContext.GetAll(), tc.name)
+			must.SliceContainsAll(t, tc.expectedOutput, tc.inputUIErrorContext.GetAll())
 		})
 	}
 }
@@ -105,7 +105,7 @@ func TestUIErrorContext_Copy(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			assert.Equal(t, tc.expectedOutput, tc.inputUIErrorContext.Copy(), tc.name)
+			must.Eq(t, tc.expectedOutput, tc.inputUIErrorContext.Copy())
 		})
 	}
 }
@@ -132,7 +132,7 @@ func TestUIErrorContext_GetAll(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			assert.ElementsMatch(t, tc.expectedOutput, tc.inputUIErrorContext.GetAll(), tc.name)
+			must.SliceContainsAll(t, tc.expectedOutput, tc.inputUIErrorContext.GetAll())
 		})
 	}
 }

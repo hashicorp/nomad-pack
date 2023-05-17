@@ -6,7 +6,7 @@ package helper
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"github.com/shoenig/test/must"
 )
 
 func TestTitle(t *testing.T) {
@@ -20,6 +20,6 @@ func TestTitle(t *testing.T) {
 
 	for _, tc := range cases {
 		result := Title(tc.s)
-		require.Equal(t, tc.exp, result)
+		must.Eq(t, tc.exp, result)
 	}
 }

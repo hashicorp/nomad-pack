@@ -14,7 +14,7 @@ import (
 	v1 "github.com/hashicorp/nomad-openapi/v1"
 	"github.com/hashicorp/nomad/command/agent"
 	"github.com/hashicorp/nomad/testutil"
-	"github.com/stretchr/testify/require"
+	"github.com/shoenig/test/must"
 )
 
 const testLogLevel = "ERROR"
@@ -42,9 +42,9 @@ func makeACLEnabledHTTPServer(t testing.TB, cb func(c *agent.Config)) *agent.Tes
 	srv := agent.NewTestAgent(t, t.Name(), aclCB)
 	testutil.WaitForLeader(t, srv.Agent.RPC)
 	c, err := NewTestClient(srv)
-	require.NoError(t, err)
+	must.NoError(t, err)
 	tResp, _, err := c.ACL().Bootstrap(c.WriteOpts().Ctx())
-	require.NoError(t, err)
+	must.NoError(t, err)
 
 	// Store the bootstrap ACL secret in the TestServer's client meta map
 	// so that it is easily accessible from tests.
@@ -157,8 +157,8 @@ func join(nodes ...*agent.TestAgent) {
 		addrs[i] = fmt.Sprintf("%s:%d", member.Addr, member.Port)
 	}
 	count, err := first.Client().Agent().Join(addrs...)
-	require.NoError(first.T, err)
-	require.Equal(first.T, len(nodes)-1, count)
+	must.NoError(first.T, err)
+	must.Eq(first.T, len(nodes)-1, count)
 }
 
 func NewTestClient(testAgent *agent.TestAgent, opts ...v1.ClientOption) (*v1.Client, error) {
@@ -267,7 +267,7 @@ func MakeTestNamespaces(t *testing.T, c *v1.Client) {
 		testNs.Name = &nsName
 		testNs.Description = &nsDesc
 		_, err := c.Namespaces().PostNamespace(opts.Ctx(), testNs)
-		require.NoError(t, err)
+		must.NoError(t, err)
 	}
 
 }

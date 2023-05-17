@@ -8,8 +8,7 @@ import (
 	"testing"
 	"text/template"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/shoenig/test/must"
 )
 
 func Test_toStringList(t *testing.T) {
@@ -33,7 +32,7 @@ func Test_toStringList(t *testing.T) {
 
 	for _, tc := range testCases {
 		actualOutput, _ := toStringList(tc.input)
-		assert.Equal(t, tc.expectedOutput, actualOutput)
+		must.Eq(t, tc.expectedOutput, actualOutput)
 	}
 }
 
@@ -50,7 +49,7 @@ func TestSpewHelpersInTemplate(t *testing.T) {
 	testCases := []struct {
 		desc      string
 		input     string
-		expect    interface{}
+		expect    string
 		expectErr bool
 	}{
 		{
@@ -99,12 +98,12 @@ func TestSpewHelpersInTemplate(t *testing.T) {
 			tpl := template.Must(template.New("test").Funcs(funcMap(nil)).Delims("[[", "]]").Parse(tC.input))
 			err := tpl.Execute(&b, s1)
 			if tC.expectErr {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), tC.expect)
+				must.Error(t, err)
+				must.StrContains(t, err.Error(), tC.expect)
 				return
 			}
-			require.NoError(t, err)
-			require.Equal(t, tC.expect, b.String())
+			must.NoError(t, err)
+			must.Eq(t, tC.expect, b.String())
 		})
 	}
 }

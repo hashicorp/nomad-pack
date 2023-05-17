@@ -7,13 +7,13 @@ import (
 	"os"
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"github.com/shoenig/test/must"
 )
 
 func TestInit(t *testing.T) {
-	require.NotNil(t, tpl)
+	must.NotNil(t, tpl)
 	err := tpl.ExecuteTemplate(os.Stdout, "pack_readme.md", map[string]string{
 		"PackName": "foo",
 	})
-	require.NoError(t, err)
+	must.NoError(t, err)
 }

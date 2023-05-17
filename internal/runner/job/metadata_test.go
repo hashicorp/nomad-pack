@@ -7,8 +7,10 @@ import (
 	"testing"
 
 	v1client "github.com/hashicorp/nomad-openapi/clients/go/v1"
+	"github.com/shoenig/test/must"
+
 	"github.com/hashicorp/nomad-pack/internal/runner"
-	"github.com/stretchr/testify/assert"
+	"github.com/hashicorp/nomad-pack/sdk/helper"
 )
 
 func TestDeployer_setJobMeta(t *testing.T) {
@@ -29,11 +31,11 @@ func TestDeployer_setJobMeta(t *testing.T) {
 				},
 			},
 			inputJob: &v1client.Job{
-				Name: stringToPtr("foobar"),
+				Name: helper.StringToPtr("foobar"),
 			},
 			expectedOutputJob: &v1client.Job{
-				Name: stringToPtr("foobar"),
-				Meta: mapToPtr(map[string]string{
+				Name: helper.StringToPtr("foobar"),
+				Meta: helper.MapToPtr(map[string]string{
 					PackPathKey:           "/opt/src/foobar",
 					PackNameKey:           "foobar",
 					PackRegistryKey:       "default",
@@ -49,10 +51,7 @@ func TestDeployer_setJobMeta(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			tc.inputRunner.setJobMeta(tc.inputJob)
-			assert.Equal(t, tc.expectedOutputJob, tc.inputJob, tc.name)
+			must.Eq(t, tc.expectedOutputJob, tc.inputJob)
 		})
 	}
 }
-
-func mapToPtr(m map[string]string) *map[string]string { return &m }
-func stringToPtr(s string) *string                    { return &s }

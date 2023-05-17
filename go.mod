@@ -12,6 +12,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/fatih/color v1.13.0
 	github.com/go-git/go-git/v5 v5.6.1
+	github.com/google/go-cmp v0.5.9
 	github.com/hashicorp/go-getter v1.7.0
 	github.com/hashicorp/go-hclog v1.3.1
 	github.com/hashicorp/go-multierror v1.1.1
@@ -32,7 +33,6 @@ require (
 	github.com/shoenig/test v0.6.4
 	github.com/spf13/afero v1.6.0
 	github.com/spf13/pflag v1.0.5
-	github.com/stretchr/testify v1.8.1
 	github.com/zclconf/go-cty v1.11.0
 	golang.org/x/term v0.5.0
 	golang.org/x/text v0.7.0
@@ -125,7 +125,6 @@ require (
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/btree v1.0.0 // indirect
-	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/go-querystring v0.0.0-20170111101155-53e6ce116135 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.2.0 // indirect
@@ -241,6 +240,7 @@ require (
 	github.com/skeema/knownhosts v1.1.0 // indirect
 	github.com/softlayer/softlayer-go v0.0.0-20180806151055-260589d94c7d // indirect
 	github.com/spf13/cast v1.3.1 // indirect
+	github.com/stretchr/testify v1.8.1 // indirect
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635 // indirect
 	github.com/tencentcloud/tencentcloud-sdk-go v3.0.83+incompatible // indirect
 	github.com/tj/go-spin v1.1.0 // indirect
