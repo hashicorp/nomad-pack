@@ -4,6 +4,7 @@
 package cache
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
@@ -17,10 +18,16 @@ import (
 
 // Registry represents a registry definition from the global cache.
 type Registry struct {
-	Name   string
-	Source string
-	Ref    string
-	Packs  []*Pack
+	// Name as defined by the user
+	Name string `json:"name,omitempty"`
+	// Source URL of the registry
+	Source string `json:"source,omitempty"`
+	// Ref is a reference of the registry as specified by the user (may be "latest"
+	// or an actual git ref)
+	Ref string `json:"ref,omitempty"`
+	// LocalRef is a reference to the git SHA that we have available locally
+	LocalRef string  `json:"local_ref,omitempty"`
+	Packs    []*Pack `json:"-"`
 }
 
 // get will attempt to load the specified packs from a path, and then append them
@@ -31,13 +38,13 @@ type Registry struct {
 // returned. This function is not exported, to enforce clients using the cache functions.
 // It will attempt resolve any errors so that it can continue loading potentially
 // valid packs.
-func (r *Registry) get(opts *GetOpts, cache *Cache) (err error) {
+func (r *Registry) get(opts *GetOpts, cache *Cache) error {
 	var packEntries []os.DirEntry
 	// Get the list of entries from the registry directory.
-	packEntries, err = os.ReadDir(opts.RegistryPath())
+	packEntries, err := os.ReadDir(opts.RegistryPath())
 	if err != nil {
 		// If we can't read the directory, return error.
-		return
+		return err
 	}
 
 	// Iterate over the packs in the registry and load each pack so that
@@ -45,6 +52,22 @@ func (r *Registry) get(opts *GetOpts, cache *Cache) (err error) {
 	for _, packEntry := range packEntries {
 		// Skip any entries not targeted.
 		if !opts.IsTarget(packEntry) {
+			continue
+		}
+
+		// Read the top-level metadata file but don't process it like a pack
+		if packEntry.Name() == "metadata.json" {
+			f, err2 := os.ReadFile(path.Join(opts.RegistryPath(), packEntry.Name()))
+			if err2 != nil {
+				return err2
+			}
+			cachedRegistry := &Registry{}
+			err2 = json.Unmarshal(f, cachedRegistry)
+			if err2 != nil {
+				return err2
+			}
+			r.LocalRef = cachedRegistry.LocalRef
+			r.Source = cachedRegistry.Source
 			continue
 		}
 
@@ -94,15 +117,9 @@ func (r *Registry) get(opts *GetOpts, cache *Cache) (err error) {
 
 		// Append the pack to the registry's packs field.
 		r.add(cachedPack)
-
-		// reset err to nil in case we handled a recoverable err
-		err = nil
 	}
 
-	// Set the registry URL from the first pack's URL if a pack exists
-	r.setURLFromPacks()
-
-	return
+	return nil
 }
 func (r *Registry) parsePackURL(packURL string) bool {
 	if packURL == "" {
@@ -130,33 +147,6 @@ func (r *Registry) parsePackURL(packURL string) bool {
 
 	r.Source = path.Join(parsedPackURL.Hostname(), dir)
 	return true
-
-}
-
-// setURLFromPacks sets the Source since we don't have this stored in any sort of
-// reliable way.
-func (r *Registry) setURLFromPacks() {
-
-	for _, cachedPack := range r.Packs {
-		if err := cachedPack.Validate(); err != nil {
-			continue
-		}
-
-		if r.parsePackURL(cachedPack.Metadata.Pack.URL) {
-			continue
-		}
-
-		// Exit once we have a valid pack
-		return
-	}
-
-	if r.Source != "" {
-		// return the error to the table if we had a URL, but it was invalid.
-		return
-	}
-
-	// Set meaningful message if no valid packs found.
-	r.Source = "not parsable - registry contains no valid packs"
 }
 
 func (r *Registry) add(pack *Pack) {

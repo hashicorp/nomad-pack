@@ -47,7 +47,7 @@ func generatePackManager(c *baseCommand, client *v1.Client, packCfg *cache.PackC
 }
 
 func registryTable() *terminal.Table {
-	return terminal.NewTable("PACK NAME", "REF", "METADATA VERSION", "REGISTRY", "REGISTRY_URL")
+	return terminal.NewTable("PACK NAME", "REF", "LOCAL_REF", "METADATA VERSION", "REGISTRY", "REGISTRY_URL")
 }
 
 func emptyRegistryTableRow(cachedRegistry *cache.Registry) []terminal.TableEntry {
@@ -57,6 +57,10 @@ func emptyRegistryTableRow(cachedRegistry *cache.Registry) []terminal.TableEntry
 			Value: "",
 		},
 		// blank revision
+		{
+			Value: "",
+		},
+		// blank local ref
 		{
 			Value: "",
 		},
@@ -85,6 +89,10 @@ func registryPackRow(cachedRegistry *cache.Registry, cachedPack *cache.Pack) []t
 		// The revision from where the registryPack was cloned
 		{
 			Value: cachedPack.Ref,
+		},
+		// The canonical revision from where the registryPack was cloned
+		{
+			Value: cachedRegistry.LocalRef,
 		},
 		// The metadata version
 		{

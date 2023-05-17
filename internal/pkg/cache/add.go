@@ -4,27 +4,29 @@
 package cache
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/fs"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
 	gg "github.com/hashicorp/go-getter"
+
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/helper/filesystem"
-	pkgVersion "github.com/hashicorp/nomad-pack/internal/pkg/version"
 )
 
 const tmpDir = "nomad-pack-tmp"
 
 // Add adds a registry to a cache from the passed config.
-func (c *Cache) Add(opts *AddOpts) (cachedRegistry *Registry, err error) {
+func (c *Cache) Add(opts *AddOpts) (*Registry, error) {
+	var cachedRegistry *Registry
 	// Throw error if cache path not defined
 	if c.cfg.Path == "" {
-		err = errors.ErrCachePathRequired
-		return
+		return cachedRegistry, errors.ErrCachePathRequired
 	}
 
 	opts.cachePath = c.cfg.Path
@@ -45,13 +47,28 @@ func (c *Cache) Add(opts *AddOpts) (cachedRegistry *Registry, err error) {
 	// to look up the source URL, but invalid packs metadata can mess that up.
 	// Throw error if registry source is not defined
 	if opts.Source == "" {
-		err = errors.ErrRegistrySourceRequired
-		return
+		return cachedRegistry, errors.ErrRegistrySourceRequired
 	}
 
-	cachedRegistry, err = c.addFromURI(opts)
+	cachedRegistry, err := c.addFromURI(opts)
+	if err != nil {
+		return cachedRegistry, err
+	}
 
-	return
+	if cachedRegistry != nil {
+		// Store a metadata JSON file for the cached registry
+		b, err := json.MarshalIndent(cachedRegistry, "", "  ")
+		if err != nil {
+			return cachedRegistry, err
+		}
+
+		metaPath := filepath.Join(c.cfg.Path, opts.RegistryName, "/metadata.json")
+		if err = os.WriteFile(metaPath, b, 0644); err != nil {
+			return cachedRegistry, err
+		}
+	}
+
+	return cachedRegistry, nil
 }
 
 // addFromURI loads a registry from a remote git repository. If addToCache is
@@ -82,7 +99,8 @@ func (c *Cache) addFromURI(opts *AddOpts) (cachedRegistry *Registry, err error) 
 		logger.Info("temp directory deleted")
 	}()
 
-	err = c.cloneRemoteGitRegistry(opts)
+	// keep the SHA of the clone operation (if any)
+	c.latestSHA, err = c.cloneRemoteGitRegistry(opts)
 	if err != nil {
 		return
 	}
@@ -121,6 +139,8 @@ func (c *Cache) addFromURI(opts *AddOpts) (cachedRegistry *Registry, err error) 
 		PackName:     opts.PackName,
 		Ref:          opts.Ref,
 	})
+	cachedRegistry.LocalRef = c.latestSHA
+	cachedRegistry.Source = opts.Source
 	if err != nil {
 		logger.ErrorWithContext(err, "error getting registry after add", c.ErrorContext.GetAll()...)
 		return
@@ -129,10 +149,10 @@ func (c *Cache) addFromURI(opts *AddOpts) (cachedRegistry *Registry, err error) 
 	return
 }
 
-// cloneRemoteGitRegistry clones a remote git repository to the cache.
-func (c *Cache) cloneRemoteGitRegistry(opts *AddOpts) (err error) {
+// cloneRemoteGitRegistry clones a remote git repository to the cache. Returns
+// the SHA of the HEAD of the cloned repository.
+func (c *Cache) cloneRemoteGitRegistry(opts *AddOpts) (string, error) {
 	logger := c.cfg.Logger
-
 	url := opts.Source
 
 	// Append the pack name to the go-getter url if a pack name was specified
@@ -153,15 +173,20 @@ func (c *Cache) cloneRemoteGitRegistry(opts *AddOpts) (err error) {
 	if opts.PackName != "" {
 		clonePath = path.Join(clonePath, "packs", opts.PackName)
 	}
-	err = gg.Get(clonePath, fmt.Sprintf("git::%s", url))
-	if err != nil {
+	if err := gg.Get(clonePath, fmt.Sprintf("git::%s", url)); err != nil {
 		logger.ErrorWithContext(err, "could not install registry", c.ErrorContext.GetAll()...)
-		return
+		return "n/a", err
+	}
+
+	// Get ref of our local repo clone and store it
+	sha, err := getGitHeadRef(clonePath)
+	if err != nil {
+		logger.ErrorWithContext(err, "error reading cloned repository", c.ErrorContext.GetAll()...)
 	}
 
 	logger.Debug(fmt.Sprintf("Registry successfully cloned at %s", c.clonePath()))
 
-	return
+	return sha, nil
 }
 
 func (c *Cache) processPackEntry(opts *AddOpts, packEntry os.DirEntry) error {
@@ -279,16 +304,11 @@ func (c *Cache) logLatest(opts *AddOpts) (err error) {
 	}()
 
 	// Calculate the SHA of the target pack
-	logger.Debug("Calculating SHA for latest")
-	// TODO: Test this is the right path after refactor.
-	currentSHA, err := pkgVersion.GitSHA(c.clonePath())
-	if err != nil {
-		logger.Debug("error calculating SHA")
-		return
-	}
+	logger.Debug("calculating SHA for latest")
 
 	// Format a log entry with SHA and timestamp
-	logEntry := fmt.Sprintf("SHA %s downloaded at UTC %s\n", currentSHA, time.Now().UTC())
+	logEntry := fmt.Sprintf("SHA %s downloaded at UTC %s\n", c.latestSHA, time.Now().UTC())
+	logger.Debug(logEntry)
 
 	// Write log entry to file
 	if _, err = logFile.WriteString(logEntry); err != nil {
@@ -310,7 +330,7 @@ type AddOpts struct {
 	Source string
 	// Optional target pack. Used when managing a specific pack within a registry.
 	PackName string
-	// Optional ref of pack or registry at which to add. Ignored it not
+	// Optional ref of pack or registry at which to add. Ignored if not
 	// specifying a git source. Defaults to latest.
 	Ref string
 	// Optional username for basic auth to a registry that requires authentication.

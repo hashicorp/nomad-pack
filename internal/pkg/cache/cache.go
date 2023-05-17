@@ -9,6 +9,8 @@ import (
 	"path"
 	"strings"
 
+	"github.com/go-git/go-git/v5"
+
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/helper/filesystem"
 	"github.com/hashicorp/nomad-pack/internal/pkg/logging"
@@ -76,6 +78,8 @@ func defaultCacheConfig() *CacheConfig {
 type Cache struct {
 	cfg        *CacheConfig
 	registries []*Registry
+	// latestSHA keeps the ref to the last clone operation (if any)
+	latestSHA string
 	// ErrorContext stores any errors that were encountered along the way so that
 	// error handling can be dealt with in one place.
 	ErrorContext *errors.ErrorContext
@@ -212,4 +216,19 @@ func refFromPackEntry(packEntry os.DirEntry) (ref string) {
 	}
 
 	return
+}
+
+// getGitHeadRef is a helper method that takes a directory which is a git
+// repository, and returns the SHA of the git HEAD of that repository.
+func getGitHeadRef(clonePath string) (string, error) {
+	r, err := git.PlainOpen(clonePath)
+	if err != nil {
+		return "n/a", fmt.Errorf("could not read cloned repository: %v", err)
+	}
+	head, err := r.Head()
+	if err != nil {
+		return "n/a", fmt.Errorf("could not get ref of a cloned repository: %v", err)
+	}
+
+	return head.Hash().String()[:7], nil
 }

@@ -6,6 +6,7 @@ package cli
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path"
@@ -17,6 +18,7 @@ import (
 
 	"github.com/hashicorp/nomad/command/agent"
 	"github.com/mitchellh/cli"
+	"github.com/shoenig/test/must"
 	"github.com/stretchr/testify/require"
 
 	ct "github.com/hashicorp/nomad-pack/internal/cli/testhelper"
@@ -62,13 +64,13 @@ func TestCLI_CreateTestRegistry(t *testing.T) {
 
 	result := runPackCmd(t, []string{"registry", "list"})
 	out := result.cmdOut.String()
-	packRegex := regexp.MustCompile(`(?m)^ +` + testPack + ` +\| ` + testRef + ` +\| 0\.0\.1 +\| ` + regName + ` +\|[^\n]+?$`)
+	packRegex := regexp.MustCompile(`(?m)^ +` + testPack + ` +\| (\w+) +\| (\w+) +\| \d\.\d\.\d +\| ` + regName + ` +\|[^\n]+?$`)
 	matches := packRegex.FindAllString(out, -1)
 	for i, match := range matches {
 		t.Logf("match %v:  %v\n", i, match)
 	}
-	require.Regexp(t, packRegex, out)
-	require.Equal(t, 0, result.exitCode)
+	must.RegexMatch(t, packRegex, out)
+	must.Eq(t, 0, result.exitCode)
 }
 
 func TestCLI_Version(t *testing.T) {
@@ -830,20 +832,24 @@ func expectGoodPackPlan(t *testing.T, r PackCommandResult) {
 	require.Equal(t, 1, r.exitCode) // exitcode 1 means that an allocation will be created
 }
 
-func createTestRegistry(t *testing.T) (regName, regDir string) {
+func createTestRegistry(t *testing.T) (string, string) {
 	// Fake a clone
-	regDir = path.Join(cache.DefaultCachePath(), fmt.Sprintf("test-%v", time.Now().UnixMilli()))
+	registryName := fmt.Sprintf("test-%v", time.Now().UnixMilli())
+	regDir := path.Join(cache.DefaultCachePath(), registryName)
 	err := filesystem.MaybeCreateDestinationDir(regDir)
-
-	require.NoError(t, err)
-	regName = path.Base(regDir)
+	must.NoError(t, err)
 
 	err = filesystem.CopyDir(getTestPackPath(testPack), path.Join(regDir, testPack+"@latest"), logging.Default())
-	require.NoError(t, err)
+	must.NoError(t, err)
 	err = filesystem.CopyDir(getTestPackPath(testPack), path.Join(regDir, testPack+"@"+testRef), logging.Default())
-	require.NoError(t, err)
+	must.NoError(t, err)
 
-	return
+	// Put a sample metadata.json in the test registry
+	metaPath := filepath.Join(regDir, "metadata.json")
+	b, _ := json.Marshal(&cache.Registry{Name: registryName, Source: "", Ref: testRef, LocalRef: testRef})
+	os.WriteFile(metaPath, b, 0644)
+
+	return path.Base(regDir), regDir
 }
 
 func cleanTestRegistry(t *testing.T, regPath string) {
