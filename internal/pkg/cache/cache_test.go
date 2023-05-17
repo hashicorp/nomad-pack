@@ -177,10 +177,9 @@ func TestAddRegistryWithSHA(t *testing.T) {
 	r := &Registry{}
 	must.NoError(t, json.Unmarshal(f, r))
 	expectedRegistryMetadata := &Registry{
-		Name:         "with-sha",
-		Source:       "github.com/hashicorp/nomad-pack/fixtures/test_registry",
-		RawSourceURL: addOpts.Source,
-		LocalRef:     tReg.Ref1(),
+		Name:     "with-sha",
+		Source:   tReg.SourceURL(),
+		LocalRef: tReg.Ref1(),
 	}
 	must.Eq(t, expectedRegistryMetadata, r)
 

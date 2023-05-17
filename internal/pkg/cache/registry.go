@@ -20,10 +20,8 @@ import (
 type Registry struct {
 	// Name as defined by the user
 	Name string `json:"name,omitempty"`
-	// Source as it will be presented in the UI
+	// Source URL of the registry
 	Source string `json:"source,omitempty"`
-	// RawSourceURL is the full URL from where we got the registry
-	RawSourceURL string `json:"rawSourceURL,omitempty"`
 	// Ref is a reference of the registry as specified by the user (may be "latest"
 	// or an actual git ref)
 	Ref string `json:"ref,omitempty"`
@@ -69,6 +67,7 @@ func (r *Registry) get(opts *GetOpts, cache *Cache) error {
 				return err2
 			}
 			r.LocalRef = cachedRegistry.LocalRef
+			r.Source = cachedRegistry.Source
 			continue
 		}
 
@@ -120,9 +119,6 @@ func (r *Registry) get(opts *GetOpts, cache *Cache) error {
 		r.add(cachedPack)
 	}
 
-	// Set the registry URL from the first pack's URL if a pack exists
-	r.setURLFromPacks()
-
 	return nil
 }
 func (r *Registry) parsePackURL(packURL string) bool {
@@ -151,33 +147,6 @@ func (r *Registry) parsePackURL(packURL string) bool {
 
 	r.Source = path.Join(parsedPackURL.Hostname(), dir)
 	return true
-
-}
-
-// setURLFromPacks sets the Source since we don't have this stored in any sort of
-// reliable way.
-func (r *Registry) setURLFromPacks() {
-
-	for _, cachedPack := range r.Packs {
-		if err := cachedPack.Validate(); err != nil {
-			continue
-		}
-
-		if r.parsePackURL(cachedPack.Metadata.Pack.URL) {
-			continue
-		}
-
-		// Exit once we have a valid pack
-		return
-	}
-
-	if r.Source != "" {
-		// return the error to the table if we had a URL, but it was invalid.
-		return
-	}
-
-	// Set meaningful message if no valid packs found.
-	r.Source = "not parsable - registry contains no valid packs"
 }
 
 func (r *Registry) add(pack *Pack) {
