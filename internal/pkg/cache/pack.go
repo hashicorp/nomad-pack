@@ -76,7 +76,6 @@ func invalidPackDefinition(provider cacheOperationProvider) *Pack {
 				Pack: &pack.MetadataPack{
 					Name:        provider.ForPackName(),
 					Description: "",
-					URL:         "",
 					Version:     "Invalid pack definition",
 				},
 			},

@@ -48,7 +48,10 @@ type MetadataPack struct {
 
 	// URL is the HTTP(S) url of the pack which is acts as a convenience when
 	// managing packs within a registry.
-	URL string `hcl:"url"`
+	//
+	// Deprecated: Nomad Pack tech preview 4 removes this field, we keep it here for
+	// backwards compatibility only.
+	URL string `hcl:"url,optional"`
 
 	// Version is the version of the pack which is acts as a convenience when
 	// managing packs within a registry.
@@ -67,7 +70,6 @@ func (md *Metadata) ConvertToMapInterface() map[string]interface{} {
 			"pack": map[string]interface{}{
 				"name":        md.Pack.Name,
 				"description": md.Pack.Description,
-				"url":         md.Pack.URL,
 				"version":     md.Pack.Version,
 			},
 		},
@@ -85,7 +87,6 @@ func (md *Metadata) AddToInterfaceMap(m map[string]interface{}) map[string]inter
 		"pack": map[string]interface{}{
 			"name":        md.Pack.Name,
 			"description": md.Pack.Description,
-			"url":         md.Pack.URL,
 			"version":     md.Pack.Version,
 		},
 	}
