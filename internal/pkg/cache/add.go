@@ -25,8 +25,7 @@ func (c *Cache) Add(opts *AddOpts) (*Registry, error) {
 	var cachedRegistry *Registry
 	// Throw error if cache path not defined
 	if c.cfg.Path == "" {
-		err := errors.ErrCachePathRequired
-		return cachedRegistry, err
+		return cachedRegistry, errors.ErrCachePathRequired
 	}
 
 	opts.cachePath = c.cfg.Path
@@ -47,8 +46,7 @@ func (c *Cache) Add(opts *AddOpts) (*Registry, error) {
 	// to look up the source URL, but invalid packs metadata can mess that up.
 	// Throw error if registry source is not defined
 	if opts.Source == "" {
-		err := errors.ErrRegistrySourceRequired
-		return cachedRegistry, err
+		return cachedRegistry, errors.ErrRegistrySourceRequired
 	}
 
 	cachedRegistry, err := c.addFromURI(opts)
@@ -64,8 +62,7 @@ func (c *Cache) Add(opts *AddOpts) (*Registry, error) {
 		}
 
 		metaPath := fmt.Sprintf("%s/%s/metadata.json", c.cfg.Path, opts.RegistryName)
-		err = os.WriteFile(metaPath, b, 0644)
-		if err != nil {
+		if err = os.WriteFile(metaPath, b, 0644); err != nil {
 			return cachedRegistry, err
 		}
 	}
