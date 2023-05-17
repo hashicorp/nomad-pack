@@ -99,12 +99,11 @@ func (c *Cache) addFromURI(opts *AddOpts) (cachedRegistry *Registry, err error) 
 		logger.Info("temp directory deleted")
 	}()
 
-	sha, err := c.cloneRemoteGitRegistry(opts)
+	// keep the SHA of the clone operation (if any)
+	c.latestSHA, err = c.cloneRemoteGitRegistry(opts)
 	if err != nil {
 		return
 	}
-	// keep the SHA of the clone operation (if any)
-	c.latestSHA = sha
 
 	logger.Debug(fmt.Sprintf("Processing pack entries at %s", c.clonePath()))
 
@@ -140,7 +139,7 @@ func (c *Cache) addFromURI(opts *AddOpts) (cachedRegistry *Registry, err error) 
 		PackName:     opts.PackName,
 		Ref:          opts.Ref,
 	})
-	cachedRegistry.LocalRef = sha
+	cachedRegistry.LocalRef = c.latestSHA
 	cachedRegistry.Source = opts.Source
 	if err != nil {
 		logger.ErrorWithContext(err, "error getting registry after add", c.ErrorContext.GetAll()...)
