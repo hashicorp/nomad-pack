@@ -92,7 +92,7 @@ func registryPackRow(cachedRegistry *cache.Registry, cachedPack *cache.Pack) []t
 		},
 		// The canonical revision from where the registryPack was cloned
 		{
-			Value: cachedRegistry.LocalRef,
+			Value: cachedRegistry.LocalRef[:7],
 		},
 		// The metadata version
 		{
