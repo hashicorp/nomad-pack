@@ -19,7 +19,7 @@ import (
 	"github.com/hashicorp/nomad/command/agent"
 	"github.com/mitchellh/cli"
 	"github.com/shoenig/test/must"
-	"github.com/stretchr/testify/require"
+	"github.com/shoenig/test/wait"
 
 	ct "github.com/hashicorp/nomad-pack/internal/cli/testhelper"
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
@@ -77,7 +77,7 @@ func TestCLI_Version(t *testing.T) {
 	t.Parallel()
 	// This test doesn't require a Nomad cluster.
 	exitCode := Main([]string{"nomad-pack", "-v"})
-	require.Equal(t, 0, exitCode)
+	must.Eq(t, 0, exitCode)
 }
 
 func TestCLI_JobRun(t *testing.T) {
@@ -92,9 +92,9 @@ func TestCLI_JobRunConflictingDeployment(t *testing.T) {
 		expectGoodPackDeploy(t, runTestPackCmd(t, s, []string{"run", getTestPackPath(testPack)}))
 
 		result := runTestPackCmd(t, s, []string{"run", getTestPackPath(testPack), "--name=with-name"})
-		require.Equal(t, 1, result.exitCode)
-		require.Empty(t, result.cmdErr.String(), "cmdErr should be empty, but was %q", result.cmdErr.String())
-		require.Contains(t, result.cmdOut.String(), job.ErrExistsInDeployment{JobID: testPack, Deployment: testPack}.Error())
+		must.Eq(t, 1, result.exitCode)
+		must.Eq(t, result.cmdErr.String(), "", must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
+		must.StrContains(t, result.cmdOut.String(), job.ErrExistsInDeployment{JobID: testPack, Deployment: testPack}.Error())
 
 		// Confirm that it's still possible to update the existing pack
 		expectGoodPackDeploy(t, runTestPackCmd(t, s, []string{"run", getTestPackPath(testPack)}))
@@ -106,14 +106,14 @@ func TestCLI_JobRunConflictingNonPackJob(t *testing.T) {
 	ct.HTTPTestParallel(t, ct.WithDefaultConfig(), func(s *agent.TestAgent) {
 		// Register non pack job
 		err := ct.NomadRun(s, getTestNomadJobPath(testPack))
-		require.NoError(t, err)
+		must.NoError(t, err)
 
 		// Now try to register the pack
 		result := runTestPackCmd(t, s, []string{"run", getTestPackPath(testPack)})
 
-		require.Equal(t, 1, result.exitCode)
-		require.Empty(t, result.cmdErr.String(), "cmdErr should be empty, but was %q", result.cmdErr.String())
-		require.Contains(t, result.cmdOut.String(), job.ErrExistsNonPack{JobID: testPack}.Error())
+		must.Eq(t, 1, result.exitCode)
+		must.Eq(t, result.cmdErr.String(), "", must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
+		must.StrContains(t, result.cmdOut.String(), job.ErrExistsNonPack{JobID: testPack}.Error())
 	})
 }
 
@@ -122,13 +122,13 @@ func TestCLI_JobRunConflictingJobWithMeta(t *testing.T) {
 	ct.HTTPTestParallel(t, ct.WithDefaultConfig(), func(s *agent.TestAgent) {
 		// Register non pack job
 		err := ct.NomadRun(s, getTestNomadJobPath("simple_raw_exec_with_meta"))
-		require.NoError(t, err)
+		must.NoError(t, err)
 
 		// Now try to register the pack
 		result := runTestPackCmd(t, s, []string{"run", getTestPackPath(testPack)})
-		require.Equal(t, 1, result.exitCode)
-		require.Empty(t, result.cmdErr.String(), "cmdErr should be empty, but was %q", result.cmdErr.String())
-		require.Contains(t, result.cmdOut.String(), job.ErrExistsNonPack{JobID: testPack}.Error())
+		must.Eq(t, 1, result.exitCode)
+		must.Eq(t, result.cmdErr.String(), "", must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
+		must.StrContains(t, result.cmdOut.String(), job.ErrExistsNonPack{JobID: testPack}.Error())
 	})
 }
 
@@ -137,9 +137,9 @@ func TestCLI_JobRunFails(t *testing.T) {
 	// This test doesn't require a Nomad cluster.
 	result := runPackCmd(t, []string{"run", "fake-job"})
 
-	require.Equal(t, 1, result.exitCode)
-	require.Empty(t, result.cmdErr.String(), "cmdErr should be empty, but was %q", result.cmdErr.String())
-	require.Contains(t, result.cmdOut.String(), "Failed To Find Pack")
+	must.Eq(t, 1, result.exitCode)
+	must.Eq(t, "", result.cmdErr.String(), must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
+	must.StrContains(t, result.cmdOut.String(), "Failed To Find Pack")
 }
 
 func TestCLI_JobPlan(t *testing.T) {
@@ -152,9 +152,9 @@ func TestCLI_JobPlan_BadJob(t *testing.T) {
 	ct.HTTPTestParallel(t, ct.WithDefaultConfig(), func(s *agent.TestAgent) {
 		result := runTestPackCmd(t, s, []string{"plan", "fake-job"})
 
-		require.Empty(t, result.cmdErr.String(), "cmdErr should be empty, but was %q", result.cmdErr.String())
-		require.Contains(t, result.cmdOut.String(), "Failed To Find Pack")
-		require.Equal(t, 255, result.exitCode) // Should return 255 indicating an error
+		must.Eq(t, "", result.cmdErr.String(), must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
+		must.StrContains(t, result.cmdOut.String(), "Failed To Find Pack")
+		must.Eq(t, 255, result.exitCode) // Should return 255 indicating an error
 	})
 }
 
@@ -168,9 +168,9 @@ func TestCLI_JobPlan_ConflictingDeployment(t *testing.T) {
 		expectGoodPackDeploy(t, runTestPackCmd(t, s, []string{"run", testPack, testRegFlag}))
 
 		result := runTestPackCmd(t, s, []string{"run", testPack, testRegFlag, testRefFlag})
-		require.Empty(t, result.cmdErr.String(), "cmdErr should be empty, but was %q", result.cmdErr.String())
-		require.Contains(t, result.cmdOut.String(), job.ErrExistsInDeployment{JobID: testPack, Deployment: testPack + "@latest"}.Error())
-		require.Equal(t, 1, result.exitCode)
+		must.Eq(t, "", result.cmdErr.String(), must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
+		must.StrContains(t, result.cmdOut.String(), job.ErrExistsInDeployment{JobID: testPack, Deployment: testPack + "@latest"}.Error())
+		must.Eq(t, 1, result.exitCode)
 	})
 }
 
@@ -179,13 +179,13 @@ func TestCLI_JobPlan_ConflictingNonPackJob(t *testing.T) {
 	ct.HTTPTestParallel(t, ct.WithDefaultConfig(), func(s *agent.TestAgent) {
 		// Register non pack job
 		err := ct.NomadRun(s, getTestNomadJobPath(testPack))
-		require.NoError(t, err)
+		must.NoError(t, err)
 
 		// Now try to register the pack
 		result := runTestPackCmd(t, s, []string{"plan", getTestPackPath(testPack)})
-		require.Empty(t, result.cmdErr.String(), "cmdErr should be empty, but was %q", result.cmdErr.String())
-		require.Contains(t, result.cmdOut.String(), job.ErrExistsNonPack{JobID: testPack}.Error())
-		require.Equal(t, 255, result.exitCode) // Should return 255 indicating an error
+		must.Eq(t, "", result.cmdErr.String(), must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
+		must.StrContains(t, result.cmdOut.String(), job.ErrExistsNonPack{JobID: testPack}.Error())
+		must.Eq(t, 255, result.exitCode) // Should return 255 indicating an error
 	})
 }
 
@@ -199,13 +199,13 @@ func TestCLI_PackPlan_OverrideExitCodes(t *testing.T) {
 			"--exit-code-error=92",
 			getTestPackPath(testPack),
 		})
-		require.Empty(t, result.cmdErr.String(), "cmdErr should be empty, but was %q", result.cmdErr.String())
-		require.Contains(t, result.cmdOut.String(), "Plan succeeded\n")
-		require.Equal(t, 91, result.exitCode) // Should return exit-code-makes-changes
+		must.Eq(t, "", result.cmdErr.String(), must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
+		must.StrContains(t, result.cmdOut.String(), "Plan succeeded\n")
+		must.Eq(t, 91, result.exitCode) // Should return exit-code-makes-changes
 
 		// Register non pack job
 		err := ct.NomadRun(s, getTestNomadJobPath(testPack))
-		require.NoError(t, err)
+		must.NoError(t, err)
 
 		// Now try to register the pack, should make error
 		result = runTestPackCmd(t, s, []string{
@@ -215,12 +215,12 @@ func TestCLI_PackPlan_OverrideExitCodes(t *testing.T) {
 			"--exit-code-error=92",
 			getTestPackPath(testPack),
 		})
-		require.Empty(t, result.cmdErr.String(), "cmdErr should be empty, but was %q", result.cmdErr.String())
-		require.Contains(t, result.cmdOut.String(), job.ErrExistsNonPack{JobID: testPack}.Error())
-		require.Equal(t, 92, result.exitCode) // Should exit-code-error
+		must.Eq(t, "", result.cmdErr.String(), must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
+		must.StrContains(t, result.cmdOut.String(), job.ErrExistsNonPack{JobID: testPack}.Error())
+		must.Eq(t, 92, result.exitCode) // Should exit-code-error
 
 		err = ct.NomadPurge(s, testPack)
-		require.NoError(t, err)
+		must.NoError(t, err)
 
 		isGone := func() bool {
 			_, err = ct.NomadJobStatus(s, testPack)
@@ -229,12 +229,16 @@ func TestCLI_PackPlan_OverrideExitCodes(t *testing.T) {
 			}
 			return false
 		}
-		require.Eventually(t, isGone, 10*time.Second, 500*time.Millisecond, "test job failed to purge")
+		must.Wait(t, wait.InitialSuccess(
+			wait.BoolFunc(isGone),
+			wait.Timeout(10*time.Second),
+			wait.Gap(500*time.Millisecond),
+		), must.Sprint("test job failed to purge"))
 
 		result = runTestPackCmd(t, s, []string{"run", getTestPackPath(testPack)})
-		require.Empty(t, result.cmdErr.String(), "cmdErr should be empty, but was %q", result.cmdErr.String())
-		require.Contains(t, result.cmdOut.String(), "")
-		require.Equal(t, 0, result.exitCode) // Should return 0
+		must.Eq(t, "", result.cmdErr.String(), must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
+		must.StrContains(t, result.cmdOut.String(), "")
+		must.Eq(t, 0, result.exitCode) // Should return 0
 		isStarted := func() bool {
 			j, err := ct.NomadJobStatus(s, testPack)
 			if err != nil {
@@ -242,7 +246,11 @@ func TestCLI_PackPlan_OverrideExitCodes(t *testing.T) {
 			}
 			return j.GetStatus() == "running"
 		}
-		require.Eventually(t, isStarted, 30*time.Second, 500*time.Millisecond, "test job failed to start")
+		must.Wait(t, wait.InitialSuccess(
+			wait.BoolFunc(isStarted),
+			wait.Timeout(30*time.Second),
+			wait.Gap(500*time.Millisecond),
+		), must.Sprint("test job failed to start"))
 
 		// Plan against deployed - should be no-changes
 		result = runTestPackCmd(t, s, []string{
@@ -252,9 +260,9 @@ func TestCLI_PackPlan_OverrideExitCodes(t *testing.T) {
 			"--exit-code-error=92",
 			getTestPackPath(testPack),
 		})
-		require.Empty(t, result.cmdErr.String(), "cmdErr should be empty, but was %q", result.cmdErr.String())
-		require.Contains(t, result.cmdOut.String(), "Plan succeeded\n")
-		require.Equal(t, 90, result.exitCode) // Should return exit-code-no-changes
+		must.Eq(t, "", result.cmdErr.String(), must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
+		must.StrContains(t, result.cmdOut.String(), "Plan succeeded\n")
+		must.Eq(t, 90, result.exitCode) // Should return exit-code-no-changes
 	})
 }
 
@@ -263,9 +271,9 @@ func TestCLI_PackStop(t *testing.T) {
 		expectGoodPackDeploy(t, runTestPackCmd(t, s, []string{"run", getTestPackPath(testPack)}))
 
 		result := runTestPackCmd(t, s, []string{"stop", getTestPackPath(testPack), "--purge=true"})
-		require.Empty(t, result.cmdErr.String(), "cmdErr should be empty, but was %q", result.cmdErr.String())
-		require.Contains(t, result.cmdOut.String(), `Pack "`+testPack+`" destroyed`)
-		require.Equal(t, 0, result.exitCode)
+		must.Eq(t, result.cmdErr.String(), "", must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
+		must.StrContains(t, result.cmdOut.String(), `Pack "`+testPack+`" destroyed`)
+		must.Eq(t, 0, result.exitCode)
 	})
 }
 
@@ -306,7 +314,7 @@ func TestCLI_PackStop_Conflicts(t *testing.T) {
 			},
 		}
 		client, err := ct.NewTestClient(s)
-		require.NoError(t, err)
+		must.NoError(t, err)
 		for _, tC := range testCases {
 			t.Run(tC.desc, func(t *testing.T) {
 				defer ct.NomadCleanup(s)
@@ -318,7 +326,7 @@ func TestCLI_PackStop_Conflicts(t *testing.T) {
 				// Create job
 				if tC.nonPackJob {
 					err = ct.NomadRun(s, getTestNomadJobPath(testPack))
-					require.NoError(t, err)
+					must.NoError(t, err)
 				} else {
 					deploymentName := fmt.Sprintf("--name=%s", tC.deploymentName)
 					varJobName := fmt.Sprintf("--var=job_name=%s", tC.jobName)
@@ -332,7 +340,7 @@ func TestCLI_PackStop_Conflicts(t *testing.T) {
 
 				// Try to stop job
 				result := runTestPackCmd(t, s, []string{"stop", tC.packName})
-				require.Equal(t, 1, result.exitCode)
+				must.Eq(t, 1, result.exitCode)
 			})
 		}
 	})
@@ -345,16 +353,16 @@ func TestCLI_PackDestroy(t *testing.T) {
 		expectGoodPackDeploy(t, runTestPackCmd(t, s, []string{"run", getTestPackPath(testPack)}))
 
 		result := runTestPackCmd(t, s, []string{"destroy", getTestPackPath(testPack)})
-		require.Contains(t, result.cmdOut.String(), `Pack "`+testPack+`" destroyed`)
-		require.Equal(t, 0, result.exitCode)
+		must.StrContains(t, result.cmdOut.String(), `Pack "`+testPack+`" destroyed`)
+		must.Eq(t, 0, result.exitCode)
 
 		// Assert job no longer queryable
 		c, err := ct.NewTestClient(s)
-		require.NoError(t, err)
+		must.NoError(t, err)
 
 		r, _, err := c.Jobs().GetJob(c.QueryOpts().Ctx(), testPack)
-		require.Nil(t, r)
-		require.EqualError(t, err, "job not found")
+		must.Nil(t, r)
+		must.EqError(t, err, "job not found")
 	})
 }
 
@@ -362,7 +370,7 @@ func TestCLI_PackDestroy(t *testing.T) {
 func TestCLI_PackDestroy_WithOverrides(t *testing.T) {
 	ct.HTTPTestParallel(t, ct.WithDefaultConfig(), func(s *agent.TestAgent) {
 		c, err := ct.NewTestClient(s)
-		require.NoError(t, err)
+		must.NoError(t, err)
 		// Because this test uses ref, it requires a populated pack cache.
 		regName, regPath := createTestRegistry(t)
 		defer cleanTestRegistry(t, regPath)
@@ -385,30 +393,33 @@ func TestCLI_PackDestroy_WithOverrides(t *testing.T) {
 
 		// Stop nonexistent job
 		result := runTestPackCmd(t, s, []string{"destroy", testPack, "--var=job_name=baz", "--registry=" + regName})
-		require.Equal(t, 1, result.exitCode, "expected exitcode 1; got %v\ncmdOut:%v", result.exitCode, result.cmdOut.String())
+		must.Eq(t, 1, result.exitCode, must.Sprintf(
+			"expected exitcode 1; got %v\ncmdOut:%v", result.exitCode, result.cmdOut.String()))
 
 		// Stop job with var override
 		result = runTestPackCmd(t, s, []string{"destroy", testPack, "--var=job_name=foo", "--registry=" + regName})
-		require.Equal(t, 0, result.exitCode, "expected exitcode 0; got %v\ncmdOut:%v", result.exitCode, result.cmdOut.String())
+		must.Eq(t, 0, result.exitCode, must.Sprintf(
+			"expected exitcode 0; got %v\ncmdOut:%v", result.exitCode, result.cmdOut.String()))
 
 		// Assert job "bar" still exists
 		tCtx, done := context.WithTimeout(context.TODO(), 5*time.Second)
 		job, _, err := c.Jobs().GetJob(tCtx, "bar")
 		done()
-		require.NoError(t, err)
-		require.NotNil(t, job)
+		must.NoError(t, err)
+		must.NotNil(t, job)
 
 		// Stop job with no overrides passed
 		result = runTestPackCmd(t, s, []string{"destroy", testPack, "--registry=" + regName})
-		require.Equal(t, 0, result.exitCode, "expected exitcode 0; got %v\ncmdOut:%v", result.exitCode, result.cmdOut.String())
+		must.Eq(t, 0, result.exitCode, must.Sprintf(
+			"expected exitcode 0; got %v\ncmdOut:%v", result.exitCode, result.cmdOut.String()))
 
 		// Assert job bar is gone
 		tCtx, done = context.WithTimeout(context.TODO(), 5*time.Second)
 		job, _, err = c.Jobs().GetJob(tCtx, "bar")
 		done()
-		require.Error(t, err)
-		require.Equal(t, "job not found", err.Error())
-		require.Nil(t, job)
+		must.Error(t, err)
+		must.Eq(t, "job not found", err.Error())
+		must.Nil(t, job)
 	})
 }
 
@@ -419,17 +430,17 @@ func TestCLI_CLIFlag_NotDefined(t *testing.T) {
 	// create an invalid memory address error
 	// Posix case
 	result := runPackCmd(t, []string{"run", "nginx", "--job=provided-but-not-defined"})
-	require.Equal(t, 1, result.exitCode)
+	must.Eq(t, 1, result.exitCode)
 
 	// std go case
 	result = runPackCmd(t, []string{"run", "-job=provided-but-not-defined", "nginx"})
-	require.Equal(t, 1, result.exitCode)
+	must.Eq(t, 1, result.exitCode)
 }
 
 func TestCLI_PackStatus(t *testing.T) {
 	ct.HTTPTestParallel(t, ct.WithDefaultConfig(), func(s *agent.TestAgent) {
 		result := runTestPackCmd(t, s, []string{"run", getTestPackPath(testPack)})
-		require.Equal(t, 0, result.exitCode)
+		must.Eq(t, 0, result.exitCode)
 
 		testcases := []struct {
 			name string
@@ -457,8 +468,8 @@ func TestCLI_PackStatus(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				args := append([]string{"status"}, tc.args...)
 				result := runTestPackCmd(t, s, args)
-				require.Equal(t, 0, result.exitCode)
-				require.Contains(t, result.cmdOut.String(), "simple_raw_exec | "+cache.DevRegistryName+" ")
+				must.Eq(t, 0, result.exitCode)
+				must.StrContains(t, result.cmdOut.String(), "simple_raw_exec | "+cache.DevRegistryName+" ")
 			})
 		}
 	})
@@ -468,15 +479,15 @@ func TestCLI_PackStatus_Fails(t *testing.T) {
 	ct.HTTPTestParallel(t, ct.WithDefaultConfig(), func(s *agent.TestAgent) {
 		// test for status on missing pack
 		result := runTestPackCmd(t, s, []string{"status", getTestPackPath(testPack)})
-		require.Empty(t, result.cmdErr.String(), "cmdErr should be empty, but was %q", result.cmdErr.String())
-		require.Contains(t, result.cmdOut.String(), "no jobs found for pack \""+getTestPackPath(testPack)+"\"")
+		must.Eq(t, result.cmdErr.String(), "", must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
+		must.StrContains(t, result.cmdOut.String(), "no jobs found for pack \""+getTestPackPath(testPack)+"\"")
 		// FIXME: Should this have a non-success exit-code?
-		require.Equal(t, 0, result.exitCode)
+		must.Eq(t, 0, result.exitCode)
 
 		// test flag validation for name flag without pack
 		result = runTestPackCmd(t, s, []string{"status", "--name=foo"})
-		require.Equal(t, 1, result.exitCode)
-		require.Contains(t, result.cmdOut.String(), "--name can only be used if pack name is provided")
+		must.Eq(t, 1, result.exitCode)
+		must.StrContains(t, result.cmdOut.String(), "--name can only be used if pack name is provided")
 	})
 }
 
@@ -496,7 +507,7 @@ func TestCLI_PackRender_MyAlias(t *testing.T) {
 		"--no-format=true",
 		getTestPackPath("my_alias_test"),
 	})
-	require.Empty(t, result.cmdErr.String(), "cmdErr should be empty, but was %q", result.cmdErr.String())
+	must.Eq(t, result.cmdErr.String(), "", must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
 
 	// Performing a little clever string manipulation on the render output to
 	// prepare it for splitting into a slice of string enables us to use
@@ -505,7 +516,7 @@ func TestCLI_PackRender_MyAlias(t *testing.T) {
 	outStr = strings.ReplaceAll(outStr, ":\n\n", "=")
 	elems := strings.Split(outStr, "\n")
 
-	require.ElementsMatch(t, expected, elems)
+	must.SliceContainsAll(t, expected, elems)
 }
 
 func TestCLI_CLIFlag_Namespace(t *testing.T) {
@@ -558,7 +569,7 @@ func TestCLI_CLIFlag_Namespace(t *testing.T) {
 		t.Run(tC.desc, func(t *testing.T) {
 			ct.HTTPTestParallel(t, ct.WithDefaultConfig(), func(srv *agent.TestAgent) {
 				c, err := ct.NewTestClient(srv)
-				require.NoError(t, err)
+				must.NoError(t, err)
 
 				ct.MakeTestNamespaces(t, c)
 
@@ -568,15 +579,16 @@ func TestCLI_CLIFlag_Namespace(t *testing.T) {
 				},
 					tC.args...),
 				)
-				require.Empty(t, result.cmdErr.String(), "cmdErr should be empty, but was %q", result.cmdErr.String())
-				require.Contains(t, result.cmdOut.String(), "Pack successfully deployed", "Expected success message, received %q", result.cmdOut.String())
+				must.Eq(t, result.cmdErr.String(), "", must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
+				must.StrContains(t, result.cmdOut.String(), "Pack successfully deployed", must.Sprintf(
+					"Expected success message, received %q", result.cmdOut.String()))
 
 				for ns, count := range tC.expect {
 					tOpt := c.QueryOpts()
 					tOpt.Namespace = ns
 					tJobs, _, err := c.Jobs().GetJobs(tOpt.Ctx())
-					require.NoError(t, err)
-					require.Equal(t, count, len(*tJobs), "Expected %v job(s) in %q namespace; found %v", count, ns, len(*tJobs))
+					must.NoError(t, err)
+					must.Eq(t, count, len(*tJobs), must.Sprintf("Expected %v job(s) in %q namespace; found %v", count, ns, len(*tJobs)))
 				}
 			})
 		})
@@ -586,7 +598,7 @@ func TestCLI_CLIFlag_Namespace(t *testing.T) {
 func TestCLI_CLIFlag_Token(t *testing.T) {
 	ct.HTTPTestWithACLParallel(t, ct.WithDefaultConfig(), func(srv *agent.TestAgent) {
 		c, err := ct.NewTestClient(srv)
-		require.NoError(t, err)
+		must.NoError(t, err)
 
 		ct.MakeTestNamespaces(t, c)
 
@@ -595,8 +607,9 @@ func TestCLI_CLIFlag_Token(t *testing.T) {
 			getTestPackPath(testPack),
 			"--token=bad00000-bad0-bad0-bad0-badbadbadbad",
 		})
-		require.Empty(t, result.cmdErr.String(), "cmdErr should be empty, but was %q", result.cmdErr.String())
-		require.Contains(t, result.cmdOut.String(), "Error: ACL token not found", "Expected token not found error, received %q", result.cmdOut.String())
+		must.Eq(t, result.cmdErr.String(), "", must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
+		must.StrContains(t, result.cmdOut.String(), "Error: ACL token not found", must.Sprintf(
+			"Expected token not found error, received %q", result.cmdOut.String()))
 
 		result = runTestPackCmd(t, srv, []string{
 			"run",
@@ -604,15 +617,16 @@ func TestCLI_CLIFlag_Token(t *testing.T) {
 			"--token=" + srv.Config.Client.Meta["token"],
 		})
 
-		require.Empty(t, result.cmdErr.String(), "cmdErr should be empty, but was %q", result.cmdErr.String())
-		require.Contains(t, result.cmdOut.String(), "Pack successfully deployed", "Expected success message, received %q", result.cmdOut.String())
+		must.Eq(t, result.cmdErr.String(), "", must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
+		must.StrContains(t, result.cmdOut.String(), "Pack successfully deployed", must.Sprintf(
+			"Expected success message, received %q", result.cmdOut.String()))
 	})
 }
 
 func TestCLI_EnvConfig_Token(t *testing.T) {
 	ct.HTTPTestWithACL(t, ct.WithDefaultConfig(), func(srv *agent.TestAgent) {
 		c, err := ct.NewTestClient(srv)
-		require.NoError(t, err)
+		must.NoError(t, err)
 
 		// Garbage token - Should fail
 		t.Setenv("NOMAD_TOKEN", badACLToken)
@@ -621,8 +635,9 @@ func TestCLI_EnvConfig_Token(t *testing.T) {
 			"run",
 			getTestPackPath(testPack),
 		})
-		require.Empty(t, result.cmdErr.String(), "cmdErr should be empty, but was %q", result.cmdErr.String())
-		require.Contains(t, result.cmdOut.String(), "Error: ACL token not found", "Expected token not found error, received %q", result.cmdOut.String())
+		must.Eq(t, result.cmdErr.String(), "", must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
+		must.StrContains(t, result.cmdOut.String(), "Error: ACL token not found", must.Sprintf(
+			"Expected token not found error, received %q", result.cmdOut.String()))
 
 		// Good token - Should run
 		t.Setenv("NOMAD_TOKEN", c.QueryOpts().AuthToken)
@@ -631,8 +646,9 @@ func TestCLI_EnvConfig_Token(t *testing.T) {
 			getTestPackPath(testPack),
 		})
 
-		require.Empty(t, result.cmdErr.String(), "cmdErr should be empty, but was %q", result.cmdErr.String())
-		require.Contains(t, result.cmdOut.String(), "Pack successfully deployed", "Expected success message, received %q", result.cmdOut.String())
+		must.Eq(t, result.cmdErr.String(), "", must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
+		must.StrContains(t, result.cmdOut.String(), "Pack successfully deployed", must.Sprintf(
+			"Expected success message, received %q", result.cmdOut.String()))
 	})
 }
 
@@ -692,7 +708,7 @@ func TestCLI_EnvConfig_Namespace(t *testing.T) {
 		t.Run(tC.desc, func(t *testing.T) {
 			ct.HTTPTest(t, ct.WithDefaultConfig(), func(srv *agent.TestAgent) {
 				c, err := ct.NewTestClient(srv)
-				require.NoError(t, err)
+				must.NoError(t, err)
 
 				ct.MakeTestNamespaces(t, c)
 
@@ -704,15 +720,18 @@ func TestCLI_EnvConfig_Namespace(t *testing.T) {
 				},
 					tC.args...),
 				)
-				require.Empty(t, result.cmdErr.String(), "cmdErr should be empty, but was %q", result.cmdErr.String())
-				require.Contains(t, result.cmdOut.String(), "Pack successfully deployed", "Expected success message, received %q", result.cmdOut.String())
+				must.Eq(t, result.cmdErr.String(), "", must.Sprintf(
+					"cmdErr should be empty, but was %q", result.cmdErr.String()))
+				must.StrContains(t, result.cmdOut.String(), "Pack successfully deployed", must.Sprintf(
+					"Expected success message, received %q", result.cmdOut.String()))
 
 				for ns, count := range tC.expect {
 					tOpt := c.QueryOpts()
 					tOpt.Namespace = ns
 					tJobs, _, err := c.Jobs().GetJobs(tOpt.Ctx())
-					require.NoError(t, err)
-					require.Equal(t, count, len(*tJobs), "Expected %v job(s) in %q namespace; found %v", count, ns, len(*tJobs))
+					must.NoError(t, err)
+					must.Eq(t, count, len(*tJobs), must.Sprintf(
+						"Expected %v job(s) in %q namespace; found %v", count, ns, len(*tJobs)))
 				}
 			})
 		})
@@ -781,7 +800,7 @@ func runPackCmd(t *testing.T, args []string) PackCommandResult {
 		panic(err)
 	}
 
-	require.Empty(t, cmdErr.String(), "cmdErr should be empty, but was %q", cmdErr.String())
+	must.Eq(t, cmdErr.String(), "", must.Sprintf("cmdErr should be empty, but was %q", cmdErr.String()))
 
 	return PackCommandResult{
 		exitCode: exitCode,
@@ -819,17 +838,19 @@ func testFixturePath() string {
 // expectGoodPackDeploy bundles the test expectations that should be met when
 // determining if the pack CLI successfully deployed a pack.
 func expectGoodPackDeploy(t *testing.T, r PackCommandResult) {
-	require.Empty(t, r.cmdErr.String(), "cmdErr should be empty, but was %q", r.cmdErr.String())
-	require.Contains(t, r.cmdOut.String(), "Pack successfully deployed", "Expected success message, received %q", r.cmdOut.String())
-	require.Equal(t, 0, r.exitCode)
+	must.Eq(t, r.cmdErr.String(), "", must.Sprintf("cmdErr should be empty, but was %q", r.cmdErr.String()))
+	must.StrContains(t, r.cmdOut.String(), "Pack successfully deployed", must.Sprintf(
+		"Expected success message, received %q", r.cmdOut.String()))
+	must.Eq(t, 0, r.exitCode)
 }
 
 // expectGoodPackPlan bundles the test expectations that should be met when
 // determining if the pack CLI successfully planned a pack.
 func expectGoodPackPlan(t *testing.T, r PackCommandResult) {
-	require.Empty(t, r.cmdErr.String(), "cmdErr should be empty, but was %q", r.cmdErr.String())
-	require.Contains(t, r.cmdOut.String(), "Plan succeeded", "Expected success message, received %q", r.cmdOut.String())
-	require.Equal(t, 1, r.exitCode) // exitcode 1 means that an allocation will be created
+	must.Eq(t, r.cmdErr.String(), "", must.Sprintf("cmdErr should be empty, but was %q", r.cmdErr.String()))
+	must.StrContains(t, r.cmdOut.String(), "Plan succeeded", must.Sprintf(
+		"Expected success message, received %q", r.cmdOut.String()))
+	must.Eq(t, 1, r.exitCode) // exitcode 1 means that an allocation will be created
 }
 
 func createTestRegistry(t *testing.T) (string, string) {

@@ -29,10 +29,9 @@ require (
 	github.com/olekukonko/tablewriter v0.0.4
 	github.com/posener/complete v1.2.3
 	github.com/ryanuber/columnize v2.1.2+incompatible
-	github.com/shoenig/test v0.6.4
+	github.com/shoenig/test v0.6.6
 	github.com/spf13/afero v1.6.0
 	github.com/spf13/pflag v1.0.5
-	github.com/stretchr/testify v1.8.1
 	github.com/zclconf/go-cty v1.11.0
 	golang.org/x/term v0.5.0
 	golang.org/x/text v0.7.0
@@ -241,6 +240,7 @@ require (
 	github.com/skeema/knownhosts v1.1.0 // indirect
 	github.com/softlayer/softlayer-go v0.0.0-20180806151055-260589d94c7d // indirect
 	github.com/spf13/cast v1.3.1 // indirect
+	github.com/stretchr/testify v1.8.1 // indirect
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635 // indirect
 	github.com/tencentcloud/tencentcloud-sdk-go v3.0.83+incompatible // indirect
 	github.com/tj/go-spin v1.1.0 // indirect

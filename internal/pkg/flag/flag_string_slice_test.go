@@ -6,7 +6,7 @@ package flag
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"github.com/shoenig/test/must"
 )
 
 func TestStringSlice(t *testing.T) {
@@ -32,8 +32,8 @@ func TestStringSlice(t *testing.T) {
 		"--b", "somevalueB",
 		"--a", "somevalueA,somevalueB",
 	})
-	require.NoError(t, err)
+	must.NoError(t, err)
 
-	require.Equal(t, []string{"somevalueB"}, valB)
-	require.Equal(t, []string{"somevalueA", "somevalueB"}, valA)
+	must.Eq(t, []string{"somevalueB"}, valB)
+	must.Eq(t, []string{"somevalueA", "somevalueB"}, valA)
 }

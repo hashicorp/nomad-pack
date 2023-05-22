@@ -8,3 +8,6 @@ func BoolToPtr(i bool) *bool { return &i }
 
 // StringToPtr returns the pointer to the input string.
 func StringToPtr(str string) *string { return &str }
+
+// MapToPtr returns the pointer to the input map.
+func MapToPtr(m map[string]string) *map[string]string { return &m }

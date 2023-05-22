@@ -8,12 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"github.com/shoenig/test/must"
 )
 
 func TestNamedValues(t *testing.T) {
-	require := require.New(t)
-
 	var buf bytes.Buffer
 	var ui basicUI
 	ui.NamedValues([]NamedValue{
@@ -35,12 +33,10 @@ func TestNamedValues(t *testing.T) {
 
 `
 
-	require.Equal(strings.TrimLeft(expected, "\n"), buf.String())
+	must.Eq(t, strings.TrimLeft(expected, "\n"), buf.String())
 }
 
 func TestNamedValues_server(t *testing.T) {
-	require := require.New(t)
-
 	var buf bytes.Buffer
 	var ui basicUI
 	ui.Output("Server configuration:", WithHeaderStyle(), WithWriter(&buf))
@@ -62,12 +58,10 @@ func TestNamedValues_server(t *testing.T) {
 
 `
 
-	require.Equal(expected, buf.String())
+	must.Eq(t, expected, buf.String())
 }
 
 func TestStatusStyle(t *testing.T) {
-	require := require.New(t)
-
 	var buf bytes.Buffer
 	var ui basicUI
 	ui.Output(strings.TrimSpace(`
@@ -83,5 +77,5 @@ two
       three
 `
 
-	require.Equal(expected, buf.String())
+	must.Eq(t, expected, buf.String())
 }

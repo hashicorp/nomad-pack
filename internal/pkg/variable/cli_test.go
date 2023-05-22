@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/shoenig/test/must"
 	"github.com/spf13/afero"
-	"github.com/stretchr/testify/assert"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -131,10 +131,10 @@ func TestParser_parseCLIVariable(t *testing.T) {
 	for _, tc := range testCases {
 		actualErr := tc.inputParser.parseCLIVariable(tc.inputName, tc.inputRawVal)
 		if tc.expectedError {
-			assert.NotNil(t, actualErr, tc.name)
+			must.NotNil(t, actualErr, must.Sprint(tc.name))
 		} else {
-			assert.Nil(t, actualErr, tc.name)
-			assert.Equal(t, tc.expectedCLIVars, tc.inputParser.cliOverrideVars, tc.name)
+			must.Nil(t, actualErr, must.Sprint(tc.name))
+			must.Eq(t, tc.expectedCLIVars, tc.inputParser.cliOverrideVars, must.Sprint(tc.name))
 		}
 	}
 }
@@ -148,8 +148,8 @@ func TestParser_parseHeredocAtEOF(t *testing.T) {
 	}
 	fixturePath := Fixture("variable_test/heredoc.vars.hcl")
 	b, diags := inputParser.loadOverrideFile(fixturePath)
-	assert.NotNil(t, b)
-	assert.Empty(t, diags)
+	must.NotNil(t, b)
+	must.SliceEmpty(t, diags)
 }
 
 func TestParser_VariableOverrides(t *testing.T) {
@@ -216,10 +216,10 @@ func TestParser_VariableOverrides(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.Name, func(t *testing.T) {
 			pv, diags := tc.Parser.Parse()
-			assert.NotNil(t, pv)
-			assert.Empty(t, diags)
+			must.NotNil(t, pv)
+			must.SliceEmpty(t, diags)
 
-			assert.Equal(t, tc.Expect, pv.Vars["example"]["input"].Value.AsString())
+			must.Eq(t, tc.Expect, pv.Vars["example"]["input"].Value.AsString())
 		})
 	}
 }
