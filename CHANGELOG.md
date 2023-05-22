@@ -1,10 +1,23 @@
 ## UNRELEASED
 
+* **Generate Variable Override Files for Packs** - With
+`nomad-pack generate var-file`, you can create a documented variable override
+file as a starting point for customizing a Nomad Pack for deploying in your
+environment.
+
+* **Templating Non-Job Files** - Pack authors can now add non-job templates to
+their packs. These extra files could be used to provide pre-built configuration
+files, or to generate Nomad dependency configurations, like ACL policies and
+Volume configurations for operators to load into their clusters before deploying
+the pack to their cluster.
+
 IMPROVEMENTS:
-* deps: Update the Nomad OpenAPI depedency [[GH-288](https://github.com/hashicorp/nomad-pack/pull/288)] and require Go 1.18 as a build dependency
-* pack: Author field no longer supported in pack metadata [[GH-317](https://github.com/hashicorp/nomad-pack/pull/317)]
+
+* cli: Add `generate var-file` command [[GH-333](https://github.com/hashicorp/nomad-pack/pull/333)]
 * cli: `registry list` command now shows git refs to repositories present in the cache [[GH-318](https://github.com/hashicorp/nomad-pack/pull/318)]
-* template: Render other templates than jobspecs inside `templates/` [[GH-303](https://github.com/hashicorp/nomad-pack/pull/303)]
+* deps: Update the Nomad OpenAPI dependency; require Go 1.18 as a build dependency [[GH-288](https://github.com/hashicorp/nomad-pack/pull/288)]
+* pack: Author field no longer supported in pack metadata [[GH-317](https://github.com/hashicorp/nomad-pack/pull/317)]
+* template: Render templates other than Nomad job specifications inside `templates/` [[GH-303](https://github.com/hashicorp/nomad-pack/pull/303)]
 * template: Automatically format templates before outputting [[GH-311](https://github.com/hashicorp/nomad-pack/pull/311)]
 * template: Skip templates that would render to just whitespace [[GH-313](https://github.com/hashicorp/nomad-pack/pull/313)]
 * vars: Add flag to ignore variables provided in the given var-files unused by the pack [[GH-315](https://github.com/hashicorp/nomad-pack/pull/315)]

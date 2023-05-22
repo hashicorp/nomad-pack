@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/manager"
 	"github.com/hashicorp/nomad-pack/internal/pkg/renderer"
+	"github.com/hashicorp/nomad-pack/internal/pkg/variable"
 	"github.com/hashicorp/nomad-pack/internal/runner"
 	"github.com/hashicorp/nomad-pack/internal/runner/job"
 	"github.com/hashicorp/nomad-pack/terminal"
@@ -133,6 +134,31 @@ func renderPack(
 		}
 		return nil, errors.New("failed to render")
 	}
+	return r, nil
+}
+
+// TODO: This needs to be on a domain specific pkg rather than a UI helpers file.
+// This will be possible once we create a logger interface that can be passed
+// between layers.
+// Uses the pack manager to parse the templates, override template variables with var files
+// and cli vars as applicable
+func renderVariableOverrideFile(
+	manager *manager.PackManager,
+	ui terminal.UI,
+	errCtx *errors.UIErrorContext,
+) (*variable.ParsedVariables, error) {
+
+	r, err := manager.ProcessVariableFiles()
+	if err != nil {
+		packName := manager.PackName()
+		errCtx.Add(errors.UIContextPrefixPackName, packName)
+		for i := range err {
+			err[i].Context.Append(errCtx)
+			ui.ErrorWithContext(err[i].Err, "failed to process pack", err[i].Context.GetAll()...)
+		}
+		return nil, errors.New("failed to render")
+	}
+	r.Metadata = manager.Metadata()
 	return r, nil
 }
 
