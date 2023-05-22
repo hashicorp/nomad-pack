@@ -149,7 +149,6 @@ func renderVariableOverrideFile(
 ) (*variable.ParsedVariables, error) {
 
 	r, err := manager.ProcessVariableFiles()
-	r.Metadata = manager.Metadata()
 	if err != nil {
 		packName := manager.PackName()
 		errCtx.Add(errors.UIContextPrefixPackName, packName)
@@ -159,6 +158,7 @@ func renderVariableOverrideFile(
 		}
 		return nil, errors.New("failed to render")
 	}
+	r.Metadata = manager.Metadata()
 	return r, nil
 }
 
