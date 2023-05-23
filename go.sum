@@ -384,8 +384,9 @@ github.com/circonus-labs/circonus-gometrics v2.3.1+incompatible/go.mod h1:nmEj6D
 github.com/circonus-labs/circonusllhist v0.1.3 h1:TJH+oke8D16535+jHExHj4nQvzlZrj7ug5D7I/orNUA=
 github.com/circonus-labs/circonusllhist v0.1.3/go.mod h1:kMXHVDlOchFAehlya5ePtbp5jckzBHf4XRpQvBOLI+I=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
-github.com/cloudflare/circl v1.1.0 h1:bZgT/A+cikZnKIwn7xL2OBj012Bmvho/o6RpRvv3GKY=
 github.com/cloudflare/circl v1.1.0/go.mod h1:prBCrKB9DV4poKZY1l9zBXg2QJY7mvgRvtMxxK7fi4I=
+github.com/cloudflare/circl v1.3.3 h1:fE/Qz0QdIGqeWfnwq0RE0R7MI51s0M2E4Ga9kq5AEMs=
+github.com/cloudflare/circl v1.3.3/go.mod h1:5XYMA4rFBvNIrhs50XuiBJ15vF2pZn4nnUKZrLbUZFA=
 github.com/cncf/udpa/go v0.0.0-20191209042840-269d4d468f6f/go.mod h1:M8M6+tZqaGXZJjfX53e64911xZQV5JYwmTeXPW+k8Sc=
 github.com/cncf/udpa/go v0.0.0-20200629203442-efcf912fb354/go.mod h1:WmhPx2Nbnhtbo57+VJT5O0JRkEi1Wbu0z5j0R8u5Hbk=
 github.com/cncf/udpa/go v0.0.0-20201120205902-5459f2c99403/go.mod h1:WmhPx2Nbnhtbo57+VJT5O0JRkEi1Wbu0z5j0R8u5Hbk=
@@ -946,8 +947,8 @@ github.com/hashicorp/net-rpc-msgpackrpc v0.0.0-20151116020338-a14192a58a69 h1:lc
 github.com/hashicorp/net-rpc-msgpackrpc v0.0.0-20151116020338-a14192a58a69/go.mod h1:/z+jUGRBlwVpUZfjute9jWaF6/HuhjuFQuL1YXzVD1Q=
 github.com/hashicorp/nomad v1.4.2 h1:ywXODBplzOKu/gqfBVWOwbJcFodjR7tlIHidhv4Gbao=
 github.com/hashicorp/nomad v1.4.2/go.mod h1:fs+8dvfSnbARTFKYTnou4igUT4vfCLuB4koPIpeXH98=
-github.com/hashicorp/nomad-openapi v0.0.0-20221012231901-fc8faf7e8906 h1:XZPCc6DEqsR3fPO7tIXCQRY5Llpc22KkS8zV0ZRs50U=
-github.com/hashicorp/nomad-openapi v0.0.0-20221012231901-fc8faf7e8906/go.mod h1:Cc0CF2cEDPrMktB53PHfpvLqTyut/kktCdocL0g39bc=
+github.com/hashicorp/nomad-openapi v0.0.0-20230517145233-5005b467f32f h1:+jnibvDljCKlNawThLTbZkk4zNaELy5HB2ESX7eF4UY=
+github.com/hashicorp/nomad-openapi v0.0.0-20230517145233-5005b467f32f/go.mod h1:Cc0CF2cEDPrMktB53PHfpvLqTyut/kktCdocL0g39bc=
 github.com/hashicorp/nomad/api v0.0.0-20221006174558-2aa7e66bdb52 h1:O7oUpvlilRu3CWMiQtQF/pkF6ZUSWmjD0sn+T8oqewo=
 github.com/hashicorp/nomad/api v0.0.0-20221006174558-2aa7e66bdb52/go.mod h1:1dS8jZqAXhEreBcb26wpaV4Llk2cLO2sucuDKI+oTIs=
 github.com/hashicorp/raft v1.1.0/go.mod h1:4Ak7FSPnuvmb0GV6vgIAJ4vYT4bek9bb6Q+7HVbyzqM=
