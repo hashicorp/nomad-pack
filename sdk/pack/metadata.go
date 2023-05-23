@@ -101,6 +101,11 @@ func (md *Metadata) ConvertToMapInterface() map[string]interface{} {
 				"description": md.Pack.Description,
 				"version":     md.Pack.Version,
 			},
+			"integration": map[string]interface{}{
+				"identifier": md.Integration.Identifier,
+				"flags":      md.Integration.Flags,
+				"name":       md.Integration.Name,
+			},
 		},
 	}
 }
@@ -117,6 +122,11 @@ func (md *Metadata) AddToInterfaceMap(m map[string]interface{}) map[string]inter
 			"name":        md.Pack.Name,
 			"description": md.Pack.Description,
 			"version":     md.Pack.Version,
+		},
+		"integration": map[string]interface{}{
+			"identifier": md.Integration.Identifier,
+			"flags":      md.Integration.Flags,
+			"name":       md.Integration.Name,
 		},
 	}
 	return m
