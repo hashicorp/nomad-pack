@@ -17,8 +17,8 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/hcl v1.0.1-vault-3
 	github.com/hashicorp/hcl/v2 v2.16.2
-	github.com/hashicorp/nomad v1.5.6
-	github.com/hashicorp/nomad-openapi v0.0.0-20230517145233-5005b467f32f
+	github.com/hashicorp/nomad v1.4.2
+	github.com/hashicorp/nomad-openapi v0.0.0-20221012231901-fc8faf7e8906
 	github.com/kr/text v0.2.0
 	github.com/lab47/vterm v0.0.0-20201001232628-a9dd795f94c2
 	github.com/mattn/go-isatty v0.0.17
@@ -93,7 +93,6 @@ require (
 	github.com/containernetworking/cni v1.1.2 // indirect
 	github.com/containernetworking/plugins v1.2.0 // indirect
 	github.com/coreos/go-iptables v0.6.0 // indirect
-	github.com/coreos/go-oidc/v3 v3.1.0 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/creack/pty v1.1.18 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.3 // indirect
@@ -135,7 +134,6 @@ require (
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0 // indirect
-	github.com/hashicorp/cap v0.2.0 // indirect
 	github.com/hashicorp/consul-template v0.32.0 // indirect
 	github.com/hashicorp/consul/api v1.18.0 // indirect
 	github.com/hashicorp/cronexpr v1.1.1 // indirect
@@ -148,7 +146,6 @@ require (
 	github.com/hashicorp/go-discover v0.0.0-20220621183603-a413e131e836 // indirect
 	github.com/hashicorp/go-envparse v0.0.0-20180119215841-310ca1881b22 // indirect
 	github.com/hashicorp/go-immutable-radix v1.3.1 // indirect
-	github.com/hashicorp/go-immutable-radix/v2 v2.0.0 // indirect
 	github.com/hashicorp/go-kms-wrapping/v2 v2.0.5 // indirect
 	github.com/hashicorp/go-memdb v1.3.4 // indirect
 	github.com/hashicorp/go-msgpack v1.1.5 // indirect
@@ -167,8 +164,6 @@ require (
 	github.com/hashicorp/go-uuid v1.0.3 // indirect
 	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
-	github.com/hashicorp/golang-lru/v2 v2.0.1 // indirect
-	github.com/hashicorp/hil v0.0.0-20210521165536-27a72121fd40 // indirect
 	github.com/hashicorp/logutils v1.0.0 // indirect
 	github.com/hashicorp/mdns v1.0.4 // indirect
 	github.com/hashicorp/memberlist v0.5.0 // indirect
@@ -236,8 +231,6 @@ require (
 	github.com/seccomp/libseccomp-golang v0.10.0 // indirect
 	github.com/sergi/go-diff v1.1.0 // indirect
 	github.com/shirou/gopsutil/v3 v3.23.1 // indirect
-	github.com/shoenig/go-landlock v0.1.5 // indirect
-	github.com/shoenig/go-m1cpu v0.1.4 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/skeema/knownhosts v1.1.0 // indirect
@@ -284,6 +277,5 @@ require (
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	kernel.org/pub/linux/libs/security/libcap/psx v1.2.66 // indirect
 	oss.indeed.com/go/libtime v1.6.0 // indirect
 )
