@@ -50,7 +50,6 @@ The `metadata.hcl` file contains important key value information regarding the p
 - "app {url}" - The HTTP(S) url to the homepage of the application to provide a quick reference to the documentation and help pages.
 - "pack {name}" - The name of the pack.
 - "pack {description}" - A small overview of the application that is deployed by the pack.
-- "pack {url}" - The source URL for the pack itself.
 - "pack {version}" - The version of the pack.
 - "dependency {name}" - The dependencies that the pack has on other packs. Multiple dependencies can be supplied.
 - "dependency {source}" - The source URL for this dependency.
@@ -65,7 +64,6 @@ app {
 pack {
   name = "hello_world"
   description = "This pack contains a single job that renders hello world, or a different greeting, to the screen."
-  url = "https://github.com/hashicorp/nomad-pack-community-registry/hello_world"
   version = "0.3.2"
 }
 ```
@@ -243,7 +241,6 @@ app {
 pack {
   name = "simple_service"
   description = "This pack contains a simple service job, and depends on another pack."
-  url = "https://github.com/hashicorp/nomad-pack-community-registry/simple_service"
   version = "0.2.1"
 }
 

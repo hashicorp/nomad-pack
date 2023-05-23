@@ -23,7 +23,6 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 				Pack: &MetadataPack{
 					Name:        "Example",
 					Description: "The most basic, yet awesome, example",
-					URL:         "https://example.com",
 					Version:     "v0.0.1",
 				},
 			},
@@ -35,7 +34,6 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 					"pack": map[string]interface{}{
 						"name":        "Example",
 						"description": "The most basic, yet awesome, example",
-						"url":         "https://example.com",
 						"version":     "v0.0.1",
 					},
 				},
@@ -61,7 +59,6 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 					"pack": map[string]interface{}{
 						"name":        "Example",
 						"description": "",
-						"url":         "https://example.com",
 						"version":     "v0.0.1",
 					},
 				},
@@ -74,19 +71,21 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 					URL:    "https://example.com",
 					Author: "The Nomad Team",
 				},
-				Pack: &MetadataPack{},
+				Pack: &MetadataPack{
+					URL: "https://example.com",
+				},
 			},
 			expectedOutput: map[string]interface{}{
 				"nomad_pack": map[string]interface{}{
 					"app": map[string]interface{}{
 						"url": "https://example.com",
 					},
-					"pack": map[string]interface{}{"name": "", "description": "", "url": "", "version": ""},
+					"pack": map[string]interface{}{"name": "", "description": "", "version": ""},
 				},
 			},
 			// TODO test added to cover graceful failure while we're in the process of
-			// retiring "Author" metadata field. Can be removed later.
-			name: "author field ignored gracefully",
+			// retiring "Author" and "URL" metadata fields. Can be removed in the future.
+			name: "author and url fields ignored gracefully",
 		},
 	}
 
