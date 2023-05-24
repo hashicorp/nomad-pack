@@ -25,6 +25,14 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 					Description: "The most basic, yet awesome, example",
 					Version:     "v0.0.1",
 				},
+				Integration: &Integration{
+					Name:       "Example",
+					Identifier: "nomad/hashicorp/example",
+					flags: []string{
+						"foo",
+						"bar",
+					},
+				},
 			},
 			expectedOutput: map[string]interface{}{
 				"nomad_pack": map[string]interface{}{
@@ -35,6 +43,14 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 						"name":        "Example",
 						"description": "The most basic, yet awesome, example",
 						"version":     "v0.0.1",
+					},
+					"integration": map[string]interface{}{
+						"identifier": "Example",
+						"flags": []string{
+							"foo",
+							"bar",
+						},
+						"name": "nomad/hashicorp/example",
 					},
 				},
 			},
@@ -50,6 +66,7 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 					URL:     "https://example.com",
 					Version: "v0.0.1",
 				},
+				Integration: &Integration{},
 			},
 			expectedOutput: map[string]interface{}{
 				"nomad_pack": map[string]interface{}{
@@ -60,6 +77,11 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 						"name":        "Example",
 						"description": "",
 						"version":     "v0.0.1",
+					},
+					"integration": map[string]interface{}{
+						"identifier": "",
+						"flags":      []string{},
+						"name":       "",
 					},
 				},
 			},
@@ -74,6 +96,7 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 				Pack: &MetadataPack{
 					URL: "https://example.com",
 				},
+				Integration: &Integration{},
 			},
 			expectedOutput: map[string]interface{}{
 				"nomad_pack": map[string]interface{}{
@@ -81,6 +104,11 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 						"url": "https://example.com",
 					},
 					"pack": map[string]interface{}{"name": "", "description": "", "version": ""},
+					"integration": map[string]interface{}{
+						"identifier": "",
+						"flags":      []string{},
+						"name":       "",
+					},
 				},
 			},
 			// TODO test added to cover graceful failure while we're in the process of
@@ -110,6 +138,7 @@ func TestMetadata_Validate(t *testing.T) {
 					Name:        "Example",
 					Description: "The most basic, yet awesome, example",
 				},
+				Integration: &Integration{},
 			},
 			expectError: false,
 			name:        "valid metadata",
