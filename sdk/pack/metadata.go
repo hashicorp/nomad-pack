@@ -13,7 +13,7 @@ import (
 type Metadata struct {
 	App          *MetadataApp         `hcl:"app,block"`
 	Pack         *MetadataPack        `hcl:"pack,block"`
-	Integration  *MetadataIntegration `hcl:"integration,block,optional"`
+	Integration  *MetadataIntegration `hcl:"integration,block"`
 	Dependencies []*Dependency        `hcl:"dependency,block"`
 }
 
@@ -72,7 +72,7 @@ type MetadataIntegration struct {
 
 	// Identifier is a unique identifier that points to a specific integration
 	// registered in the HashiCorp Developer Integrations Library.
-	Identifier string `hcl:"identifier"`
+	Identifier string `hcl:"identifier,optional"`
 
 	// Flags is an array of strings referencing various booleans you
 	// can enable for your pack as it will display in the integrations
