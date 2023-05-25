@@ -4,20 +4,18 @@
 package renderer
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"text/template"
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/davecgh/go-spew/spew"
-	v1client "github.com/hashicorp/nomad-openapi/clients/go/v1"
-	v1 "github.com/hashicorp/nomad-openapi/v1"
+	"github.com/hashicorp/nomad/api"
 )
 
 // funcMap instantiates our default template function map with populated
 // functions for use within text.Template.
-func funcMap(nomadClient *v1.Client) template.FuncMap {
+func funcMap(nomadClient *api.Client) template.FuncMap {
 
 	// Sprig defines our base map.
 	f := sprig.TxtFuncMap()
@@ -62,17 +60,17 @@ func fileContents(file string) (string, error) {
 
 // nomadNamespaces performs a Nomad API query against the namespace endpoint to
 // list the namespaces.
-func nomadNamespaces(client *v1.Client) func() (*[]v1client.Namespace, error) {
-	return func() (*[]v1client.Namespace, error) {
-		out, _, err := client.Namespaces().GetNamespaces(context.Background())
+func nomadNamespaces(client *api.Client) func() ([]*api.Namespace, error) {
+	return func() ([]*api.Namespace, error) {
+		out, _, err := client.Namespaces().List(&api.QueryOptions{})
 		return out, err
 	}
 }
 
 // nomadNamespace performs a query against the passed namespace.
-func nomadNamespace(client *v1.Client) func(string) (*v1client.Namespace, error) {
-	return func(ns string) (*v1client.Namespace, error) {
-		out, _, err := client.Namespaces().GetNamespace(context.Background(), ns)
+func nomadNamespace(client *api.Client) func(string) (*api.Namespace, error) {
+	return func(ns string) (*api.Namespace, error) {
+		out, _, err := client.Namespaces().Info(ns, &api.QueryOptions{})
 		return out, err
 	}
 }
@@ -80,8 +78,8 @@ func nomadNamespace(client *v1.Client) func(string) (*v1client.Namespace, error)
 // nomadRegions performs a listing of the Nomad regions from the Nomad API. It
 // returns these within a list along with any error whilst performing the API
 // call.
-func nomadRegions(client *v1.Client) func() (*[]string, error) {
-	return func() (*[]string, error) { return client.Regions().GetRegions(context.Background()) }
+func nomadRegions(client *api.Client) func() ([]string, error) {
+	return func() ([]string, error) { return client.Regions().List() }
 }
 
 // toStringList takes a list of string and returns the HCL equivalent which is

@@ -6,10 +6,9 @@ package job
 import (
 	"fmt"
 
-	v1client "github.com/hashicorp/nomad-openapi/clients/go/v1"
-	v1 "github.com/hashicorp/nomad-openapi/v1"
+	"github.com/hashicorp/nomad/api"
+
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
-	intHelper "github.com/hashicorp/nomad-pack/internal/pkg/helper"
 	"github.com/hashicorp/nomad-pack/internal/runner"
 	"github.com/hashicorp/nomad-pack/terminal"
 )
@@ -37,20 +36,20 @@ func (r *Runner) PlanDeployment(ui terminal.UI, errCtx *errors.UIErrorContext) (
 		tplErrorContext.Add(errors.UIContextPrefixJobName, parsedJob.GetName())
 
 		// Set up the options.
-		planOpts := v1.PlanOpts{
+		planOpts := &api.PlanOptions{
 			Diff:           r.cfg.PlanConfig.Diff,
 			PolicyOverride: r.cfg.PlanConfig.PolicyOverride,
 		}
 
-		if r.client.Jobs().IsMultiRegion(parsedJob.Job()) {
-			return r.multiRegionPlan(&planOpts, parsedJob.Job(), ui, tplErrorContext)
+		if parsedJob.Job().IsMultiregion() {
+			return r.multiRegionPlan(planOpts, parsedJob.Job(), ui, tplErrorContext)
 		}
 
 		// Submit the job
-		planResponse, _, err := r.client.Jobs().PlanOpts(r.newWriteOptsFromJob(parsedJob).Ctx(), parsedJob.Job(), &planOpts)
+		planResponse, _, err := r.client.Jobs().PlanOpts(parsedJob.Job(), planOpts, r.newWriteOptsFromJob(parsedJob))
 		if err != nil {
 			outputErrors = append(outputErrors, &errors.WrappedUIContext{
-				Err:     intHelper.UnwrapAPIError(err),
+				Err:     err,
 				Subject: "failed to perform plan",
 				Context: tplErrorContext,
 			})
@@ -68,8 +67,8 @@ func (r *Runner) PlanDeployment(ui terminal.UI, errCtx *errors.UIErrorContext) (
 }
 
 func (r *Runner) multiRegionPlan(
-	opts *v1.PlanOpts,
-	job *v1client.Job,
+	opts *api.PlanOptions,
+	job *api.Job,
 	ui terminal.UI,
 	errCtx *errors.UIErrorContext) (int, []*errors.WrappedUIContext) {
 
@@ -79,28 +78,28 @@ func (r *Runner) multiRegionPlan(
 		outputErrors []*errors.WrappedUIContext
 	)
 
-	plans := map[string]*v1client.JobPlanResponse{}
+	plans := map[string]*api.JobPlanResponse{}
 
 	// collect all the plans first so that we can report all errors
-	for _, region := range *job.Multiregion.Regions {
+	for _, region := range job.Multiregion.Regions {
 
-		job.SetRegion(*region.Name)
+		job.Region = &region.Name
 
 		regionCtx := errCtx.Copy()
-		regionCtx.Add(errors.UIContextPrefixRegion, *region.Name)
+		regionCtx.Add(errors.UIContextPrefixRegion, region.Name)
 
 		// Submit the job for this region
-		result, _, err := r.client.Jobs().PlanOpts(r.newQueryOptsFromClientJob(job).Ctx(), job, opts)
+		result, _, err := r.client.Jobs().PlanOpts(job, opts, r.newWriteOptsFromClientJob(job))
 		if err != nil {
 			outputErrors = append(outputErrors, &errors.WrappedUIContext{
-				Err:     intHelper.UnwrapAPIError(err),
+				Err:     err,
 				Subject: "failed to perform regional plan",
 				Context: regionCtx,
 			})
 			exitCode = runner.HigherPlanCode(exitCode, runner.PlanCodeError)
 			continue
 		}
-		plans[*region.Name] = result
+		plans[region.Name] = result
 	}
 
 	if outputErrors != nil || len(outputErrors) > 0 {
@@ -115,7 +114,7 @@ func (r *Runner) multiRegionPlan(
 	return exitCode, outputErrors
 }
 
-func (r *Runner) outputPlannedJob(ui terminal.UI, job *v1client.Job, resp *v1client.JobPlanResponse) int {
+func (r *Runner) outputPlannedJob(ui terminal.UI, job *api.Job, resp *api.JobPlanResponse) int {
 
 	// Print the diff if not disabled
 	if r.cfg.PlanConfig.Diff {
@@ -127,8 +126,8 @@ func (r *Runner) outputPlannedJob(ui terminal.UI, job *v1client.Job, resp *v1cli
 	formatDryRun(resp, job, ui)
 
 	// Print any warnings if there are any
-	if resp.Warnings != nil && *resp.Warnings != "" {
-		ui.Warning(fmt.Sprintf("\nJob Warnings:\n%s", *resp.Warnings))
+	if resp.Warnings != "" {
+		ui.Warning(fmt.Sprintf("\nJob Warnings:\n%s", resp.Warnings))
 	}
 
 	// Print preemptions if there are any
@@ -139,9 +138,9 @@ func (r *Runner) outputPlannedJob(ui terminal.UI, job *v1client.Job, resp *v1cli
 	return getExitCode(resp)
 }
 
-func getExitCode(resp *v1client.JobPlanResponse) int {
-	for _, d := range *resp.Annotations.DesiredTGUpdates {
-		if *d.Stop+*d.Place+*d.Migrate+*d.DestructiveUpdate+*d.Canary > 0 {
+func getExitCode(resp *api.JobPlanResponse) int {
+	for _, d := range resp.Annotations.DesiredTGUpdates {
+		if d.Stop+d.Place+d.Migrate+d.DestructiveUpdate+d.Canary > 0 {
 			return runner.PlanCodeUpdates
 		}
 	}
