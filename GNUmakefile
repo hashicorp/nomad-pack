@@ -111,10 +111,6 @@ test: $(mtlsCerts)
 mod:
 	go mod tidy
 
-.PHONY: api
-api:
-	go get github.com/hashicorp/nomad-openapi/v1
-
 .PHONY: check
 check: check-mod check-sdk
 

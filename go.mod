@@ -18,7 +18,6 @@ require (
 	github.com/hashicorp/hcl v1.0.1-vault-3
 	github.com/hashicorp/hcl/v2 v2.10.1
 	github.com/hashicorp/nomad v1.4.2
-	github.com/hashicorp/nomad-openapi v0.0.0-20230517145233-5005b467f32f
 	github.com/hashicorp/nomad/api v0.0.0-20221006174558-2aa7e66bdb52
 	github.com/kr/text v0.2.0
 	github.com/lab47/vterm v0.0.0-20201001232628-a9dd795f94c2

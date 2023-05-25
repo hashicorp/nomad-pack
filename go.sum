@@ -947,8 +947,6 @@ github.com/hashicorp/net-rpc-msgpackrpc v0.0.0-20151116020338-a14192a58a69 h1:lc
 github.com/hashicorp/net-rpc-msgpackrpc v0.0.0-20151116020338-a14192a58a69/go.mod h1:/z+jUGRBlwVpUZfjute9jWaF6/HuhjuFQuL1YXzVD1Q=
 github.com/hashicorp/nomad v1.4.2 h1:ywXODBplzOKu/gqfBVWOwbJcFodjR7tlIHidhv4Gbao=
 github.com/hashicorp/nomad v1.4.2/go.mod h1:fs+8dvfSnbARTFKYTnou4igUT4vfCLuB4koPIpeXH98=
-github.com/hashicorp/nomad-openapi v0.0.0-20230517145233-5005b467f32f h1:+jnibvDljCKlNawThLTbZkk4zNaELy5HB2ESX7eF4UY=
-github.com/hashicorp/nomad-openapi v0.0.0-20230517145233-5005b467f32f/go.mod h1:Cc0CF2cEDPrMktB53PHfpvLqTyut/kktCdocL0g39bc=
 github.com/hashicorp/nomad/api v0.0.0-20221006174558-2aa7e66bdb52 h1:O7oUpvlilRu3CWMiQtQF/pkF6ZUSWmjD0sn+T8oqewo=
 github.com/hashicorp/nomad/api v0.0.0-20221006174558-2aa7e66bdb52/go.mod h1:1dS8jZqAXhEreBcb26wpaV4Llk2cLO2sucuDKI+oTIs=
 github.com/hashicorp/raft v1.1.0/go.mod h1:4Ak7FSPnuvmb0GV6vgIAJ4vYT4bek9bb6Q+7HVbyzqM=
