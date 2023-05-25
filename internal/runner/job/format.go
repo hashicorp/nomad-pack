@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/nomad/api"
 	"github.com/ryanuber/columnize"
 
-	v1client "github.com/hashicorp/nomad-openapi/clients/go/v1"
 	"github.com/hashicorp/nomad-pack/terminal"
 )
 
@@ -468,7 +467,7 @@ func formatAllocMetrics(metrics *api.AllocationMetric, prefix string, ui termina
 	}
 }
 
-func isParameterized(j *v1client.Job) bool { return j.ParameterizedJob != nil && !*j.Dispatched }
+func isParameterized(j *api.Job) bool { return j.ParameterizedJob != nil && !j.Dispatched }
 
 func GetLocation(p *api.PeriodicConfig) (*time.Location, error) {
 	if p.TimeZone == nil || *p.TimeZone == "" {

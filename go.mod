@@ -19,6 +19,7 @@ require (
 	github.com/hashicorp/hcl/v2 v2.10.1
 	github.com/hashicorp/nomad v1.4.2
 	github.com/hashicorp/nomad-openapi v0.0.0-20230517145233-5005b467f32f
+	github.com/hashicorp/nomad/api v0.0.0-20221006174558-2aa7e66bdb52
 	github.com/kr/text v0.2.0
 	github.com/lab47/vterm v0.0.0-20201001232628-a9dd795f94c2
 	github.com/mattn/go-isatty v0.0.16
@@ -170,7 +171,6 @@ require (
 	github.com/hashicorp/mdns v1.0.4 // indirect
 	github.com/hashicorp/memberlist v0.4.0 // indirect
 	github.com/hashicorp/net-rpc-msgpackrpc v0.0.0-20151116020338-a14192a58a69 // indirect
-	github.com/hashicorp/nomad/api v0.0.0-20221006174558-2aa7e66bdb52 // indirect
 	github.com/hashicorp/raft v1.3.11 // indirect
 	github.com/hashicorp/raft-autopilot v0.1.6 // indirect
 	github.com/hashicorp/raft-boltdb/v2 v2.2.2 // indirect

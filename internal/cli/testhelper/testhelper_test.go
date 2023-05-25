@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"testing"
 
-	v1 "github.com/hashicorp/nomad-openapi/v1"
+	"github.com/hashicorp/nomad/api"
 	"github.com/hashicorp/nomad/command/agent"
 	"github.com/shoenig/test/must"
 )
@@ -17,13 +17,8 @@ func Test_HTTPTest(t *testing.T) {
 		client, err := NewTestClient(s)
 		must.NoError(t, err)
 
-		q := &v1.QueryOpts{
-			Region:    v1.GlobalRegion,
-			Namespace: v1.DefaultNamespace,
-		}
-
-		result, err := client.Status().Leader(q.Ctx())
-		t.Logf("result: %q", *result)
+		result, err := client.Status().Leader()
+		t.Logf("result: %q", result)
 		must.NoError(t, err)
 		must.NotNil(t, result)
 	})
@@ -34,13 +29,8 @@ func TestTestHelper_HTTPTestParallel(t *testing.T) {
 		client, err := NewTestClient(s)
 		must.NoError(t, err)
 
-		q := &v1.QueryOpts{
-			Region:    v1.GlobalRegion,
-			Namespace: v1.DefaultNamespace,
-		}
-
-		result, err := client.Status().Leader(q.Ctx())
-		t.Logf("result: %q", *result)
+		result, err := client.Status().Leader()
+		t.Logf("result: %q", result)
 		must.NoError(t, err)
 		must.NotNil(t, result)
 	})
@@ -51,13 +41,13 @@ func TestTestHelper_HTTPTestWithACL(t *testing.T) {
 		client, err := NewTestClient(s)
 		must.NoError(t, err)
 
-		q := &v1.QueryOpts{
-			Region:    v1.GlobalRegion,
-			Namespace: v1.DefaultNamespace,
+		q := &api.QueryOptions{
+			Region:    api.GlobalRegion,
+			Namespace: api.DefaultNamespace,
 			AuthToken: s.Config.Client.Meta["token"],
 		}
 
-		result, err := client.Status().Leader(q.Ctx())
+		result, err := client.Status().Leader()
 		t.Logf("result: %q", *result)
 		must.NoError(t, err)
 		must.NotNil(t, result)
@@ -69,13 +59,13 @@ func TestTestHelper_HTTPTestWithACLParallel(t *testing.T) {
 		client, err := NewTestClient(s)
 		must.NoError(t, err)
 
-		q := &v1.QueryOpts{
-			Region:    v1.GlobalRegion,
-			Namespace: v1.DefaultNamespace,
+		q := &api.QueryOptions{
+			Region:    api.GlobalRegion,
+			Namespace: api.DefaultNamespace,
 			AuthToken: s.Config.Client.Meta["token"],
 		}
 
-		result, err := client.Status().Leader(q.Ctx())
+		result, err := client.Status().Leader(q)
 		t.Logf("result: %q", *result)
 		must.NoError(t, err)
 		must.NotNil(t, result)
@@ -89,23 +79,23 @@ func TestTestHelper_HTTPTestParallel_TLSEnabled(t *testing.T) {
 			LogLevel(testLogLevel),
 		),
 		func(s *agent.TestAgent) {
-			client, err := v1.NewClient(
-				v1.WithTLSCerts(
+			client, err := api.NewClient(
+				api.TLSConfig(
 					mTLSFixturePath("client", "cafile"),
 					mTLSFixturePath("client", "certfile"),
 					mTLSFixturePath("client", "keyfile"),
 				),
-				v1.WithAddress(s.HTTPAddr()),
+				api.WithAddress(s.HTTPAddr()),
 			)
 
 			must.NoError(t, err)
 
-			q := &v1.QueryOpts{
-				Region:    v1.GlobalRegion,
-				Namespace: v1.DefaultNamespace,
+			q := &api.QueryOptions{
+				Region:    api.GlobalRegion,
+				Namespace: api.DefaultNamespace,
 			}
-			result, err := client.Status().Leader(q.Ctx())
-			t.Logf("result: %q", *result)
+			result, err := client.Status().Leader()
+			t.Logf("result: %q", result)
 			must.NoError(t, err)
 			must.NotNil(t, result)
 		},
@@ -207,7 +197,7 @@ func TestTestHelper_NomadCleanup(t *testing.T) {
 		err = NomadRun(srv, getTestNomadJobPath("simple_raw_exec"))
 		must.NoError(t, err)
 
-		err = NomadRun(srv, getTestNomadJobPath("simple_raw_exec"), v1.WithDefaultNamespace("env"))
+		err = NomadRun(srv, getTestNomadJobPath("simple_raw_exec"), api.WithDefaultNamespace("env"))
 		must.NoError(t, err)
 
 		jR, qm, err := c.Jobs().GetJobs(qoAllNS.Ctx())

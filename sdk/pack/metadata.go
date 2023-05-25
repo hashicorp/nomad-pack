@@ -100,6 +100,11 @@ func (md *Metadata) ConvertToMapInterface() map[string]interface{} {
 			"description": md.Pack.Description,
 			"version":     md.Pack.Version,
 		},
+		"integration": map[string]interface{}{
+			"identifier": md.Integration.Identifier,
+			"flags":      md.Integration.Flags,
+			"name":       md.Integration.Name,
+		},
 	}
 	if md.Integration != nil {
 		innerMap["integration"] = map[string]interface{}{
