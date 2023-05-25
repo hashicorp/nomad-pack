@@ -25,10 +25,10 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 					Description: "The most basic, yet awesome, example",
 					Version:     "v0.0.1",
 				},
-				Integration: &Integration{
+				Integration: &MetadataIntegration{
 					Name:       "Example",
 					Identifier: "nomad/hashicorp/example",
-					flags: []string{
+					Flags: []string{
 						"foo",
 						"bar",
 					},
@@ -45,12 +45,12 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 						"version":     "v0.0.1",
 					},
 					"integration": map[string]interface{}{
-						"identifier": "Example",
+						"identifier": "nomad/hashicorp/example",
 						"flags": []string{
 							"foo",
 							"bar",
 						},
-						"name": "nomad/hashicorp/example",
+						"name": "Example",
 					},
 				},
 			},
@@ -66,7 +66,7 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 					URL:     "https://example.com",
 					Version: "v0.0.1",
 				},
-				Integration: &Integration{},
+				Integration: &MetadataIntegration{},
 			},
 			expectedOutput: map[string]interface{}{
 				"nomad_pack": map[string]interface{}{
@@ -80,7 +80,7 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 					},
 					"integration": map[string]interface{}{
 						"identifier": "",
-						"flags":      []string{},
+						"flags":      []string(nil),
 						"name":       "",
 					},
 				},
@@ -96,19 +96,13 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 				Pack: &MetadataPack{
 					URL: "https://example.com",
 				},
-				Integration: &Integration{},
+				Integration: &MetadataIntegration{},
 			},
 			expectedOutput: map[string]interface{}{
 				"nomad_pack": map[string]interface{}{
-					"app": map[string]interface{}{
-						"url": "https://example.com",
-					},
-					"pack": map[string]interface{}{"name": "", "description": "", "version": ""},
-					"integration": map[string]interface{}{
-						"identifier": "",
-						"flags":      []string{},
-						"name":       "",
-					},
+					"app":         map[string]interface{}{"url": "https://example.com"},
+					"pack":        map[string]interface{}{"name": "", "description": "", "version": ""},
+					"integration": map[string]interface{}{"identifier": "", "flags": []string(nil), "name": ""},
 				},
 			},
 			// TODO test added to cover graceful failure while we're in the process of
@@ -138,7 +132,7 @@ func TestMetadata_Validate(t *testing.T) {
 					Name:        "Example",
 					Description: "The most basic, yet awesome, example",
 				},
-				Integration: &Integration{},
+				Integration: &MetadataIntegration{},
 			},
 			expectError: false,
 			name:        "valid metadata",
