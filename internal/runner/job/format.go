@@ -392,8 +392,8 @@ func formatDryRun(resp *api.JobPlanResponse, job *api.Job, ui terminal.UI) {
 	}
 
 	next := resp.NextPeriodicLaunch
-	if resp.NextPeriodicLaunch.IsZero() && !job.IsParameterized() {
-		loc, err := GetLocation(job.Periodic)
+	if job.IsPeriodic() && next.IsZero() && !job.IsParameterized() {
+		loc, err := getLocation(job.Periodic)
 		ui.Output("")
 		if err != nil {
 			ui.Warning(fmt.Sprintf("- Invalid time zone: %v", err))
@@ -467,9 +467,7 @@ func formatAllocMetrics(metrics *api.AllocationMetric, prefix string, ui termina
 	}
 }
 
-func isParameterized(j *api.Job) bool { return j.ParameterizedJob != nil && !j.Dispatched }
-
-func GetLocation(p *api.PeriodicConfig) (*time.Location, error) {
+func getLocation(p *api.PeriodicConfig) (*time.Location, error) {
 	if p.TimeZone == nil || *p.TimeZone == "" {
 		return time.UTC, nil
 	}

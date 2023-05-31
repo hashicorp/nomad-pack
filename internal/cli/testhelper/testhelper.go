@@ -103,8 +103,8 @@ func httpTest(t *testing.T, cb func(c *agent.Config), f func(srv *agent.TestAgen
 	f(s)
 }
 
-// httpTestMultiRegionCluster generates a multi-region two node cluster and
-// automatically enables test parallelism. This will panic on test which use
+// HTTPTestMultiRegionClusterParallel generates a multi-region two node cluster
+// and automatically enables test parallelism. This will panic on test which use
 // the environment. For those, use httpTestMultiRegionCluster instead.
 func HTTPTestMultiRegionClusterParallel(t *testing.T, cb1, cb2 func(c *agent.Config), f func(s1 *agent.TestAgent, s2 *agent.TestAgent)) {
 	httpTestMultiRegionClusters(t, cb1, cb2, f, true)

@@ -37,10 +37,8 @@ func (r *Runner) CheckForConflicts(errCtx *errors.UIErrorContext) []*errors.Wrap
 // Nomad Pack deployment. In the event it doesn't this will result in an error.
 func (r *Runner) checkForConflict(jobName string) error {
 	existing, _, err := r.client.Jobs().Info(jobName, &api.QueryOptions{})
-	if err != nil {
-		if err.Error() != "job not found" {
-			return err
-		}
+	if err != nil && !errIsNotFound(err) {
+		return err
 	}
 
 	// If no existing job, no possible error condition.
@@ -89,4 +87,16 @@ type ErrExistsInDeployment struct {
 
 func (e ErrExistsInDeployment) Error() string {
 	return fmt.Sprintf("job with id %q already exists and is part of deployment %q", e.JobID, e.Deployment)
+}
+
+func errIsNotFound(err error) bool {
+	var unexpectedResponse api.UnexpectedResponseError
+	if errors.As(err, &unexpectedResponse) {
+		if unexpectedResponse.HasStatusText() {
+			if unexpectedResponse.StatusText() == "Not Found" {
+				return true
+			}
+		}
+	}
+	return false
 }
