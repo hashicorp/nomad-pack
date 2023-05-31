@@ -226,7 +226,7 @@ func TestCLI_PackPlan_OverrideExitCodes(t *testing.T) {
 		isGone := func() bool {
 			_, err = ct.NomadJobStatus(s, testPack)
 			if err != nil {
-				return err.Error() == "job not found"
+				return err.Error() == "Unexpected response code: 404 (job not found)"
 			}
 			return false
 		}
@@ -363,7 +363,7 @@ func TestCLI_PackDestroy(t *testing.T) {
 
 		r, _, err := c.Jobs().Info(testPack, &api.QueryOptions{})
 		must.Nil(t, r)
-		must.EqError(t, err, "job not found")
+		must.EqError(t, err, "Unexpected response code: 404 (job not found)")
 	})
 }
 
@@ -415,7 +415,7 @@ func TestCLI_PackDestroy_WithOverrides(t *testing.T) {
 		// Assert job bar is gone
 		job, _, err = c.Jobs().Info("bar", &api.QueryOptions{WaitTime: 5 * time.Second})
 		must.Error(t, err)
-		must.Eq(t, "job not found", err.Error())
+		must.Eq(t, "Unexpected response code: 404 (job not found)", err.Error())
 		must.Nil(t, job)
 	})
 }
@@ -603,7 +603,7 @@ func TestCLI_CLIFlag_Token(t *testing.T) {
 			"--token=bad00000-bad0-bad0-bad0-badbadbadbad",
 		})
 		must.Eq(t, result.cmdErr.String(), "", must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
-		must.StrContains(t, result.cmdOut.String(), "Error: ACL token not found", must.Sprintf(
+		must.StrContains(t, result.cmdOut.String(), "403 (ACL token not found)", must.Sprintf(
 			"Expected token not found error, received %q", result.cmdOut.String()))
 
 		result = runTestPackCmd(t, srv, []string{
@@ -631,7 +631,7 @@ func TestCLI_EnvConfig_Token(t *testing.T) {
 			getTestPackPath(testPack),
 		})
 		must.Eq(t, result.cmdErr.String(), "", must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
-		must.StrContains(t, result.cmdOut.String(), "Error: ACL token not found", must.Sprintf(
+		must.StrContains(t, result.cmdOut.String(), "403 (ACL token not found)", must.Sprintf(
 			"Expected token not found error, received %q", result.cmdOut.String()))
 
 		// Good token - Should run
