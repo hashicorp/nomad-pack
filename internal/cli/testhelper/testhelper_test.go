@@ -186,7 +186,7 @@ func TestTestHelper_NomadCleanup(t *testing.T) {
 		jR, qm, err := c.Jobs().List(qoAllNS)
 		fmt.Printf("\n\n-- qm: %+#v\n\n", qm)
 		must.NoError(t, err)
-		must.Eq(t, 2, len(jR))
+		must.Eq(t, 1, len(jR))
 
 		err, warn := NomadCleanup(srv)
 		must.NoError(t, err)
