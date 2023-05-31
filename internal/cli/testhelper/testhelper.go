@@ -280,7 +280,7 @@ func NomadRun(s *agent.TestAgent, path string) error {
 	// Run parsed job
 	resp, _, err := c.Jobs().Register(j, &api.WriteOptions{})
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to register nomad job: %v", err)
 	}
 	s.T.Log(FormatRegistrationResponse(resp))
 	return nil

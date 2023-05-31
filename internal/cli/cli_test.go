@@ -620,7 +620,7 @@ func TestCLI_CLIFlag_Token(t *testing.T) {
 
 func TestCLI_EnvConfig_Token(t *testing.T) {
 	ct.HTTPTestWithACL(t, ct.WithDefaultConfig(), func(srv *agent.TestAgent) {
-		c, err := ct.NewTestClient(srv)
+		_, err := ct.NewTestClient(srv)
 		must.NoError(t, err)
 
 		// Garbage token - Should fail
@@ -635,7 +635,7 @@ func TestCLI_EnvConfig_Token(t *testing.T) {
 			"Expected token not found error, received %q", result.cmdOut.String()))
 
 		// Good token - Should run
-		t.Setenv("NOMAD_TOKEN", c.SecretID)
+		t.Setenv("NOMAD_TOKEN", srv.Config.Client.Meta["token"])
 		result = runTestPackCmd(t, srv, []string{
 			"run",
 			getTestPackPath(testPack),
@@ -721,12 +721,10 @@ func TestCLI_EnvConfig_Namespace(t *testing.T) {
 					"Expected success message, received %q", result.cmdOut.String()))
 
 				for ns, count := range tC.expect {
-					tOpt := c.QueryOpts()
-					tOpt.Namespace = ns
-					tJobs, _, err := c.Jobs().GetJobs(tOpt.Ctx())
+					tJobs, _, err := c.Jobs().List(&api.QueryOptions{Namespace: ns})
 					must.NoError(t, err)
-					must.Eq(t, count, len(*tJobs), must.Sprintf(
-						"Expected %v job(s) in %q namespace; found %v", count, ns, len(*tJobs)))
+					must.Eq(t, count, len(tJobs), must.Sprintf(
+						"Expected %v job(s) in %q namespace; found %v", count, ns, len(tJobs)))
 				}
 			})
 		})

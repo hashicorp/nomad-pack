@@ -77,7 +77,7 @@ func TestTestHelper_HTTPTestParallel_TLSEnabled(t *testing.T) {
 			clientConfig.TLSConfig.CACert = mTLSFixturePath("client", "cafile")
 			clientConfig.TLSConfig.ClientKey = mTLSFixturePath("client", "keyfile")
 
-			client, err := api.NewClient(api.DefaultConfig())
+			client, err := api.NewClient(clientConfig)
 			must.NoError(t, err)
 
 			result, err := client.Status().Leader()
@@ -120,7 +120,7 @@ func TestTestHelper_MultiRegionClusterParallel(t *testing.T) {
 
 func TestTestHelper_NomadRun(t *testing.T) {
 	HTTPTestParallel(t, WithDefaultConfig(), func(srv *agent.TestAgent) {
-		NomadRun(srv, getTestNomadJobPath("simple_raw_exec"))
+		must.NoError(t, NomadRun(srv, getTestNomadJobPath("simple_raw_exec")))
 		c, err := NewTestClient(srv)
 		must.NoError(t, err)
 		jR, _, err := c.Jobs().List(nil)
