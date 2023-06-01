@@ -4,9 +4,10 @@
 package cli
 
 import (
+	"github.com/posener/complete"
+
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
-	"github.com/posener/complete"
 )
 
 // RegistryListCommand lists all registries and pack that have been downloaded
@@ -48,7 +49,7 @@ func (c *RegistryListCommand) Run(args []string) int {
 	// Iterate over the registries and build a table row for each cachedRegistry/pack
 	// entry at each ref. Hierarchically, this should equate to the default
 	// cachedRegistry and all its peers.
-	if len(globalCache.Registries()) >= 0 {
+	if len(globalCache.Registries()) > 0 {
 		for _, registry := range globalCache.Registries() {
 			tableRow := registryTableRow(registry)
 			table.Rows = append(table.Rows, tableRow)
