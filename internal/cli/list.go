@@ -42,22 +42,22 @@ func (c *ListCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Initialize a table for a nice glint UI rendering
-	table := packTable()
-
 	// Iterate over the registries and build a table row for each cachedRegistry/pack
 	// entry at each ref. Hierarchically, this should equate to the default
 	// cachedRegistry and all its peers.
-	for _, cachedRegistry := range globalCache.Registries() {
-		for _, registryPack := range cachedRegistry.Packs {
-			tableRow := packRow(cachedRegistry, registryPack)
-			// append table row
-			table.Rows = append(table.Rows, tableRow)
+	if len(globalCache.Registries()) > 0 {
+		table := packTable()
+		for _, cachedRegistry := range globalCache.Registries() {
+			for _, registryPack := range cachedRegistry.Packs {
+				tableRow := packRow(cachedRegistry, registryPack)
+				table.Rows = append(table.Rows, tableRow)
+			}
 		}
+		// Display output table
+		c.ui.Table(table)
+	} else {
+		c.ui.Output("No packs present in the cache.")
 	}
-
-	// Display output table
-	c.ui.Table(table)
 
 	return 0
 }
