@@ -17,11 +17,10 @@ import (
 )
 
 const (
-	DefaultRegistryName   = "default"
-	DefaultRegistrySource = "github.com/hashicorp/nomad-pack-community-registry"
-	DefaultRef            = "latest"
-	DevRegistryName       = "<<local folder>>"
-	DevRef                = "<<none>>"
+	DefaultRegistryName = "default"
+	DefaultRef          = "latest"
+	DevRegistryName     = "<<local folder>>"
+	DevRef              = "<<none>>"
 )
 
 // NewCache instantiates a new cache instance with the specified config. If no

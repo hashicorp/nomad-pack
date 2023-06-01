@@ -8,20 +8,19 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
-	"path"
 	"runtime"
 
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
-	flag "github.com/hashicorp/nomad-pack/internal/pkg/flag"
-	"github.com/hashicorp/nomad-pack/internal/pkg/variable"
-	"github.com/hashicorp/nomad-pack/terminal"
 	"github.com/hashicorp/nomad/api"
 	"github.com/mitchellh/go-wordwrap"
 	"github.com/posener/complete"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
+	flag "github.com/hashicorp/nomad-pack/internal/pkg/flag"
+	"github.com/hashicorp/nomad-pack/internal/pkg/variable"
+	"github.com/hashicorp/nomad-pack/terminal"
 )
 
 // baseCommand is embedded in all commands to provide common logic and data.
@@ -215,7 +214,7 @@ func (c *baseCommand) Init(opts ...Option) error {
 
 func (c *baseCommand) ensureCache() error {
 	// Creates global cache
-	globalCache, err := cache.NewCache(&cache.CacheConfig{
+	_, err := cache.NewCache(&cache.CacheConfig{
 		Path:   cache.DefaultCachePath(),
 		Logger: c.ui,
 	})
@@ -223,21 +222,6 @@ func (c *baseCommand) ensureCache() error {
 		return err
 	}
 
-	// Check if default registry exists
-	_, err = os.Stat(path.Join(cache.DefaultCachePath(), cache.DefaultRegistryName))
-	// If it does not error, then the registry already exists
-	if err == nil {
-		return nil
-	}
-
-	// Add the registry or registry target to the global cache
-	_, err = globalCache.Add(&cache.AddOpts{
-		RegistryName: cache.DefaultRegistryName,
-		Source:       cache.DefaultRegistrySource,
-	})
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
