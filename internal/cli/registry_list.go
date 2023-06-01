@@ -43,21 +43,19 @@ func (c *RegistryListCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Initialize a table for a nice glint UI rendering
-	table := registryTable()
-
 	// Iterate over the registries and build a table row for each cachedRegistry/pack
 	// entry at each ref. Hierarchically, this should equate to the default
 	// cachedRegistry and all its peers.
 	if len(globalCache.Registries()) > 0 {
+		table := registryTable()
 		for _, registry := range globalCache.Registries() {
 			tableRow := registryTableRow(registry)
 			table.Rows = append(table.Rows, tableRow)
 		}
+		c.ui.Table(table)
+	} else {
+		c.ui.Output("No registries present in the cache.")
 	}
-
-	// Display output table
-	c.ui.Table(table)
 
 	return 0
 }

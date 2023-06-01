@@ -68,6 +68,7 @@ func (r *Registry) get(opts *GetOpts, cache *Cache) error {
 			}
 			r.LocalRef = cachedRegistry.LocalRef
 			r.Source = cachedRegistry.Source
+			r.Ref = cachedRegistry.Ref
 			continue
 		}
 
