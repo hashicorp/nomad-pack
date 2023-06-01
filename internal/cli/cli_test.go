@@ -48,9 +48,9 @@ const (
 func TestCLI_CreateTestRegistry(t *testing.T) {
 	// This test is here to help setup the pack registry cache. It needs to be
 	// the first one in the file and can not be `Parallel()`
-	regName, regPath := createTestRegistry(t)
+	reg, regPath := createTestRegistry(t)
 	defer cleanTestRegistry(t, regPath)
-	t.Logf("regName: %v\n", regName)
+	t.Logf("regName: %v\n", reg.Name)
 	t.Logf("regPath: %v\n", regPath)
 	err := filepath.Walk(regPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -65,12 +65,12 @@ func TestCLI_CreateTestRegistry(t *testing.T) {
 
 	result := runPackCmd(t, []string{"registry", "list"})
 	out := result.cmdOut.String()
-	packRegex := regexp.MustCompile(`(?m)^ +` + testPack + ` +\| (\w+) +\| (\w+) +\| \d\.\d\.\d +\| ` + regName + ` +\|[^\n]+?$`)
-	matches := packRegex.FindAllString(out, -1)
+	regex := regexp.MustCompile(`(?m)^ +` + reg.Name + ` +\| (\w+) +\| (\w+) +\| ` + reg.Source + ` +\|[^\n]+?$`)
+	matches := regex.FindAllString(out, -1)
 	for i, match := range matches {
 		t.Logf("match %v:  %v\n", i, match)
 	}
-	must.RegexMatch(t, packRegex, out)
+	must.RegexMatch(t, regex, out)
 	must.Eq(t, 0, result.exitCode)
 }
 
@@ -162,10 +162,10 @@ func TestCLI_JobPlan_BadJob(t *testing.T) {
 // Confirm that another pack with the same job names but a different deployment name fails
 func TestCLI_JobPlan_ConflictingDeployment(t *testing.T) {
 	ct.HTTPTestParallel(t, ct.WithDefaultConfig(), func(s *agent.TestAgent) {
-		regName, regPath := createTestRegistry(t)
+		reg, regPath := createTestRegistry(t)
 		defer cleanTestRegistry(t, regPath)
 
-		testRegFlag := "--registry=" + regName
+		testRegFlag := "--registry=" + reg.Name
 		expectGoodPackDeploy(t, runTestPackCmd(t, s, []string{"run", testPack, testRegFlag}))
 
 		result := runTestPackCmd(t, s, []string{"run", testPack, testRegFlag, testRefFlag})
@@ -373,7 +373,7 @@ func TestCLI_PackDestroy_WithOverrides(t *testing.T) {
 		c, err := ct.NewTestClient(s)
 		must.NoError(t, err)
 		// Because this test uses ref, it requires a populated pack cache.
-		regName, regPath := createTestRegistry(t)
+		reg, regPath := createTestRegistry(t)
 		defer cleanTestRegistry(t, regPath)
 
 		// 	TODO: Table Testing
@@ -388,17 +388,17 @@ func TestCLI_PackDestroy_WithOverrides(t *testing.T) {
 					"run",
 					testPack,
 					"--var=job_name=" + j,
-					"--registry=" + regName,
+					"--registry=" + reg.Name,
 				}))
 		}
 
 		// Stop nonexistent job
-		result := runTestPackCmd(t, s, []string{"destroy", testPack, "--var=job_name=baz", "--registry=" + regName})
+		result := runTestPackCmd(t, s, []string{"destroy", testPack, "--var=job_name=baz", "--registry=" + reg.Name})
 		must.Eq(t, 1, result.exitCode, must.Sprintf(
 			"expected exitcode 1; got %v\ncmdOut:%v", result.exitCode, result.cmdOut.String()))
 
 		// Stop job with var override
-		result = runTestPackCmd(t, s, []string{"destroy", testPack, "--var=job_name=foo", "--registry=" + regName})
+		result = runTestPackCmd(t, s, []string{"destroy", testPack, "--var=job_name=foo", "--registry=" + reg.Name})
 		must.Eq(t, 0, result.exitCode, must.Sprintf(
 			"expected exitcode 0; got %v\ncmdOut:%v", result.exitCode, result.cmdOut.String()))
 
@@ -408,7 +408,7 @@ func TestCLI_PackDestroy_WithOverrides(t *testing.T) {
 		must.NotNil(t, job)
 
 		// Stop job with no overrides passed
-		result = runTestPackCmd(t, s, []string{"destroy", testPack, "--registry=" + regName})
+		result = runTestPackCmd(t, s, []string{"destroy", testPack, "--registry=" + reg.Name})
 		must.Eq(t, 0, result.exitCode, must.Sprintf(
 			"expected exitcode 0; got %v\ncmdOut:%v", result.exitCode, result.cmdOut.String()))
 
@@ -846,7 +846,7 @@ func expectGoodPackPlan(t *testing.T, r PackCommandResult) {
 	must.Eq(t, 1, r.exitCode) // exitcode 1 means that an allocation will be created
 }
 
-func createTestRegistry(t *testing.T) (string, string) {
+func createTestRegistry(t *testing.T) (*cache.Registry, string) {
 	// Fake a clone
 	registryName := fmt.Sprintf("test-%v", time.Now().UnixMilli())
 	regDir := path.Join(cache.DefaultCachePath(), registryName)
@@ -860,10 +860,11 @@ func createTestRegistry(t *testing.T) (string, string) {
 
 	// Put a sample metadata.json in the test registry
 	metaPath := filepath.Join(regDir, "metadata.json")
-	b, _ := json.Marshal(&cache.Registry{Name: registryName, Source: "", Ref: testRef, LocalRef: testRef})
+	registry := &cache.Registry{Name: registryName, Source: "github.com/hashicorp/test-registry", Ref: testRef, LocalRef: testRef}
+	b, _ := json.Marshal(registry)
 	os.WriteFile(metaPath, b, 0644)
 
-	return path.Base(regDir), regDir
+	return registry, regDir
 }
 
 func cleanTestRegistry(t *testing.T, regPath string) {
