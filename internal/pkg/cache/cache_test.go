@@ -179,6 +179,7 @@ func TestAddRegistryWithSHA(t *testing.T) {
 	expectedRegistryMetadata := &Registry{
 		Name:     "with-sha",
 		Source:   tReg.SourceURL(),
+		Ref:      tReg.Ref1(),
 		LocalRef: tReg.Ref1(),
 	}
 	must.Eq(t, expectedRegistryMetadata, r)

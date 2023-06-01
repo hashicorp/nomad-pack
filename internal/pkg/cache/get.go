@@ -31,6 +31,7 @@ func (c *Cache) Get(opts *GetOpts) (registry *Registry, err error) {
 	// If no errors, allocate the instance
 	registry = &Registry{
 		Name:  opts.RegistryName,
+		Ref:   opts.Ref,
 		Packs: make([]*Pack, 0),
 	}
 

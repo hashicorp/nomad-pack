@@ -51,6 +51,10 @@ func registryTable() *terminal.Table {
 	return terminal.NewTable("REGISTRY NAME", "REF", "LOCAL_REF", "REGISTRY_URL")
 }
 
+func registryPackTable() *terminal.Table {
+	return terminal.NewTable("PACK NAME", "REF", "LOCAL_REF", "METADATA VERSION", "REGISTRY NAME", "REGISTRY_URL")
+}
+
 func packTable() *terminal.Table {
 	return terminal.NewTable("PACK NAME", "METADATA VERSION", "REGISTRY NAME")
 }
