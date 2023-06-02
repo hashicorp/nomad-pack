@@ -15,6 +15,7 @@ IMPROVEMENTS:
 
 * cli: Add `generate var-file` command [[GH-333](https://github.com/hashicorp/nomad-pack/pull/333)]
 * cli: `registry list` command now shows git refs to repositories present in the cache [[GH-318](https://github.com/hashicorp/nomad-pack/pull/318)]
+* cli: `registry list` command now shows only registries, and a new command `list` shows packs [[GH-337](https://github.com/hashicorp/nomad-pack/pull/337)]
 * deps: Update the Nomad OpenAPI dependency; require Go 1.18 as a build dependency [[GH-288](https://github.com/hashicorp/nomad-pack/pull/288)]
 * pack: Author field no longer supported in pack metadata [[GH-317](https://github.com/hashicorp/nomad-pack/pull/317)]
 * pack: URL field no longer supported in pack metadata [[GH-343](https://github.com/hashicorp/nomad-pack/pull/343)]
