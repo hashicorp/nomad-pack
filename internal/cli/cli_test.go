@@ -16,6 +16,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/nomad/api"
 	"github.com/hashicorp/nomad/command/agent"
 	"github.com/mitchellh/cli"
 	"github.com/shoenig/test/must"
@@ -225,7 +226,7 @@ func TestCLI_PackPlan_OverrideExitCodes(t *testing.T) {
 		isGone := func() bool {
 			_, err = ct.NomadJobStatus(s, testPack)
 			if err != nil {
-				return err.Error() == "job not found"
+				return err.Error() == "Unexpected response code: 404 (job not found)"
 			}
 			return false
 		}
@@ -244,7 +245,7 @@ func TestCLI_PackPlan_OverrideExitCodes(t *testing.T) {
 			if err != nil {
 				return false
 			}
-			return j.GetStatus() == "running"
+			return *j.Status == "running"
 		}
 		must.Wait(t, wait.InitialSuccess(
 			wait.BoolFunc(isStarted),
@@ -360,9 +361,9 @@ func TestCLI_PackDestroy(t *testing.T) {
 		c, err := ct.NewTestClient(s)
 		must.NoError(t, err)
 
-		r, _, err := c.Jobs().GetJob(c.QueryOpts().Ctx(), testPack)
+		r, _, err := c.Jobs().Info(testPack, &api.QueryOptions{})
 		must.Nil(t, r)
-		must.EqError(t, err, "job not found")
+		must.EqError(t, err, "Unexpected response code: 404 (job not found)")
 	})
 }
 
@@ -402,9 +403,7 @@ func TestCLI_PackDestroy_WithOverrides(t *testing.T) {
 			"expected exitcode 0; got %v\ncmdOut:%v", result.exitCode, result.cmdOut.String()))
 
 		// Assert job "bar" still exists
-		tCtx, done := context.WithTimeout(context.TODO(), 5*time.Second)
-		job, _, err := c.Jobs().GetJob(tCtx, "bar")
-		done()
+		job, _, err := c.Jobs().Info("bar", &api.QueryOptions{WaitTime: 5 * time.Second})
 		must.NoError(t, err)
 		must.NotNil(t, job)
 
@@ -414,11 +413,9 @@ func TestCLI_PackDestroy_WithOverrides(t *testing.T) {
 			"expected exitcode 0; got %v\ncmdOut:%v", result.exitCode, result.cmdOut.String()))
 
 		// Assert job bar is gone
-		tCtx, done = context.WithTimeout(context.TODO(), 5*time.Second)
-		job, _, err = c.Jobs().GetJob(tCtx, "bar")
-		done()
+		job, _, err = c.Jobs().Info("bar", &api.QueryOptions{WaitTime: 5 * time.Second})
 		must.Error(t, err)
-		must.Eq(t, "job not found", err.Error())
+		must.Eq(t, "Unexpected response code: 404 (job not found)", err.Error())
 		must.Nil(t, job)
 	})
 }
@@ -584,11 +581,9 @@ func TestCLI_CLIFlag_Namespace(t *testing.T) {
 					"Expected success message, received %q", result.cmdOut.String()))
 
 				for ns, count := range tC.expect {
-					tOpt := c.QueryOpts()
-					tOpt.Namespace = ns
-					tJobs, _, err := c.Jobs().GetJobs(tOpt.Ctx())
+					tJobs, _, err := c.Jobs().List(&api.QueryOptions{Namespace: ns})
 					must.NoError(t, err)
-					must.Eq(t, count, len(*tJobs), must.Sprintf("Expected %v job(s) in %q namespace; found %v", count, ns, len(*tJobs)))
+					must.Eq(t, count, len(tJobs), must.Sprintf("Expected %v job(s) in %q namespace; found %v", count, ns, len(tJobs)))
 				}
 			})
 		})
@@ -608,7 +603,7 @@ func TestCLI_CLIFlag_Token(t *testing.T) {
 			"--token=bad00000-bad0-bad0-bad0-badbadbadbad",
 		})
 		must.Eq(t, result.cmdErr.String(), "", must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
-		must.StrContains(t, result.cmdOut.String(), "Error: ACL token not found", must.Sprintf(
+		must.StrContains(t, result.cmdOut.String(), "403 (ACL token not found)", must.Sprintf(
 			"Expected token not found error, received %q", result.cmdOut.String()))
 
 		result = runTestPackCmd(t, srv, []string{
@@ -625,7 +620,7 @@ func TestCLI_CLIFlag_Token(t *testing.T) {
 
 func TestCLI_EnvConfig_Token(t *testing.T) {
 	ct.HTTPTestWithACL(t, ct.WithDefaultConfig(), func(srv *agent.TestAgent) {
-		c, err := ct.NewTestClient(srv)
+		_, err := ct.NewTestClient(srv)
 		must.NoError(t, err)
 
 		// Garbage token - Should fail
@@ -636,11 +631,11 @@ func TestCLI_EnvConfig_Token(t *testing.T) {
 			getTestPackPath(testPack),
 		})
 		must.Eq(t, result.cmdErr.String(), "", must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
-		must.StrContains(t, result.cmdOut.String(), "Error: ACL token not found", must.Sprintf(
+		must.StrContains(t, result.cmdOut.String(), "403 (ACL token not found)", must.Sprintf(
 			"Expected token not found error, received %q", result.cmdOut.String()))
 
 		// Good token - Should run
-		t.Setenv("NOMAD_TOKEN", c.QueryOpts().AuthToken)
+		t.Setenv("NOMAD_TOKEN", srv.Config.Client.Meta["token"])
 		result = runTestPackCmd(t, srv, []string{
 			"run",
 			getTestPackPath(testPack),
@@ -726,12 +721,10 @@ func TestCLI_EnvConfig_Namespace(t *testing.T) {
 					"Expected success message, received %q", result.cmdOut.String()))
 
 				for ns, count := range tC.expect {
-					tOpt := c.QueryOpts()
-					tOpt.Namespace = ns
-					tJobs, _, err := c.Jobs().GetJobs(tOpt.Ctx())
+					tJobs, _, err := c.Jobs().List(&api.QueryOptions{Namespace: ns})
 					must.NoError(t, err)
-					must.Eq(t, count, len(*tJobs), must.Sprintf(
-						"Expected %v job(s) in %q namespace; found %v", count, ns, len(*tJobs)))
+					must.Eq(t, count, len(tJobs), must.Sprintf(
+						"Expected %v job(s) in %q namespace; found %v", count, ns, len(tJobs)))
 				}
 			})
 		})

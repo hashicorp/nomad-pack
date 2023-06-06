@@ -8,12 +8,12 @@ import (
 	"path"
 	"strings"
 
-	v1 "github.com/hashicorp/nomad-openapi/v1"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/loader"
 	"github.com/hashicorp/nomad-pack/internal/pkg/renderer"
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable"
 	"github.com/hashicorp/nomad-pack/sdk/pack"
+	"github.com/hashicorp/nomad/api"
 )
 
 // Config contains all the user specified parameters needed to correctly run
@@ -29,14 +29,14 @@ type Config struct {
 // all dependencies.
 type PackManager struct {
 	cfg      *Config
-	client   *v1.Client
+	client   *api.Client
 	renderer *renderer.Renderer
 
 	// loadedPack is unavailable until the loadAndValidatePacks func is run.
 	loadedPack *pack.Pack
 }
 
-func NewPackManager(cfg *Config, client *v1.Client) *PackManager {
+func NewPackManager(cfg *Config, client *api.Client) *PackManager {
 	return &PackManager{
 		cfg:    cfg,
 		client: client,

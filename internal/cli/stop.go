@@ -4,17 +4,18 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"time"
 
-	v1client "github.com/hashicorp/nomad-openapi/clients/go/v1"
-	v1 "github.com/hashicorp/nomad-openapi/v1"
+	"github.com/hashicorp/nomad/api"
+	"github.com/posener/complete"
+
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
 	"github.com/hashicorp/nomad-pack/internal/pkg/renderer"
 	"github.com/hashicorp/nomad-pack/sdk/helper"
-	"github.com/posener/complete"
 )
 
 type StopCommand struct {
@@ -76,7 +77,7 @@ func (c *StopCommand) Run(args []string) int {
 	}
 	errorContext.Add(errors.UIContextPrefixDeploymentName, c.deploymentName)
 
-	var jobs []*v1client.Job
+	var jobs []*api.Job
 
 	// Get job names if var overrides are passed
 	if hasVarOverrides(c.baseCommand) {
@@ -113,7 +114,7 @@ func (c *StopCommand) Run(args []string) int {
 
 			// get job struct from template
 			// TODO: Should we add an hcl1 flag?
-			var job *v1client.Job
+			var job *api.Job
 			job, err = parseJob(c.baseCommand, tpl, false, tplErrorContext)
 			if err != nil {
 				// err output is handled by parseJob
@@ -121,7 +122,7 @@ func (c *StopCommand) Run(args []string) int {
 			}
 
 			// Add the jobID to the error context.
-			tplErrorContext.Add(errors.UIContextPrefixJobName, job.GetName())
+			tplErrorContext.Add(errors.UIContextPrefixJobName, *job.Name)
 			jobs = append(jobs, job)
 		}
 	} else {
@@ -144,35 +145,28 @@ func (c *StopCommand) Run(args []string) int {
 
 		if err != nil {
 			errs = append(errs, err)
-			c.ui.Warning(fmt.Sprintf("skipping job %q - conflict check failed with err: %s", job.GetID(), err))
+			c.ui.Warning(fmt.Sprintf("skipping job %q - conflict check failed with err: %s", *job.ID, err))
 			continue
 		}
 
 		// TODO: add interactive support
 		if !c.confirmStop() {
-			c.ui.Info(fmt.Sprintf("%s job %q aborted by user", helper.Title(stopOrDestroy), job.GetID()))
+			c.ui.Info(fmt.Sprintf("%s job %q aborted by user", helper.Title(stopOrDestroy), *job.ID))
 			continue
 		}
 
 		// Invoke the stop
-		writeOpts := client.WriteOpts()
-		// FIXME: This is probably bad.
-		writeOpts.Region = job.GetRegion()
-		writeOpts.Namespace = job.GetNamespace()
-
-		result, _, err := client.Jobs().Delete(writeOpts.Ctx(), job.GetName(), c.purge, c.global)
+		_, _, err := client.Jobs().DeregisterOpts(*job.ID, &api.DeregisterOptions{
+			Purge:  c.purge,
+			Global: c.global,
+		}, &api.WriteOptions{})
 		if err != nil {
 			errs = append(errs, err)
-			c.ui.ErrorWithContext(err, fmt.Sprintf("error deregistering job: %q", job.GetID()))
+			c.ui.ErrorWithContext(err, fmt.Sprintf("error deregistering job: %q", *job.ID))
 			continue
 		}
 
-		// If we are stopping a periodic job there won't be an evalID.
-		if result.HasEvalID() {
-			c.ui.Info(fmt.Sprintf("Evaluation ID: %q", result.GetEvalID()))
-		}
-
-		c.ui.Success(fmt.Sprintf("Job %q %s", job.GetName(), stoppedOrDestroyed))
+		c.ui.Success(fmt.Sprintf("Job %q %s", *job.Name, stoppedOrDestroyed))
 	}
 
 	if len(errs) > 0 {
@@ -188,26 +182,26 @@ func (c *StopCommand) Run(args []string) int {
 	return 0
 }
 
-func (c *StopCommand) checkForConflicts(client *v1.Client, job *v1client.Job) error {
-	queryOpts := client.QueryOpts()
-	if job.HasNamespace() {
-		queryOpts.Namespace = job.GetNamespace()
+func (c *StopCommand) checkForConflicts(client *api.Client, job *api.Job) error {
+	queryOpts := &api.QueryOptions{}
+	if job.Namespace != nil {
+		queryOpts.Namespace = *job.Namespace
 	}
 
-	queryOpts.Prefix = job.GetID()
+	queryOpts.Prefix = *job.ID
 	jobsApi := client.Jobs()
 
-	jobs, _, err := jobsApi.GetJobs(queryOpts.Ctx())
+	jobs, _, err := jobsApi.List(queryOpts.WithContext(context.Background()))
 	if err != nil {
-		return fmt.Errorf("error checking for conflicts for job %q: %s", job.GetName(), err)
+		return fmt.Errorf("error checking for conflicts for job %q: %s", *job.Name, err)
 	}
 
-	if len(*jobs) == 0 {
-		return fmt.Errorf("no job(s) with prefix or id %q found", job.GetName())
+	if len(jobs) == 0 {
+		return fmt.Errorf("no job(s) with prefix or id %q found", *job.Name)
 	}
 
-	if len(*jobs) > 1 {
-		return fmt.Errorf("prefix matched multiple jobs\n\n%s", createStatusListOutput(*jobs, c.allNamespaces()))
+	if len(jobs) > 1 {
+		return fmt.Errorf("prefix matched multiple jobs\n\n%s", createStatusListOutput(jobs, c.allNamespaces()))
 	}
 
 	return nil
@@ -310,20 +304,20 @@ func (c *StopCommand) allNamespaces() bool {
 }
 
 // list general information about a list of jobs
-func createStatusListOutput(jobs []v1client.JobListStub, displayNS bool) string {
+func createStatusListOutput(jobs []*api.JobListStub, displayNS bool) string {
 	out := make([]string, len(jobs)+1)
 	if displayNS {
 		out[0] = "ID|Namespace|Type|Priority|Status|Submit Date"
 		for i, job := range jobs {
 			// TODO: Fix this demo hack
 			t := time.Now()
-			if job.SubmitTime != nil {
-				t = time.Unix(0, job.GetSubmitTime())
+			if job.SubmitTime != 0 {
+				t = time.Unix(0, job.SubmitTime)
 			}
 			out[i+1] = fmt.Sprintf("%s|%s|%s|%d|%s|%s",
-				job.GetID(),
-				job.JobSummary.GetNamespace(),
-				getTypeString(job),
+				job.ID,
+				job.JobSummary.Namespace,
+				getTypeString(*job),
 				job.Priority,
 				getStatusString(job.Status, job.Stop), formatTime(t))
 		}
@@ -332,12 +326,12 @@ func createStatusListOutput(jobs []v1client.JobListStub, displayNS bool) string 
 		for i, job := range jobs {
 			// TODO: Fix this demo hack
 			t := time.Now()
-			if job.SubmitTime != nil {
-				t = time.Unix(0, job.GetSubmitTime())
+			if job.SubmitTime != 0 {
+				t = time.Unix(0, job.SubmitTime)
 			}
 			out[i+1] = fmt.Sprintf("%s|%s|%d|%s|%s",
-				job.GetID(),
-				getTypeString(job),
+				job.ID,
+				getTypeString(*job),
 				job.Priority,
 				getStatusString(job.Status, job.Stop), formatTime(t))
 		}
@@ -345,26 +339,26 @@ func createStatusListOutput(jobs []v1client.JobListStub, displayNS bool) string 
 	return formatList(out)
 }
 
-func getTypeString(job v1client.JobListStub) string {
-	t := job.GetType()
+func getTypeString(job api.JobListStub) string {
+	t := job.Type
 
-	if job.HasPeriodic() {
+	if job.Periodic {
 		t += "/periodic"
 	}
 
-	if job.HasParameterizedJob() {
+	if job.ParameterizedJob {
 		t += "/parameterized"
 	}
 
 	return t
 }
 
-func getStatusString(status *string, stop *bool) string {
-	if status == nil {
+func getStatusString(status string, stop bool) string {
+	if status == "" {
 		return ""
 	}
-	if stop != nil && *stop {
-		return fmt.Sprintf("%s (stopped)", *status)
+	if stop {
+		return fmt.Sprintf("%s (stopped)", status)
 	}
-	return *status
+	return status
 }

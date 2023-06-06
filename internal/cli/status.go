@@ -6,12 +6,13 @@ package cli
 import (
 	"fmt"
 
-	v1 "github.com/hashicorp/nomad-openapi/v1"
+	"github.com/hashicorp/nomad/api"
+	"github.com/posener/complete"
+
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	flag "github.com/hashicorp/nomad-pack/internal/pkg/flag"
 	"github.com/hashicorp/nomad-pack/terminal"
-	"github.com/posener/complete"
 )
 
 type StatusCommand struct {
@@ -54,7 +55,7 @@ func (c *StatusCommand) Run(args []string) int {
 	return c.renderDeployedPackJobs(client, errorContext)
 }
 
-func (c *StatusCommand) renderDeployedPackJobs(client *v1.Client, errorContext *errors.UIErrorContext) int {
+func (c *StatusCommand) renderDeployedPackJobs(client *api.Client, errorContext *errors.UIErrorContext) int {
 	var err error
 	packJobs, jobErrs, err := getDeployedPackJobs(client, c.packConfig, c.deploymentName)
 	if err != nil {
@@ -81,7 +82,7 @@ func (c *StatusCommand) renderDeployedPackJobs(client *v1.Client, errorContext *
 	return 0
 }
 
-func (c *StatusCommand) renderAllDeployedPacks(client *v1.Client, errorContext *errors.UIErrorContext) int {
+func (c *StatusCommand) renderAllDeployedPacks(client *api.Client, errorContext *errors.UIErrorContext) int {
 	packRegistryMap, err := getDeployedPacks(client)
 	if err != nil {
 		c.ui.ErrorWithContext(err, "error retrieving packs", errorContext.GetAll()...)

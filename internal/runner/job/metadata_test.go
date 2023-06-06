@@ -6,7 +6,7 @@ package job
 import (
 	"testing"
 
-	v1client "github.com/hashicorp/nomad-openapi/clients/go/v1"
+	"github.com/hashicorp/nomad/api"
 	"github.com/shoenig/test/must"
 
 	"github.com/hashicorp/nomad-pack/internal/runner"
@@ -16,8 +16,8 @@ import (
 func TestDeployer_setJobMeta(t *testing.T) {
 	testCases := []struct {
 		inputRunner       *Runner
-		inputJob          *v1client.Job
-		expectedOutputJob *v1client.Job
+		inputJob          *api.Job
+		expectedOutputJob *api.Job
 		name              string
 	}{
 		{
@@ -30,19 +30,19 @@ func TestDeployer_setJobMeta(t *testing.T) {
 					RegistryName:   "default",
 				},
 			},
-			inputJob: &v1client.Job{
+			inputJob: &api.Job{
 				Name: helper.StringToPtr("foobar"),
 			},
-			expectedOutputJob: &v1client.Job{
+			expectedOutputJob: &api.Job{
 				Name: helper.StringToPtr("foobar"),
-				Meta: helper.MapToPtr(map[string]string{
+				Meta: map[string]string{
 					PackPathKey:           "/opt/src/foobar",
 					PackNameKey:           "foobar",
 					PackRegistryKey:       "default",
 					PackDeploymentNameKey: "foobar@123456",
 					PackJobKey:            "foobar",
 					PackRefKey:            "123456",
-				}),
+				},
 			},
 			name: "nil input meta",
 		},

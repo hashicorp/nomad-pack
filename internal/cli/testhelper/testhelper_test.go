@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"testing"
 
-	v1 "github.com/hashicorp/nomad-openapi/v1"
+	"github.com/hashicorp/nomad/api"
 	"github.com/hashicorp/nomad/command/agent"
 	"github.com/shoenig/test/must"
 )
@@ -17,13 +17,8 @@ func Test_HTTPTest(t *testing.T) {
 		client, err := NewTestClient(s)
 		must.NoError(t, err)
 
-		q := &v1.QueryOpts{
-			Region:    v1.GlobalRegion,
-			Namespace: v1.DefaultNamespace,
-		}
-
-		result, err := client.Status().Leader(q.Ctx())
-		t.Logf("result: %q", *result)
+		result, err := client.Status().Leader()
+		t.Logf("result: %q", result)
 		must.NoError(t, err)
 		must.NotNil(t, result)
 	})
@@ -34,13 +29,8 @@ func TestTestHelper_HTTPTestParallel(t *testing.T) {
 		client, err := NewTestClient(s)
 		must.NoError(t, err)
 
-		q := &v1.QueryOpts{
-			Region:    v1.GlobalRegion,
-			Namespace: v1.DefaultNamespace,
-		}
-
-		result, err := client.Status().Leader(q.Ctx())
-		t.Logf("result: %q", *result)
+		result, err := client.Status().Leader()
+		t.Logf("result: %q", result)
 		must.NoError(t, err)
 		must.NotNil(t, result)
 	})
@@ -51,14 +41,10 @@ func TestTestHelper_HTTPTestWithACL(t *testing.T) {
 		client, err := NewTestClient(s)
 		must.NoError(t, err)
 
-		q := &v1.QueryOpts{
-			Region:    v1.GlobalRegion,
-			Namespace: v1.DefaultNamespace,
-			AuthToken: s.Config.Client.Meta["token"],
-		}
+		client.SetSecretID(s.Config.Client.Meta["token"])
 
-		result, err := client.Status().Leader(q.Ctx())
-		t.Logf("result: %q", *result)
+		result, err := client.Status().Leader()
+		t.Logf("result: %q", result)
 		must.NoError(t, err)
 		must.NotNil(t, result)
 	})
@@ -69,14 +55,10 @@ func TestTestHelper_HTTPTestWithACLParallel(t *testing.T) {
 		client, err := NewTestClient(s)
 		must.NoError(t, err)
 
-		q := &v1.QueryOpts{
-			Region:    v1.GlobalRegion,
-			Namespace: v1.DefaultNamespace,
-			AuthToken: s.Config.Client.Meta["token"],
-		}
+		client.SetSecretID(s.Config.Client.Meta["token"])
 
-		result, err := client.Status().Leader(q.Ctx())
-		t.Logf("result: %q", *result)
+		result, err := client.Status().Leader()
+		t.Logf("result: %q", result)
 		must.NoError(t, err)
 		must.NotNil(t, result)
 	})
@@ -89,23 +71,17 @@ func TestTestHelper_HTTPTestParallel_TLSEnabled(t *testing.T) {
 			LogLevel(testLogLevel),
 		),
 		func(s *agent.TestAgent) {
-			client, err := v1.NewClient(
-				v1.WithTLSCerts(
-					mTLSFixturePath("client", "cafile"),
-					mTLSFixturePath("client", "certfile"),
-					mTLSFixturePath("client", "keyfile"),
-				),
-				v1.WithAddress(s.HTTPAddr()),
-			)
+			clientConfig := api.DefaultConfig()
+			clientConfig.Address = s.HTTPAddr()
+			clientConfig.TLSConfig.ClientCert = mTLSFixturePath("client", "certfile")
+			clientConfig.TLSConfig.CACert = mTLSFixturePath("client", "cafile")
+			clientConfig.TLSConfig.ClientKey = mTLSFixturePath("client", "keyfile")
 
+			client, err := api.NewClient(clientConfig)
 			must.NoError(t, err)
 
-			q := &v1.QueryOpts{
-				Region:    v1.GlobalRegion,
-				Namespace: v1.DefaultNamespace,
-			}
-			result, err := client.Status().Leader(q.Ctx())
-			t.Logf("result: %q", *result)
+			result, err := client.Status().Leader()
+			t.Logf("result: %q", result)
 			must.NoError(t, err)
 			must.NotNil(t, result)
 		},
@@ -119,10 +95,10 @@ func TestTestHelper_MultiRegionCluster(t *testing.T) {
 		func(s1, s2 *agent.TestAgent) {
 			c1, err := NewTestClient(s1)
 			must.NoError(t, err)
-			r, err := c1.Regions().GetRegions(c1.QueryOpts().Ctx())
+			r, err := c1.Regions().List()
 			must.NoError(t, err)
 
-			must.SliceContainsAll(t, []string{"rA", "rB"}, *r)
+			must.SliceContainsAll(t, []string{"rA", "rB"}, r)
 		},
 	)
 }
@@ -134,22 +110,22 @@ func TestTestHelper_MultiRegionClusterParallel(t *testing.T) {
 		func(s1, s2 *agent.TestAgent) {
 			c1, err := NewTestClient(s1)
 			must.NoError(t, err)
-			r, err := c1.Regions().GetRegions(c1.QueryOpts().Ctx())
+			r, err := c1.Regions().List()
 			must.NoError(t, err)
 
-			must.SliceContainsAll(t, []string{"rA", "rB"}, *r)
+			must.SliceContainsAll(t, []string{"rA", "rB"}, r)
 		},
 	)
 }
 
 func TestTestHelper_NomadRun(t *testing.T) {
 	HTTPTestParallel(t, WithDefaultConfig(), func(srv *agent.TestAgent) {
-		NomadRun(srv, getTestNomadJobPath("simple_raw_exec"))
+		must.NoError(t, NomadRun(srv, getTestNomadJobPath("simple_raw_exec")))
 		c, err := NewTestClient(srv)
 		must.NoError(t, err)
-		jR, _, err := c.Jobs().GetJobs(c.QueryOpts().Ctx())
+		jR, _, err := c.Jobs().List(nil)
 		must.NoError(t, err)
-		must.Eq(t, 1, len(*jR))
+		must.Eq(t, 1, len(jR))
 	})
 }
 
@@ -158,7 +134,7 @@ func TestTestHelper_NomadJobStatus(t *testing.T) {
 		NomadRun(srv, getTestNomadJobPath("simple_raw_exec"))
 		job, err := NomadJobStatus(srv, "simple_raw_exec")
 		must.NoError(t, err)
-		must.Eq(t, "simple_raw_exec", job.GetName())
+		must.Eq(t, "simple_raw_exec", *job.Name)
 	})
 }
 
@@ -168,14 +144,14 @@ func TestTestHelper_NomadStop(t *testing.T) {
 		must.NoError(t, err)
 
 		NomadRun(srv, getTestNomadJobPath("simple_raw_exec"))
-		jR, _, err := c.Jobs().GetJobs(c.QueryOpts().Ctx())
+		jR, _, err := c.Jobs().List(nil)
 		must.NoError(t, err)
-		must.Eq(t, 1, len(*jR))
+		must.Eq(t, 1, len(jR))
 
 		NomadStop(srv, "simple_raw_exec")
-		job, _, err := c.Jobs().GetJob(c.QueryOpts().Ctx(), "simple_raw_exec")
+		job, _, err := c.Jobs().Info("simple_raw_exec", nil)
 		must.NoError(t, err)
-		must.True(t, job.GetStop())
+		must.True(t, *job.Stop)
 	})
 }
 
@@ -185,14 +161,14 @@ func TestTestHelper_NomadPurge(t *testing.T) {
 		must.NoError(t, err)
 
 		NomadRun(srv, getTestNomadJobPath("simple_raw_exec"))
-		jR, _, err := c.Jobs().GetJobs(c.QueryOpts().Ctx())
+		jR, _, err := c.Jobs().List(nil)
 		must.NoError(t, err)
-		must.Eq(t, 1, len(*jR))
+		must.Eq(t, 1, len(jR))
 
 		NomadPurge(srv, "simple_raw_exec")
-		jR, _, err = c.Jobs().GetJobs(c.QueryOpts().Ctx())
+		jR, _, err = c.Jobs().List(nil)
 		must.NoError(t, err)
-		must.Eq(t, 0, len(*jR))
+		must.Eq(t, 0, len(jR))
 	})
 }
 
@@ -202,18 +178,15 @@ func TestTestHelper_NomadCleanup(t *testing.T) {
 		must.NoError(t, err)
 		MakeTestNamespaces(t, c)
 
-		qoAllNS := c.QueryOpts().WithNamespace("*")
-
 		err = NomadRun(srv, getTestNomadJobPath("simple_raw_exec"))
 		must.NoError(t, err)
 
-		err = NomadRun(srv, getTestNomadJobPath("simple_raw_exec"), v1.WithDefaultNamespace("env"))
-		must.NoError(t, err)
+		qoAllNS := &api.QueryOptions{Namespace: "*"}
 
-		jR, qm, err := c.Jobs().GetJobs(qoAllNS.Ctx())
+		jR, qm, err := c.Jobs().List(qoAllNS)
 		fmt.Printf("\n\n-- qm: %+#v\n\n", qm)
 		must.NoError(t, err)
-		must.Eq(t, 2, len(*jR))
+		must.Eq(t, 1, len(jR))
 
 		err, warn := NomadCleanup(srv)
 		must.NoError(t, err)
@@ -222,8 +195,8 @@ func TestTestHelper_NomadCleanup(t *testing.T) {
 			t.Log("warnings cleaning cluster", "warn", warn.Error())
 		}
 
-		jR, _, err = c.Jobs().GetJobs(qoAllNS.Ctx())
+		jR, _, err = c.Jobs().List(qoAllNS)
 		must.NoError(t, err)
-		must.Eq(t, 0, len(*jR))
+		must.Eq(t, 0, len(jR))
 	})
 }

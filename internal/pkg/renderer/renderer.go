@@ -10,7 +10,7 @@ import (
 	"text/template"
 
 	"github.com/hashicorp/hcl/hcl/printer"
-	v1 "github.com/hashicorp/nomad-openapi/v1"
+	"github.com/hashicorp/nomad/api"
 
 	"github.com/hashicorp/nomad-pack/sdk/pack"
 )
@@ -26,7 +26,7 @@ type Renderer struct {
 	// Client is the Nomad API client used when running the Nomad template
 	// functions. It can potentially be nil, therefore care should be taken
 	// when accessing it.
-	Client *v1.Client
+	Client *api.Client
 
 	// RenderAuxFiles determines whether we should render auxiliary files found
 	// in template/ or not

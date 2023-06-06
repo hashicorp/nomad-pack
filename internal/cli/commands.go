@@ -13,11 +13,11 @@ import (
 	"runtime"
 
 	"github.com/hashicorp/go-hclog"
-	v1 "github.com/hashicorp/nomad-openapi/v1"
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	flag "github.com/hashicorp/nomad-pack/internal/pkg/flag"
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable"
 	"github.com/hashicorp/nomad-pack/terminal"
+	"github.com/hashicorp/nomad/api"
 	"github.com/mitchellh/go-wordwrap"
 	"github.com/posener/complete"
 	"google.golang.org/grpc/codes"
@@ -483,6 +483,6 @@ func IsCanceled(err error) bool {
 	return s.Code() == codes.Canceled
 }
 
-func (c *baseCommand) getAPIClient() (*v1.Client, error) {
-	return v1.NewClient(clientOptsFromCLI(c)...)
+func (c *baseCommand) getAPIClient() (*api.Client, error) {
+	return api.NewClient(clientOptsFromCLI(c))
 }

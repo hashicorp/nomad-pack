@@ -3,7 +3,7 @@
 
 package job
 
-import v1client "github.com/hashicorp/nomad-openapi/clients/go/v1"
+import "github.com/hashicorp/nomad/api"
 
 const (
 	PackPathKey           = "pack.path"
@@ -15,12 +15,12 @@ const (
 )
 
 // add metadata to the job for in cluster querying and management
-func (r *Runner) setJobMeta(job *v1client.Job) {
+func (r *Runner) setJobMeta(job *api.Job) {
 	jobMeta := make(map[string]string)
 
 	// If current job meta isn't nil, use that instead
 	if job.Meta != nil {
-		jobMeta = *job.Meta
+		jobMeta = job.Meta
 	}
 
 	// Add the Nomad Pack custom metadata.
@@ -32,5 +32,5 @@ func (r *Runner) setJobMeta(job *v1client.Job) {
 	jobMeta[PackRefKey] = r.runnerCfg.PackRef
 
 	// Replace the job metadata with our modified ref.
-	job.Meta = &jobMeta
+	job.Meta = jobMeta
 }

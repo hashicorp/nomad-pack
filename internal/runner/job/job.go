@@ -8,10 +8,9 @@ import (
 	"os"
 	"time"
 
-	v1client "github.com/hashicorp/nomad-openapi/clients/go/v1"
-	v1 "github.com/hashicorp/nomad-openapi/v1"
+	"github.com/hashicorp/nomad/api"
+
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
-	intHelper "github.com/hashicorp/nomad-pack/internal/pkg/helper"
 	"github.com/hashicorp/nomad-pack/internal/runner"
 	"github.com/hashicorp/nomad-pack/sdk/helper"
 	"github.com/hashicorp/nomad-pack/terminal"
@@ -22,9 +21,8 @@ type Runner struct {
 	cfg       *CLIConfig
 	runnerCfg *runner.Config
 
-	// client and clientQueryOpts are used when calling the Nomad API.
-	client          *v1.Client
-	clientQueryOpts *v1.QueryOpts
+	// client is used when calling the Nomad API.
+	client *api.Client
 
 	// rawTemplates contains the rendered templates from the renderer. Once
 	// these have been parsed, store them within parsedTemplates, so we don't
@@ -39,23 +37,23 @@ type Runner struct {
 }
 
 type ParsedTemplate struct {
-	original  *v1client.Job
-	canonical *v1client.Job
+	original  *api.Job
+	canonical *api.Job
 }
 
 func (p *ParsedTemplate) GetName() string {
-	return p.canonical.GetName()
+	return *p.canonical.Name
 }
 
 func (p *ParsedTemplate) HasRegion() bool {
-	return p.original.HasRegion()
+	return p.original.Region != nil
 }
 
 func (p *ParsedTemplate) HasNamespace() bool {
-	return p.original.HasNamespace()
+	return p.original.Namespace != nil
 }
 
-func (p *ParsedTemplate) Job() *v1client.Job {
+func (p *ParsedTemplate) Job() *api.Job {
 	return p.canonical
 }
 
@@ -64,10 +62,9 @@ func (p *ParsedTemplate) Job() *v1client.Job {
 //
 // TODO(jrasell): design a nice method to have the QueryOpts setup once and
 // available to all subsystems that use a Nomad client.
-func NewDeployer(client *v1.Client, cfg *CLIConfig) runner.Runner {
+func NewDeployer(client *api.Client, cfg *CLIConfig) runner.Runner {
 	return &Runner{
 		client:          client,
-		clientQueryOpts: client.QueryOpts(),
 		cfg:             cfg,
 		rawTemplates:    make(map[string]string),
 		parsedTemplates: make(map[string]ParsedTemplate),
@@ -109,7 +106,7 @@ func (r *Runner) Deploy(ui terminal.UI, errorContext *errors.UIErrorContext) *er
 		tplErrorContext := errorContext.Copy()
 		tplErrorContext.Add(errors.UIContextPrefixTemplateName, tplName)
 
-		registerOpts := v1.RegisterOpts{
+		registerOpts := api.RegisterOptions{
 			EnforceIndex:   r.cfg.RunConfig.CheckIndex > 0,
 			ModifyIndex:    r.cfg.RunConfig.CheckIndex,
 			PolicyOverride: r.cfg.RunConfig.PolicyOverride,
@@ -117,27 +114,27 @@ func (r *Runner) Deploy(ui terminal.UI, errorContext *errors.UIErrorContext) *er
 		}
 
 		// Submit the job
-		result, _, err := r.client.Jobs().Register(r.newWriteOptsFromJob(jobSpec).Ctx(), jobSpec.Job(), &registerOpts)
+		result, _, err := r.client.Jobs().RegisterOpts(jobSpec.Job(), &registerOpts, r.newWriteOptsFromJob(jobSpec))
 		if err != nil {
 			r.rollback(ui)
-			return generateRegisterError(intHelper.UnwrapAPIError(err), tplErrorContext, jobSpec.GetName())
+			return generateRegisterError(err, tplErrorContext, jobSpec.GetName())
 		}
 
 		// Print any warnings if there are any
-		if result.Warnings != nil && *result.Warnings != "" {
-			ui.Warning(fmt.Sprintf("Job Warnings:\n%s[reset]\n", *result.Warnings))
+		if result.Warnings != "" {
+			ui.Warning(fmt.Sprintf("Job Warnings:\n%s[reset]\n", result.Warnings))
 		}
 
 		// Handle output formatting based on job configuration
-		if r.client.Jobs().IsPeriodic(jobSpec.Job()) && !r.client.Jobs().IsParameterized(jobSpec.Job()) {
+		if jobSpec.Job().IsPeriodic() && !jobSpec.Job().IsParameterized() {
 			r.handlePeriodicJobResponse(ui, jobSpec.Job())
-		} else if !r.client.Jobs().IsParameterized(jobSpec.Job()) {
-			ui.Info(fmt.Sprintf("Evaluation ID: %s", *result.EvalID))
+		} else if !jobSpec.Job().IsParameterized() {
+			ui.Info(fmt.Sprintf("Evaluation ID: %s", result.EvalID))
 		}
 
 		r.deployedJobs = append(r.deployedJobs, jobSpec)
 		ui.Info(fmt.Sprintf("Job '%s' in pack deployment '%s' registered successfully",
-			jobSpec.Job().GetID(), r.runnerCfg.DeploymentName))
+			*jobSpec.Job().ID, r.runnerCfg.DeploymentName))
 	}
 
 	return nil
@@ -155,12 +152,12 @@ func (r *Runner) rollback(ui terminal.UI) {
 	ui.Info("attempting rollback...")
 
 	for _, job := range r.deployedJobs {
-		ui.Info(fmt.Sprintf("attempting rollback of job '%s'", job.Job().GetID()))
-		_, _, err := r.client.Jobs().Delete(r.newWriteOptsFromJob(job).Ctx(), job.Job().GetID(), true, true)
+		ui.Info(fmt.Sprintf("attempting rollback of job '%s'", *job.Job().ID))
+		_, _, err := r.client.Jobs().DeregisterOpts(*job.Job().ID, &api.DeregisterOptions{Purge: true, Global: true}, r.newWriteOptsFromJob(job))
 		if err != nil {
-			ui.ErrorWithContext(intHelper.UnwrapAPIError(err), fmt.Sprintf("rollback failed for job '%s'", job.Job().GetID()))
+			ui.ErrorWithContext(err, fmt.Sprintf("rollback failed for job '%s'", *job.Job().ID))
 		} else {
-			ui.Info(fmt.Sprintf("rollback of job '%s' succeeded", job.Job().GetID()))
+			ui.Info(fmt.Sprintf("rollback of job '%s' succeeded", *job.Job().ID))
 		}
 	}
 }
@@ -177,7 +174,7 @@ func (r *Runner) SetTemplates(templates map[string]string) {
 
 // handles resolving Consul and Vault options overrides with environment
 // variables, if present, and then set the values on the job instance.
-func (r *Runner) handleConsulAndVault(job *v1client.Job) {
+func (r *Runner) handleConsulAndVault(job *api.Job) {
 
 	// If the user didn't set a Consul token, check the environment to see if
 	// there is one.
@@ -209,16 +206,18 @@ func (r *Runner) handleConsulAndVault(job *v1client.Job) {
 }
 
 // determines next launch time and outputs to terminal
-func (r *Runner) handlePeriodicJobResponse(ui terminal.UI, job *v1client.Job) {
-	loc, err := r.client.Jobs().GetLocation(job)
-	if err == nil {
-		now := time.Now().In(loc)
-		next, err := r.client.Jobs().Next(job.Periodic, now)
+func (r *Runner) handlePeriodicJobResponse(ui terminal.UI, job *api.Job) {
+	if job.Periodic != nil && job.Periodic.TimeZone != nil {
+		loc, err := time.LoadLocation(*job.Periodic.TimeZone)
 		if err != nil {
-			ui.ErrorWithContext(intHelper.UnwrapAPIError(err), "failed to determine next launch time")
-		} else {
-			ui.Warning(fmt.Sprintf("Approximate next launch time: %s (%s from now)",
-				formatTime(next), formatTimeDifference(now, next, time.Second)))
+			now := time.Now().In(loc)
+			next, err := job.Periodic.Next(now)
+			if err != nil {
+				ui.ErrorWithContext(err, "failed to determine next launch time")
+			} else {
+				ui.Warning(fmt.Sprintf("Approximate next launch time: %s (%s from now)",
+					formatTime(next), formatTimeDifference(now, next, time.Second)))
+			}
 		}
 	}
 }
@@ -231,15 +230,23 @@ func (r *Runner) ParseTemplates() []*errors.WrappedUIContext {
 
 	for tplName, tpl := range r.rawTemplates {
 
-		ncJob, err := r.client.Jobs().Parse(r.clientQueryOpts.Ctx(), tpl, false, r.cfg.RunConfig.HCL1)
+		ncJob, err := r.client.Jobs().ParseHCLOpts(&api.JobsParseRequest{
+			JobHCL:       tpl,
+			HCLv1:        r.cfg.RunConfig.HCL1,
+			Canonicalize: false,
+		})
 		if err != nil {
-			outputErrors = append(outputErrors, newValidationDeployerError(intHelper.UnwrapAPIError(err), validationSubjParseFailed, tplName))
+			outputErrors = append(outputErrors, newValidationDeployerError(err, validationSubjParseFailed, tplName))
 			continue
 		}
 
-		job, err := r.client.Jobs().Parse(r.clientQueryOpts.Ctx(), tpl, true, r.cfg.RunConfig.HCL1)
+		job, err := r.client.Jobs().ParseHCLOpts(&api.JobsParseRequest{
+			JobHCL:       tpl,
+			HCLv1:        r.cfg.RunConfig.HCL1,
+			Canonicalize: true,
+		})
 		if err != nil {
-			outputErrors = append(outputErrors, newValidationDeployerError(intHelper.UnwrapAPIError(err), validationSubjParseFailed, tplName))
+			outputErrors = append(outputErrors, newValidationDeployerError(err, validationSubjParseFailed, tplName))
 			continue
 		}
 
