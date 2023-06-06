@@ -7,10 +7,12 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/posener/complete"
+
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
-	"github.com/posener/complete"
+	"github.com/hashicorp/nomad-pack/terminal"
 )
 
 // RegistryAddCommand adds a registry to the global cache.
@@ -70,16 +72,17 @@ func (c *RegistryAddCommand) Run(args []string) int {
 	}
 
 	// If subprocess fails to add any packs, report this to the user.
-	if len(newRegistry.Packs) == 0 {
+	if newRegistry == nil || len(newRegistry.Packs) == 0 {
 		c.ui.ErrorWithContext(errors.New("failed to add packs for registry"), "see output for reason", errorContext.GetAll()...)
 		return 1
 	}
 
 	// Initialize output table
-	table := registryTable()
+	var table *terminal.Table
 	var validPack *cache.Pack
 	// If only targeting a single pack, only output a single row
 	if c.target != "" {
+		table = registryPackTable()
 		// It is safe to target pack 0 here because registry.AddFromGitURL will
 		// ensure only the target pack is returned.
 		tableRow := registryPackRow(newRegistry, newRegistry.Packs[0])
@@ -90,14 +93,10 @@ func (c *RegistryAddCommand) Run(args []string) int {
 			}
 		}
 	} else {
-		for _, registryPack := range newRegistry.Packs {
-			tableRow := registryPackRow(newRegistry, registryPack)
+		table = registryTable()
+		for _, registry := range globalCache.Registries() {
+			tableRow := registryTableRow(registry)
 			table.Rows = append(table.Rows, tableRow)
-			// Grab a successful pack to show extra help text.
-			if validPack == nil &&
-				!strings.Contains(strings.ToLower(registryPack.Ref), "invalid") {
-				validPack = registryPack
-			}
 		}
 	}
 

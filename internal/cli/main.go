@@ -142,6 +142,11 @@ func Commands(
 				baseCommand: baseCommand,
 			}, nil
 		},
+		"list": func() (cli.Command, error) {
+			return &ListCommand{
+				baseCommand: baseCommand,
+			}, nil
+		},
 		"stop": func() (cli.Command, error) {
 			return &StopCommand{
 				baseCommand: baseCommand,

@@ -48,36 +48,31 @@ func generatePackManager(c *baseCommand, client *api.Client, packCfg *cache.Pack
 }
 
 func registryTable() *terminal.Table {
-	return terminal.NewTable("PACK NAME", "REF", "LOCAL_REF", "METADATA VERSION", "REGISTRY", "REGISTRY_URL")
+	return terminal.NewTable("REGISTRY NAME", "REF", "LOCAL_REF", "REGISTRY_URL")
 }
 
-func emptyRegistryTableRow(cachedRegistry *cache.Registry) []terminal.TableEntry {
+func registryPackTable() *terminal.Table {
+	return terminal.NewTable("PACK NAME", "REF", "LOCAL_REF", "METADATA VERSION", "REGISTRY NAME", "REGISTRY_URL")
+}
+
+func packTable() *terminal.Table {
+	return terminal.NewTable("PACK NAME", "METADATA VERSION", "REGISTRY NAME")
+}
+
+func registryTableRow(cachedRegistry *cache.Registry) []terminal.TableEntry {
 	return []terminal.TableEntry{
-		// blank pack name
-		{
-			Value: "",
-		},
-		// blank revision
-		{
-			Value: "",
-		},
-		// blank local ref
-		{
-			Value: "",
-		},
-		// blank metadata version
-		{
-			Value: "",
-		},
-		// CachedRegistry name - user defined alias or registry URL slug
 		{
 			Value: cachedRegistry.Name,
 		},
-		// The cachedRegistry URL from where the registryPack was cloned
+		{
+			Value: cachedRegistry.Ref,
+		},
+		{
+			Value: cachedRegistry.LocalRef,
+		},
 		{
 			Value: cachedRegistry.Source,
 		},
-		// TODO: The app version
 	}
 }
 
@@ -99,13 +94,31 @@ func registryPackRow(cachedRegistry *cache.Registry, cachedPack *cache.Pack) []t
 		{
 			Value: cachedPack.Metadata.Pack.Version,
 		},
-		// CachedRegistry name - user defined alias or registry URL slug
+		// CachedRegistry name  user defined alias or registry URL slug
 		{
 			Value: cachedRegistry.Name,
 		},
 		// The cachedRegistry URL from where the registryPack was cloned
 		{
 			Value: cachedRegistry.Source,
+		},
+		// TODO: The app version
+	}
+}
+
+func packRow(cachedRegistry *cache.Registry, cachedPack *cache.Pack) []terminal.TableEntry {
+	return []terminal.TableEntry{
+		// The Name of the registryPack
+		{
+			Value: cachedPack.Name(),
+		},
+		// The metadata version
+		{
+			Value: cachedPack.Metadata.Pack.Version,
+		},
+		// CachedRegistry name  user defined alias or registry URL slug
+		{
+			Value: fmt.Sprintf("%s@%s", cachedRegistry.Name, cachedRegistry.LocalRef),
 		},
 		// TODO: The app version
 	}
