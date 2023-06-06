@@ -11,8 +11,8 @@ import (
 	"github.com/hashicorp/nomad/api"
 
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
+	"github.com/hashicorp/nomad-pack/internal/pkg/helper/pointer"
 	"github.com/hashicorp/nomad-pack/internal/runner"
-	"github.com/hashicorp/nomad-pack/sdk/helper"
 	"github.com/hashicorp/nomad-pack/terminal"
 )
 
@@ -183,11 +183,11 @@ func (r *Runner) handleConsulAndVault(job *api.Job) {
 	}
 
 	if r.cfg.RunConfig.ConsulToken != "" {
-		job.ConsulToken = helper.StringToPtr(r.cfg.RunConfig.ConsulToken)
+		job.ConsulToken = pointer.Of(r.cfg.RunConfig.ConsulToken)
 	}
 
 	if r.cfg.RunConfig.ConsulNamespace != "" {
-		job.ConsulNamespace = helper.StringToPtr(r.cfg.RunConfig.ConsulNamespace)
+		job.ConsulNamespace = pointer.Of(r.cfg.RunConfig.ConsulNamespace)
 	}
 
 	// If the user didn't set a Vault token, check the environment to see if
@@ -197,11 +197,11 @@ func (r *Runner) handleConsulAndVault(job *api.Job) {
 	}
 
 	if r.cfg.RunConfig.VaultToken != "" {
-		job.VaultToken = helper.StringToPtr(r.cfg.RunConfig.VaultToken)
+		job.VaultToken = pointer.Of(r.cfg.RunConfig.VaultToken)
 	}
 
 	if r.cfg.RunConfig.VaultNamespace != "" {
-		job.VaultNamespace = helper.StringToPtr(r.cfg.RunConfig.VaultNamespace)
+		job.VaultNamespace = pointer.Of(r.cfg.RunConfig.VaultNamespace)
 	}
 }
 

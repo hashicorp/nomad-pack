@@ -14,8 +14,8 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
+	"github.com/hashicorp/nomad-pack/internal/pkg/helper"
 	"github.com/hashicorp/nomad-pack/internal/pkg/renderer"
-	"github.com/hashicorp/nomad-pack/sdk/helper"
 )
 
 type StopCommand struct {

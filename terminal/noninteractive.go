@@ -15,8 +15,9 @@ import (
 	"text/tabwriter"
 
 	"github.com/fatih/color"
-	"github.com/hashicorp/nomad-pack/sdk/helper"
 	"github.com/olekukonko/tablewriter"
+
+	"github.com/hashicorp/nomad-pack/internal/pkg/helper"
 )
 
 type nonInteractiveUI struct {

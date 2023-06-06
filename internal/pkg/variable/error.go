@@ -7,7 +7,8 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/nomad-pack/sdk/helper"
+
+	"github.com/hashicorp/nomad-pack/internal/pkg/helper"
 )
 
 func safeDiagnosticsAppend(base hcl.Diagnostics, new *hcl.Diagnostic) hcl.Diagnostics {

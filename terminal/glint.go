@@ -15,10 +15,11 @@ import (
 
 	"github.com/bgentry/speakeasy"
 	"github.com/fatih/color"
-	"github.com/hashicorp/nomad-pack/sdk/helper"
 	"github.com/mattn/go-isatty"
 	"github.com/mitchellh/go-glint"
 	"github.com/olekukonko/tablewriter"
+
+	"github.com/hashicorp/nomad-pack/internal/pkg/helper"
 )
 
 type glintUI struct {

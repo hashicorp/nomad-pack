@@ -9,8 +9,9 @@ import (
 	"io"
 
 	"github.com/fatih/color"
-	"github.com/hashicorp/nomad-pack/sdk/helper"
 	"github.com/mitchellh/go-glint"
+
+	"github.com/hashicorp/nomad-pack/internal/pkg/helper"
 )
 
 // ErrNonInteractive is returned when Input is called on a non-Interactive UI.

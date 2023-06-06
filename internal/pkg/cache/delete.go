@@ -133,7 +133,7 @@ func (opts *DeleteOpts) PackDir() string {
 	return opts.PackName
 }
 
-// AtRevision fulfills the cacheOperationProvider interface for DeleteOpts
+// AtRef fulfills the cacheOperationProvider interface for DeleteOpts
 func (opts *DeleteOpts) AtRef() string {
 	return opts.Ref
 }

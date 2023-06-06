@@ -9,8 +9,8 @@ import (
 	"github.com/hashicorp/nomad/api"
 	"github.com/shoenig/test/must"
 
+	"github.com/hashicorp/nomad-pack/internal/pkg/helper/pointer"
 	"github.com/hashicorp/nomad-pack/internal/runner"
-	"github.com/hashicorp/nomad-pack/sdk/helper"
 )
 
 func TestDeployer_setJobMeta(t *testing.T) {
@@ -31,10 +31,10 @@ func TestDeployer_setJobMeta(t *testing.T) {
 				},
 			},
 			inputJob: &api.Job{
-				Name: helper.StringToPtr("foobar"),
+				Name: pointer.Of("foobar"),
 			},
 			expectedOutputJob: &api.Job{
-				Name: helper.StringToPtr("foobar"),
+				Name: pointer.Of("foobar"),
 				Meta: map[string]string{
 					PackPathKey:           "/opt/src/foobar",
 					PackNameKey:           "foobar",
