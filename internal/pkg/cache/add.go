@@ -62,7 +62,7 @@ func (c *Cache) Add(opts *AddOpts) (*Registry, error) {
 			return cachedRegistry, err
 		}
 
-		metaPath := filepath.Join(c.cfg.Path, opts.RegistryName, "/metadata.json")
+		metaPath := filepath.Join(c.cfg.Path, opts.RegistryName, cachedRegistry.Ref, "/metadata.json")
 		if err = os.WriteFile(metaPath, b, 0644); err != nil {
 			return cachedRegistry, err
 		}
@@ -172,6 +172,9 @@ func (c *Cache) cloneRemoteGitRegistry(opts *AddOpts) (string, error) {
 	// If pack name is set, add an intermediary "packs" and pack dir manually.
 	if opts.PackName != "" {
 		clonePath = path.Join(clonePath, "packs", opts.PackName)
+	}
+	if opts.Ref != "" {
+		clonePath = path.Join(clonePath, opts.Ref)
 	}
 	if err := gg.Get(clonePath, fmt.Sprintf("git::%s", url)); err != nil {
 		logger.ErrorWithContext(err, "could not install registry", c.ErrorContext.GetAll()...)
