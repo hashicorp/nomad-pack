@@ -179,7 +179,8 @@ func (c *Cache) Load() (err error) {
 			return
 		}
 		for _, registryRef := range registryRefs {
-			opts.RegistryName = registryRef.Name()
+			opts.RegistryName = registryEntry.Name()
+			opts.Ref = registryRef.Name()
 
 			// Load the registry from the path
 			var registry *Registry

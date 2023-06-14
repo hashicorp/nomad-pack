@@ -47,6 +47,22 @@ func (r *Registry) get(opts *GetOpts, cache *Cache) error {
 		return err
 	}
 
+	// Read the top-level metadata file if there is one
+	f, err := os.ReadFile(path.Join(opts.RegistryPath(), "metadata.json"))
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	if f != nil {
+		cachedRegistry := &Registry{}
+		err = json.Unmarshal(f, cachedRegistry)
+		if err != nil {
+			return err
+		}
+		r.LocalRef = cachedRegistry.LocalRef
+		r.Source = cachedRegistry.Source
+		r.Ref = cachedRegistry.Ref
+	}
+
 	// Iterate over the packs in the registry and load each pack so that
 	// we can extract information from the metadata.
 	for _, packEntry := range packEntries {
@@ -58,23 +74,6 @@ func (r *Registry) get(opts *GetOpts, cache *Cache) error {
 		// If we somehow got a directory here that doesn't conform to the pack_name@ref
 		// scheme, skip it
 		if !strings.Contains(packEntry.Name(), "@") {
-			continue
-		}
-
-		// Read the top-level metadata file but don't process it like a pack
-		if packEntry.Name() == "metadata.json" {
-			f, err2 := os.ReadFile(path.Join(opts.RegistryPath(), packEntry.Name()))
-			if err2 != nil {
-				return err2
-			}
-			cachedRegistry := &Registry{}
-			err2 = json.Unmarshal(f, cachedRegistry)
-			if err2 != nil {
-				return err2
-			}
-			r.LocalRef = cachedRegistry.LocalRef
-			r.Source = cachedRegistry.Source
-			r.Ref = cachedRegistry.Ref
 			continue
 		}
 
