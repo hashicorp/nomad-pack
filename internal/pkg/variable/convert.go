@@ -11,7 +11,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-func convertCtyToInterface(val cty.Value) (interface{}, error) {
+func convertCtyToInterface(val cty.Value) (any, error) {
 
 	if val.IsNull() {
 		return nil, nil
@@ -43,7 +43,7 @@ func convertCtyToInterface(val cty.Value) (interface{}, error) {
 			panic("unsupported primitive type")
 		}
 	case isCollectionOfMaps(t):
-		result := []map[string]interface{}{}
+		result := []map[string]any{}
 
 		it := val.ElementIterator()
 		for it.Next() {
@@ -52,11 +52,11 @@ func convertCtyToInterface(val cty.Value) (interface{}, error) {
 			if err != nil {
 				return nil, err
 			}
-			result = append(result, evi.(map[string]interface{}))
+			result = append(result, evi.(map[string]any))
 		}
 		return result, nil
 	case t.IsListType(), t.IsSetType(), t.IsTupleType():
-		result := []interface{}{}
+		result := []any{}
 
 		it := val.ElementIterator()
 		for it.Next() {
@@ -69,7 +69,7 @@ func convertCtyToInterface(val cty.Value) (interface{}, error) {
 		}
 		return result, nil
 	case t.IsMapType():
-		result := map[string]interface{}{}
+		result := map[string]any{}
 		it := val.ElementIterator()
 		for it.Next() {
 			ek, ev := it.Element()
@@ -84,7 +84,7 @@ func convertCtyToInterface(val cty.Value) (interface{}, error) {
 		}
 		return result, nil
 	case t.IsObjectType():
-		result := map[string]interface{}{}
+		result := map[string]any{}
 
 		for k := range t.AttributeTypes() {
 			av := val.GetAttr(k)
@@ -105,7 +105,7 @@ func convertCtyToInterface(val cty.Value) (interface{}, error) {
 	}
 }
 
-func smallestNumber(b *big.Float) interface{} {
+func smallestNumber(b *big.Float) any {
 	if v, acc := b.Int64(); acc == big.Exact {
 		// check if it fits in int
 		if int64(int(v)) == v {

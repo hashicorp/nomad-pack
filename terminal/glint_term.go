@@ -96,7 +96,7 @@ func (t *glintTerm) MoveCursor(p state.Pos) error {
 	return nil
 }
 
-func (t *glintTerm) SetTermProp(attr state.TermAttr, val interface{}) error {
+func (t *glintTerm) SetTermProp(attr state.TermAttr, val any) error {
 	// Ignore it.
 	return nil
 }

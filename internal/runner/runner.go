@@ -64,7 +64,7 @@ type Runner interface {
 	// ParsedTemplates returns the parsed and canonicalized templates to the
 	// caller whose responsibility it is to assert the mapping type expected
 	// based on the deployer implementation.
-	ParsedTemplates() interface{}
+	ParsedTemplates() any
 
 	// Name returns the name of the deployer which indicates the Nomad object
 	// it is designed to handle.

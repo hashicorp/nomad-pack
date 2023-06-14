@@ -87,8 +87,8 @@ func (s *stringSliceValue) Set(val string) error {
 	return nil
 }
 
-func (s *stringSliceValue) Get() interface{} { return *s.target }
-func (s *stringSliceValue) String() string   { return strings.Join(*s.target, ",") }
-func (s *stringSliceValue) Example() string  { return "string" }
-func (s *stringSliceValue) Hidden() bool     { return s.hidden }
-func (s *stringSliceValue) Type() string     { return "StringSlice" }
+func (s *stringSliceValue) Get() any        { return *s.target }
+func (s *stringSliceValue) String() string  { return strings.Join(*s.target, ",") }
+func (s *stringSliceValue) Example() string { return "string" }
+func (s *stringSliceValue) Hidden() bool    { return s.hidden }
+func (s *stringSliceValue) Type() string    { return "StringSlice" }

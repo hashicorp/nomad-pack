@@ -92,11 +92,11 @@ func (i *intValue) Set(s string) error {
 	return nil
 }
 
-func (i *intValue) Get() interface{} { return *i.target }
-func (i *intValue) String() string   { return strconv.Itoa(*i.target) }
-func (i *intValue) Example() string  { return "int" }
-func (i *intValue) Hidden() bool     { return i.hidden }
-func (i *intValue) Type() string     { return "int" }
+func (i *intValue) Get() any        { return *i.target }
+func (i *intValue) String() string  { return strconv.Itoa(*i.target) }
+func (i *intValue) Example() string { return "int" }
+func (i *intValue) Hidden() bool    { return i.hidden }
+func (i *intValue) Type() string    { return "int" }
 
 // -- Int64Var and int64Value
 type Int64Var struct {
@@ -180,11 +180,11 @@ func (i *int64Value) Set(s string) error {
 	return nil
 }
 
-func (i *int64Value) Get() interface{} { return *i.target }
-func (i *int64Value) String() string   { return strconv.FormatInt(*i.target, 10) }
-func (i *int64Value) Example() string  { return "int" }
-func (i *int64Value) Hidden() bool     { return i.hidden }
-func (i *int64Value) Type() string     { return "int64" }
+func (i *int64Value) Get() any        { return *i.target }
+func (i *int64Value) String() string  { return strconv.FormatInt(*i.target, 10) }
+func (i *int64Value) Example() string { return "int" }
+func (i *int64Value) Hidden() bool    { return i.hidden }
+func (i *int64Value) Type() string    { return "int64" }
 
 // -- UintVar && uintValue
 type UintVar struct {
@@ -268,11 +268,11 @@ func (i *uintValue) Set(s string) error {
 	return nil
 }
 
-func (i *uintValue) Get() interface{} { return uint64(*i.target) }
-func (i *uintValue) String() string   { return strconv.FormatUint(uint64(*i.target), 10) }
-func (i *uintValue) Example() string  { return "uint" }
-func (i *uintValue) Hidden() bool     { return i.hidden }
-func (i *uintValue) Type() string     { return "uint" }
+func (i *uintValue) Get() any        { return uint64(*i.target) }
+func (i *uintValue) String() string  { return strconv.FormatUint(uint64(*i.target), 10) }
+func (i *uintValue) Example() string { return "uint" }
+func (i *uintValue) Hidden() bool    { return i.hidden }
+func (i *uintValue) Type() string    { return "uint" }
 
 // -- Uint64Var and uint64Value
 type Uint64Var struct {
@@ -356,8 +356,8 @@ func (i *uint64Value) Set(s string) error {
 	return nil
 }
 
-func (i *uint64Value) Get() interface{} { return *i.target }
-func (i *uint64Value) String() string   { return strconv.FormatUint(*i.target, 10) }
-func (i *uint64Value) Example() string  { return "uint" }
-func (i *uint64Value) Hidden() bool     { return i.hidden }
-func (i *uint64Value) Type() string     { return "uint64" }
+func (i *uint64Value) Get() any        { return *i.target }
+func (i *uint64Value) String() string  { return strconv.FormatUint(*i.target, 10) }
+func (i *uint64Value) Example() string { return "uint" }
+func (i *uint64Value) Hidden() bool    { return i.hidden }
+func (i *uint64Value) Type() string    { return "uint64" }

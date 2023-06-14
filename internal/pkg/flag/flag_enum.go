@@ -102,8 +102,8 @@ parts:
 	return nil
 }
 
-func (s *enumValue) Get() interface{} { return *s.target }
-func (s *enumValue) String() string   { return strings.Join(*s.target, ",") }
-func (s *enumValue) Example() string  { return "string" }
-func (s *enumValue) Hidden() bool     { return s.hidden }
-func (s *enumValue) Type() string     { return "enum" }
+func (s *enumValue) Get() any        { return *s.target }
+func (s *enumValue) String() string  { return strings.Join(*s.target, ",") }
+func (s *enumValue) Example() string { return "string" }
+func (s *enumValue) Hidden() bool    { return s.hidden }
+func (s *enumValue) Type() string    { return "enum" }

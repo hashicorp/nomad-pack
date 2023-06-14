@@ -84,7 +84,7 @@ func nomadRegions(client *api.Client) func() ([]string, error) {
 
 // toStringList takes a list of string and returns the HCL equivalent which is
 // useful when templating jobs and params such as datacenters.
-func toStringList(l []interface{}) (string, error) {
+func toStringList(l []any) (string, error) {
 	var out string
 	for i := range l {
 		if i > 0 && i < len(l) {
@@ -96,47 +96,47 @@ func toStringList(l []interface{}) (string, error) {
 }
 
 // Spew helper funcs
-func withIndent(in string, s *spew.ConfigState) interface{} {
+func withIndent(in string, s *spew.ConfigState) any {
 	s.Indent = in
 	return s
 }
 
-func withMaxDepth(in int, s *spew.ConfigState) interface{} {
+func withMaxDepth(in int, s *spew.ConfigState) any {
 	s.MaxDepth = in
 	return s
 }
 
-func withDisableMethods(s *spew.ConfigState) interface{} {
+func withDisableMethods(s *spew.ConfigState) any {
 	s.DisableMethods = true
 	return s
 }
 
-func withDisablePointerMethods(s *spew.ConfigState) interface{} {
+func withDisablePointerMethods(s *spew.ConfigState) any {
 	s.DisablePointerMethods = true
 	return s
 }
 
-func withDisablePointerAddresses(s *spew.ConfigState) interface{} {
+func withDisablePointerAddresses(s *spew.ConfigState) any {
 	s.DisablePointerAddresses = true
 	return s
 }
 
-func withDisableCapacities(s *spew.ConfigState) interface{} {
+func withDisableCapacities(s *spew.ConfigState) any {
 	s.DisableCapacities = true
 	return s
 }
 
-func withContinueOnMethod(s *spew.ConfigState) (interface{}, error) {
+func withContinueOnMethod(s *spew.ConfigState) (any, error) {
 	s.ContinueOnMethod = true
 	return s, nil
 }
 
-func withSortKeys(s *spew.ConfigState) interface{} {
+func withSortKeys(s *spew.ConfigState) any {
 	s.SortKeys = true
 	return s
 }
 
-func withSpewKeys(s *spew.ConfigState) interface{} {
+func withSpewKeys(s *spew.ConfigState) any {
 	s.SpewKeys = true
 	return s
 }

@@ -12,7 +12,7 @@ import (
 func TestMetadata_ConvertToMapInterface(t *testing.T) {
 	testCases := []struct {
 		inputMetadata  *Metadata
-		expectedOutput map[string]interface{}
+		expectedOutput map[string]any
 		name           string
 	}{
 		{
@@ -34,17 +34,17 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 					},
 				},
 			},
-			expectedOutput: map[string]interface{}{
-				"nomad_pack": map[string]interface{}{
-					"app": map[string]interface{}{
+			expectedOutput: map[string]any{
+				"nomad_pack": map[string]any{
+					"app": map[string]any{
 						"url": "https://example.com",
 					},
-					"pack": map[string]interface{}{
+					"pack": map[string]any{
 						"name":        "Example",
 						"description": "The most basic, yet awesome, example",
 						"version":     "v0.0.1",
 					},
-					"integration": map[string]interface{}{
+					"integration": map[string]any{
 						"identifier": "nomad/hashicorp/example",
 						"flags": []string{
 							"foo",
@@ -68,17 +68,17 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 				},
 				Integration: &MetadataIntegration{},
 			},
-			expectedOutput: map[string]interface{}{
-				"nomad_pack": map[string]interface{}{
-					"app": map[string]interface{}{
+			expectedOutput: map[string]any{
+				"nomad_pack": map[string]any{
+					"app": map[string]any{
 						"url": "https://example.com",
 					},
-					"pack": map[string]interface{}{
+					"pack": map[string]any{
 						"name":        "Example",
 						"description": "",
 						"version":     "v0.0.1",
 					},
-					"integration": map[string]interface{}{
+					"integration": map[string]any{
 						"identifier": "",
 						"flags":      []string(nil),
 						"name":       "",
@@ -98,11 +98,11 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 				},
 				Integration: &MetadataIntegration{},
 			},
-			expectedOutput: map[string]interface{}{
-				"nomad_pack": map[string]interface{}{
-					"app":         map[string]interface{}{"url": "https://example.com"},
-					"pack":        map[string]interface{}{"name": "", "description": "", "version": ""},
-					"integration": map[string]interface{}{"identifier": "", "flags": []string(nil), "name": ""},
+			expectedOutput: map[string]any{
+				"nomad_pack": map[string]any{
+					"app":         map[string]any{"url": "https://example.com"},
+					"pack":        map[string]any{"name": "", "description": "", "version": ""},
+					"integration": map[string]any{"identifier": "", "flags": []string(nil), "name": ""},
 				},
 			},
 			// TODO test added to cover graceful failure while we're in the process of

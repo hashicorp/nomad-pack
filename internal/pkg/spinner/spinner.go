@@ -176,19 +176,19 @@ type Spinner struct {
 	ctx        context.Context
 	cancel     func()
 	done       chan struct{}
-	mu         *sync.RWMutex                 //
-	Delay      time.Duration                 // Delay is the speed of the indicator
-	chars      []string                      // chars holds the chosen character set
-	Prefix     string                        // Prefix is the text preppended to the indicator
-	Suffix     string                        // Suffix is the text appended to the indicator
-	FinalMSG   string                        // string displayed after Stop() is called
-	lastOutput string                        // last character(set) written
-	color      func(a ...interface{}) string // default color is white
-	Writer     io.Writer                     // to make testing better, exported so users have access. Use `WithWriter` to update after initialization.
-	active     bool                          // active holds the state of the spinner
-	HideCursor bool                          // hideCursor determines if the cursor is visible
-	PreUpdate  func(s *Spinner)              // will be triggered before every spinner update
-	PostUpdate func(s *Spinner)              // will be triggered after every spinner update
+	mu         *sync.RWMutex         //
+	Delay      time.Duration         // Delay is the speed of the indicator
+	chars      []string              // chars holds the chosen character set
+	Prefix     string                // Prefix is the text preppended to the indicator
+	Suffix     string                // Suffix is the text appended to the indicator
+	FinalMSG   string                // string displayed after Stop() is called
+	lastOutput string                // last character(set) written
+	color      func(a ...any) string // default color is white
+	Writer     io.Writer             // to make testing better, exported so users have access. Use `WithWriter` to update after initialization.
+	active     bool                  // active holds the state of the spinner
+	HideCursor bool                  // hideCursor determines if the cursor is visible
+	PreUpdate  func(s *Spinner)      // will be triggered before every spinner update
+	PostUpdate func(s *Spinner)      // will be triggered after every spinner update
 }
 
 // New provides a pointer to an instance of Spinner with the supplied options.

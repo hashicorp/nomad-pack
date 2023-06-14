@@ -260,7 +260,7 @@ func getPackJobsByDeploy(c *api.Client, cfg *cache.PackConfig, deploymentName st
 
 // TODO: Needs code review. Will likely move if we decide to move client management
 // out of CLI commands.
-func generateRunner(client *api.Client, packType, cliCfg interface{}, runnerCfg *runner.Config) (runner.Runner, error) {
+func generateRunner(client *api.Client, packType, cliCfg any, runnerCfg *runner.Config) (runner.Runner, error) {
 
 	var (
 		err          error

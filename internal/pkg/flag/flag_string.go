@@ -84,8 +84,8 @@ func (s *stringValue) Set(val string) error {
 	return nil
 }
 
-func (s *stringValue) Get() interface{} { return *s.target }
-func (s *stringValue) String() string   { return *s.target }
-func (s *stringValue) Example() string  { return "string" }
-func (s *stringValue) Hidden() bool     { return s.hidden }
-func (s *stringValue) Type() string     { return "string" }
+func (s *stringValue) Get() any        { return *s.target }
+func (s *stringValue) String() string  { return *s.target }
+func (s *stringValue) Example() string { return "string" }
+func (s *stringValue) Hidden() bool    { return s.hidden }
+func (s *stringValue) Type() string    { return "string" }

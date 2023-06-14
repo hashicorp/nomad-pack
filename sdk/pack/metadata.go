@@ -87,47 +87,47 @@ type MetadataIntegration struct {
 	Name string `hcl:"name,optional"`
 }
 
-// ConvertToMapInterface returns a map[string]interface{} representation of the
+// ConvertToMapInterface returns a map[string]any representation of the
 // metadata object. The conversion doesn't take into account empty values and
 // will add them.
-func (md *Metadata) ConvertToMapInterface() map[string]interface{} {
-	innerMap := map[string]interface{}{
-		"app": map[string]interface{}{
+func (md *Metadata) ConvertToMapInterface() map[string]any {
+	innerMap := map[string]any{
+		"app": map[string]any{
 			"url": md.App.URL,
 		},
-		"pack": map[string]interface{}{
+		"pack": map[string]any{
 			"name":        md.Pack.Name,
 			"description": md.Pack.Description,
 			"version":     md.Pack.Version,
 		},
 	}
 	if md.Integration != nil {
-		innerMap["integration"] = map[string]interface{}{
+		innerMap["integration"] = map[string]any{
 			"identifier": md.Integration.Identifier,
 			"flags":      md.Integration.Flags,
 			"name":       md.Integration.Name,
 		}
 	}
 
-	return map[string]interface{}{"nomad_pack": innerMap}
+	return map[string]any{"nomad_pack": innerMap}
 }
 
 // AddToInterfaceMap adds the metadata information to the provided map as a new
 // entry under the "nomad_pack" key. This is useful for adding this information
 // to the template rendering data.
-func (md *Metadata) AddToInterfaceMap(m map[string]interface{}) map[string]interface{} {
-	innerMap := map[string]interface{}{
-		"app": map[string]interface{}{
+func (md *Metadata) AddToInterfaceMap(m map[string]any) map[string]any {
+	innerMap := map[string]any{
+		"app": map[string]any{
 			"url": md.App.URL,
 		},
-		"pack": map[string]interface{}{
+		"pack": map[string]any{
 			"name":        md.Pack.Name,
 			"description": md.Pack.Description,
 			"version":     md.Pack.Version,
 		},
 	}
 	if md.Integration != nil {
-		innerMap["integration"] = map[string]interface{}{
+		innerMap["integration"] = map[string]any{
 			"identifier": md.Integration.Identifier,
 			"flags":      md.Integration.Flags,
 			"name":       md.Integration.Name,

@@ -91,7 +91,7 @@ func (r *Runner) CanonicalizeTemplates() []*errors.WrappedUIContext {
 
 // ParsedTemplates satisfies the GetParsedTemplates function of the
 // runner.Runner interface.
-func (r *Runner) ParsedTemplates() interface{} { return r.parsedTemplates }
+func (r *Runner) ParsedTemplates() any { return r.parsedTemplates }
 
 // Name satisfies the Name function of the runner.Runner interface.
 func (r *Runner) Name() string { return "job" }

@@ -103,7 +103,7 @@ func (b *boolValue) Set(s string) error {
 	return nil
 }
 
-func (b *boolValue) Get() interface{} { return *b.target }
+func (b *boolValue) Get() any         { return *b.target }
 func (b *boolValue) String() string   { return strconv.FormatBool(*b.target) }
 func (b *boolValue) Example() string  { return "" }
 func (b *boolValue) Hidden() bool     { return b.hidden }
