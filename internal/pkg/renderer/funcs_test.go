@@ -13,19 +13,19 @@ import (
 
 func Test_toStringList(t *testing.T) {
 	testCases := []struct {
-		input          []interface{}
+		input          []any
 		expectedOutput string
 	}{
 		{
-			input:          []interface{}{"dc1", "dc2", "dc3", "dc4"},
+			input:          []any{"dc1", "dc2", "dc3", "dc4"},
 			expectedOutput: `["dc1", "dc2", "dc3", "dc4"]`,
 		},
 		{
-			input:          []interface{}{"dc1"},
+			input:          []any{"dc1"},
 			expectedOutput: `["dc1"]`,
 		},
 		{
-			input:          []interface{}{},
+			input:          []any{},
 			expectedOutput: `[]`,
 		},
 	}
@@ -86,11 +86,11 @@ func TestSpewHelpersInTemplate(t *testing.T) {
 
 	type Foo struct {
 		unexportedField Bar
-		ExportedField   map[interface{}]interface{}
+		ExportedField   map[any]any
 	}
 	var a uint = 100
 	bar := Bar{&a}
-	s1 := Foo{bar, map[interface{}]interface{}{"one": true}}
+	s1 := Foo{bar, map[any]any{"one": true}}
 
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {

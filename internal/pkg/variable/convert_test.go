@@ -46,10 +46,10 @@ func TestConvertCtyToInterface(t *testing.T) {
 		resListOfList, err := convertCtyToInterface(testListOfList)
 		must.NoError(t, err)
 
-		tempList, ok := resListOfList.([]interface{})
+		tempList, ok := resListOfList.([]any)
 		must.True(t, ok)
 
-		_, ok = tempList[0].([]interface{})
+		_, ok = tempList[0].([]any)
 		must.True(t, ok)
 	})
 
@@ -64,7 +64,7 @@ func TestConvertCtyToInterface(t *testing.T) {
 		resListOfMaps, err := convertCtyToInterface(testListOfMaps)
 		must.NoError(t, err)
 
-		_, ok := resListOfMaps.([]map[string]interface{})
+		_, ok := resListOfMaps.([]map[string]any)
 		must.True(t, ok)
 	})
 
@@ -77,10 +77,10 @@ func TestConvertCtyToInterface(t *testing.T) {
 		restMapOfMaps, err := convertCtyToInterface(testMapOfMaps)
 		must.NoError(t, err)
 
-		tempMapOfMaps, ok := restMapOfMaps.(map[string]interface{})
+		tempMapOfMaps, ok := restMapOfMaps.(map[string]any)
 		must.True(t, ok)
 
-		_, ok = tempMapOfMaps["test"].(map[string]interface{})
+		_, ok = tempMapOfMaps["test"].(map[string]any)
 		must.True(t, ok)
 	})
 }

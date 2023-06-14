@@ -76,7 +76,7 @@ func Default() *FmtLogger {
 }
 
 type TestLogger struct {
-	log func(args ...interface{})
+	log func(args ...any)
 }
 
 // Debug logs at the DEBUG log level
@@ -116,7 +116,7 @@ func (l *TestLogger) Warning(message string) {
 }
 
 // NewTestLogger returns a test logger suitable for use with the go testing.T log function.
-func NewTestLogger(log func(args ...interface{})) *TestLogger {
+func NewTestLogger(log func(args ...any)) *TestLogger {
 	return &TestLogger{
 		log: log,
 	}

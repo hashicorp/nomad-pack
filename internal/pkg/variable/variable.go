@@ -111,10 +111,10 @@ type ParsedVariables struct {
 // Even though parsing the variable went without error, it is highly possible
 // that conversion to native go types can incur an error. If an error is
 // returned, it should be considered terminal.
-func (p *ParsedVariables) ConvertVariablesToMapInterface() (map[string]interface{}, hcl.Diagnostics) {
+func (p *ParsedVariables) ConvertVariablesToMapInterface() (map[string]any, hcl.Diagnostics) {
 
 	// Create our output; no matter what we return something.
-	out := make(map[string]interface{})
+	out := make(map[string]any)
 
 	// Errors can occur when performing the translation. We want to capture all
 	// of these and return them to the user. This allows them to fix problems
@@ -125,7 +125,7 @@ func (p *ParsedVariables) ConvertVariablesToMapInterface() (map[string]interface
 	for packName, variables := range p.Vars {
 
 		// packVar collects all variables associated to a pack.
-		packVar := map[string]interface{}{}
+		packVar := map[string]any{}
 
 		// Convert each variable and add this to the pack map.
 		for variableName, variable := range variables {
@@ -147,7 +147,7 @@ func (p *ParsedVariables) ConvertVariablesToMapInterface() (map[string]interface
 func (v Variable) String() string         { return asJSON(v) }
 func (vf ParsedVariables) String() string { return asJSON(vf) }
 
-func asJSON(a interface{}) string {
+func asJSON(a any) string {
 	return func() string { b, _ := json.MarshalIndent(a, "", "  "); return string(b) }()
 }
 

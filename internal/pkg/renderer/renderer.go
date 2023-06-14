@@ -39,7 +39,7 @@ type Renderer struct {
 	// stores the pack information, variables and tpl, so we can perform the
 	// output template rendering after pack deployment.
 	pack      *pack.Pack
-	variables map[string]interface{}
+	variables map[string]any
 	tpl       *template.Template
 }
 
@@ -47,7 +47,7 @@ type Renderer struct {
 // variables.
 type toRender struct {
 	content   string
-	variables map[string]interface{}
+	variables map[string]any
 }
 
 const (
@@ -57,7 +57,7 @@ const (
 
 // Render is responsible for iterating the pack and rendering each defined
 // template using the parsed variable map.
-func (r *Renderer) Render(p *pack.Pack, variables map[string]interface{}) (*Rendered, error) {
+func (r *Renderer) Render(p *pack.Pack, variables map[string]any) (*Rendered, error) {
 
 	// filesToRender stores all the templates and auxiliary files that should be
 	// rendered
@@ -170,11 +170,11 @@ func (r *Renderer) RenderOutput() (string, error) {
 // correspond.
 func prepareFiles(p *pack.Pack,
 	files map[string]toRender,
-	variables map[string]interface{},
+	variables map[string]any,
 	renderAuxFiles bool,
 ) {
 
-	newVars := make(map[string]interface{})
+	newVars := make(map[string]any)
 
 	// If the pack is a dependency, it only has access to its namespaced
 	// variables. If the pack is the parent/root pack, then it has access to

@@ -84,11 +84,11 @@ func (d *durationValue) Set(s string) error {
 	return nil
 }
 
-func (d *durationValue) Get() interface{} { return *d.target }
-func (d *durationValue) String() string   { return d.target.String() }
-func (d *durationValue) Example() string  { return "duration" }
-func (d *durationValue) Hidden() bool     { return d.hidden }
-func (d *durationValue) Type() string     { return "duration" }
+func (d *durationValue) Get() any        { return *d.target }
+func (d *durationValue) String() string  { return d.target.String() }
+func (d *durationValue) Example() string { return "duration" }
+func (d *durationValue) Hidden() bool    { return d.hidden }
+func (d *durationValue) Type() string    { return "duration" }
 
 // appendDurationSuffix is used as a backwards-compat tool for assuming users
 // meant "seconds" when they do not provide a suffixed duration value.

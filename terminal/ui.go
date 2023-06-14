@@ -19,7 +19,7 @@ var ErrNonInteractive = errors.New("noninteractive UI doesn't support this opera
 // Passed to UI.NamedValues to provide a nicely formatted key: value output
 type NamedValue struct {
 	Name  string
-	Value interface{}
+	Value any
 }
 
 // UI is the primary interface for interacting with a user via the CLI.
@@ -41,11 +41,11 @@ type UI interface {
 	// Output outputs a message directly to the terminal. The remaining
 	// arguments should be interpolations for the format string. After the
 	// interpolations you may add Options.
-	Output(string, ...interface{})
+	Output(string, ...any)
 
 	// AppendToRow appends a message to a row of output. Used for applying multiple
 	// styles to a single row of text.
-	AppendToRow(string, ...interface{})
+	AppendToRow(string, ...any)
 
 	// NamedValues outputs data as a table of data. Each entry is a row which will be output
 	// with the columns lined up nicely.
@@ -104,7 +104,7 @@ type UI interface {
 // StepGroup is a group of steps (that may be concurrent).
 type StepGroup interface {
 	// Start a step in the output with the arguments making up the initial message
-	Add(string, ...interface{}) Step
+	Add(string, ...any) Step
 
 	// Wait for all steps to finish. This allows a StepGroup to be used like
 	// a sync.WaitGroup with each step being run in a separate goroutine.
@@ -120,7 +120,7 @@ type Step interface {
 	TermOutput() io.Writer
 
 	// Change the Steps displayed message
-	Update(string, ...interface{})
+	Update(string, ...any)
 
 	// Update the status of the message. Supported values are in status.go.
 	Status(status string)
@@ -136,9 +136,9 @@ type Step interface {
 }
 
 // Interpret decomposes the msg and arguments into the message, style, and writer
-func Interpret(msg string, raw ...interface{}) (string, string, io.Writer) {
+func Interpret(msg string, raw ...any) (string, string, io.Writer) {
 	// Build our args and options
-	var args []interface{}
+	var args []any
 	var opts []Option
 	for _, r := range raw {
 		if opt, ok := r.(Option); ok {

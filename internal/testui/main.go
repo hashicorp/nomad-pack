@@ -44,7 +44,7 @@ func (ui *nonInteractiveTestUI) Interactive() bool {
 }
 
 // Output implements UI
-func (ui *nonInteractiveTestUI) Output(msg string, raw ...interface{}) {
+func (ui *nonInteractiveTestUI) Output(msg string, raw ...any) {
 	ui.mu.Lock()
 	defer ui.mu.Unlock()
 	msg, style, _ := terminal.Interpret(msg, raw...)
@@ -83,7 +83,7 @@ func (ui *nonInteractiveTestUI) Output(msg string, raw ...interface{}) {
 }
 
 // TODO: Added purely for compilation purposes. Untested
-func (ui *nonInteractiveTestUI) AppendToRow(msg string, raw ...interface{}) {
+func (ui *nonInteractiveTestUI) AppendToRow(msg string, raw ...any) {
 	ui.mu.Lock()
 	defer ui.mu.Unlock()
 	msg, style, _ := terminal.Interpret(msg, raw...)
@@ -276,7 +276,7 @@ type nonInteractiveStepGroup struct {
 }
 
 // Start a step in the output
-func (f *nonInteractiveStepGroup) Add(str string, args ...interface{}) terminal.Step {
+func (f *nonInteractiveStepGroup) Add(str string, args ...any) terminal.Step {
 	// Build our step
 	step := &nonInteractiveStep{mu: f.mu}
 
@@ -318,7 +318,7 @@ func (f *nonInteractiveStep) TermOutput() io.Writer {
 	return &stripAnsiWriter{Next: color.Output}
 }
 
-func (f *nonInteractiveStep) Update(str string, args ...interface{}) {
+func (f *nonInteractiveStep) Update(str string, args ...any) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	fmt.Fprintln(color.Output, "-> "+fmt.Sprintf(str, args...))
