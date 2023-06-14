@@ -13,7 +13,7 @@ variable "complex" {
     name    = string
     address = string
     ids     = list(string)
-    lookup  = map(object({
+    lookup = map(object({
       a = number
       b = string
     }))
