@@ -55,6 +55,12 @@ func (r *Registry) get(opts *GetOpts, cache *Cache) error {
 			continue
 		}
 
+		// If we somehow got a directory here that doesn't conform to the pack_name@ref
+		// scheme, skip it
+		if !strings.Contains(packEntry.Name(), "@") {
+			continue
+		}
+
 		// Read the top-level metadata file but don't process it like a pack
 		if packEntry.Name() == "metadata.json" {
 			f, err2 := os.ReadFile(path.Join(opts.RegistryPath(), packEntry.Name()))

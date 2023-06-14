@@ -50,25 +50,7 @@ func (c *Cache) Add(opts *AddOpts) (*Registry, error) {
 		return cachedRegistry, errors.ErrRegistrySourceRequired
 	}
 
-	cachedRegistry, err := c.addFromURI(opts)
-	if err != nil {
-		return cachedRegistry, err
-	}
-
-	if cachedRegistry != nil {
-		// Store a metadata JSON file for the cached registry
-		b, err := json.MarshalIndent(cachedRegistry, "", "  ")
-		if err != nil {
-			return cachedRegistry, err
-		}
-
-		metaPath := filepath.Join(c.cfg.Path, opts.RegistryName, cachedRegistry.Ref, "/metadata.json")
-		if err = os.WriteFile(metaPath, b, 0644); err != nil {
-			return cachedRegistry, err
-		}
-	}
-
-	return cachedRegistry, nil
+	return c.addFromURI(opts)
 }
 
 // addFromURI loads a registry from a remote git repository. If addToCache is
@@ -146,6 +128,14 @@ func (c *Cache) addFromURI(opts *AddOpts) (cachedRegistry *Registry, err error) 
 		return
 	}
 
+	// Store a metadata JSON file for the cached registry
+	b, _ := json.MarshalIndent(cachedRegistry, "", "  ")
+	metaPath := filepath.Join(c.cfg.Path, opts.RegistryName, opts.Ref, "/metadata.json")
+	if err = os.WriteFile(metaPath, b, 0644); err != nil {
+		logger.ErrorWithContext(err, "error processing metadata file for the registry", c.ErrorContext.GetAll()...)
+		return
+	}
+
 	return
 }
 
@@ -172,9 +162,6 @@ func (c *Cache) cloneRemoteGitRegistry(opts *AddOpts) (string, error) {
 	// If pack name is set, add an intermediary "packs" and pack dir manually.
 	if opts.PackName != "" {
 		clonePath = path.Join(clonePath, "packs", opts.PackName)
-	}
-	if opts.Ref != "" {
-		clonePath = path.Join(clonePath, opts.Ref)
 	}
 	if err := gg.Get(clonePath, fmt.Sprintf("git::%s", url)); err != nil {
 		logger.ErrorWithContext(err, "could not install registry", c.ErrorContext.GetAll()...)
@@ -349,7 +336,7 @@ func (opts *AddOpts) RegistryPath() string {
 
 // PackPath fulfills the cacheOperationProvider interface for AddOpts
 func (opts *AddOpts) PackPath() string {
-	return path.Join(opts.cachePath, opts.RegistryName, opts.PackDir())
+	return path.Join(opts.cachePath, opts.RegistryName, opts.Ref, opts.PackDir())
 }
 
 // PackDir fulfills the cacheOperationProvider interface for AddOpts

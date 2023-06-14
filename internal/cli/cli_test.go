@@ -741,17 +741,6 @@ func AddressFromTestServer(srv *agent.TestAgent) []string {
 	return []string{"--address", srv.HTTPAddr()}
 }
 
-func TLSConfigFromTestServer(srv *agent.TestAgent) []string {
-	if srv.Config.TLSConfig == nil {
-		return []string{}
-	}
-	return []string{
-		"--client-cert", srv.Config.TLSConfig.CertFile,
-		"--client-key", srv.Config.TLSConfig.KeyFile,
-		"--ca-cert", srv.Config.TLSConfig.CAFile,
-	}
-}
-
 func runTestPackCmd(t *testing.T, srv *agent.TestAgent, args []string) PackCommandResult {
 	args = append(args, AddressFromTestServer(srv)...)
 	return runPackCmd(t, args)

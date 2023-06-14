@@ -21,6 +21,7 @@ const (
 	DefaultRef          = "latest"
 	DevRegistryName     = "<<local folder>>"
 	DevRef              = "<<none>>"
+	DefaultDirPerms     = 0700
 )
 
 // NewCache instantiates a new cache instance with the specified config. If no
@@ -172,16 +173,23 @@ func (c *Cache) Load() (err error) {
 			continue
 		}
 
-		opts.RegistryName = registryEntry.Name()
-
-		// Load the registry from the path
-		var registry *Registry
-		registry, err = c.Get(opts)
-		if err != nil {
+		// Process all refs
+		registryRefs, err2 := os.ReadDir(path.Join(c.cfg.Path, registryEntry.Name()))
+		if err2 != nil {
 			return
 		}
+		for _, registryRef := range registryRefs {
+			opts.RegistryName = registryRef.Name()
 
-		c.registries = append(c.registries, registry)
+			// Load the registry from the path
+			var registry *Registry
+			registry, err = c.Get(opts)
+			if err != nil {
+				return
+			}
+
+			c.registries = append(c.registries, registry)
+		}
 	}
 
 	return
