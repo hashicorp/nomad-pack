@@ -195,7 +195,7 @@ func (c *Cache) processPackEntry(opts *AddOpts, packEntry os.DirEntry) error {
 
 	// Check if folder exists
 	_, err := os.Stat(opts.PackPath())
-	if !errors.Is(err, fs.ErrNotExist) {
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		logger.ErrorWithContext(err, "error checking pack directory", c.ErrorContext.GetAll()...)
 		return err
 	}
