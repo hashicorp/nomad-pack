@@ -220,7 +220,7 @@ func (c *RunCommand) Flags() *flag.Sets {
 			Target:  &c.jobConfig.RunConfig.ConsulNamespace,
 			Default: "",
 			Usage: `If set, any services in the job will be registered into the
-					specified Consul namespace. Any template stanza reading from
+					specified Consul namespace. Any template block reading from
 					Consul KV will be scoped to the the specified Consul
 					namespace. If Consul ACLs are enabled and the
 					allow_unauthenticated Nomad server Consul configuration is

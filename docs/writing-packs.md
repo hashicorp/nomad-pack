@@ -231,7 +231,7 @@ job "job_a" {
 
 Packs can depend on content from other packs.
 
-First, packs must define their dependencies in `metadata.hcl`. A pack stanza with a dependency would look like the following:
+First, packs must define their dependencies in `metadata.hcl`. A pack block with a dependency would look like the following:
 
 ```
 app {
