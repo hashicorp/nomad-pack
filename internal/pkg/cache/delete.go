@@ -47,7 +47,7 @@ func (c *Cache) Delete(opts *DeleteOpts) (err error) {
 
 	deleteCount := 0
 	// Read each cached registry
-	packEntries, err := os.ReadDir(opts.RegistryPath())
+	packEntries, err := os.ReadDir(path.Join(opts.RegistryPath(), opts.AtRef()))
 	if err != nil {
 		logger.ErrorWithContext(err, "error deleting cached registry", c.ErrorContext.GetAll()...)
 		return
@@ -59,7 +59,7 @@ func (c *Cache) Delete(opts *DeleteOpts) (err error) {
 			continue
 		}
 
-		err = os.RemoveAll(path.Join(opts.RegistryPath(), packEntry.Name()))
+		err = os.RemoveAll(path.Join(opts.RegistryPath(), opts.AtRef(), packEntry.Name()))
 		if err != nil {
 			logger.ErrorWithContext(err, "error deleting pack", c.ErrorContext.GetAll()...)
 			return
@@ -77,7 +77,7 @@ func (c *Cache) Delete(opts *DeleteOpts) (err error) {
 	}
 
 	// Check to see if there is anything left in the directory.
-	packEntries, err = os.ReadDir(opts.RegistryPath())
+	packEntries, err = os.ReadDir(path.Join(opts.RegistryPath(), opts.AtRef()))
 	if err != nil {
 		logger.ErrorWithContext(err, "error reading cached registry", c.ErrorContext.GetAll()...)
 		return

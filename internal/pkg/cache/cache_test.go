@@ -103,7 +103,7 @@ func TestAddRegistryPacksAtMultipleRefs(t *testing.T) {
 	must.NoError(t, err)
 	must.NotNil(t, registry)
 
-	expected := testPackCount(t, testOpts) + 1 // to account for top-level metadata.json
+	expected := testPackCount(t, testOpts)
 
 	// test that registry still exists
 	registryEntries, err := os.ReadDir(cacheDir)
@@ -172,7 +172,7 @@ func TestAddRegistryWithSHA(t *testing.T) {
 	must.Eq(t, expected, len(registry.Packs))
 
 	// Make sure the metadata file is there and that it contains what we want
-	f, err := os.ReadFile(path.Join(cacheDir + "/" + registry.Name + "/metadata.json"))
+	f, err := os.ReadFile(path.Join(cacheDir, registry.Name, registry.Ref, "metadata.json"))
 	must.NoError(t, err)
 	r := &Registry{}
 	must.NoError(t, json.Unmarshal(f, r))
@@ -310,7 +310,7 @@ func TestDeletePack(t *testing.T) {
 	must.NoError(t, err)
 
 	// test that pack is gone
-	registryEntries, err := os.ReadDir(opts.RegistryPath())
+	registryEntries, err := os.ReadDir(path.Join(opts.RegistryPath(), opts.AtRef()))
 	must.NoError(t, err)
 
 	for _, packEntry := range registryEntries {
@@ -604,7 +604,7 @@ func testAddOpts(registryName string) *AddOpts {
 func testPackCount(t *testing.T, opts cacheOperationProvider) int {
 	packCount := 0
 
-	dirEntries, err := os.ReadDir(opts.RegistryPath())
+	dirEntries, err := os.ReadDir(path.Join(opts.RegistryPath(), opts.AtRef()))
 	must.NoError(t, err)
 
 	for _, dirEntry := range dirEntries {
