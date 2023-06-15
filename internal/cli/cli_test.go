@@ -842,13 +842,17 @@ func createTestRegistry(t *testing.T) (*cache.Registry, string) {
 	err := filesystem.MaybeCreateDestinationDir(regDir)
 	must.NoError(t, err)
 
-	err = filesystem.CopyDir(getTestPackPath(testPack), path.Join(regDir, testPack+"@latest"), logging.Default())
-	must.NoError(t, err)
-	err = filesystem.CopyDir(getTestPackPath(testPack), path.Join(regDir, testPack+"@"+testRef), logging.Default())
-	must.NoError(t, err)
+	must.NoError(t, filesystem.CopyDir(
+		getTestPackPath(testPack),
+		path.Join(regDir, testRef, testPack+"@latest"), logging.Default(),
+	))
+	must.NoError(t, filesystem.CopyDir(
+		getTestPackPath(testPack),
+		path.Join(regDir, testRef, testPack+"@"+testRef), logging.Default(),
+	))
 
 	// Put a sample metadata.json in the test registry
-	metaPath := filepath.Join(regDir, "metadata.json")
+	metaPath := path.Join(regDir, testRef, "metadata.json")
 	registry := &cache.Registry{
 		Name:     registryName,
 		Source:   "github.com/hashicorp/nomad-pack-test-registry",
@@ -856,7 +860,7 @@ func createTestRegistry(t *testing.T) (*cache.Registry, string) {
 		LocalRef: testRef,
 	}
 	b, _ := json.Marshal(registry)
-	os.WriteFile(metaPath, b, 0644)
+	must.NoError(t, os.WriteFile(metaPath, b, 0644))
 
 	return registry, regDir
 }
