@@ -48,7 +48,7 @@ const (
 func TestCLI_CreateTestRegistry(t *testing.T) {
 	// This test is here to help setup the pack registry cache. It needs to be
 	// the first one in the file and can not be `Parallel()`
-	reg, regPath := createTestRegistry(t)
+	reg, _, regPath := createTestRegistries(t)
 	defer cleanTestRegistry(t, regPath)
 	t.Logf("regName: %v\n", reg.Name)
 	t.Logf("regPath: %v\n", regPath)
@@ -162,7 +162,7 @@ func TestCLI_JobPlan_BadJob(t *testing.T) {
 // Confirm that another pack with the same job names but a different deployment name fails
 func TestCLI_JobPlan_ConflictingDeployment(t *testing.T) {
 	ct.HTTPTestParallel(t, ct.WithDefaultConfig(), func(s *agent.TestAgent) {
-		reg, regPath := createTestRegistry(t)
+		reg, _, regPath := createTestRegistries(t)
 		defer cleanTestRegistry(t, regPath)
 
 		testRegFlag := "--registry=" + reg.Name
@@ -373,7 +373,7 @@ func TestCLI_PackDestroy_WithOverrides(t *testing.T) {
 		c, err := ct.NewTestClient(s)
 		must.NoError(t, err)
 		// Because this test uses ref, it requires a populated pack cache.
-		reg, regPath := createTestRegistry(t)
+		reg, _, regPath := createTestRegistries(t)
 		defer cleanTestRegistry(t, regPath)
 
 		// 	TODO: Table Testing
@@ -382,14 +382,7 @@ func TestCLI_PackDestroy_WithOverrides(t *testing.T) {
 		jobNames := []string{"foo", "bar"}
 		for _, j := range jobNames {
 			expectGoodPackDeploy(t, runTestPackCmd(
-				t,
-				s,
-				[]string{
-					"run",
-					testPack,
-					"--var=job_name=" + j,
-					"--registry=" + reg.Name,
-				}))
+				t, s, []string{"run", testPack, "--var=job_name=" + j, "--registry=" + reg.Name}))
 		}
 
 		// Stop nonexistent job
@@ -835,34 +828,46 @@ func expectGoodPackPlan(t *testing.T, r PackCommandResult) {
 	must.Eq(t, 1, r.exitCode) // exitcode 1 means that an allocation will be created
 }
 
-func createTestRegistry(t *testing.T) (*cache.Registry, string) {
+// createTestRegistries creates two registries: first one has "latest" ref,
+// second one has testRef ref. It returns registry objects, and a string that
+// points to the root where the two refs are on the filesystem.
+func createTestRegistries(t *testing.T) (*cache.Registry, *cache.Registry, string) {
 	// Fake a clone
 	registryName := fmt.Sprintf("test-%v", time.Now().UnixMilli())
+
 	regDir := path.Join(cache.DefaultCachePath(), registryName)
 	err := filesystem.MaybeCreateDestinationDir(regDir)
 	must.NoError(t, err)
 
-	must.NoError(t, filesystem.CopyDir(
-		getTestPackPath(testPack),
-		path.Join(regDir, testRef, testPack+"@latest"), logging.Default(),
-	))
-	must.NoError(t, filesystem.CopyDir(
-		getTestPackPath(testPack),
-		path.Join(regDir, testRef, testPack+"@"+testRef), logging.Default(),
-	))
+	for _, r := range []string{"latest", testRef} {
+		must.NoError(t, filesystem.CopyDir(
+			getTestPackPath(testPack),
+			path.Join(regDir, r, testPack+"@"+r), logging.Default(),
+		))
+	}
 
-	// Put a sample metadata.json in the test registry
-	metaPath := path.Join(regDir, testRef, "metadata.json")
-	registry := &cache.Registry{
+	// create output registries and metadata.json files
+	latestReg := &cache.Registry{
 		Name:     registryName,
 		Source:   "github.com/hashicorp/nomad-pack-test-registry",
-		Ref:      testRef,
 		LocalRef: testRef,
+		Ref:      "latest",
 	}
-	b, _ := json.Marshal(registry)
-	must.NoError(t, os.WriteFile(metaPath, b, 0644))
+	latestMetaPath := path.Join(regDir, "latest", "metadata.json")
+	b, _ := json.Marshal(latestReg)
+	must.NoError(t, os.WriteFile(latestMetaPath, b, 0644))
 
-	return registry, regDir
+	testRefReg := &cache.Registry{
+		Name:     registryName,
+		Source:   "github.com/hashicorp/nomad-pack-test-registry",
+		LocalRef: testRef,
+		Ref:      testRef,
+	}
+	testRefMetaPath := path.Join(regDir, testRef, "metadata.json")
+	b, _ = json.Marshal(testRefReg)
+	must.NoError(t, os.WriteFile(testRefMetaPath, b, 0644))
+
+	return latestReg, testRefReg, regDir
 }
 
 func cleanTestRegistry(t *testing.T, regPath string) {
