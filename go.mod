@@ -18,7 +18,7 @@ require (
 	github.com/hashicorp/hcl v1.0.1-vault-5
 	github.com/hashicorp/hcl/v2 v2.16.2
 	github.com/hashicorp/nomad v1.4.2
-	github.com/hashicorp/nomad/api v0.0.0-20230530070532-91a434fdfc15
+	github.com/hashicorp/nomad/api v0.0.0-20230626161812-d20faf58554d
 	github.com/kr/text v0.2.0
 	github.com/lab47/vterm v0.0.0-20211107042118-80c3d2849f9c
 	github.com/mattn/go-isatty v0.0.19
@@ -35,7 +35,6 @@ require (
 	github.com/zclconf/go-cty v1.13.2
 	golang.org/x/term v0.8.0
 	golang.org/x/text v0.9.0
-	google.golang.org/grpc v1.55.0
 )
 
 require (
@@ -275,6 +274,7 @@ require (
 	google.golang.org/api v0.124.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20230524185152-1884fd1fac28 // indirect
+	google.golang.org/grpc v1.55.0 // indirect
 	google.golang.org/protobuf v1.30.0 // indirect
 	gopkg.in/fsnotify.v1 v1.4.7 // indirect
 	gopkg.in/resty.v1 v1.12.0 // indirect
