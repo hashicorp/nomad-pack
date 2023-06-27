@@ -55,7 +55,7 @@ func (cfg *PackConfig) initFromDirectory(packPath string) {
 // initFromArgs is a utility function to build a pack path for registry added
 // packs. Not for use with file system based packs.
 func (cfg *PackConfig) initFromArgs() {
-	cfg.Path = path.Join(DefaultCachePath(), cfg.Registry, cfg.Name)
+	cfg.Path = path.Join(DefaultCachePath(), cfg.Registry, cfg.Ref, cfg.Name)
 	if cfg.Ref != "" {
 		cfg.Path = AppendRef(cfg.Path, cfg.Ref)
 	}

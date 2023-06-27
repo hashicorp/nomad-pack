@@ -6,8 +6,9 @@ package pack
 import (
 	"testing"
 
-	"github.com/hashicorp/nomad-pack/sdk/helper"
 	"github.com/shoenig/test/must"
+
+	"github.com/hashicorp/nomad-pack/internal/pkg/helper/pointer"
 )
 
 func TestDependency_Validate(t *testing.T) {
@@ -25,7 +26,7 @@ func TestDependency_Validate(t *testing.T) {
 			expectedOutputDependency: &Dependency{
 				Name:    "example",
 				Source:  "git://example.com/example",
-				Enabled: helper.BoolToPtr(true),
+				Enabled: pointer.Of(true),
 			},
 			name: "nil enabled input",
 		},
@@ -33,12 +34,12 @@ func TestDependency_Validate(t *testing.T) {
 			inputDependency: &Dependency{
 				Name:    "example",
 				Source:  "git://example.com/example",
-				Enabled: helper.BoolToPtr(false),
+				Enabled: pointer.Of(false),
 			},
 			expectedOutputDependency: &Dependency{
 				Name:    "example",
 				Source:  "git://example.com/example",
-				Enabled: helper.BoolToPtr(false),
+				Enabled: pointer.Of(false),
 			},
 			name: "false enabled input",
 		},
@@ -46,12 +47,12 @@ func TestDependency_Validate(t *testing.T) {
 			inputDependency: &Dependency{
 				Name:    "example",
 				Source:  "git://example.com/example",
-				Enabled: helper.BoolToPtr(true),
+				Enabled: pointer.Of(true),
 			},
 			expectedOutputDependency: &Dependency{
 				Name:    "example",
 				Source:  "git://example.com/example",
-				Enabled: helper.BoolToPtr(true),
+				Enabled: pointer.Of(true),
 			},
 			name: "false enabled input",
 		},

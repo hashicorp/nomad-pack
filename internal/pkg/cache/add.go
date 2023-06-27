@@ -50,25 +50,7 @@ func (c *Cache) Add(opts *AddOpts) (*Registry, error) {
 		return cachedRegistry, errors.ErrRegistrySourceRequired
 	}
 
-	cachedRegistry, err := c.addFromURI(opts)
-	if err != nil {
-		return cachedRegistry, err
-	}
-
-	if cachedRegistry != nil {
-		// Store a metadata JSON file for the cached registry
-		b, err := json.MarshalIndent(cachedRegistry, "", "  ")
-		if err != nil {
-			return cachedRegistry, err
-		}
-
-		metaPath := filepath.Join(c.cfg.Path, opts.RegistryName, "/metadata.json")
-		if err = os.WriteFile(metaPath, b, 0644); err != nil {
-			return cachedRegistry, err
-		}
-	}
-
-	return cachedRegistry, nil
+	return c.addFromURI(opts)
 }
 
 // addFromURI loads a registry from a remote git repository. If addToCache is
@@ -143,6 +125,14 @@ func (c *Cache) addFromURI(opts *AddOpts) (cachedRegistry *Registry, err error) 
 	cachedRegistry.Source = opts.Source
 	if err != nil {
 		logger.ErrorWithContext(err, "error getting registry after add", c.ErrorContext.GetAll()...)
+		return
+	}
+
+	// Store a metadata JSON file for the cached registry
+	b, _ := json.MarshalIndent(cachedRegistry, "", "  ")
+	metaPath := filepath.Join(c.cfg.Path, opts.RegistryName, opts.Ref, "/metadata.json")
+	if err = os.WriteFile(metaPath, b, 0644); err != nil {
+		logger.ErrorWithContext(err, "error processing metadata file for the registry", c.ErrorContext.GetAll()...)
 		return
 	}
 
@@ -346,7 +336,7 @@ func (opts *AddOpts) RegistryPath() string {
 
 // PackPath fulfills the cacheOperationProvider interface for AddOpts
 func (opts *AddOpts) PackPath() string {
-	return path.Join(opts.cachePath, opts.RegistryName, opts.PackDir())
+	return path.Join(opts.cachePath, opts.RegistryName, opts.Ref, opts.PackDir())
 }
 
 // PackDir fulfills the cacheOperationProvider interface for AddOpts

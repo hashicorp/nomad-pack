@@ -10,6 +10,7 @@ import (
 	"path"
 
 	"github.com/hashicorp/nomad-pack/internal/config"
+	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 )
 
 type packCreator struct {
@@ -47,7 +48,7 @@ func CreatePack(c config.PackConfig) error {
 	// TODO: Make this optional
 	// TODO: Make this interactive
 
-	err := os.MkdirAll(pc.tplPath, 0700)
+	err := os.MkdirAll(pc.tplPath, cache.DefaultDirPerms)
 	if err != nil {
 		return newCreatePackError(err)
 	}

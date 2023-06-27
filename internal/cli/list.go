@@ -4,9 +4,10 @@
 package cli
 
 import (
+	"github.com/posener/complete"
+
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
-	"github.com/posener/complete"
 )
 
 // ListCommand lists all registries and pack that have been downloaded
@@ -16,7 +17,7 @@ type ListCommand struct {
 }
 
 func (c *ListCommand) Run(args []string) int {
-	c.cmdKey = "registry list"
+	c.cmdKey = "list"
 	// Initialize. If we fail, we just exit since Init handles the UI.
 	if err := c.Init(
 		WithNoArgs(args),
