@@ -23,6 +23,7 @@ IMPROVEMENTS:
 * template: Render templates other than Nomad job specifications inside `templates/` [[GH-303](https://github.com/hashicorp/nomad-pack/pull/303)]
 * template: Automatically format templates before outputting [[GH-311](https://github.com/hashicorp/nomad-pack/pull/311)]
 * template: Skip templates that would render to just whitespace [[GH-313](https://github.com/hashicorp/nomad-pack/pull/313)]
+* template: Extract namespace and region from the templates before submitting them to the client [[GH-366](https://github.com/hashicorp/nomad-pack/pull/366)]
 * vars: Add flag to ignore variables provided in the given var-files unused by the pack [[GH-315](https://github.com/hashicorp/nomad-pack/pull/315)]
 
 ## 0.0.1-techpreview.3 (July 21, 2022)

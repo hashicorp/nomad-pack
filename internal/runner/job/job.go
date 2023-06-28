@@ -6,6 +6,7 @@ package job
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"time"
 
 	"github.com/hashicorp/nomad/api"
@@ -229,6 +230,19 @@ func (r *Runner) ParseTemplates() []*errors.WrappedUIContext {
 	var outputErrors []*errors.WrappedUIContext
 
 	for tplName, tpl := range r.rawTemplates {
+		// if a template contains region or namespace information, it needs to be passed
+		// to the client before calling the parse methods, otherwise they might fail in
+		// case ACL restricts our permissions
+		namespaceRe := regexp.MustCompile(`(?m)namespace = \"(\w+)`)
+		regionRe := regexp.MustCompile(`(?m)region = \"(\w+)`)
+
+		if nsRes := namespaceRe.FindStringSubmatch(tpl); len(nsRes) > 1 {
+			r.client.SetNamespace(nsRes[1])
+		}
+
+		if regRes := regionRe.FindStringSubmatch(tpl); len(regRes) > 1 {
+			r.client.SetRegion(regRes[1])
+		}
 
 		ncJob, err := r.client.Jobs().ParseHCLOpts(&api.JobsParseRequest{
 			JobHCL:       tpl,
@@ -236,7 +250,10 @@ func (r *Runner) ParseTemplates() []*errors.WrappedUIContext {
 			Canonicalize: false,
 		})
 		if err != nil {
-			outputErrors = append(outputErrors, newValidationDeployerError(err, validationSubjParseFailed, tplName))
+			outputErrors = append(
+				outputErrors,
+				newValidationDeployerError(err, validationSubjParseFailed, tplName),
+			)
 			continue
 		}
 
@@ -246,7 +263,10 @@ func (r *Runner) ParseTemplates() []*errors.WrappedUIContext {
 			Canonicalize: true,
 		})
 		if err != nil {
-			outputErrors = append(outputErrors, newValidationDeployerError(err, validationSubjParseFailed, tplName))
+			outputErrors = append(
+				outputErrors,
+				newValidationDeployerError(err, validationSubjParseFailed, tplName),
+			)
 			continue
 		}
 
