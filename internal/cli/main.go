@@ -10,10 +10,11 @@ import (
 	"sort"
 	"text/tabwriter"
 
-	flag "github.com/hashicorp/nomad-pack/internal/pkg/flag"
-	"github.com/hashicorp/nomad-pack/internal/pkg/version"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/go-glint"
+
+	flag "github.com/hashicorp/nomad-pack/internal/pkg/flag"
+	"github.com/hashicorp/nomad-pack/internal/pkg/version"
 )
 
 const (
@@ -201,6 +202,16 @@ func Commands(
 		},
 		"generate var-file": func() (cli.Command, error) {
 			return &GenerateVarFileCommand{
+				baseCommand: baseCommand,
+			}, nil
+		},
+		"deps": func() (cli.Command, error) {
+			return &depsHelpCommand{
+				baseCommand: baseCommand,
+			}, nil
+		},
+		"deps vendor": func() (cli.Command, error) {
+			return &depsVendorCommand{
 				baseCommand: baseCommand,
 			}, nil
 		},
