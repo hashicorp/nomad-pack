@@ -17,7 +17,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/hcl v1.0.1-vault-5
 	github.com/hashicorp/hcl/v2 v2.16.2
-	github.com/hashicorp/nomad v1.4.2
+	github.com/hashicorp/nomad v1.3.8
 	github.com/hashicorp/nomad/api v0.0.0-20230626161812-d20faf58554d
 	github.com/kr/text v0.2.0
 	github.com/lab47/vterm v0.0.0-20211107042118-80c3d2849f9c
@@ -63,7 +63,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.2.1 // indirect
 	github.com/Masterminds/sprig v2.22.0+incompatible // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
-	github.com/Microsoft/hcsshim v0.9.3 // indirect
+	github.com/Microsoft/hcsshim v0.9.6 // indirect
 	github.com/ProtonMail/go-crypto v0.0.0-20230518184743-7afd39499903 // indirect
 	github.com/VividCortex/ewma v1.2.0 // indirect
 	github.com/acomagu/bufpipe v1.0.4 // indirect
@@ -78,7 +78,6 @@ require (
 	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
 	github.com/bmatcuk/doublestar v1.1.5 // indirect
 	github.com/boltdb/bolt v1.3.1 // indirect
-	github.com/brianvoe/gofakeit/v6 v6.19.0 // indirect
 	github.com/cenkalti/backoff/v3 v3.2.2 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/checkpoint-restore/go-criu/v5 v5.3.0 // indirect
@@ -88,8 +87,8 @@ require (
 	github.com/circonus-labs/circonusllhist v0.1.3 // indirect
 	github.com/cloudflare/circl v1.3.3 // indirect
 	github.com/container-storage-interface/spec v1.4.0 // indirect
-	github.com/containerd/cgroups v1.0.3 // indirect
-	github.com/containerd/containerd v1.6.6 // indirect
+	github.com/containerd/cgroups v1.0.4 // indirect
+	github.com/containerd/containerd v1.6.18 // indirect
 	github.com/containerd/go-cni v1.1.7 // indirect
 	github.com/containernetworking/cni v1.1.2 // indirect
 	github.com/containernetworking/plugins v1.1.1 // indirect
@@ -112,7 +111,7 @@ require (
 	github.com/elazarl/go-bindata-assetfs v1.0.1-0.20200509193318-234c15e7648f // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/felixge/httpsnoop v1.0.3 // indirect
-	github.com/fsouza/go-dockerclient v1.8.2 // indirect
+	github.com/fsouza/go-dockerclient v1.7.9 // indirect
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
 	github.com/go-git/go-billy/v5 v5.4.1 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
@@ -136,6 +135,7 @@ require (
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0 // indirect
+	github.com/hashicorp/consul v1.7.8 // indirect
 	github.com/hashicorp/consul-template v0.29.6-0.20221026140134-90370e07bf62 // indirect
 	github.com/hashicorp/consul/api v1.15.3 // indirect
 	github.com/hashicorp/cronexpr v1.1.1 // indirect
@@ -148,7 +148,6 @@ require (
 	github.com/hashicorp/go-discover v0.0.0-20220621183603-a413e131e836 // indirect
 	github.com/hashicorp/go-envparse v0.0.0-20180119215841-310ca1881b22 // indirect
 	github.com/hashicorp/go-immutable-radix v1.3.1 // indirect
-	github.com/hashicorp/go-kms-wrapping/v2 v2.0.5 // indirect
 	github.com/hashicorp/go-memdb v1.3.4 // indirect
 	github.com/hashicorp/go-msgpack v1.1.5 // indirect
 	github.com/hashicorp/go-plugin v1.4.3 // indirect
@@ -172,7 +171,6 @@ require (
 	github.com/hashicorp/memberlist v0.4.0 // indirect
 	github.com/hashicorp/net-rpc-msgpackrpc v0.0.0-20151116020338-a14192a58a69 // indirect
 	github.com/hashicorp/raft v1.3.11 // indirect
-	github.com/hashicorp/raft-autopilot v0.1.6 // indirect
 	github.com/hashicorp/raft-boltdb/v2 v2.2.2 // indirect
 	github.com/hashicorp/serf v0.10.0 // indirect
 	github.com/hashicorp/vault/api v1.8.1 // indirect
@@ -195,7 +193,7 @@ require (
 	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-runewidth v0.0.14 // indirect
-	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
+	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/miekg/dns v1.1.50 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
