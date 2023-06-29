@@ -53,6 +53,11 @@ func (c *Cache) Add(opts *AddOpts) (*Registry, error) {
 	return c.addFromURI(opts)
 }
 
+// AddExistingPack adds a pack that has been
+func (c *Cache) AddExistingPack(opts *AddOpts) error {
+	return nil
+}
+
 // addFromURI loads a registry from a remote git repository. If addToCache is
 // true, the registry will also be added to the global cache. The cache directory
 // must be specified to allow user customization of cache location. If a name is
@@ -327,6 +332,8 @@ type AddOpts struct {
 	Username string
 	// Optional password for basic auth to a registry that requires authentication.
 	Password string
+	// Temporary pack location that we want to copy it from.
+	CurrentLocation string
 }
 
 // RegistryPath fulfills the cacheOperationProvider interface for AddOpts
