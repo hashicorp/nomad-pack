@@ -1,4 +1,3 @@
-Generated TestVendor
 package deps
 
 import (
