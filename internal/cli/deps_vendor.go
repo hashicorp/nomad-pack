@@ -3,15 +3,13 @@ package cli
 import (
 	"github.com/posener/complete"
 
-	"github.com/hashicorp/nomad-pack/internal/config"
-	"github.com/hashicorp/nomad-pack/internal/creator"
+	"github.com/hashicorp/nomad-pack/internal/pkg/deps"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
 )
 
 type depsVendorCommand struct {
 	*baseCommand
-	cfg config.PackConfig
 }
 
 func (d *depsVendorCommand) Run(args []string) int {
@@ -32,10 +30,7 @@ func (d *depsVendorCommand) Run(args []string) int {
 	// Generate our UI error context.
 	errorContext := errors.NewUIErrorContext()
 
-	errorContext.Add(errors.UIContextPrefixPackName, d.cfg.PackName)
-	errorContext.Add(errors.UIContextPrefixOutputPath, d.cfg.OutPath)
-
-	err := creator.CreatePack(d.cfg)
+	err := deps.Vendor()
 	if err != nil {
 		d.ui.ErrorWithContext(err, "failed to vendor dependencies", errorContext.GetAll()...)
 		return 1
