@@ -39,10 +39,10 @@ func Vendor(ctx context.Context, ui terminal.UI, globalCache *cache.Cache, copyT
 
 		if copyToCache {
 			// and add them to a "vendor" registry in the cache
-			if err := globalCache.AddExistingPack(&cache.AddOpts{
-				RegistryName: "vendor",
-				Source:       d.Source,
-				PackName:     d.Name,
+			if err := globalCache.AddVendoredPack(&cache.AddOpts{
+				Source:          d.Source,
+				PackName:        d.Name,
+				CurrentLocation: targetDir,
 			}); err != nil {
 				return err
 			}
