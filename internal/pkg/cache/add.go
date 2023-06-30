@@ -101,10 +101,8 @@ func (c *Cache) AddVendoredPack(opts *AddOpts) error {
 
 	if idx == -1 {
 		c.registries[0].Packs = append(c.registries[0].Packs, &Pack{Ref: sha, Pack: p})
-		fmt.Printf("added pack to new registry: %v", len(c.registries[0].Packs))
 	} else {
 		c.registries[idx].Packs = append(c.registries[idx].Packs, &Pack{Ref: sha, Pack: p})
-		fmt.Printf("added pack to existing vendor registry: %v", len(c.registries[idx].Packs))
 	}
 
 	return nil
