@@ -14,6 +14,9 @@ import (
 
 type depsVendorCommand struct {
 	*baseCommand
+	copyToCache bool
+	targetPath  string
+	seconds     int
 }
 
 func (d *depsVendorCommand) Run(args []string) int {
@@ -50,14 +53,11 @@ func (d *depsVendorCommand) Run(args []string) int {
 		return 1
 	}
 
-	// FIXME make these flags
-	copyToCache := true
-	targetPath := ""
-	timeout := 30 * time.Second
+	timeout := time.Duration(d.seconds) * time.Second
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	err = deps.Vendor(ctx, d.ui, globalCache, copyToCache, targetPath)
+	err = deps.Vendor(ctx, d.ui, globalCache, d.copyToCache, d.targetPath)
 	if err != nil {
 		d.ui.ErrorWithContext(err, "failed to vendor dependencies", errorContext.GetAll()...)
 		return 1
@@ -66,7 +66,33 @@ func (d *depsVendorCommand) Run(args []string) int {
 }
 
 func (d *depsVendorCommand) Flags() *flag.Sets {
-	return d.flagSet(0, nil)
+	return d.flagSet(0, func(set *flag.Sets) {
+		f := set.NewSet("Vendoring Options")
+
+		f.BoolVar(&flag.BoolVar{
+			Name:    "copy",
+			Target:  &d.copyToCache,
+			Default: false,
+			Usage: `If true, the vendored packs will also be copied to the 
+				    global cache and available to pack.`,
+		})
+
+		f.StringVar(&flag.StringVar{
+			Name:    "path",
+			Target:  &d.targetPath,
+			Default: "",
+			Usage: `Full path to the pack which contains dependencies to be 
+				    vendored. All the dependencies will then be downloaded 
+				    into a 'vendor/' subdirectory of that path. `,
+		})
+
+		f.IntVar(&flag.IntVar{
+			Name:    "timeout",
+			Target:  &d.seconds,
+			Default: 30,
+			Usage:   `Timeout (in seconds) for downloading dependencies.`,
+		})
+	})
 }
 
 func (d *depsVendorCommand) AutocompleteArgs() complete.Predictor {
