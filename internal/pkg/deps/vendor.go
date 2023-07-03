@@ -13,9 +13,10 @@ import (
 	"github.com/hashicorp/nomad-pack/terminal"
 )
 
-// Vendor reads the metadata.hcl in the current directory, downloads each of the
-// dependencies, and adds them to a "vendor" registry.
-func Vendor(ctx context.Context, ui terminal.UI, globalCache *cache.Cache, copyToCache bool, targetPath string) error {
+// Vendor reads the metadata.hcl from the provided directory, downloads
+// dependencies, and adds them to a "vendor" registry if copyToCache flag is
+// set.
+func Vendor(ctx context.Context, ui terminal.UI, globalCache *cache.Cache, targetPath string, copyToCache bool) error {
 	// attempt to read metadata.hcl
 	metadata := &pack.Metadata{}
 	err := hclsimple.DecodeFile(path.Join(targetPath, "metadata.hcl"), nil, metadata)

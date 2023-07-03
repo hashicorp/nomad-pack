@@ -14,6 +14,7 @@ import (
 	"github.com/mitchellh/go-glint"
 
 	flag "github.com/hashicorp/nomad-pack/internal/pkg/flag"
+	"github.com/hashicorp/nomad-pack/internal/pkg/helper"
 	"github.com/hashicorp/nomad-pack/internal/pkg/version"
 )
 
@@ -60,7 +61,7 @@ func Main(args []string) int {
 	}
 
 	// Build our cancellation context
-	ctx, closer := WithInterrupt(context.Background())
+	ctx, closer := helper.WithInterrupt(context.Background())
 	defer closer()
 
 	// Get our base command

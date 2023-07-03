@@ -57,7 +57,7 @@ func (d *depsVendorCommand) Run(args []string) int {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	err = deps.Vendor(ctx, d.ui, globalCache, d.copyToCache, d.targetPath)
+	err = deps.Vendor(ctx, d.ui, globalCache, d.targetPath, d.copyToCache)
 	if err != nil {
 		d.ui.ErrorWithContext(err, "failed to vendor dependencies", errorContext.GetAll()...)
 		return 1
