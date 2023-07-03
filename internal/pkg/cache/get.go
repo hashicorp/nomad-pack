@@ -99,6 +99,14 @@ func (opts *GetOpts) IsTarget(dirEntry os.DirEntry) bool {
 		return true
 	}
 
+	// vendor registry is a special case: it is always at revision "latest" but packs
+	// have individual revision refs
+	if opts.PackName == "" &&
+		strings.Contains(dirEntry.Name(), "@") &&
+		opts.RegistryName == "vendor" {
+		return true
+	}
+
 	// Otherwise, it's a target if the dirEntry.Name equals the formatted PackDir.
 	return dirEntry.Name() == opts.PackDir()
 }
