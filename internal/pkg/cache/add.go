@@ -112,8 +112,8 @@ func (c *Cache) createVendorRegistry(path string) error {
 	vendorRegistry := &Registry{
 		Name:     "vendor",
 		Source:   "vendor",
-		Ref:      "latest", // vendor registry is always latest
-		LocalRef: "n/a",
+		Ref:      "latest", // vendor registry is always latest...
+		LocalRef: "latest", // ...even for localref (otherwise cli output looks weird)
 		Packs:    []*Pack{},
 	}
 	c.registries = append(c.registries, vendorRegistry)
