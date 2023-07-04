@@ -3,20 +3,48 @@ package deps
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"os"
 	"path"
 	"testing"
 	"time"
 
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/hashicorp/hcl/v2/gohcl"
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/shoenig/test/must"
 
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"github.com/hashicorp/nomad-pack/internal/pkg/helper"
+	"github.com/hashicorp/nomad-pack/internal/pkg/helper/filesystem"
 	"github.com/hashicorp/nomad-pack/internal/testui"
 	"github.com/hashicorp/nomad-pack/sdk/pack"
 )
+
+var emptyMetadata = pack.Metadata{
+	App:          &pack.MetadataApp{},
+	Pack:         &pack.MetadataPack{},
+	Integration:  &pack.MetadataIntegration{},
+	Dependencies: []*pack.Dependency{},
+}
+
+var goodMetadata = pack.Metadata{
+	App: &pack.MetadataApp{
+		URL: "",
+	},
+	Pack: &pack.MetadataPack{
+		Name:        "deps_test",
+		Description: "This pack tests dependencies",
+		Version:     "0.0.1",
+	},
+	Dependencies: []*pack.Dependency{
+		{
+			Name:   "simple_raw_exec",
+			Source: "",
+		},
+	},
+}
 
 func TestVendor(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -25,7 +53,7 @@ func TestVendor(t *testing.T) {
 	cacheDir := t.TempDir()
 	globalCache, err := cache.NewCache(&cache.CacheConfig{
 		Path:   cacheDir,
-		Logger: NewTestLogger(t),
+		Logger: NoopLogger{},
 	})
 	must.NoError(t, err)
 	must.NotNil(t, globalCache)
@@ -33,6 +61,7 @@ func TestVendor(t *testing.T) {
 	uiStdout := new(bytes.Buffer)
 	uiStderr := new(bytes.Buffer)
 	uiCtx, cancel := helper.WithInterrupt(context.Background())
+	defer cancel()
 	ui := testui.NonInteractiveTestUI(uiCtx, uiStdout, uiStderr)
 
 	// first run against an empty directory
@@ -45,20 +74,14 @@ func TestVendor(t *testing.T) {
 	tmpDir2 := t.TempDir()
 	f, err := os.Create(path.Join(tmpDir2, "metadata.hcl"))
 	if err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	fw := hclwrite.NewEmptyFile()
-	badMetadata := pack.Metadata{
-		App:          &pack.MetadataApp{},
-		Pack:         &pack.MetadataPack{},
-		Integration:  &pack.MetadataIntegration{},
-		Dependencies: []*pack.Dependency{},
-	}
-	gohcl.EncodeIntoBody(&badMetadata, fw.Body())
+	gohcl.EncodeIntoBody(&emptyMetadata, fw.Body())
 	_, err = fw.WriteTo(f)
 	if err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	err = Vendor(ctx, ui, globalCache, tmpDir2, false)
@@ -66,56 +89,81 @@ func TestVendor(t *testing.T) {
 	must.ErrorContains(t, err, "does not contain any dependencies")
 
 	// test adding to cache
-}
-
-type TestLogger struct {
-	t *testing.T
-}
-
-// Debug logs at the DEBUG log level
-func (l *TestLogger) Debug(message string) {
-	l.t.Helper()
-	l.t.Log(message)
-}
-
-// Error logs at the ERROR log level
-func (l *TestLogger) Error(message string) {
-	l.t.Helper()
-	l.t.Log(message)
-}
-
-// ErrorWithContext logs at the ERROR log level including additional context so
-// users can easily identify issues.
-func (l *TestLogger) ErrorWithContext(err error, sub string, ctx ...string) {
-	l.t.Helper()
-	l.t.Logf("err: %s", err)
-	l.t.Log(sub)
-	for _, entry := range ctx {
-		l.t.Log(entry)
+	tmpPackDir := t.TempDir()
+	f, err = os.Create(path.Join(tmpPackDir, "metadata.hcl"))
+	if err != nil {
+		t.Error(err)
 	}
-}
 
-// Info logs at the INFO log level
-func (l *TestLogger) Info(message string) {
-	l.t.Helper()
-	l.t.Log(message)
-}
+	tmpDependencySourceDir := t.TempDir()
+	must.NoError(t, createTestDepRepo(tmpDependencySourceDir))
+	goodMetadata.Dependencies[0].Source = path.Join(
+		tmpDependencySourceDir,
+		"simple_raw_exec",
+	)
 
-// Trace logs at the TRACE log level
-func (l *TestLogger) Trace(message string) {
-	l.t.Helper()
-	l.t.Log(message)
-}
-
-// Warning logs at the WARN log level
-func (l *TestLogger) Warning(message string) {
-	l.t.Helper()
-	l.t.Log(message)
-}
-
-// NewTestLogger returns a test logger suitable for use with the go testing.T log function.
-func NewTestLogger(t *testing.T) *TestLogger {
-	return &TestLogger{
-		t: t,
+	fw = hclwrite.NewEmptyFile()
+	gohcl.EncodeIntoBody(&goodMetadata, fw.Body())
+	_, err = fw.WriteTo(f)
+	if err != nil {
+		t.Error(err)
 	}
+
+	err = Vendor(ctx, ui, globalCache, tmpPackDir, true)
+	must.Nil(t, err, must.Sprintf("vendoring failure: %v", err))
+	must.Eq(t, len(globalCache.Registries()), 1)
+	must.Eq(t, globalCache.Registries()[0].Name, "vendor")
+	must.Eq(t, len(globalCache.Registries()[0].Packs), 1)
+	must.Eq(t, globalCache.Registries()[0].Packs[0].Name(), "simple_raw_exec")
+	must.StrContains(t, uiStdout.String(), "success")
 }
+
+// createTestDepRepo creates a git repository with a dependency pack in it
+func createTestDepRepo(dst string) error {
+	err := filesystem.CopyDir(
+		"../../../fixtures/test_registry/packs/simple_raw_exec",
+		path.Join(dst, "simple_raw_exec"),
+		NoopLogger{},
+	)
+	if err != nil {
+		return fmt.Errorf("unable to copy test fixtures to test git repo: %v", err)
+	}
+
+	// initialize git repo...
+	r, err := git.PlainInit(dst, false)
+	if err != nil {
+		return fmt.Errorf("unable to initialize test git repo: %v", err)
+	}
+	// ...and worktree
+	w, err := r.Worktree()
+	if err != nil {
+		return fmt.Errorf("unable to initialize worktree for test git repo: %v", err)
+	}
+
+	_, err = w.Add(".")
+	if err != nil {
+		return fmt.Errorf("unable to stage test files to test git repo: %v", err)
+	}
+
+	commitOptions := &git.CommitOptions{Author: &object.Signature{
+		Name:  "Github Action Test User",
+		Email: "test@example.com",
+		When:  time.Now(),
+	}}
+
+	_, err = w.Commit("Initial Commit", commitOptions)
+	if err != nil {
+		return fmt.Errorf("unable to commit test files to test git repo: %v", err)
+	}
+
+	return nil
+}
+
+type NoopLogger struct{}
+
+func (_ NoopLogger) Debug(_ string)                                  {}
+func (_ NoopLogger) Error(_ string)                                  {}
+func (_ NoopLogger) ErrorWithContext(_ error, _ string, _ ...string) {}
+func (_ NoopLogger) Info(_ string)                                   {}
+func (_ NoopLogger) Trace(_ string)                                  {}
+func (_ NoopLogger) Warning(_ string)                                {}

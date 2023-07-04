@@ -538,7 +538,7 @@ func makeTestRegRepo(tReg *TestGithubRegistry) {
 	err = filesystem.CopyDir("../../../fixtures/test_registry", tReg.SourceURL(), NoopLogger{})
 	if err != nil {
 		tReg.Cleanup()
-		panic(fmt.Errorf("unable to copy test fixtures to test gir repo: %v", err))
+		panic(fmt.Errorf("unable to copy test fixtures to test git repo: %v", err))
 	}
 
 	// initialize git repo...
