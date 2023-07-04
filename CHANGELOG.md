@@ -11,12 +11,18 @@ files, or to generate Nomad dependency configurations, like ACL policies and
 Volume configurations for operators to load into their clusters before deploying
 the pack to their cluster.
 
+* **Vendoring Dependencies** - With `nomad-pack deps vendor`, you can
+automatically download all the dependencies listed in the `metadata.hcl` file
+into a `deps/` subdirectory, and optionally also add these dependencies to
+pack's global cache to be used by other pack commands.
+
 IMPROVEMENTS:
 
 * cache: Change the way registries are stored and versioned in the cache [[GH-356](https://github.com/hashicorp/nomad-pack/pull/356)]
 * cli: Add `generate var-file` command [[GH-333](https://github.com/hashicorp/nomad-pack/pull/333)]
 * cli: `registry list` command now shows git refs to repositories present in the cache [[GH-318](https://github.com/hashicorp/nomad-pack/pull/318)]
 * cli: `registry list` command now shows only registries, and a new command `list` shows packs [[GH-337](https://github.com/hashicorp/nomad-pack/pull/337)]
+* cli: `deps vendor` command [[GH-367](https://github.com/hashicorp/nomad-pack/pull/367)]
 * deps: Update the Nomad OpenAPI dependency; require Go 1.18 as a build dependency [[GH-288](https://github.com/hashicorp/nomad-pack/pull/288)]
 * pack: Author field no longer supported in pack metadata [[GH-317](https://github.com/hashicorp/nomad-pack/pull/317)]
 * pack: URL field no longer supported in pack metadata [[GH-343](https://github.com/hashicorp/nomad-pack/pull/343)]
