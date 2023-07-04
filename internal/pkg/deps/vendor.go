@@ -29,9 +29,9 @@ func Vendor(ctx context.Context, ui terminal.UI, globalCache *cache.Cache, targe
 	}
 
 	for _, d := range metadata.Dependencies {
-		// download each dependency
-		targetDir := path.Join(targetPath, "vendor", d.Name)
+		targetDir := path.Join(targetPath, "deps", d.Name)
 
+		// download each dependency
 		ui.Info(fmt.Sprintf("downloading %v pack to %v...", d.Name, targetDir))
 		if err := gg.Get(targetDir, fmt.Sprintf(d.Source), gg.WithContext(ctx)); err != nil {
 			return fmt.Errorf("error downloading dependency: %v", err)

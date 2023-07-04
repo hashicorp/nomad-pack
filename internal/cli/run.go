@@ -6,12 +6,13 @@ package cli
 import (
 	"fmt"
 
+	"github.com/posener/complete"
+
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
 	"github.com/hashicorp/nomad-pack/internal/runner"
 	"github.com/hashicorp/nomad-pack/internal/runner/job"
-	"github.com/posener/complete"
 )
 
 type RunCommand struct {
@@ -278,16 +279,6 @@ func (c *RunCommand) Flags() *flag.Sets {
 			Default: false,
 			Usage: `EXPERIMENTAL. If set, any pack failure will cause nomad pack
 					to attempt to rollback the entire deployment.`,
-		})
-
-		// FIXME: make this work properly
-		f.BoolVar(&flag.BoolVar{
-			Name:   "vendor",
-			Hidden: true,
-			// Target:  &c.jobConfig.RunConfig.EnableRollback,
-			Default: false,
-			Usage: `If set, nomad-pack will look for the pack inside a 'vendor'
-					registry.`,
 		})
 	})
 }

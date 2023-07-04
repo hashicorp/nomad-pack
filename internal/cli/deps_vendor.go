@@ -83,7 +83,7 @@ func (d *depsVendorCommand) Flags() *flag.Sets {
 			Default: "",
 			Usage: `Full path to the pack which contains dependencies to be 
 				    vendored. All the dependencies will then be downloaded 
-				    into a 'vendor/' subdirectory of that path. `,
+				    into a 'deps/' subdirectory of that path. `,
 		})
 
 		f.IntVar(&flag.IntVar{
