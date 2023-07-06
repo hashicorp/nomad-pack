@@ -87,25 +87,35 @@ func (c *Cache) AddVendoredPack(opts *AddOpts) error {
 
 	// check if we have an existing "vendor" registry; if we don't, make one.
 	idx := slices.IndexFunc(c.Registries(), func(r *Registry) bool { return r.Name == "vendor" })
+	var vendorRegistryIdx int
 	if idx == -1 { // not found
 		if err := c.createVendorRegistry(vendorRegistryPath); err != nil {
 			return err
 		}
+		vendorRegistryIdx = 0
+	} else {
+		vendorRegistryIdx = idx
 	}
 
 	// copy the pack into the cache and the vendor registry dir
-	if err := filesystem.CopyDir(opts.CurrentLocation, packDestinationPath, c.cfg.Logger); err != nil {
+	if err := filesystem.CopyDir(opts.CurrentLocation, packDestinationPath, true, c.cfg.Logger); err != nil {
 		logger.ErrorWithContext(err, fmt.Sprintf("error copying vendored pack %s to %s", opts.PackName, packDestinationPath))
 		return err
 	}
 
-	if idx == -1 {
-		c.registries[0].Packs = append(c.registries[0].Packs, &Pack{Ref: sha, Pack: p})
-	} else {
-		c.registries[idx].Packs = append(c.registries[idx].Packs, &Pack{Ref: sha, Pack: p})
+	// check if perhaps we already have this very pack in the cache?
+	if !packAlreadyInCache(c.registries[vendorRegistryIdx], p.Name(), sha) {
+		c.registries[vendorRegistryIdx].Packs = append(c.registries[vendorRegistryIdx].Packs, &Pack{Ref: sha, Pack: p})
 	}
 
 	return nil
+}
+
+func packAlreadyInCache(registry *Registry, name string, sha string) bool {
+	idx := slices.IndexFunc(registry.Packs, func(p *Pack) bool {
+		return p.Name() == name && p.Ref == sha
+	})
+	return idx != -1
 }
 
 func (c *Cache) createVendorRegistry(path string) error {
@@ -289,7 +299,7 @@ func (c *Cache) processPackEntry(opts *AddOpts, packEntry os.DirEntry) error {
 
 	logger.Debug(fmt.Sprintf("Writing pack to %s", opts.PackPath()))
 
-	if err := filesystem.CopyDir(opts.clonedPackPath(c), opts.PackPath(), c.cfg.Logger); err != nil {
+	if err := filesystem.CopyDir(opts.clonedPackPath(c), opts.PackPath(), false, c.cfg.Logger); err != nil {
 		logger.ErrorWithContext(err, fmt.Sprintf("error copying cloned pack %s to %s", opts.clonedPackPath(c), opts.PackPath()))
 		return err
 	}

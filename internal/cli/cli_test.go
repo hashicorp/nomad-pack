@@ -843,7 +843,9 @@ func createTestRegistries(t *testing.T) (*cache.Registry, *cache.Registry, strin
 	for _, r := range []string{"latest", testRef} {
 		must.NoError(t, filesystem.CopyDir(
 			getTestPackPath(testPack),
-			path.Join(regDir, r, testPack+"@"+r), logging.Default(),
+			path.Join(regDir, r, testPack+"@"+r),
+			false,
+			logging.Default(),
 		))
 	}
 

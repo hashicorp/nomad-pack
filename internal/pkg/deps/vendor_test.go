@@ -119,6 +119,36 @@ func TestVendor(t *testing.T) {
 	must.Eq(t, len(globalCache.Registries()[0].Packs), 1)
 	must.Eq(t, globalCache.Registries()[0].Packs[0].Name(), "simple_raw_exec")
 	must.StrContains(t, uiStdout.String(), "success")
+
+	// test overwriting a vendored pack
+	tmpPackDir2 := t.TempDir()
+	f, err = os.Create(path.Join(tmpPackDir2, "metadata.hcl"))
+	if err != nil {
+		t.Error(err)
+	}
+
+	tmpDependencySourceDir2 := t.TempDir()
+	must.NoError(t, createTestDepRepo(tmpDependencySourceDir2))
+	goodMetadata.Dependencies[0].Source = path.Join(
+		tmpDependencySourceDir,
+		"simple_raw_exec",
+	)
+
+	fw = hclwrite.NewEmptyFile()
+	gohcl.EncodeIntoBody(&goodMetadata, fw.Body())
+	_, err = fw.WriteTo(f)
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = Vendor(ctx, ui, globalCache, tmpPackDir, true)
+	must.Nil(t, err, must.Sprintf("vendoring failure: %v", err))
+	must.Eq(t, len(globalCache.Registries()), 1, must.Sprintf("wrong number of registries"))
+	must.Eq(t, globalCache.Registries()[0].Name, "vendor")
+	must.Eq(t, len(globalCache.Registries()[0].Packs), 1, must.Sprintf("wrong number of packs"))
+	must.Eq(t, globalCache.Registries()[0].Packs[0].Name(), "simple_raw_exec")
+	must.StrContains(t, uiStdout.String(), "success")
+
 }
 
 // createTestDepRepo creates a git repository with a dependency pack in it
@@ -126,6 +156,7 @@ func createTestDepRepo(dst string) error {
 	err := filesystem.CopyDir(
 		"../../../fixtures/test_registry/packs/simple_raw_exec",
 		path.Join(dst, "simple_raw_exec"),
+		false,
 		NoopLogger{},
 	)
 	if err != nil {

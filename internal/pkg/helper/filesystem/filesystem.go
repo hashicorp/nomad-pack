@@ -76,7 +76,7 @@ func CopyFile(sourcePath, destinationPath string, logger logging.Logger) (err er
 }
 
 // CopyDir recursively copies a directory.
-func CopyDir(sourceDir string, destinationDir string, logger logging.Logger) (err error) {
+func CopyDir(sourceDir string, destinationDir string, overwrite bool, logger logging.Logger) (err error) {
 	// Clean the directory paths
 	sourceDir = filepath.Clean(sourceDir)
 	destinationDir = filepath.Clean(destinationDir)
@@ -102,23 +102,26 @@ func CopyDir(sourceDir string, destinationDir string, logger logging.Logger) (er
 		logger.Debug(fmt.Sprintf("error getting destination file info: %s", err))
 		return
 	}
-	// throw error if it does exist
-	if err == nil {
-		err = fmt.Errorf("destination already exists")
-		logger.Debug(err.Error())
-		return
-	}
 
-	// Make the destination direction and copy the file permissions
-	err = MaybeCreateDestinationDir(
-		destinationDir,
-		WithFileMode(sourceDirInfo.Mode()),
-		ErrOnExists(),
-	)
+	if !overwrite {
+		// throw error if it does exist
+		if err == nil {
+			err = fmt.Errorf("destination already exists")
+			logger.Debug(err.Error())
+			return
+		}
 
-	if err != nil {
-		logger.Debug(fmt.Sprintf("error creating destination directory: %s", err))
-		return
+		// Make the destination direction and copy the file permissions
+		err = MaybeCreateDestinationDir(
+			destinationDir,
+			WithFileMode(sourceDirInfo.Mode()),
+			ErrOnExists(),
+		)
+
+		if err != nil {
+			logger.Debug(fmt.Sprintf("error creating destination directory: %s", err))
+			return
+		}
 	}
 
 	// Read the contents of the source directory
@@ -136,7 +139,7 @@ func CopyDir(sourceDir string, destinationDir string, logger logging.Logger) (er
 
 		// If a directory, then recurse, else copy all files
 		if sourceEntry.IsDir() {
-			err = CopyDir(sourcePath, destinationPath, logger)
+			err = CopyDir(sourcePath, destinationPath, overwrite, logger)
 			if err != nil {
 				return
 			}
@@ -156,6 +159,7 @@ func CopyDir(sourceDir string, destinationDir string, logger logging.Logger) (er
 
 	return nil
 }
+
 func MaybeCreateDestinationDir(path string, opts ...CreateOption) error {
 	co := &createOpts{
 		perms: 0755,
