@@ -56,7 +56,7 @@ func registryPackTable() *terminal.Table {
 }
 
 func packTable() *terminal.Table {
-	return terminal.NewTable("PACK NAME", "METADATA VERSION", "PACK REF", "REGISTRY NAME")
+	return terminal.NewTable("PACK NAME", "METADATA VERSION", "REGISTRY NAME")
 }
 
 func registryTableRow(cachedRegistry *cache.Registry) []terminal.TableEntry {
@@ -115,10 +115,6 @@ func packRow(cachedRegistry *cache.Registry, cachedPack *cache.Pack) []terminal.
 		// The metadata version
 		{
 			Value: cachedPack.Metadata.Pack.Version,
-		},
-		// Pack ref
-		{
-			Value: cachedPack.Ref,
 		},
 		// CachedRegistry name  user defined alias or registry URL slug
 		{
