@@ -9,8 +9,6 @@ the [detailed usage documentation](./detailed-usage.md).
 
 First, make a pack registry. This will be a repository that provides the structure, templates, and metadata that define your custom packs.
 
-<!-- TODO: MAKE THE EXAMPLE REPO -->
-
 Cloning [hashicorp/example-nomad-pack-registry](https://github.com/hashicorp/example-nomad-pack-registry) can give you a head start.
 
 Each registry should have a README.md file that describes the packs in it, and
@@ -19,7 +17,7 @@ pack. Conventionally, the pack subdirectory name matches the pack name.
 
 The top level of a pack registry looks like the following:
 
-```
+```plaintext
 .
 └── README.md
 └── packs
@@ -41,22 +39,25 @@ The directory should have the following contents:
 - A `variables.hcl` file that defines the variables in a pack.
 - An optional, but _highly encouraged_ `CHANGELOG.md` file that lists changes for each version of the pack.
 - An optional `outputs.tpl` file that defines an output to be printed when a pack is deployed.
-- A `templates` subdirectory containing the HCL templates used to render the jobspec.
+- A `templates` subdirectory containing the HCL templates used to render the output files.
 
 #### metadata.hcl
 
-The `metadata.hcl` file contains important key value information regarding the pack. It contains the following blocks and their associated fields:
+The `metadata.hcl` file contains important key value information about the pack. It contains the following blocks and their associated fields:
 
-- "app {url}" - The HTTP(S) url to the homepage of the application to provide a quick reference to the documentation and help pages.
-- "pack {name}" - The name of the pack.
-- "pack {description}" - A small overview of the application that is deployed by the pack.
-- "pack {version}" - The version of the pack.
-- "dependency {name}" - The dependencies that the pack has on other packs. Multiple dependencies can be supplied.
-- "dependency {source}" - The source URL for this dependency.
+- `app`
+  - `url` - The HTTP(S) URL to the homepage of the application to provide a quick reference to the documentation and help pages.
+- `pack`
+  - `name` - The name of the pack.
+  - `description` - A small overview of the application that is deployed by the pack.
+  - `version` - The version of the pack.
+- `dependency` - The dependencies that the pack has on other packs. Multiple dependencies can be supplied.
+  - `name` - The dependencies that the pack has on other packs. Multiple dependencies can be supplied.
+  - `source` - The source URL for this dependency.
 
 An example `metadata.hcl` file:
 
-```
+```hcl
 app {
   url = "https://github.com/mikenomitch/hello_world_server"
 }
@@ -72,11 +73,11 @@ pack {
 
 The `variables.hcl` file defines the variables required to fully render and deploy all the templates found within the "templates" directory.
 
-These variables are defined using [HCL](https://github.com/hashicorp/hcl).
+These variables are defined using [HCL][].
 
 An example `variables.hcl` file:
 
-```
+```hcl
 variable "datacenters" {
   description = "A list of datacenters in the region which are eligible for task placement."
   type        = list(string)
@@ -114,7 +115,7 @@ The `outputs.tpl` is an optional file that defines an output to be printed when 
 
 Output files have access to pack variables and template helper functions. A simple example:
 
-```
+```go
 Congrats on deploying [[ .nomad_pack.pack.name ]].
 
 There are [[ .hello_world.app_count ]] instances of your job now running on Nomad.
@@ -138,9 +139,9 @@ Templates are written using [Go Template Syntax](https://learn.hashicorp.com/tut
 
 Unlike default Go Template syntax, Nomad Pack uses "[[" and "]]" as delimiters.
 
-An example template using variables values from above:
+The following is an example template using variables values from earlier.
 
-```
+```hcl
 job "hello_world" {
   region      = "[[ .hello_world.region ]]"
   datacenters = [ [[ range $idx, $dc := .hello_world.datacenters ]][[if $idx]],[[end]][[ $dc | quote ]][[ end ]] ]
@@ -176,11 +177,12 @@ job "hello_world" {
 
 This is a relatively simple template that mostly sets variables.
 
-The `datacenters` value shows slightly more complex Go Template, which allows for [control structures](https://learn.hashicorp.com/tutorials/nomad/go-template-syntax#control-structure-list) like `range` and [pipelines](https://learn.hashicorp.com/tutorials/nomad/go-template-syntax#pipelines).
+The `datacenters` value demonstrates slightly more complex Go Templating, which
+allows for [control structures](https://learn.hashicorp.com/tutorials/nomad/go-template-syntax#control-structure-list) (like `range`) and [pipelines](https://learn.hashicorp.com/tutorials/nomad/go-template-syntax#pipelines).
 
 #### Template Functions
 
-To supplement the standard Go Template set of template functions, the (masterminds/sprig)[https://github.com/Masterminds/sprig] library is used. This adds helpers for various use cases such as string manipulation, cryptographics, and data conversion (for instance to and from JSON).
+To supplement the standard Go Template set of template functions, the [Masterminds/sprig](https://github.com/Masterminds/sprig) library is used. This adds helpers for various use cases such as string manipulation, cryptography, and data conversion (for instance to and from JSON).
 
 Custom Nomad-specific and debugging functions are also provided:
 
@@ -193,7 +195,7 @@ Custom Nomad-specific and debugging functions are also provided:
 
 A custom function within a template is called like any other:
 
-```
+```go
 [[ nomadRegions ]]
 [[ nomadRegions | spewDump ]]
 ```
@@ -202,12 +204,14 @@ A custom function within a template is called like any other:
 
 For complex packs, authors may want to reuse template snippets across multiple resources.
 
-For instance, if we had two jobs defined in a pack, and we knew both would re-use the same `region`
-logic for both, we could use a helper template to consolidate logic.
+For instance, suppose you have two jobs defined in your pack and both jobs reuse
+the same `region` logic. You can create a helper template to centralize that
+logic.
 
-Helper template names are prepended with an underscore "\_" and end in ".tpl". So we could define a helper called "\_region.tpl":
+Helper template names are prepended with an underscore `_` and end in `.tpl`.
+You could define a helper called "\_region.tpl" with the following code.
 
-```
+```hcl
 [[- define "region" -]]
 [[- if not (eq .hello_world.region "") -]]
 region = [[ .hello_world.region | quote]]
@@ -215,9 +219,10 @@ region = [[ .hello_world.region | quote]]
 [[- end -]]
 ```
 
-Then in the parent templates, "job_a.nomad.tpl" and "job_b.nomad.tpl", we would render to the helper template using its name:
+In the parent templates, "job_a.nomad.tpl" and "job_b.nomad.tpl", you use
+the template's name to render it in place.
 
-```
+```hcl
 job "job_a" {
   type = "service"
 
@@ -231,9 +236,9 @@ job "job_a" {
 
 Packs can depend on content from other packs.
 
-First, packs must define their dependencies in `metadata.hcl`. A pack block with a dependency would look like the following:
+First, packs must define their dependencies in `metadata.hcl`. A pack block with a dependency would look like the following.
 
-```
+```hcl
 app {
   url = "https://some-url-for-the-application.dev"
 }
@@ -250,9 +255,9 @@ dependency "demo_dep" {
 }
 ```
 
-This would allow templates of "simple_service" to use "demo_dep"'s helper templates in the following way:
+This would allow templates of "simple_service" to use "demo_dep"'s helper templates in the following way.
 
-```
+```hcl
 [[ template "demo_dep.data" . ]]
 ```
 
@@ -265,7 +270,7 @@ directory path as the name of the pack to the `run`, `plan`, `render`, `info`,
 For instance, if your current working directory is the directory where you are
 developing your pack, and `nomad-pack` is on your path, you can run this command.
 
-```
+```shell
 nomad-pack run .
 ```
 
@@ -277,23 +282,28 @@ To use your new pack, you will likely want to publish it to the internet. Push t
 accessible by your command line tool.
 
 If you wish to share your packs, please consider adding them to the
-[Nomad Pack Community Registry](https://github.com/hashicorp/nomad-pack-community-registry)
+[Nomad Pack Community Registry][].
 
 If you don't want to host a pack registry in version control, you can work locally
-using the filesystem method.
+using the file system method.
 
-## Step Six: Deploy your Custom Pack!
+## Step Six: Deploy your Custom Pack
 
 Add your custom repository using the `nomad-pack registry add` command.
 
-```
+```shell
 nomad-pack registry add my_packs github.com/<YOUR_ORG>/<YOUR_REPO>
 ```
 
 Deploy your custom packs.
 
-```
+```shell
 nomad-pack run hello_world --var app_count=1 --registry=my_packs
 ```
 
-Congrats! You can now write custom packs for Nomad!
+Your custom pack should now be running in your Nomad cluster.
+
+## Learn More
+
+[Nomad Pack community registry]: https://github.com/hashicorp/nomad-pack-community-registry
+[HCL]: https://github.com/hashicorp/hcl
