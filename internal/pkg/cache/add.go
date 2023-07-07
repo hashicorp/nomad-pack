@@ -14,11 +14,9 @@ import (
 	"time"
 
 	gg "github.com/hashicorp/go-getter"
-	"golang.org/x/exp/slices"
 
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/helper/filesystem"
-	"github.com/hashicorp/nomad-pack/internal/pkg/loader"
 )
 
 const tmpDir = "nomad-pack-tmp"
@@ -53,93 +51,6 @@ func (c *Cache) Add(opts *AddOpts) (*Registry, error) {
 	}
 
 	return c.addFromURI(opts)
-}
-
-// AddVendoredPack adds a pack that has been vendored to the global cache and
-// "vendor" registry.
-func (c *Cache) AddVendoredPack(opts *AddOpts) error {
-	logger := c.cfg.Logger
-
-	logger.Debug(fmt.Sprintf("procesing vendored pack %s", opts.PackName))
-
-	_, err := os.Stat(opts.CurrentLocation)
-	if err != nil {
-		logger.ErrorWithContext(err, "error reading vendored pack directory", c.ErrorContext.GetAll()...)
-		return err
-	}
-
-	// load the directory into a pack object
-	p, err := loader.Load(opts.CurrentLocation)
-	if err != nil {
-		logger.ErrorWithContext(err, "error loading pack from vendored pack directory", c.ErrorContext.GetAll()...)
-		return err
-	}
-
-	// get the sha of the pack if possible (vendored packs always get explicit refs)
-	sha, err := getGitHeadRef(opts.CurrentLocation)
-	if err != nil {
-		sha = "unknown"
-	}
-
-	// set file paths
-	vendorRegistryPath := path.Join(c.cfg.Path, "vendor", "latest")
-	packDestinationPath := path.Join(vendorRegistryPath, fmt.Sprintf("%s@%s", opts.PackName, sha))
-
-	// check if we have an existing "vendor" registry; if we don't, make one.
-	idx := slices.IndexFunc(c.Registries(), func(r *Registry) bool { return r.Name == "vendor" })
-	var vendorRegistryIdx int
-	if idx == -1 { // not found
-		if err := c.createVendorRegistry(vendorRegistryPath); err != nil {
-			return err
-		}
-		vendorRegistryIdx = 0
-	} else {
-		vendorRegistryIdx = idx
-	}
-
-	// copy the pack into the cache and the vendor registry dir
-	if err := filesystem.CopyDir(opts.CurrentLocation, packDestinationPath, true, c.cfg.Logger); err != nil {
-		logger.ErrorWithContext(err, fmt.Sprintf("error copying vendored pack %s to %s", opts.PackName, packDestinationPath))
-		return err
-	}
-
-	// check if perhaps we already have this very pack in the cache?
-	if !packAlreadyInCache(c.registries[vendorRegistryIdx], p.Name(), sha) {
-		c.registries[vendorRegistryIdx].Packs = append(c.registries[vendorRegistryIdx].Packs, &Pack{Ref: sha, Pack: p})
-	}
-
-	return nil
-}
-
-func packAlreadyInCache(registry *Registry, name string, sha string) bool {
-	idx := slices.IndexFunc(registry.Packs, func(p *Pack) bool {
-		return p.Name() == name && p.Ref == sha
-	})
-	return idx != -1
-}
-
-func (c *Cache) createVendorRegistry(path string) error {
-	vendorRegistry := &Registry{
-		Name:     "vendor",
-		Source:   "vendor",
-		Ref:      "latest", // vendor registry is always latest...
-		LocalRef: "latest", // ...even for localref (otherwise cli output looks weird)
-		Packs:    []*Pack{},
-	}
-	c.registries = append(c.registries, vendorRegistry)
-
-	// make sure the path is in the cache
-	if err := os.MkdirAll(path, DefaultDirPerms); err != nil {
-		return err
-	}
-
-	// Store a metadata JSON file for the cached registry
-	b, _ := json.MarshalIndent(vendorRegistry, "", "  ")
-	metaPath := filepath.Join(c.cfg.Path, vendorRegistry.Name, vendorRegistry.Ref, "/metadata.json")
-	if err := os.WriteFile(metaPath, b, 0644); err != nil {
-		return err
-	}
-	return nil
 }
 
 // addFromURI loads a registry from a remote git repository. If addToCache is

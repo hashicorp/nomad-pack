@@ -11,15 +11,13 @@ import (
 	gg "github.com/hashicorp/go-getter"
 	"github.com/hashicorp/hcl/v2/hclsimple"
 
-	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"github.com/hashicorp/nomad-pack/sdk/pack"
 	"github.com/hashicorp/nomad-pack/terminal"
 )
 
-// Vendor reads the metadata.hcl from the provided directory, downloads
-// dependencies, and adds them to a "vendor" registry if copyToCache flag is
-// set.
-func Vendor(ctx context.Context, ui terminal.UI, globalCache *cache.Cache, targetPath string, copyToCache bool) error {
+// Vendor reads the metadata.hcl from the provided directory and downloads
+// dependencies
+func Vendor(ctx context.Context, ui terminal.UI, targetPath string) error {
 	// attempt to read metadata.hcl
 	metadata := &pack.Metadata{}
 	err := hclsimple.DecodeFile(path.Join(targetPath, "metadata.hcl"), nil, metadata)
@@ -40,17 +38,6 @@ func Vendor(ctx context.Context, ui terminal.UI, globalCache *cache.Cache, targe
 			return fmt.Errorf("error downloading dependency: %v", err)
 		}
 		ui.Success("...success!")
-
-		if copyToCache {
-			// and add them to a "vendor" registry in the cache
-			if err := globalCache.AddVendoredPack(&cache.AddOpts{
-				Source:          d.Source,
-				PackName:        d.Name,
-				CurrentLocation: targetDir,
-			}); err != nil {
-				return err
-			}
-		}
 	}
 	return nil
 }

@@ -9,7 +9,6 @@ import (
 
 	"github.com/posener/complete"
 
-	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"github.com/hashicorp/nomad-pack/internal/pkg/deps"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
@@ -17,9 +16,8 @@ import (
 
 type depsVendorCommand struct {
 	*baseCommand
-	copyToCache bool
-	targetPath  string
-	seconds     int
+	targetPath string
+	seconds    int
 }
 
 func (d *depsVendorCommand) Run(args []string) int {
@@ -40,27 +38,11 @@ func (d *depsVendorCommand) Run(args []string) int {
 	// Generate our UI error context.
 	errorContext := errors.NewUIErrorContext()
 
-	// Get the global cache dir - may be configurable in the future, so using this
-	// helper function rather than a direct reference to the CONST.
-	globalCache, err := cache.NewCache(&cache.CacheConfig{
-		Path:   cache.DefaultCachePath(),
-		Logger: d.ui,
-	})
-	if err != nil {
-		return 1
-	}
-
-	// Load the list of registries.
-	err = globalCache.Load()
-	if err != nil {
-		return 1
-	}
-
 	timeout := time.Duration(d.seconds) * time.Second
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	err = deps.Vendor(ctx, d.ui, globalCache, d.targetPath, d.copyToCache)
+	err := deps.Vendor(ctx, d.ui, d.targetPath)
 	if err != nil {
 		d.ui.ErrorWithContext(err, "failed to vendor dependencies", errorContext.GetAll()...)
 		return 1
@@ -71,14 +53,6 @@ func (d *depsVendorCommand) Run(args []string) int {
 func (d *depsVendorCommand) Flags() *flag.Sets {
 	return d.flagSet(0, func(set *flag.Sets) {
 		f := set.NewSet("Vendoring Options")
-
-		f.BoolVar(&flag.BoolVar{
-			Name:    "copy",
-			Target:  &d.copyToCache,
-			Default: false,
-			Usage: `If true, the vendored packs will also be copied to the 
-				    global cache and available to pack.`,
-		})
 
 		f.StringVar(&flag.StringVar{
 			Name:    "path",

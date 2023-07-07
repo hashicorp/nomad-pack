@@ -13,8 +13,7 @@ the pack to their cluster.
 
 * **Vendoring Dependencies** - With `nomad-pack deps vendor`, you can
 automatically download all the dependencies listed in the `metadata.hcl` file
-into a `deps/` subdirectory, and optionally also add these dependencies to
-pack's global cache to be used by other pack commands.
+into a `deps/` subdirectory. 
 
 IMPROVEMENTS:
 

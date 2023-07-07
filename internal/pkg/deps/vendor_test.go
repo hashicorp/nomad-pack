@@ -18,7 +18,6 @@ import (
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/shoenig/test/must"
 
-	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"github.com/hashicorp/nomad-pack/internal/pkg/helper"
 	"github.com/hashicorp/nomad-pack/internal/pkg/helper/filesystem"
 	"github.com/hashicorp/nomad-pack/internal/testui"
@@ -53,14 +52,6 @@ func TestVendor(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	cacheDir := t.TempDir()
-	globalCache, err := cache.NewCache(&cache.CacheConfig{
-		Path:   cacheDir,
-		Logger: NoopLogger{},
-	})
-	must.NoError(t, err)
-	must.NotNil(t, globalCache)
-
 	uiStdout := new(bytes.Buffer)
 	uiStderr := new(bytes.Buffer)
 	uiCtx, cancel := helper.WithInterrupt(context.Background())
@@ -69,7 +60,7 @@ func TestVendor(t *testing.T) {
 
 	// first run against an empty directory
 	tmpDir1 := t.TempDir()
-	err = Vendor(ctx, ui, globalCache, tmpDir1, false)
+	err := Vendor(ctx, ui, tmpDir1)
 	must.NotNil(t, err)
 	must.ErrorContains(t, err, "does not exist")
 
@@ -87,38 +78,9 @@ func TestVendor(t *testing.T) {
 		t.Error(err)
 	}
 
-	err = Vendor(ctx, ui, globalCache, tmpDir2, false)
+	err = Vendor(ctx, ui, tmpDir2)
 	must.NotNil(t, err)
 	must.ErrorContains(t, err, "does not contain any dependencies")
-
-	// test adding to cache
-	tmpPackDir := t.TempDir()
-	f, err = os.Create(path.Join(tmpPackDir, "metadata.hcl"))
-	if err != nil {
-		t.Error(err)
-	}
-
-	tmpDependencySourceDir := t.TempDir()
-	must.NoError(t, createTestDepRepo(tmpDependencySourceDir))
-	goodMetadata.Dependencies[0].Source = path.Join(
-		tmpDependencySourceDir,
-		"simple_raw_exec",
-	)
-
-	fw = hclwrite.NewEmptyFile()
-	gohcl.EncodeIntoBody(&goodMetadata, fw.Body())
-	_, err = fw.WriteTo(f)
-	if err != nil {
-		t.Error(err)
-	}
-
-	err = Vendor(ctx, ui, globalCache, tmpPackDir, true)
-	must.Nil(t, err, must.Sprintf("vendoring failure: %v", err))
-	must.Eq(t, len(globalCache.Registries()), 1)
-	must.Eq(t, globalCache.Registries()[0].Name, "vendor")
-	must.Eq(t, len(globalCache.Registries()[0].Packs), 1)
-	must.Eq(t, globalCache.Registries()[0].Packs[0].Name(), "simple_raw_exec")
-	must.StrContains(t, uiStdout.String(), "success")
 
 	// test overwriting a vendored pack
 	tmpPackDir2 := t.TempDir()
@@ -130,7 +92,7 @@ func TestVendor(t *testing.T) {
 	tmpDependencySourceDir2 := t.TempDir()
 	must.NoError(t, createTestDepRepo(tmpDependencySourceDir2))
 	goodMetadata.Dependencies[0].Source = path.Join(
-		tmpDependencySourceDir,
+		tmpDependencySourceDir2,
 		"simple_raw_exec",
 	)
 
@@ -141,12 +103,8 @@ func TestVendor(t *testing.T) {
 		t.Error(err)
 	}
 
-	err = Vendor(ctx, ui, globalCache, tmpPackDir, true)
+	err = Vendor(ctx, ui, tmpPackDir2)
 	must.Nil(t, err, must.Sprintf("vendoring failure: %v", err))
-	must.Eq(t, len(globalCache.Registries()), 1, must.Sprintf("wrong number of registries"))
-	must.Eq(t, globalCache.Registries()[0].Name, "vendor")
-	must.Eq(t, len(globalCache.Registries()[0].Packs), 1, must.Sprintf("wrong number of packs"))
-	must.Eq(t, globalCache.Registries()[0].Packs[0].Name(), "simple_raw_exec")
 	must.StrContains(t, uiStdout.String(), "success")
 
 }
