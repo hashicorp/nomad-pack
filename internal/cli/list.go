@@ -15,6 +15,7 @@ import (
 type ListCommand struct {
 	*baseCommand
 	registry string
+	ref      string
 }
 
 func (c *ListCommand) Run(args []string) int {
@@ -51,7 +52,12 @@ func (c *ListCommand) Run(args []string) int {
 	table := packTable()
 	if len(globalCache.Registries()) > 0 {
 		for _, cachedRegistry := range globalCache.Registries() {
+			// filter by registry name if provided...
 			if c.registry != "" && cachedRegistry.Name != c.registry {
+				continue
+			}
+			// ...and filter by registry ref, too
+			if c.ref != "" && cachedRegistry.LocalRef != c.ref {
 				continue
 			}
 			for _, registryPack := range cachedRegistry.Packs {
@@ -80,6 +86,13 @@ func (c *ListCommand) Flags() *flag.Sets {
 			Target:  &c.registry,
 			Default: "",
 			Usage:   `Registry name to filter packs by.`,
+		})
+
+		f.StringVar(&flag.StringVar{
+			Name:    "ref",
+			Target:  &c.ref,
+			Default: "",
+			Usage:   `Registry ref to filter packs by.`,
 		})
 
 	})
