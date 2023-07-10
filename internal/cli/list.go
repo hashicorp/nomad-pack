@@ -14,6 +14,8 @@ import (
 // to the current machine.
 type ListCommand struct {
 	*baseCommand
+	registry string
+	ref      string
 }
 
 func (c *ListCommand) Run(args []string) int {
@@ -21,6 +23,7 @@ func (c *ListCommand) Run(args []string) int {
 	// Initialize. If we fail, we just exit since Init handles the UI.
 	if err := c.Init(
 		WithNoArgs(args),
+		WithFlags(c.Flags()),
 		WithNoConfig(),
 		WithClient(false),
 	); err != nil {
@@ -46,15 +49,26 @@ func (c *ListCommand) Run(args []string) int {
 	// Iterate over the registries and build a table row for each cachedRegistry/pack
 	// entry at each ref. Hierarchically, this should equate to the default
 	// cachedRegistry and all its peers.
+	table := packTable()
 	if len(globalCache.Registries()) > 0 {
-		table := packTable()
 		for _, cachedRegistry := range globalCache.Registries() {
+			// filter by registry name if provided...
+			if c.registry != "" && cachedRegistry.Name != c.registry {
+				continue
+			}
+			// ...and filter by registry ref, too
+			if c.ref != "" && cachedRegistry.LocalRef != c.ref {
+				continue
+			}
 			for _, registryPack := range cachedRegistry.Packs {
 				tableRow := packRow(cachedRegistry, registryPack)
 				table.Rows = append(table.Rows, tableRow)
 			}
 		}
-		// Display output table
+	}
+
+	// Display output table if any entries present
+	if len(table.Rows) > 0 {
 		c.ui.Table(table)
 	} else {
 		c.ui.Output("No packs present in the cache.")
@@ -64,7 +78,24 @@ func (c *ListCommand) Run(args []string) int {
 }
 
 func (c *ListCommand) Flags() *flag.Sets {
-	return c.flagSet(0, nil)
+	return c.flagSet(flagSetOperation|flagSetNomadClient, func(set *flag.Sets) {
+		f := set.NewSet("List Options")
+
+		f.StringVar(&flag.StringVar{
+			Name:    "registry",
+			Target:  &c.registry,
+			Default: "",
+			Usage:   `Registry name to filter packs by.`,
+		})
+
+		f.StringVar(&flag.StringVar{
+			Name:    "ref",
+			Target:  &c.ref,
+			Default: "",
+			Usage:   `Registry ref to filter packs by.`,
+		})
+
+	})
 }
 
 func (c *ListCommand) AutocompleteArgs() complete.Predictor {
