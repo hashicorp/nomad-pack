@@ -327,8 +327,6 @@ type AddOpts struct {
 	Username string
 	// Optional password for basic auth to a registry that requires authentication.
 	Password string
-	// Temporary pack location that we want to copy it from.
-	CurrentLocation string
 }
 
 // RegistryPath fulfills the cacheOperationProvider interface for AddOpts
