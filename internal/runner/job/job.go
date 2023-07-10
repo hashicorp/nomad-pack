@@ -107,11 +107,25 @@ func (r *Runner) Deploy(ui terminal.UI, errorContext *errors.UIErrorContext) *er
 		tplErrorContext := errorContext.Copy()
 		tplErrorContext.Add(errors.UIContextPrefixTemplateName, tplName)
 
+		templateFormat := func() string {
+			if r.cfg.RunConfig.HCL1 {
+				return "hcl1"
+			}
+			return "hcl2"
+		}()
+
+		// submit the source of the job to Nomad, too
+		submission := &api.JobSubmission{
+			Source: r.rawTemplates[tplName],
+			Format: templateFormat,
+		}
+
 		registerOpts := api.RegisterOptions{
 			EnforceIndex:   r.cfg.RunConfig.CheckIndex > 0,
 			ModifyIndex:    r.cfg.RunConfig.CheckIndex,
 			PolicyOverride: r.cfg.RunConfig.PolicyOverride,
 			PreserveCounts: r.cfg.RunConfig.PreserveCounts,
+			Submission:     submission,
 		}
 
 		// Submit the job
