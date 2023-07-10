@@ -10,10 +10,12 @@ import (
 	"sort"
 	"text/tabwriter"
 
-	flag "github.com/hashicorp/nomad-pack/internal/pkg/flag"
-	"github.com/hashicorp/nomad-pack/internal/pkg/version"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/go-glint"
+
+	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
+	"github.com/hashicorp/nomad-pack/internal/pkg/helper"
+	"github.com/hashicorp/nomad-pack/internal/pkg/version"
 )
 
 const (
@@ -59,7 +61,7 @@ func Main(args []string) int {
 	}
 
 	// Build our cancellation context
-	ctx, closer := WithInterrupt(context.Background())
+	ctx, closer := helper.WithInterrupt(context.Background())
 	defer closer()
 
 	// Get our base command
@@ -201,6 +203,16 @@ func Commands(
 		},
 		"generate var-file": func() (cli.Command, error) {
 			return &GenerateVarFileCommand{
+				baseCommand: baseCommand,
+			}, nil
+		},
+		"deps": func() (cli.Command, error) {
+			return &depsHelpCommand{
+				baseCommand: baseCommand,
+			}, nil
+		},
+		"deps vendor": func() (cli.Command, error) {
+			return &depsVendorCommand{
 				baseCommand: baseCommand,
 			}, nil
 		},

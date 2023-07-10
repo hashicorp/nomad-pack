@@ -6,12 +6,13 @@ package cli
 import (
 	"fmt"
 
+	"github.com/posener/complete"
+
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
 	"github.com/hashicorp/nomad-pack/internal/runner"
 	"github.com/hashicorp/nomad-pack/internal/runner/job"
-	"github.com/posener/complete"
 )
 
 type RunCommand struct {

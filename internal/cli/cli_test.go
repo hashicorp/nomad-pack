@@ -25,6 +25,7 @@ import (
 	ct "github.com/hashicorp/nomad-pack/internal/cli/testhelper"
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	flag "github.com/hashicorp/nomad-pack/internal/pkg/flag"
+	"github.com/hashicorp/nomad-pack/internal/pkg/helper"
 	"github.com/hashicorp/nomad-pack/internal/pkg/helper/filesystem"
 	"github.com/hashicorp/nomad-pack/internal/pkg/logging"
 	"github.com/hashicorp/nomad-pack/internal/pkg/version"
@@ -744,7 +745,7 @@ func runPackCmd(t *testing.T, args []string) PackCommandResult {
 	cmdErr := bytes.NewBuffer(make([]byte, 0))
 
 	// Build our cancellation context
-	ctx, closer := WithInterrupt(context.Background())
+	ctx, closer := helper.WithInterrupt(context.Background())
 	defer closer()
 
 	// Make a test UI
@@ -842,7 +843,9 @@ func createTestRegistries(t *testing.T) (*cache.Registry, *cache.Registry, strin
 	for _, r := range []string{"latest", testRef} {
 		must.NoError(t, filesystem.CopyDir(
 			getTestPackPath(testPack),
-			path.Join(regDir, r, testPack+"@"+r), logging.Default(),
+			path.Join(regDir, r, testPack+"@"+r),
+			false,
+			logging.Default(),
 		))
 	}
 

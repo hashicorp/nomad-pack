@@ -245,10 +245,11 @@ pack {
 }
 
 dependency "demo_dep" {
-  name   = “demo_dep”
   source = “git://source.git/packs/demo_dep”
 }
 ```
+
+The dependency name label *must* match the `name` property of the dependant pack, as specified in its `metadata.hcl`.
 
 This would allow templates of "simple_service" to use "demo_dep"'s helper templates in the following way:
 

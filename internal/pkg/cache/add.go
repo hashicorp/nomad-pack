@@ -210,7 +210,7 @@ func (c *Cache) processPackEntry(opts *AddOpts, packEntry os.DirEntry) error {
 
 	logger.Debug(fmt.Sprintf("Writing pack to %s", opts.PackPath()))
 
-	if err := filesystem.CopyDir(opts.clonedPackPath(c), opts.PackPath(), c.cfg.Logger); err != nil {
+	if err := filesystem.CopyDir(opts.clonedPackPath(c), opts.PackPath(), false, c.cfg.Logger); err != nil {
 		logger.ErrorWithContext(err, fmt.Sprintf("error copying cloned pack %s to %s", opts.clonedPackPath(c), opts.PackPath()))
 		return err
 	}

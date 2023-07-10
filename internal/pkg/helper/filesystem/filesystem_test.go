@@ -26,7 +26,7 @@ func TestRenameAll(t *testing.T) {
 
 	logger := logging.TestLogger{}
 
-	err = CopyDir(oldDir, path.Join(newDir, "test"), &logger)
+	err = CopyDir(oldDir, path.Join(newDir, "test"), false, &logger)
 	must.NoError(t, err)
 
 	dirEntries, err := os.ReadDir(newDir)
