@@ -53,6 +53,15 @@ func (c *RegistryListCommand) Run(args []string) int {
 			table.Rows = append(table.Rows, tableRow)
 		}
 		c.ui.Table(table)
+
+		// TODO: This message is to make upgrading from tech preview versions
+		// to 0.1 easier. Remove it at 0.2 release.
+		if table.Rows[0][2].Value == "" {
+			c.ui.Warning("It appears that you have a cache created before Nomad-Pack 0.1 (hence the\n" +
+				"missing values in LOCAL REF and REGISTRY URL columns). We recommend deleting\n" +
+				"your current cache and re-adding your registries to take full advantage of new\n" +
+				"`nomad-pack registry list` and `nomad-pack list` commands behavior.")
+		}
 	} else {
 		c.ui.Output("No registries present in the cache.")
 	}
