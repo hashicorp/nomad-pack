@@ -33,22 +33,27 @@ type packCreator struct {
 
 func CreatePack(c config.PackConfig) error {
 	ui := c.GetUI()
-	// First implementation is naive and destructive
-	outPath := c.OutPath
-	if outPath == "" {
-		outPath = "."
+
+	if c.OutPath == "" {
+		// This should never happen
+		return newCreatePackError(fmt.Errorf("failed to parse output path for pack"))
 	}
-	ui.Output("Creating %q Pack in %q...\n", c.PackName, outPath)
+
+	_, err := os.Stat(c.OutPath)
+	if err == nil && !c.Overwrite {
+		return newCreatePackError(
+			fmt.Errorf("%s appears to be non-empty, re-run the command with --overwrite to overwrite", c.OutPath),
+		)
+	}
+	ui.Output("Creating %q Pack in %q...\n", c.PackName, c.OutPath)
+
 	pc := packCreator{
 		name:    c.PackName,
-		path:    path.Join(outPath, c.PackName),
-		tplPath: path.Join(outPath, c.PackName, "templates"),
+		path:    path.Join(c.OutPath, c.PackName),
+		tplPath: path.Join(c.OutPath, c.PackName, "templates"),
 	}
 
-	// TODO: Make this optional
-	// TODO: Make this interactive
-
-	err := os.MkdirAll(pc.tplPath, cache.DefaultDirPerms)
+	err = os.MkdirAll(pc.tplPath, cache.DefaultDirPerms)
 	if err != nil {
 		return newCreatePackError(err)
 	}

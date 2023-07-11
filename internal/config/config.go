@@ -30,6 +30,9 @@ type PackConfig struct {
 	OutPath      string
 	AutoApproved bool
 
+	// If the directory we output to is not empty, should we overwrite?
+	Overwrite bool
+
 	// Used for the "registry generate" command
 	CreateSamplePack bool
 
