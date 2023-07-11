@@ -4,8 +4,6 @@
 package cli
 
 import (
-	"os"
-
 	"github.com/posener/complete"
 
 	"github.com/hashicorp/nomad-pack/internal/config"
@@ -56,18 +54,12 @@ func (c *GeneratePackCommand) Flags() *flag.Sets {
 		c.cfg = config.PackConfig{}
 		f := set.NewSet("Output Options")
 
-		// use absolute paths, otherwise we get problems down the road
-		outPath, err := os.Getwd()
-		if err != nil {
-			panic(err)
-		}
-
 		f.StringVarP(&flag.StringVarP{
 			StringVar: &flag.StringVar{
 				Name:    "to-dir",
 				Target:  &c.cfg.OutPath,
 				Usage:   `Path to write generated pack to.`,
-				Default: outPath,
+				Default: "",
 			},
 			Shorthand: "o",
 		})
