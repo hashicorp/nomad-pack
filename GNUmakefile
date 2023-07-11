@@ -69,16 +69,10 @@ hclfmt: ## Format HCL files with hclfmt
 
 .PHONY: dev
 dev:
-ifneq (,$(shell echo ${PACK_INSTALL_DEV}))
 	@echo "==> Building and installing nomad-pack..."
 	@CGO_ENABLED=0 go build -ldflags $(GO_LDFLAGS) -o ./bin/nomad-pack
 	@CGO_ENABLED=0 go install -ldflags $(GO_LDFLAGS)
 	@echo "==> Done"
-else
-	@echo "==> Building nomad-pack..."
-	@CGO_ENABLED=0 go build -ldflags $(GO_LDFLAGS) -o ./bin/nomad-pack
-	@echo "==> Done"
-endif
 
 pkg/%/nomad-pack: GO_OUT ?= $@
 pkg/windows_%/nomad-pack: GO_OUT = $@.exe
