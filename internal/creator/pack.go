@@ -43,11 +43,13 @@ func CreatePack(c config.PackConfig) error {
 		}
 	}
 
-	_, err = os.Stat(outPath)
+	_, err = os.Stat(path.Join(outPath, c.PackName))
 	if err == nil && !c.Overwrite {
 		return newCreatePackError(
-			fmt.Errorf("%s appears to be non-empty, re-run the command with --overwrite to overwrite", outPath),
-		)
+			fmt.Errorf(
+				"%s appears to be non-empty, re-run the command with --overwrite to overwrite",
+				path.Join(outPath, c.PackName),
+			))
 	}
 	ui.Output("Creating %q Pack in %q...\n", c.PackName, outPath)
 
