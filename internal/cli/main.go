@@ -202,7 +202,7 @@ func Commands(
 			}, nil
 		},
 		"generate var-file": func() (cli.Command, error) {
-			return &GenerateVarFileCommand{
+			return &generateVarFileCommand{
 				baseCommand: baseCommand,
 			}, nil
 		},

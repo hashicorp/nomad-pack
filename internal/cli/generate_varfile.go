@@ -7,22 +7,21 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
-	"path"
 	"strings"
+
+	"github.com/posener/complete"
 
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
-	"github.com/hashicorp/nomad-pack/internal/pkg/helper/filesystem"
 	"github.com/hashicorp/nomad-pack/terminal"
-	"github.com/posener/complete"
 )
 
-// GenerateVarFileCommand is a command that allows users to generate a skeleton
+// generateVarFileCommand is a command that allows users to generate a skeleton
 // variables value file based on the provided pack. This can be a useful start
 // to deploying a customized pack or for creating documentation for your own
 // pack.
-type GenerateVarFileCommand struct {
+type generateVarFileCommand struct {
 	*baseCommand
 	packConfig *cache.PackConfig
 
@@ -34,41 +33,7 @@ type GenerateVarFileCommand struct {
 	overwrite bool
 }
 
-type VarFile struct {
-	Name    string
-	Content string
-}
-
-func (v VarFile) toTerminal(c *GenerateVarFileCommand) {
-	c.ui.Output(v.Name+":", terminal.WithStyle(terminal.BoldStyle))
-	c.ui.Output("")
-	c.ui.Output(v.Content)
-}
-
-func (v VarFile) toFile(c *GenerateVarFileCommand, ec *errors.UIErrorContext) error {
-	renderTo := path.Clean(c.renderTo)
-	err := validateOutDir(renderTo)
-	if err != nil {
-		ec.Add("Destination Dir: ", renderTo)
-		return err
-	}
-
-	filePath, fileName := path.Split(v.Name)
-	outDir := path.Join(renderTo, filePath)
-	outFile := path.Join(outDir, fileName)
-
-	filesystem.MaybeCreateDestinationDir(outDir)
-
-	err = c.writeFile(outFile, v.Content)
-	if err != nil {
-		ec.Add("Destination File: ", outFile)
-		return err
-	}
-
-	return nil
-}
-
-func (c *GenerateVarFileCommand) confirmOverwrite(path string) (bool, error) {
+func (c *generateVarFileCommand) confirmOverwrite(path string) (bool, error) {
 	// For non-interactive UIs, the value must be passed by flag.
 	if !c.ui.Interactive() {
 		return c.autoApproved, nil
@@ -99,7 +64,7 @@ func (c *GenerateVarFileCommand) confirmOverwrite(path string) (bool, error) {
 	}
 }
 
-func (c *GenerateVarFileCommand) validateOutFile(path string) error {
+func (c *generateVarFileCommand) validateOutFile(path string) error {
 	if path == "" {
 		return nil
 	}
@@ -120,7 +85,7 @@ func (c *GenerateVarFileCommand) validateOutFile(path string) error {
 	return nil
 }
 
-func (c *GenerateVarFileCommand) writeFile(path string, content string) error {
+func (c *generateVarFileCommand) writeFile(path string, content string) error {
 	// Check to see if the file already exists and validate against the value
 	// of overwrite.
 	_, err := os.Stat(path)
@@ -144,7 +109,7 @@ func (c *GenerateVarFileCommand) writeFile(path string, content string) error {
 }
 
 // Run satisfies the Run function of the cli.Command interface.
-func (c *GenerateVarFileCommand) Run(args []string) int {
+func (c *generateVarFileCommand) Run(args []string) int {
 	c.cmdKey = "var-file" // Add cmdKey here to print out helpUsageMessage on Init error
 
 	if err := c.Init(
@@ -167,23 +132,27 @@ func (c *GenerateVarFileCommand) Run(args []string) int {
 		return 1
 	}
 
-	if err := c.validateOutFile(c.renderTo); err != nil {
-		c.ui.Error(err.Error())
-		return 1
-	}
-
 	packManager := generatePackManager(c.baseCommand, nil, c.packConfig)
-
 	renderOutput, err := renderVariableOverrideFile(packManager, c.baseCommand.ui, errorContext)
 	if err != nil {
 		return 1
 	}
 
 	c.ui.Output(renderOutput.AsOverrideFile())
+	if c.renderTo != "" {
+		if err := c.validateOutFile(c.renderTo); err != nil {
+			c.ui.Error(err.Error())
+			return 1
+		}
+		if err := c.writeFile(c.renderTo, renderOutput.AsOverrideFile()); err != nil {
+			c.ui.Error(err.Error())
+			return 1
+		}
+	}
 	return 0
 }
 
-func (c *GenerateVarFileCommand) Flags() *flag.Sets {
+func (c *generateVarFileCommand) Flags() *flag.Sets {
 	return c.flagSet(flagSetNeedsApproval, func(set *flag.Sets) {
 		c.packConfig = &cache.PackConfig{}
 
@@ -220,16 +189,16 @@ func (c *GenerateVarFileCommand) Flags() *flag.Sets {
 	})
 }
 
-func (c *GenerateVarFileCommand) AutocompleteArgs() complete.Predictor {
+func (c *generateVarFileCommand) AutocompleteArgs() complete.Predictor {
 	return complete.PredictNothing
 }
 
-func (c *GenerateVarFileCommand) AutocompleteFlags() complete.Flags {
+func (c *generateVarFileCommand) AutocompleteFlags() complete.Flags {
 	return c.Flags().Completions()
 }
 
 // Help satisfies the Help function of the cli.Command interface.
-func (c *GenerateVarFileCommand) Help() string {
+func (c *generateVarFileCommand) Help() string {
 
 	c.Example = `
 	# Render a variables override file for the given pack to standard output.
@@ -258,6 +227,6 @@ func (c *GenerateVarFileCommand) Help() string {
 }
 
 // Synopsis satisfies the Synopsis function of the cli.Command interface.
-func (c *GenerateVarFileCommand) Synopsis() string {
+func (c *generateVarFileCommand) Synopsis() string {
 	return "Render the templates within a pack"
 }
