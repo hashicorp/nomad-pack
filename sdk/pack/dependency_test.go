@@ -7,8 +7,6 @@ import (
 	"testing"
 
 	"github.com/shoenig/test/must"
-
-	"github.com/hashicorp/nomad-pack/internal/pkg/helper/pointer"
 )
 
 func TestDependency_Validate(t *testing.T) {
@@ -26,7 +24,7 @@ func TestDependency_Validate(t *testing.T) {
 			expectedOutputDependency: &Dependency{
 				Name:    "example",
 				Source:  "git://example.com/example",
-				Enabled: pointer.Of(true),
+				Enabled: pointerOf(true),
 			},
 			name: "nil enabled input",
 		},
@@ -34,12 +32,12 @@ func TestDependency_Validate(t *testing.T) {
 			inputDependency: &Dependency{
 				Name:    "example",
 				Source:  "git://example.com/example",
-				Enabled: pointer.Of(false),
+				Enabled: pointerOf(false),
 			},
 			expectedOutputDependency: &Dependency{
 				Name:    "example",
 				Source:  "git://example.com/example",
-				Enabled: pointer.Of(false),
+				Enabled: pointerOf(false),
 			},
 			name: "false enabled input",
 		},
@@ -47,12 +45,12 @@ func TestDependency_Validate(t *testing.T) {
 			inputDependency: &Dependency{
 				Name:    "example",
 				Source:  "git://example.com/example",
-				Enabled: pointer.Of(true),
+				Enabled: pointerOf(true),
 			},
 			expectedOutputDependency: &Dependency{
 				Name:    "example",
 				Source:  "git://example.com/example",
-				Enabled: pointer.Of(true),
+				Enabled: pointerOf(true),
 			},
 			name: "false enabled input",
 		},
