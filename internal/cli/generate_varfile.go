@@ -25,12 +25,14 @@ type generateVarFileCommand struct {
 	*baseCommand
 	packConfig *cache.PackConfig
 
-	// renderTo is the path to write rendered var override files to in
-	// addition to standard output.
+	// renderTo is the path to write rendered var override files to
 	renderTo string
 
 	// overwriteAll is set to true when someone specifies "a" to the y/n/a
 	overwrite bool
+
+	// print tells us to output to stdout or not
+	print bool
 }
 
 func (c *generateVarFileCommand) confirmOverwrite(path string) (bool, error) {
@@ -138,16 +140,19 @@ func (c *generateVarFileCommand) Run(args []string) int {
 		return 1
 	}
 
-	c.ui.Output(renderOutput.AsOverrideFile())
-	if c.renderTo != "" {
-		if err := c.validateOutFile(c.renderTo); err != nil {
-			c.ui.Error(err.Error())
-			return 1
-		}
-		if err := c.writeFile(c.renderTo, renderOutput.AsOverrideFile()); err != nil {
-			c.ui.Error(err.Error())
-			return 1
-		}
+	if err := c.validateOutFile(c.renderTo); err != nil {
+		c.ui.Error(err.Error())
+		return 1
+	}
+	if err := c.writeFile(c.renderTo, renderOutput.AsOverrideFile()); err != nil {
+		c.ui.Error(err.Error())
+		return 1
+	}
+
+	if c.print {
+		c.ui.Output(renderOutput.AsOverrideFile())
+	} else {
+		c.ui.Output(fmt.Sprintf("Successfully wrote variable override file to %s.", c.renderTo))
 	}
 	return 0
 }
@@ -179,12 +184,22 @@ func (c *generateVarFileCommand) Flags() *flag.Sets {
 
 		f.StringVarP(&flag.StringVarP{
 			StringVar: &flag.StringVar{
-				Name:   "to-file",
-				Target: &c.renderTo,
-				Usage: `Path to write rendered variable override file to in addition to
-						standard output.`,
+				Name:    "filename",
+				Target:  &c.renderTo,
+				Default: "output.hcl",
+				Usage:   `Path to write rendered variable override file to.`,
 			},
-			Shorthand: "o",
+			Shorthand: "f",
+		})
+
+		f.BoolVarP(&flag.BoolVarP{
+			BoolVar: &flag.BoolVar{
+				Name:    "print",
+				Target:  &c.print,
+				Default: false,
+				Usage:   `Should we ouptut to stdout?`,
+			},
+			Shorthand: "p",
 		})
 	})
 }
