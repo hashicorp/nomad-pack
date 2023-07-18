@@ -38,7 +38,7 @@ jobs:
           make test-certs
 
       # install nomad
-      - name: Install nomad
+      - name: Install Nomad
         run : |
           sudo apt -y install wget gpg coreutils
           wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
