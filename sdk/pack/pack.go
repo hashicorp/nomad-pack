@@ -3,7 +3,11 @@
 
 package pack
 
-import "errors"
+import (
+	"errors"
+	"path"
+	"strings"
+)
 
 // File is an individual file component of a Pack.
 type File struct {
@@ -53,8 +57,12 @@ type Pack struct {
 	dependencies []*Pack
 
 	// parent tracks the parent pack for dependencies. In the case that this is
-	// the parent pack, this will be nil.
+	// the root pack, this will be nil.
 	parent *Pack
+
+	// alias tracks the name assigned by the parent pack for any dependencies.
+	// In the case that this is the parent pack, this will be nil.
+	alias string
 }
 
 // Name returns the name of the pack. The canonical value for this comes from
@@ -65,6 +73,14 @@ func (p *Pack) Name() string { return p.Metadata.Pack.Name }
 // top level pack.
 func (p *Pack) HasParent() bool { return p.parent != nil }
 
+// AddDependency to the pack, correctly setting their parent pack identifier and
+// alias.
+func (p *Pack) AddDependency(alias string, pack *Pack) {
+	pack.parent = p
+	pack.alias = alias
+	p.dependencies = append(p.dependencies, pack)
+}
+
 // AddDependencies to the pack, correctly setting their parent pack identifier.
 func (p *Pack) AddDependencies(packs ...*Pack) {
 	for i, depPack := range packs {
@@ -73,7 +89,7 @@ func (p *Pack) AddDependencies(packs ...*Pack) {
 	}
 }
 
-// Dependencies returns the list of dependence the Pack has.
+// Dependencies returns the list of dependencies the Pack has.
 func (p *Pack) Dependencies() []*Pack { return p.dependencies }
 
 // RootVariableFiles generates a mapping of all root variable files for the
@@ -87,10 +103,22 @@ func (p *Pack) RootVariableFiles() map[string]*File {
 	// Iterate the dependency packs and add entries into the variable file
 	// mapping for each.
 	for _, dep := range p.dependencies {
-		out[dep.Name()] = dep.RootVariableFile
+		dep.rootVariableFiles(p.Name(), &out)
 	}
 
 	return out
+}
+
+func (p *Pack) rootVariableFiles(k string, acc *map[string]*File) {
+	pn := p.Name()
+	if p.alias != "" {
+		pn = p.alias
+	}
+	key := strings.Join([]string{k, pn}, ".")
+	(*acc)[key] = p.RootVariableFile
+	for _, dep := range p.dependencies {
+		dep.rootVariableFiles(key, acc)
+	}
 }
 
 // Validate the pack for terminal problems that can easily be detected at this
@@ -107,4 +135,18 @@ func (p *Pack) Validate() error {
 	}
 
 	return nil
+}
+
+func (p *Pack) parentPath() string {
+	return p.parentPathImpl()
+}
+
+func (p *Pack) parentPathImpl() string {
+	var pPath string
+	if p.parent == nil {
+		pPath = p.Name()
+	} else {
+		pPath = path.Join(p.parentPathImpl(), p.Name())
+	}
+	return pPath
 }
