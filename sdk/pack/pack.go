@@ -9,6 +9,10 @@ import (
 	"strings"
 )
 
+type PackID string
+
+func (p PackID) String() string { return string(p) }
+
 // File is an individual file component of a Pack.
 type File struct {
 
@@ -77,6 +81,14 @@ func (p *Pack) Alias() string {
 	return p.Metadata.Pack.Alias
 }
 
+// PackID returns the identifier for the pack. The function returns a PackID
+// which implements the Stringer interface
+func (p *Pack) PackID() PackID {
+	if p.Metadata.Pack.Alias != "" {
+		return PackID(p.Metadata.Pack.Alias)
+	}
+	return PackID(p.Metadata.Pack.Name)
+}
 
 // HasParent reports whether this pack has a parent or can be considered the
 // top level pack.
