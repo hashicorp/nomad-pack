@@ -100,7 +100,7 @@ func (pm *PackManager) ProcessTemplates(renderAux bool, format bool, ignoreMissi
 		return nil, wErr
 	}
 
-	mapVars, diags := parsedVars.ConvertVariablesToMapInterface()
+	mapVars, diags := parsedVars.ConvertVariablesToMapOfAny()
 	if diags != nil && diags.HasErrors() {
 		return nil, errors.HCLDiagsToWrappedUIContext(diags)
 	}

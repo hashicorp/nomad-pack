@@ -13,6 +13,8 @@ import (
 	"github.com/mitchellh/go-wordwrap"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
+	"golang.org/x/exp/maps"
+	"golang.org/x/exp/slices"
 )
 
 const VarEnvPrefix = "NOMAD_PACK_VAR_"
@@ -104,14 +106,14 @@ type ParsedVariables struct {
 	Metadata *pack.Metadata
 }
 
-// ConvertVariablesToMapInterface translates the parsed variables into their
+// ConvertVariablesToMapOfAny translates the parsed variables into their
 // native go types. The returned map is always keyed by the pack namespace for
 // the variables.
 //
 // Even though parsing the variable went without error, it is highly possible
 // that conversion to native go types can incur an error. If an error is
 // returned, it should be considered terminal.
-func (p *ParsedVariables) ConvertVariablesToMapInterface() (map[string]any, hcl.Diagnostics) {
+func (p *ParsedVariables) ConvertVariablesToMapOfAny() (map[string]any, hcl.Diagnostics) {
 
 	// Create our output; no matter what we return something.
 	out := make(map[string]any)
@@ -121,6 +123,12 @@ func (p *ParsedVariables) ConvertVariablesToMapInterface() (map[string]any, hcl.
 	// in a single cycle.
 	var diags hcl.Diagnostics
 
+	packNames := maps.Keys(p.Vars)
+	slices.Sort(packNames)
+	fmt.Println(packNames)
+	for _, packName := range packNames {
+		fmt.Println(packName)
+	}
 	// Iterate each set of pack variable.
 	for packName, variables := range p.Vars {
 
@@ -173,9 +181,11 @@ func (v Variable) AsOverrideString(packName string) string {
 	if v.hasDefault {
 		out.WriteString(fmt.Sprintf("#   default: %s\n", printDefault(v.Value)))
 	}
+
 	if v.hasDefault {
 		out.WriteString(fmt.Sprintf("#\n# %s.%s=%s\n\n", packName, v.Name, printDefault(v.Value)))
 	}
+
 	out.WriteString("\n")
 	return out.String()
 }
@@ -183,10 +193,17 @@ func (v Variable) AsOverrideString(packName string) string {
 func (vf ParsedVariables) AsOverrideFile() string {
 	var out strings.Builder
 	out.WriteString(vf.varFileHeader())
-	// TODO: this should have a stable order.
-	for p, vs := range vf.Vars {
-		for _, v := range vs {
-			out.WriteString(v.AsOverrideString(p))
+
+	packnames := maps.Keys(vf.Vars)
+	slices.Sort(packnames)
+	for _, packname := range packnames {
+		vs := vf.Vars[packname]
+
+		varnames := maps.Keys(vs)
+		slices.Sort(varnames)
+		for _, varname := range varnames {
+			v := vs[varname]
+			out.WriteString(v.AsOverrideString(packname))
 		}
 	}
 
