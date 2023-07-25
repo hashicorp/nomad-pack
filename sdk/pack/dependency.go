@@ -15,6 +15,11 @@ type Dependency struct {
 	// a dependency with different variables.
 	Name string `hcl:"name,label"`
 
+	// Alias overrides the dependency pack's Name in references when set,
+	// allowing the same pack source to be used multiple times as with different
+	// variable values.
+	Alias string `hcl:"alias,optional"`
+
 	// Source is the remote source where the pack can be fetched. This string
 	// can follow any format as supported by go-getter or be a local path
 	// indicating the pack has already been downloaded.

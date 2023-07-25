@@ -43,6 +43,9 @@ type MetadataPack struct {
 	// rendering.
 	Name string `hcl:"name"`
 
+	// Alias will optionally override the provided Pack name value when set
+	Alias string `hcl:"alias,optional"`
+
 	// Description is a small overview of the application that is deployed by
 	// the pack.
 	Description string `hcl:"description,optional"`

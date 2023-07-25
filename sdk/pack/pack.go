@@ -67,7 +67,16 @@ type Pack struct {
 
 // Name returns the name of the pack. The canonical value for this comes from
 // the Pack.Name Metadata struct field.
-func (p *Pack) Name() string { return p.Metadata.Pack.Name }
+func (p *Pack) Name() string {
+	return p.Metadata.Pack.Name
+}
+
+// Alias returns the alias assigned to the pack. The canonical value for this
+// comes from the Pack.Alias Metadata struct field.
+func (p *Pack) Alias() string {
+	return p.Metadata.Pack.Alias
+}
+
 
 // HasParent reports whether this pack has a parent or can be considered the
 // top level pack.
