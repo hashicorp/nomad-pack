@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclparse"
+	"github.com/hashicorp/nomad-pack/internal/pkg/errors/packdiags"
 	"github.com/hashicorp/nomad-pack/sdk/pack"
 	"github.com/spf13/afero"
 	"github.com/zclconf/go-cty/cty"
@@ -131,7 +132,7 @@ func (p *Parser) Parse() (*ParsedVariables, hcl.Diagnostics) {
 				existing, exists := p.rootVars[packName][v.Name]
 				if !exists {
 					if !p.cfg.IgnoreMissingVars {
-						diags = diags.Append(diagnosticMissingRootVar(v.Name, v.DeclRange.Ptr()))
+						diags = diags.Append(packdiags.DiagMissingRootVar(v.Name, v.DeclRange.Ptr()))
 					}
 					continue
 				}
@@ -153,13 +154,7 @@ func (p *Parser) loadOverrideFile(file string) (hcl.Body, hcl.Diagnostics) {
 	// in all the time feels bad.
 	src = append(src, "\n"...)
 	if err != nil {
-		return nil, hcl.Diagnostics{
-			{
-				Severity: hcl.DiagError,
-				Summary:  "Failed to read file",
-				Detail:   fmt.Sprintf("The file %q could not be read.", file),
-			},
-		}
+		return nil, hcl.Diagnostics{packdiags.DiagFileNotFound(file)}
 	}
 
 	return p.loadPackFile(&pack.File{Path: file, Content: src})

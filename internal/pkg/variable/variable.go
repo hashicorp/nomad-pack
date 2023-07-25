@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/nomad-pack/internal/pkg/errors/packdiags"
 	"github.com/hashicorp/nomad-pack/sdk/pack"
 	"github.com/mitchellh/go-wordwrap"
 	"github.com/zclconf/go-cty/cty"
@@ -74,19 +75,19 @@ func (v *Variable) merge(new *Variable) hcl.Diagnostics {
 			switch {
 			case new.Type != cty.NilType && new.Value == cty.NilVal:
 				diags = safeDiagnosticsAppend(diags,
-					diagnosticInvalidDefaultValue(
+					packdiags.DiagInvalidDefaultValue(
 						fmt.Sprintf("Overriding this variable's type constraint has made its default value invalid: %s.", err),
 						new.DeclRange.Ptr(),
 					))
 			case new.Type == cty.NilType && new.Value != cty.NilVal:
 				diags = safeDiagnosticsAppend(diags,
-					diagnosticInvalidDefaultValue(
+					packdiags.DiagInvalidDefaultValue(
 						fmt.Sprintf("The overridden default value for this variable is not compatible with the variable's type constraint: %s.", err),
 						new.DeclRange.Ptr(),
 					))
 			default:
 				diags = safeDiagnosticsAppend(diags,
-					diagnosticInvalidDefaultValue(
+					packdiags.DiagInvalidDefaultValue(
 						fmt.Sprintf("This variable's default value is not compatible with its type constraint: %s.", err),
 						new.DeclRange.Ptr(),
 					))
@@ -139,7 +140,7 @@ func (p *ParsedVariables) ConvertVariablesToMapOfAny() (map[string]any, hcl.Diag
 		for variableName, variable := range variables {
 			varInterface, err := convertCtyToInterface(variable.Value)
 			if err != nil {
-				diags = safeDiagnosticsAppend(diags, diagnosticFailedToConvertCty(err, variable.DeclRange.Ptr()))
+				diags = safeDiagnosticsAppend(diags, packdiags.DiagFailedToConvertCty(err, variable.DeclRange.Ptr()))
 				continue
 			}
 			packVar[variableName] = varInterface

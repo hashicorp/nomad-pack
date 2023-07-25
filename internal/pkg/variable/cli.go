@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/hashicorp/nomad-pack/internal/pkg/errors/packdiags"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -120,7 +121,7 @@ func (p *Parser) parseCLIVariable(name string, rawVal string) hcl.Diagnostics {
 	// consistent type.
 	existing, exists := p.rootVars[packVarName[0]][packVarName[1]]
 	if !exists {
-		return hcl.Diagnostics{diagnosticMissingRootVar(name, &fakeRange)}
+		return hcl.Diagnostics{packdiags.DiagMissingRootVar(name, &fakeRange)}
 	}
 
 	expr, diags := expressionFromVariableDefinition(fakeRange.Filename, rawVal, existing.Type)

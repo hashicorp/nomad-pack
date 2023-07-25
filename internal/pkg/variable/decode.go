@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/ext/typeexpr"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/hashicorp/nomad-pack/internal/pkg/errors/packdiags"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 )
@@ -32,7 +33,7 @@ func decodeVariableBlock(block *hcl.Block) (*Variable, hcl.Diagnostics) {
 	// Ensure the variable name is valid. If this isn't checked it will cause
 	// problems in future use.
 	if !hclsyntax.ValidIdentifier(v.Name) {
-		diags = diags.Append(diagnosticInvalidVariableName(v.DeclRange.Ptr()))
+		diags = diags.Append(packdiags.DiagInvalidVariableName(v.DeclRange.Ptr()))
 	}
 
 	// A variable doesn't need to declare a description. If it does, process
@@ -89,7 +90,7 @@ func decodeVariableBlock(block *hcl.Block) (*Variable, hcl.Diagnostics) {
 func convertValUsingType(val cty.Value, typ cty.Type, sub *hcl.Range) (cty.Value, *hcl.Diagnostic) {
 	newVal, err := convert.Convert(val, typ)
 	if err != nil {
-		return cty.DynamicVal, diagnosticInvalidValueForType(err, sub)
+		return cty.DynamicVal, packdiags.DiagInvalidValueForType(err, sub)
 	}
 	return newVal, nil
 }
