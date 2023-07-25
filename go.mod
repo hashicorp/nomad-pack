@@ -2,8 +2,6 @@ module github.com/hashicorp/nomad-pack
 
 go 1.20
 
-replace github.com/hashicorp/hcl/v2 => github.com/hashicorp/hcl/v2 v2.9.2-0.20220525143345-ab3cae0737bc
-
 require (
 	github.com/Masterminds/sprig/v3 v3.2.3
 	github.com/bgentry/speakeasy v0.1.0
@@ -16,7 +14,7 @@ require (
 	github.com/hashicorp/go-hclog v1.5.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/hcl v1.0.1-vault-5
-	github.com/hashicorp/hcl/v2 v2.17.0
+	github.com/hashicorp/hcl/v2 v2.17.1-0.20230725002108-58caf00be5aa
 	github.com/hashicorp/nomad v1.5.6
 	github.com/hashicorp/nomad/api v0.0.0-20230714175125-1e7726ce93d9
 	github.com/kr/text v0.2.0
@@ -33,6 +31,7 @@ require (
 	github.com/spf13/afero v1.9.5
 	github.com/spf13/pflag v1.0.5
 	github.com/zclconf/go-cty v1.13.2
+	golang.org/x/exp v0.0.0-20230108222341-4b8118a2686a
 	golang.org/x/term v0.10.0
 	golang.org/x/text v0.11.0
 )
@@ -267,7 +266,6 @@ require (
 	go.opencensus.io v0.24.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	golang.org/x/crypto v0.9.0 // indirect
-	golang.org/x/exp v0.0.0-20230108222341-4b8118a2686a // indirect
 	golang.org/x/mod v0.8.0 // indirect
 	golang.org/x/net v0.10.0 // indirect
 	golang.org/x/oauth2 v0.4.0 // indirect
