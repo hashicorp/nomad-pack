@@ -1,0 +1,5 @@
+# deps_test_1.job_name="A"
+# deps_test_1.child1.job_name="A.1"
+# deps_test_1.child1.gc.job_name="A.1.a"
+# deps_test_1.child2.job_name="A.2"
+# deps_test_1.child2.gc.job_name="A.2.a"

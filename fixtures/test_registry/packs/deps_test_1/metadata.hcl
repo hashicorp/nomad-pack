@@ -14,10 +14,8 @@ pack {
 
 dependency "child" {
   alias = "child1"
-  source = "./child"
 }
 
 dependency "child" {
   alias = "child2"
-  source = "./child"
 }

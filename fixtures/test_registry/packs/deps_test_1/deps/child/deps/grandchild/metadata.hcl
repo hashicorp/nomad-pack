@@ -6,11 +6,7 @@ app {
 }
 
 pack {
-  name        = "child"
+  name        = "grandchild"
   description = "render-only child dependency"
   version     = "0.0.1"
-}
-
-dependency "grandchild" {
-  alias = "gc"
 }

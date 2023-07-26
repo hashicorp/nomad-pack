@@ -13,9 +13,5 @@ pack {
   version     = "0.0.1"
 }
 
-dependency "child1" {
-  source = "./deps/child1"
-}
-dependency "child2" {
-  source = "./deps/child2"
-}
+dependency "child1" {}
+dependency "child2" {}
