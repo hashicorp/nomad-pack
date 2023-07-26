@@ -26,13 +26,13 @@ func decodeVariableBlock(block *hcl.Block) (*Variable, hcl.Diagnostics) {
 	}
 
 	v := &Variable{
-		Name:      block.Labels[0],
+		Name:      VariableID(block.Labels[0]),
 		DeclRange: block.DefRange,
 	}
 
 	// Ensure the variable name is valid. If this isn't checked it will cause
 	// problems in future use.
-	if !hclsyntax.ValidIdentifier(v.Name) {
+	if !hclsyntax.ValidIdentifier(v.Name.String()) {
 		diags = diags.Append(packdiags.DiagInvalidVariableName(v.DeclRange.Ptr()))
 	}
 
@@ -43,8 +43,7 @@ func decodeVariableBlock(block *hcl.Block) (*Variable, hcl.Diagnostics) {
 		diags = safeDiagnosticsExtend(diags, descDiags)
 
 		if val.Type() == cty.String {
-			v.hasDescription = true
-			v.Description = val.AsString()
+			v.SetDescription(val.AsString())
 		} else {
 			diags = safeDiagnosticsAppend(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
@@ -61,8 +60,7 @@ func decodeVariableBlock(block *hcl.Block) (*Variable, hcl.Diagnostics) {
 	if attr, exists := content.Attributes[variableAttributeType]; exists {
 		ty, tyDiags := typeexpr.Type(attr.Expr)
 		diags = safeDiagnosticsExtend(diags, tyDiags)
-		v.hasType = true
-		v.Type = ty
+		v.SetType(ty)
 	}
 
 	// A variable doesn't need to declare a default. If it does, process this
@@ -78,8 +76,7 @@ func decodeVariableBlock(block *hcl.Block) (*Variable, hcl.Diagnostics) {
 			val, err = convertValUsingType(val, v.Type, attr.Expr.Range().Ptr())
 			diags = safeDiagnosticsAppend(diags, err)
 		}
-		v.hasDefault = true
-		v.Default = val
+		v.SetDefault(val)
 		v.Value = val
 	}
 

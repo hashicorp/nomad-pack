@@ -30,6 +30,21 @@ type Dependency struct {
 	Enabled *bool `hcl:"enabled,optional"`
 }
 
+// AliasOrName returns the pack's Alias or the pack's Name, preferring the
+// Alias when set.
+func (d *Dependency) AliasOrName() string {
+	if d.Alias != "" {
+		return d.Alias
+	}
+	return d.Name
+}
+
+// PackID returns the identifier for the pack. The function returns a PackID
+// which implements the Stringer interface
+func (d *Dependency) PackID() PackID {
+	return PackID(d.AliasOrName())
+}
+
 // validate the Dependency object to ensure it meets requirements and doesn't
 // contain invalid or incorrect data.
 func (d *Dependency) validate() error {

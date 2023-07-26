@@ -103,6 +103,7 @@ func (md *Metadata) ConvertToMapInterface() map[string]any {
 			"description": md.Pack.Description,
 			"version":     md.Pack.Version,
 		},
+		"dependencies": []map[string]any{},
 	}
 	if md.Integration != nil {
 		innerMap["integration"] = map[string]any{
@@ -111,6 +112,19 @@ func (md *Metadata) ConvertToMapInterface() map[string]any {
 			"name":       md.Integration.Name,
 		}
 	}
+
+	dSlice := make([]map[string]any, len(md.Dependencies))
+	for i, d := range md.Dependencies {
+		dSlice[i] = map[string]any{
+			d.AliasOrName(): map[string]any{
+				"name":    d.Name,
+				"alias":   d.Alias,
+				"source":  d.Source,
+				"enabled": d.Enabled,
+			},
+		}
+	}
+	innerMap["dependencies"] = dSlice
 
 	return map[string]any{"nomad_pack": innerMap}
 }

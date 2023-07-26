@@ -6,12 +6,12 @@ package pack
 import (
 	"errors"
 	"path"
-	"strings"
 )
 
 type PackID string
 
-func (p PackID) String() string { return string(p) }
+func (p PackID) String() string           { return string(p) }
+func (p PackID) Join(child PackID) PackID { return PackID(string(p) + "." + string(child)) }
 
 // File is an individual file component of a Pack.
 type File struct {
@@ -76,18 +76,28 @@ func (p *Pack) Name() string {
 }
 
 // Alias returns the alias assigned to the pack. The canonical value for this
-// comes from the Pack.Alias Metadata struct field.
+// comes from the alias on a running pack with a fallback to the Pack.Alias
+// Metadata struct field.
 func (p *Pack) Alias() string {
+	if p.alias != "" {
+		return p.alias
+	}
 	return p.Metadata.Pack.Alias
+}
+
+// AliasOrName returns the pack's Alias or the pack's Name, preferring the
+// Alias when set.
+func (p *Pack) AliasOrName() string {
+	if p.Alias() == "" {
+		return p.Name()
+	}
+	return p.Alias()
 }
 
 // PackID returns the identifier for the pack. The function returns a PackID
 // which implements the Stringer interface
 func (p *Pack) PackID() PackID {
-	if p.Metadata.Pack.Alias != "" {
-		return PackID(p.Metadata.Pack.Alias)
-	}
-	return PackID(p.Metadata.Pack.Name)
+	return PackID(p.AliasOrName())
 }
 
 // HasParent reports whether this pack has a parent or can be considered the
@@ -96,9 +106,9 @@ func (p *Pack) HasParent() bool { return p.parent != nil }
 
 // AddDependency to the pack, correctly setting their parent pack identifier and
 // alias.
-func (p *Pack) AddDependency(alias string, pack *Pack) {
+func (p *Pack) AddDependency(alias PackID, pack *Pack) {
 	pack.parent = p
-	pack.alias = alias
+	pack.alias = alias.String()
 	p.dependencies = append(p.dependencies, pack)
 }
 
@@ -115,30 +125,26 @@ func (p *Pack) Dependencies() []*Pack { return p.dependencies }
 
 // RootVariableFiles generates a mapping of all root variable files for the
 // pack and all dependencies.
-func (p *Pack) RootVariableFiles() map[string]*File {
+func (p *Pack) RootVariableFiles() map[PackID]*File {
 
 	// Set up the base output that include the top level packs root variable
 	// file entry.
-	out := map[string]*File{p.Name(): p.RootVariableFile}
+	out := map[PackID]*File{p.PackID(): p.RootVariableFile}
 
 	// Iterate the dependency packs and add entries into the variable file
 	// mapping for each.
 	for _, dep := range p.dependencies {
-		dep.rootVariableFiles(p.Name(), &out)
+		dep.rootVariableFiles(p.PackID(), &out)
 	}
 
 	return out
 }
 
-func (p *Pack) rootVariableFiles(k string, acc *map[string]*File) {
-	pn := p.Name()
-	if p.alias != "" {
-		pn = p.alias
-	}
-	key := strings.Join([]string{k, pn}, ".")
-	(*acc)[key] = p.RootVariableFile
+func (p *Pack) rootVariableFiles(parentPackID PackID, acc *map[PackID]*File) {
+	depPackID := parentPackID.Join(p.PackID())
+	(*acc)[depPackID] = p.RootVariableFile
 	for _, dep := range p.dependencies {
-		dep.rootVariableFiles(key, acc)
+		dep.rootVariableFiles(depPackID, acc)
 	}
 }
 

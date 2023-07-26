@@ -21,15 +21,15 @@ func TestParser_parseCLIVariable(t *testing.T) {
 		inputName       string
 		inputRawVal     string
 		expectedError   bool
-		expectedCLIVars map[string][]*Variable
-		expectedEnvVars map[string][]*Variable
+		expectedCLIVars map[PackID][]*Variable
+		expectedEnvVars map[PackID][]*Variable
 		name            string
 	}{
 		{
 			inputParser: &Parser{
 				fs:  afero.Afero{Fs: afero.OsFs{}},
-				cfg: &ParserConfig{ParentName: "example"},
-				rootVars: map[string]map[string]*Variable{
+				cfg: &ParserConfig{ParentPackID: "example"},
+				rootVars: map[PackID]map[VariableID]*Variable{
 					"example": {
 						"region": &Variable{
 							Name:      "region",
@@ -39,13 +39,13 @@ func TestParser_parseCLIVariable(t *testing.T) {
 						},
 					},
 				},
-				cliOverrideVars: make(map[string][]*Variable),
-				envOverrideVars: make(map[string][]*Variable),
+				cliOverrideVars: make(map[PackID][]*Variable),
+				envOverrideVars: make(map[PackID][]*Variable),
 			},
 			inputName:     "region",
 			inputRawVal:   "vlc",
 			expectedError: false,
-			expectedCLIVars: map[string][]*Variable{
+			expectedCLIVars: map[PackID][]*Variable{
 				"example": {
 					{
 						Name:      "region",
@@ -55,14 +55,14 @@ func TestParser_parseCLIVariable(t *testing.T) {
 					},
 				},
 			},
-			expectedEnvVars: make(map[string][]*Variable),
+			expectedEnvVars: make(map[PackID][]*Variable),
 			name:            "non-namespaced variable",
 		},
 		{
 			inputParser: &Parser{
 				fs:  afero.Afero{Fs: afero.OsFs{}},
-				cfg: &ParserConfig{ParentName: "example"},
-				rootVars: map[string]map[string]*Variable{
+				cfg: &ParserConfig{ParentPackID: "example"},
+				rootVars: map[PackID]map[VariableID]*Variable{
 					"example": {
 						"region": &Variable{
 							Name:      "region",
@@ -72,12 +72,12 @@ func TestParser_parseCLIVariable(t *testing.T) {
 						},
 					},
 				},
-				cliOverrideVars: make(map[string][]*Variable),
+				cliOverrideVars: make(map[PackID][]*Variable),
 			},
 			inputName:     "example.region",
 			inputRawVal:   "vlc",
 			expectedError: false,
-			expectedCLIVars: map[string][]*Variable{
+			expectedCLIVars: map[PackID][]*Variable{
 				"example": {
 					{
 						Name:      "region",
@@ -92,21 +92,21 @@ func TestParser_parseCLIVariable(t *testing.T) {
 		{
 			inputParser: &Parser{
 				fs:              afero.Afero{Fs: afero.OsFs{}},
-				cfg:             &ParserConfig{ParentName: "example"},
-				rootVars:        map[string]map[string]*Variable{},
-				cliOverrideVars: make(map[string][]*Variable),
+				cfg:             &ParserConfig{ParentPackID: "example"},
+				rootVars:        map[PackID]map[VariableID]*Variable{},
+				cliOverrideVars: make(map[PackID][]*Variable),
 			},
 			inputName:       "example.region",
 			inputRawVal:     "vlc",
 			expectedError:   true,
-			expectedCLIVars: map[string][]*Variable{},
+			expectedCLIVars: map[PackID][]*Variable{},
 			name:            "root variable absent",
 		},
 		{
 			inputParser: &Parser{
 				fs:  afero.Afero{Fs: afero.OsFs{}},
-				cfg: &ParserConfig{ParentName: "example"},
-				rootVars: map[string]map[string]*Variable{
+				cfg: &ParserConfig{ParentPackID: "example"},
+				rootVars: map[PackID]map[VariableID]*Variable{
 					"example": {
 						"region": &Variable{
 							Name: "region",
@@ -118,12 +118,12 @@ func TestParser_parseCLIVariable(t *testing.T) {
 						},
 					},
 				},
-				cliOverrideVars: make(map[string][]*Variable),
+				cliOverrideVars: make(map[PackID][]*Variable),
 			},
 			inputName:       "example.region",
 			inputRawVal:     "vlc",
 			expectedError:   true,
-			expectedCLIVars: map[string][]*Variable{},
+			expectedCLIVars: map[PackID][]*Variable{},
 			name:            "unconvertable variable",
 		},
 	}
@@ -141,15 +141,16 @@ func TestParser_parseCLIVariable(t *testing.T) {
 
 func TestParser_parseHeredocAtEOF(t *testing.T) {
 	inputParser := &Parser{
-		fs:              afero.Afero{Fs: afero.OsFs{}},
-		cfg:             &ParserConfig{ParentName: "example"},
-		rootVars:        map[string]map[string]*Variable{},
-		cliOverrideVars: make(map[string][]*Variable),
+		fs:               afero.Afero{Fs: afero.OsFs{}},
+		cfg:              &ParserConfig{ParentPackID: "example"},
+		rootVars:         map[PackID]map[VariableID]*Variable{},
+		fileOverrideVars: make(map[PackID][]*Variable),
 	}
 	fixturePath := Fixture("variable_test/heredoc.vars.hcl")
-	b, diags := inputParser.loadOverrideFile(fixturePath)
-	must.NotNil(t, b)
-	must.SliceEmpty(t, diags)
+	_, diags := inputParser.newParseOverridesFile(fixturePath)
+	must.False(t, diags.HasErrors(), must.Sprintf("diags: %v", diags))
+	must.Len(t, 1, inputParser.fileOverrideVars["example"])
+	must.Eq(t, "heredoc\n", inputParser.fileOverrideVars["example"][0].Value.AsString())
 }
 
 func TestParser_VariableOverrides(t *testing.T) {
@@ -254,8 +255,8 @@ func NewTestInputParser(opts ...TestParserOption) *Parser {
 
 	p := &Parser{
 		fs:  afero.Afero{Fs: afero.OsFs{}},
-		cfg: &ParserConfig{ParentName: "example"},
-		rootVars: map[string]map[string]*Variable{
+		cfg: &ParserConfig{ParentPackID: "example"},
+		rootVars: map[PackID]map[VariableID]*Variable{
 			"example": {
 				"input": &Variable{
 					Name:      "input",
@@ -265,9 +266,9 @@ func NewTestInputParser(opts ...TestParserOption) *Parser {
 				},
 			},
 		},
-		envOverrideVars:  make(map[string][]*Variable),
-		fileOverrideVars: make(map[string][]*Variable),
-		cliOverrideVars:  make(map[string][]*Variable),
+		envOverrideVars:  make(map[PackID][]*Variable),
+		fileOverrideVars: make(map[PackID][]*Variable),
+		cliOverrideVars:  make(map[PackID][]*Variable),
 	}
 
 	// Loop through each option
@@ -280,7 +281,7 @@ func NewTestInputParser(opts ...TestParserOption) *Parser {
 
 func NewStringVariable(key, value, kind string) *Variable {
 	return &Variable{
-		Name:      key,
+		Name:      VariableID(key),
 		Type:      cty.String,
 		Value:     cty.StringVal(value),
 		DeclRange: hcl.Range{Filename: fmt.Sprintf("<value for var.%s from %s>", key, kind)},

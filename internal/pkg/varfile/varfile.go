@@ -9,8 +9,12 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/hcl/v2/json"
 	"github.com/hashicorp/nomad-pack/sdk/pack"
+	"github.com/hashicorp/nomad-pack/sdk/pack/variables"
 	"golang.org/x/exp/slices"
 )
+
+type PackID = pack.PackID
+type VariableID = variables.VariableID
 
 type DecodeResult struct {
 	Overrides Overrides
@@ -163,8 +167,8 @@ func decode(filename string, src []byte, ctx *hcl.EvalContext, target *Overrides
 		fixupRange(&oRange)
 
 		val := Override{
-			Name:  VarName(steps[len(steps)-1]),
-			Path:  PackID(strings.Join(steps[0:len(steps)-1], ".")),
+			Name:  VariableID(steps[len(steps)-1]),
+			Path:  pack.PackID(strings.Join(steps[0:len(steps)-1], ".")),
 			Value: value,
 			Type:  value.Type(),
 			Range: oRange,

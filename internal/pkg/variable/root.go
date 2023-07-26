@@ -23,7 +23,7 @@ func (p *Parser) parseRootFiles() hcl.Diagnostics {
 		rootVars, parseDiags := p.parseRootBodyContent(content)
 		diags = safeDiagnosticsExtend(diags, parseDiags)
 
-		// If we don't have any errors processing the file, and it's content,
+		// If we don't have any errors processing the file, and its content,
 		// add an entry.
 		if !diags.HasErrors() {
 			p.rootVars[name] = rootVars
@@ -35,9 +35,9 @@ func (p *Parser) parseRootFiles() hcl.Diagnostics {
 
 // parseRootBodyContent process the body of a root variables file, parsing
 // each variable block found.
-func (p *Parser) parseRootBodyContent(body *hcl.BodyContent) (map[string]*Variable, hcl.Diagnostics) {
+func (p *Parser) parseRootBodyContent(body *hcl.BodyContent) (map[VariableID]*Variable, hcl.Diagnostics) {
 
-	packRootVars := map[string]*Variable{}
+	packRootVars := map[VariableID]*Variable{}
 
 	var diags hcl.Diagnostics
 

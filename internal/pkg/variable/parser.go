@@ -13,9 +13,9 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors/packdiags"
+	"github.com/hashicorp/nomad-pack/internal/pkg/varfile"
 	"github.com/hashicorp/nomad-pack/sdk/pack"
 	"github.com/spf13/afero"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // Parser can parse, merge, and validate HCL variables from multiple different
@@ -27,25 +27,25 @@ type Parser struct {
 	// rootVars contains all the root variable declared by all parent and child
 	// packs that are being parsed. The first map is keyed by the pack name,
 	// the second is by the variable name.
-	rootVars map[string]map[string]*Variable
+	rootVars map[PackID]map[VariableID]*Variable
 
 	// envOverrideVars, fileOverrideVars, cliOverrideVars are the override
 	// variables. The maps are keyed by the pack name they are associated to.
-	envOverrideVars  map[string][]*Variable
-	fileOverrideVars map[string][]*Variable
-	cliOverrideVars  map[string][]*Variable
+	envOverrideVars  map[PackID][]*Variable
+	fileOverrideVars map[PackID][]*Variable
+	cliOverrideVars  map[PackID][]*Variable
 }
 
 // ParserConfig contains details of the numerous sources of variables which
 // should be parsed and merged according to the expected strategy.
 type ParserConfig struct {
 
-	// ParentName is the name representing the parent pack.
-	ParentName string
+	// ParentPackID is the PackID of the parent pack.
+	ParentPackID PackID
 
 	// RootVariableFiles contains a map of root variable files, keyed by their
-	// pack name.
-	RootVariableFiles map[string]*pack.File
+	// absolute pack name. "«root pack name».«child pack».«grandchild pack»"
+	RootVariableFiles map[PackID]*pack.File
 
 	// EnvOverrides are key=value variables and take the lowest precedence of
 	// all sources. If the same key is supplied twice, the last wins.
@@ -69,7 +69,7 @@ type ParserConfig struct {
 func NewParser(cfg *ParserConfig) (*Parser, error) {
 
 	// Ensure the parent name is set, otherwise we can't parse correctly.
-	if cfg.ParentName == "" {
+	if cfg.ParentPackID == "" {
 		return nil, errors.New("variable parser config requires ParentName to be set")
 	}
 
@@ -88,11 +88,22 @@ func NewParser(cfg *ParserConfig) (*Parser, error) {
 			Fs: afero.OsFs{},
 		},
 		cfg:              cfg,
-		rootVars:         make(map[string]map[string]*Variable),
-		envOverrideVars:  make(map[string][]*Variable),
-		fileOverrideVars: make(map[string][]*Variable),
-		cliOverrideVars:  make(map[string][]*Variable),
+		rootVars:         make(map[PackID]map[VariableID]*Variable),
+		envOverrideVars:  make(PackIDKeyedVarMap),
+		fileOverrideVars: make(PackIDKeyedVarMap),
+		cliOverrideVars:  make(PackIDKeyedVarMap),
 	}, nil
+}
+
+type PackIDKeyedVarMap map[PackID][]*Variable
+
+func (p PackIDKeyedVarMap) Variables(k PackID) []*Variable { return p[k] }
+func (p PackIDKeyedVarMap) AsMapOfStringToVariable() map[string][]*Variable {
+	var o map[string][]*Variable
+	for k, v := range p {
+		o[string(k)] = v
+	}
+	return o
 }
 
 func (p *Parser) Parse() (*ParsedVariables, hcl.Diagnostics) {
@@ -111,7 +122,7 @@ func (p *Parser) Parse() (*ParsedVariables, hcl.Diagnostics) {
 	}
 
 	for _, fileOverride := range p.cfg.FileOverrides {
-		fileOverrideDiags := p.parseOverridesFile(fileOverride)
+		_, fileOverrideDiags := p.newParseOverridesFile(fileOverride)
 		diags = safeDiagnosticsExtend(diags, fileOverrideDiags)
 	}
 
@@ -126,17 +137,17 @@ func (p *Parser) Parse() (*ParsedVariables, hcl.Diagnostics) {
 
 	// Iterate all our override variables and merge these into our root
 	// variables with the CLI taking highest priority.
-	for _, override := range []map[string][]*Variable{p.envOverrideVars, p.fileOverrideVars, p.cliOverrideVars} {
+	for _, override := range []map[PackID][]*Variable{p.envOverrideVars, p.fileOverrideVars, p.cliOverrideVars} {
 		for packName, variables := range override {
 			for _, v := range variables {
 				existing, exists := p.rootVars[packName][v.Name]
 				if !exists {
 					if !p.cfg.IgnoreMissingVars {
-						diags = diags.Append(packdiags.DiagMissingRootVar(v.Name, v.DeclRange.Ptr()))
+						diags = diags.Append(packdiags.DiagMissingRootVar(v.Name.String(), v.DeclRange.Ptr()))
 					}
 					continue
 				}
-				if mergeDiags := existing.merge(v); mergeDiags.HasErrors() {
+				if mergeDiags := existing.Merge(v); mergeDiags.HasErrors() {
 					diags = diags.Extend(mergeDiags)
 				}
 			}
@@ -146,18 +157,45 @@ func (p *Parser) Parse() (*ParsedVariables, hcl.Diagnostics) {
 	return &ParsedVariables{Vars: p.rootVars}, diags
 }
 
-func (p *Parser) loadOverrideFile(file string) (hcl.Body, hcl.Diagnostics) {
+func (p *Parser) newParseOverridesFile(file string) (map[string]*hcl.File, hcl.Diagnostics) {
+	var diags hcl.Diagnostics
 
 	src, err := p.fs.ReadFile(file)
-	// FIXME - Workaround for ending heredoc with no linefeed.
-	// Variables files shouldn't care about the extra linefeed, but jamming one
-	// in all the time feels bad.
-	src = append(src, "\n"...)
 	if err != nil {
-		return nil, hcl.Diagnostics{packdiags.DiagFileNotFound(file)}
+		return nil, diags.Append(packdiags.DiagFileNotFound(file))
 	}
 
-	return p.loadPackFile(&pack.File{Path: file, Content: src})
+	ovrds := make(varfile.Overrides)
+
+	// Decode into the local recipient object
+	if hfm, diags := varfile.Decode(file, src, nil, &ovrds); diags.HasErrors() {
+		return hfm, diags.Extend(diags)
+	}
+	for _, o := range ovrds[varfile.PackID(file)] {
+		// Identify whether this variable override is for a dependency pack
+		// and then handle it accordingly.
+		p.newHandleOverride(o)
+	}
+	return nil, diags
+}
+
+func (p *Parser) newHandleOverride(o *varfile.Override) {
+	// Is Pack Variable Object?
+	// Check whether the name has an associated entry within the root variable
+	// mapping which indicates whether it's a pack object.
+	if _, ok := p.cfg.RootVariableFiles[o.Path]; ok {
+		p.newHandleOverrideVar(o)
+	}
+}
+
+func (p *Parser) newHandleOverrideVar(o *varfile.Override) {
+	v := Variable{
+		Name:      o.Name,
+		Type:      o.Type,
+		Value:     o.Value,
+		DeclRange: o.Range,
+	}
+	p.fileOverrideVars[o.Path] = append(p.fileOverrideVars[o.Path], &v)
 }
 
 // loadPackFile takes a pack.File and parses this using a hclparse.Parser. The
@@ -189,75 +227,4 @@ func (p *Parser) loadPackFile(file *pack.File) (hcl.Body, hcl.Diagnostics) {
 	}
 
 	return hclFile.Body, diags
-}
-
-func (p *Parser) parseOverridesFile(file string) hcl.Diagnostics {
-
-	body, diags := p.loadOverrideFile(file)
-	if body == nil {
-		return diags
-	}
-
-	if diags == nil {
-		diags = hcl.Diagnostics{}
-	}
-
-	attrs, hclDiags := body.JustAttributes()
-	diags = safeDiagnosticsExtend(diags, hclDiags)
-
-	for _, attr := range attrs {
-
-		// Grab the expression value. If we have errors performing this we
-		// cannot continue reliably.
-		expr, valDiags := attr.Expr.Value(nil)
-		if valDiags.HasErrors() {
-			diags = safeDiagnosticsExtend(diags, valDiags)
-			continue
-		}
-
-		// Identify whether this variable represents overrides concerned with
-		// a dependent pack and then handle it accordingly.
-		isPackVar, packVarDiags := p.isPackVariableObject(attr.Name, expr.Type())
-		diags = safeDiagnosticsExtend(diags, packVarDiags)
-		p.handleOverrideVar(isPackVar, attr, expr)
-	}
-
-	return diags
-}
-
-func (p *Parser) handleOverrideVar(isPackVar bool, attr *hcl.Attribute, expr cty.Value) {
-	if isPackVar {
-		p.handlePackVariableObject(attr.Name, expr, attr.Range)
-	} else {
-		v := Variable{
-			Name:      attr.Name,
-			Type:      expr.Type(),
-			Value:     expr,
-			DeclRange: attr.Range,
-		}
-		p.fileOverrideVars[p.cfg.ParentName] = append(p.fileOverrideVars[p.cfg.ParentName], &v)
-	}
-}
-
-func (p *Parser) handlePackVariableObject(name string, expr cty.Value, declRange hcl.Range) {
-	for k := range expr.Type().AttributeTypes() {
-		av := expr.GetAttr(k)
-		v := Variable{
-			Name:      k,
-			Type:      av.Type(),
-			Value:     av,
-			DeclRange: declRange,
-		}
-		p.fileOverrideVars[name] = append(p.fileOverrideVars[name], &v)
-	}
-}
-
-func (p *Parser) isPackVariableObject(name string, typ cty.Type) (bool, hcl.Diagnostics) {
-
-	// Check whether the name has an associated entry within the root variable
-	// mapping which indicates whether it's a pack object.
-	if _, ok := p.cfg.RootVariableFiles[name]; !ok {
-		return false, nil
-	}
-	return typ.IsObjectType(), nil
 }

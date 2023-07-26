@@ -11,11 +11,12 @@ import (
 
 func TestMetadata_ConvertToMapInterface(t *testing.T) {
 	testCases := []struct {
+		name           string
 		inputMetadata  *Metadata
 		expectedOutput map[string]any
-		name           string
 	}{
 		{
+			name: "all metadata values populated",
 			inputMetadata: &Metadata{
 				App: &MetadataApp{
 					URL: "https://example.com",
@@ -28,9 +29,53 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 				Integration: &MetadataIntegration{
 					Name:       "Example",
 					Identifier: "nomad/hashicorp/example",
-					Flags: []string{
-						"foo",
-						"bar",
+					Flags:      []string{"foo", "bar"},
+				},
+			},
+			expectedOutput: map[string]any{
+				"nomad_pack": map[string]any{
+					"app": map[string]any{
+						"url": "https://example.com",
+					},
+					"pack": map[string]any{
+						"name":        "Example",
+						"description": "The most basic, yet awesome, example",
+						"version":     "v0.0.1",
+					},
+					"integration": map[string]any{
+						"identifier": "nomad/hashicorp/example",
+						"flags":      []string{"foo", "bar"},
+						"name":       "Example",
+					},
+					"dependencies": []map[string]any{},
+				},
+			},
+		},
+		{
+			name: "all metadata values with deps",
+			inputMetadata: &Metadata{
+				App: &MetadataApp{
+					URL: "https://example.com",
+				},
+				Pack: &MetadataPack{
+					Name:        "Example",
+					Description: "The most basic, yet awesome, example",
+					Version:     "v0.0.1",
+				},
+				Integration: &MetadataIntegration{
+					Name:       "Example",
+					Identifier: "nomad/hashicorp/example",
+					Flags:      []string{"foo", "bar"},
+				},
+				Dependencies: []*Dependency{
+					{
+						Name:    "dep1",
+						Enabled: pointerOf(true),
+					},
+					{
+						Name:    "dep1",
+						Alias:   "dep2",
+						Enabled: pointerOf(true),
 					},
 				},
 			},
@@ -46,17 +91,34 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 					},
 					"integration": map[string]any{
 						"identifier": "nomad/hashicorp/example",
-						"flags": []string{
-							"foo",
-							"bar",
+						"flags":      []string{"foo", "bar"},
+						"name":       "Example",
+					},
+					"dependencies": []map[string]any{
+						{
+							"dep1": map[string]any{
+								"name":    "dep1",
+								"alias":   "",
+								"source":  "",
+								"enabled": pointerOf(true),
+							},
 						},
-						"name": "Example",
+						{
+							"dep2": map[string]any{
+								"name":    "dep1",
+								"alias":   "dep2",
+								"source":  "",
+								"enabled": pointerOf(true),
+							},
+						},
 					},
 				},
 			},
-			name: "all metadata values populated",
 		},
 		{
+			// TODO test added to cover graceful failure while we're in the process of
+			// retiring "Author" and "URL" metadata fields. Can be removed in the future.
+			name: "author and url fields ignored gracefully",
 			inputMetadata: &Metadata{
 				App: &MetadataApp{
 					URL: "https://example.com",
@@ -83,11 +145,12 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 						"flags":      []string(nil),
 						"name":       "",
 					},
+					"dependencies": []map[string]any{},
 				},
 			},
-			name: "some metadata values populated",
 		},
 		{
+			name: "some metadata values populated",
 			inputMetadata: &Metadata{
 				App: &MetadataApp{
 					URL:    "https://example.com",
@@ -100,14 +163,12 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 			},
 			expectedOutput: map[string]any{
 				"nomad_pack": map[string]any{
-					"app":         map[string]any{"url": "https://example.com"},
-					"pack":        map[string]any{"name": "", "description": "", "version": ""},
-					"integration": map[string]any{"identifier": "", "flags": []string(nil), "name": ""},
+					"app":          map[string]any{"url": "https://example.com"},
+					"pack":         map[string]any{"name": "", "description": "", "version": ""},
+					"integration":  map[string]any{"identifier": "", "flags": []string(nil), "name": ""},
+					"dependencies": []map[string]any{},
 				},
 			},
-			// TODO test added to cover graceful failure while we're in the process of
-			// retiring "Author" and "URL" metadata fields. Can be removed in the future.
-			name: "author and url fields ignored gracefully",
 		},
 	}
 

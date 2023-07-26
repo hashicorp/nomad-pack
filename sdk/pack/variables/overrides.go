@@ -1,4 +1,4 @@
-package varfile
+package variables
 
 import (
 	"github.com/hashicorp/hcl/v2"

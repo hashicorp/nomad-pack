@@ -15,10 +15,11 @@ import (
 )
 
 func (p *Parser) parseEnvVariable(name string, rawVal string) hcl.Diagnostics {
+	// TODO: extract and use parseCLIVariable's internals passing in the target map
 	// Split the name to see if we have a namespace CLI variable for a child
 	// pack and set the default packVarName.
 	splitName := strings.SplitN(name, ".", 2)
-	packVarName := []string{p.cfg.ParentName, name}
+	packVarName := []string{p.cfg.ParentPackID.String(), name}
 
 	switch len(splitName) {
 	case 1:
@@ -49,7 +50,7 @@ func (p *Parser) parseEnvVariable(name string, rawVal string) hcl.Diagnostics {
 	// The environment might contain NOMAD_PACK_VAR variables used for other
 	// packs that might be run on the same system but are not used with this
 	// particular pack.
-	existing, exists := p.rootVars[packVarName[0]][packVarName[1]]
+	existing, exists := p.rootVars[PackID(packVarName[0])][VariableID(packVarName[1])]
 	if !exists {
 		return nil
 	}
@@ -76,12 +77,12 @@ func (p *Parser) parseEnvVariable(name string, rawVal string) hcl.Diagnostics {
 
 	// We have a verified override variable.
 	v := Variable{
-		Name:      packVarName[1],
+		Name:      VariableID(packVarName[1]),
 		Type:      val.Type(),
 		Value:     val,
 		DeclRange: fakeRange,
 	}
-	p.envOverrideVars[packVarName[0]] = append(p.envOverrideVars[packVarName[0]], &v)
+	p.envOverrideVars[PackID(packVarName[0])] = append(p.envOverrideVars[PackID(packVarName[0])], &v)
 
 	return nil
 }
@@ -89,37 +90,39 @@ func (p *Parser) parseEnvVariable(name string, rawVal string) hcl.Diagnostics {
 func (p *Parser) parseCLIVariable(name string, rawVal string) hcl.Diagnostics {
 	// Split the name to see if we have a namespace CLI variable for a child
 	// pack and set the default packVarName.
-	splitName := strings.SplitN(name, ".", 2)
-	packVarName := []string{p.cfg.ParentName, name}
+	splitName := strings.Split(name, ".")
 
-	switch len(splitName) {
-	case 1:
-		// Fallthrough, nothing to do or see.
-	case 2:
-		// We are dealing with a namespaced variable. Overwrite the preset
-		// values of packVarName.
-		packVarName[0] = splitName[0]
-		packVarName[1] = splitName[1]
-	default:
-		// We cannot handle a splitName where the variable includes more than
-		// one separator.
+	if len(splitName) < 2 || splitName[0] != p.cfg.ParentPackID.String() {
 		return hcl.Diagnostics{
 			{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid -var option",
-				Detail:   fmt.Sprintf("The given -var option %s=%s is not correctly specified. The variable name must not have more than one dot `.` separator.", name, rawVal),
+				Detail:   fmt.Sprintf("The given -var option %s=%s is not correctly specified. The variable name must be an dot-separated, absolute path to a variable starting with the root pack name %s.", name, rawVal, p.cfg.ParentPackID),
 			},
 		}
 	}
 
 	// Generate a filename based on the CLI var, so we have some context for any
 	// HCL diagnostics.
-	fakeRange := hcl.Range{Filename: fmt.Sprintf("<value for var.%s from arguments>", name)}
 
+	// Get a reasonable count for the lines in the provided value. You'd think
+	// these had to be flat, but naaah.
+	lines := strings.Split(rawVal, "\n")
+	lc := len(lines)
+	endCol := len(lines[lc-1])
+
+	fakeRange := hcl.Range{
+		Filename: fmt.Sprintf("<value for var %s from arguments>", name),
+		Start:    hcl.Pos{Line: 1, Column: 1, Byte: 0},
+		End:      hcl.Pos{Line: lc, Column: endCol, Byte: len(rawVal)},
+	}
+
+	varPID := PackID(strings.Join(splitName[:len(splitName)-1], "."))
+	varVID := VariableID(splitName[len(splitName)-1])
 	// If the variable has not been configured in the root then exit. This is a
 	// standard requirement, especially because we would be unable to ensure a
 	// consistent type.
-	existing, exists := p.rootVars[packVarName[0]][packVarName[1]]
+	existing, exists := p.rootVars[varPID][varVID]
 	if !exists {
 		return hcl.Diagnostics{packdiags.DiagMissingRootVar(name, &fakeRange)}
 	}
@@ -146,12 +149,12 @@ func (p *Parser) parseCLIVariable(name string, rawVal string) hcl.Diagnostics {
 
 	// We have a verified override variable.
 	v := Variable{
-		Name:      packVarName[1],
+		Name:      varVID,
 		Type:      val.Type(),
 		Value:     val,
 		DeclRange: fakeRange,
 	}
-	p.cliOverrideVars[packVarName[0]] = append(p.cliOverrideVars[packVarName[0]], &v)
+	p.cliOverrideVars[varPID] = append(p.cliOverrideVars[varPID], &v)
 
 	return nil
 }

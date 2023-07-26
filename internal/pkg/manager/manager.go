@@ -62,14 +62,15 @@ func (pm *PackManager) ProcessVariableFiles() (*variable.ParsedVariables, []*err
 	// without the version.
 	parentName, _, _ := strings.Cut(path.Base(pm.cfg.Path), "@")
 
-	variableParser, err := variable.NewParser(&variable.ParserConfig{
-		ParentName:        parentName,
+	pCfg := &variable.ParserConfig{
+		ParentPackID:      pack.PackID(parentName),
 		RootVariableFiles: loadedPack.RootVariableFiles(),
 		EnvOverrides:      pm.cfg.VariableEnvVars,
 		FileOverrides:     pm.cfg.VariableFiles,
 		CLIOverrides:      pm.cfg.VariableCLIArgs,
-	})
+	}
 
+	variableParser, err := variable.NewParser(pCfg)
 	if err != nil {
 		return nil, []*errors.WrappedUIContext{{
 			Err:     err,
@@ -167,7 +168,7 @@ func (pm *PackManager) loadAndValidatePack(cur *pack.Pack, depsPath string) erro
 		}
 
 		// Load and validate the dependency pack.
-		packPath := path.Join(depsPath, path.Clean(dep.Source))
+		packPath := path.Join(depsPath, path.Clean(dep.Name))
 		depPack, err := loader.Load(packPath)
 		if err != nil {
 			return fmt.Errorf("failed to load dependent pack: %v", err)
@@ -178,7 +179,7 @@ func (pm *PackManager) loadAndValidatePack(cur *pack.Pack, depsPath string) erro
 		}
 
 		// Add the dependency to the current pack.
-		cur.AddDependency(dep.Name, depPack)
+		cur.AddDependency(dep.PackID(), depPack)
 
 		// Recursive call.
 		if err := pm.loadAndValidatePack(depPack, path.Join(packPath, "deps")); err != nil {

@@ -130,7 +130,7 @@ func (r *Renderer) Render(p *pack.Pack, variables map[string]any) (*Rendered, er
 		}
 
 		// Add the rendered pack template to our output, depending on whether
-		// it's name matches that of our parent.
+		// its name matches that of our parent.
 		if nameSplit[0] == p.Name() {
 			rendered.parentRenders[name] = replacedTpl
 		} else {
