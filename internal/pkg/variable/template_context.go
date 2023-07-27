@@ -15,6 +15,7 @@ type PackData struct {
 }
 
 func (p PackData) getVars() map[string]any { return p.vars }
+func (p PackData) getPack() PackData       { return p }
 
 type PackTemplateContext map[string]PackContextable
 
@@ -23,8 +24,11 @@ func (p PackTemplateContext) getPack() PackData       { return p["_self"].(PackD
 
 type PackContextable interface{ getVars() map[string]any }
 
+// getPackVars is the underlying implementation for the `vars` template func
 func getPackVars(p PackContextable) map[string]any { return p.getVars() }
 
+// mustGetPackVar is the underlying implementation for the `must_var` template
+// func
 func mustGetPackVar(k string, p PackContextable) (any, error) {
 	if v, ok := p.getVars()[k]; ok {
 		return v, nil
@@ -33,6 +37,7 @@ func mustGetPackVar(k string, p PackContextable) (any, error) {
 	}
 }
 
+// getPackVar is the underlying implementation for the `var` template func
 func getPackVar(k string, p PackContextable) any {
 	if v, err := mustGetPackVar(k, p); err == nil {
 		return v
@@ -51,6 +56,15 @@ func getPackDeps(p PackTemplateContext) PackTemplateContext {
 	return out
 }
 
+// mustGetPackVar is the underlying implementation for the `must_var` template
+// func
+func mustGetPackDep(k string, p PackContextable) (any, error) {
+	if v, ok := p.getVars()[k]; ok {
+		return v, nil
+	} else {
+		return nil, fmt.Errorf("variable %q not found", k)
+	}
+}
 func getPackDep(k string, p PackTemplateContext) PackTemplateContext {
 	if v, ok := p[k].(PackTemplateContext); ok {
 		return v
@@ -104,8 +118,7 @@ func (p PackTemplateContext) depKeys() []string {
 }
 
 func (p PackTemplateContext) Name() string {
-	o := p["_self"].(PackData).Pack
-	return o.Name()
+	return p.getPack().Pack.Name()
 }
 
 func PackTemplateContextFuncs() template.FuncMap {
