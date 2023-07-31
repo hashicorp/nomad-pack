@@ -101,7 +101,7 @@ func (pm *PackManager) ProcessTemplates(renderAux bool, format bool, ignoreMissi
 		return nil, wErr
 	}
 
-	mapVars, diags := parsedVars.ConvertVariablesToMapOfAny()
+	tplCtx, diags := parsedVars.ToPackTemplateContext(pm.loadedPack)
 	if diags != nil && diags.HasErrors() {
 		return nil, errors.HCLDiagsToWrappedUIContext(diags)
 	}
@@ -116,7 +116,7 @@ func (pm *PackManager) ProcessTemplates(renderAux bool, format bool, ignoreMissi
 	// should we format before rendering?
 	pm.renderer.Format = format
 
-	rendered, err := r.Render(pm.loadedPack, mapVars)
+	rendered, err := r.Render(pm.loadedPack, tplCtx)
 	if err != nil {
 		return nil, []*errors.WrappedUIContext{{
 			Err:     err,

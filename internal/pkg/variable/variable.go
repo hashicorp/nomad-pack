@@ -5,7 +5,6 @@ package variable
 
 import (
 	"encoding/json"
-	"fmt"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -29,7 +28,11 @@ type ParsedVariables struct {
 	Metadata *pack.Metadata
 }
 
-// ToPackTemplateContext creates a PackTemplateContext from this ParsedVariables
+// ToPackTemplateContext creates a PackTemplateContext from this
+// ParsedVariables.
+// Even though parsing the variable went without error, it is highly
+// possible that conversion to native go types can incur an error.
+// If an error is returned, it should be considered terminal.
 func (pv ParsedVariables) ToPackTemplateContext(p *pack.Pack) (PackTemplateContext, hcl.Diagnostics) {
 	out := make(PackTemplateContext)
 	diags := pv.toPackTemplateContextR(&out, p)
@@ -37,7 +40,7 @@ func (pv ParsedVariables) ToPackTemplateContext(p *pack.Pack) (PackTemplateConte
 }
 
 func (pv ParsedVariables) toPackTemplateContextR(tgt *PackTemplateContext, p *pack.Pack) hcl.Diagnostics {
-	pVars, diags := asMapOfStringToAny(pv.Vars[p.PackID()])
+	pVars, diags := asMapOfStringToAny(pv.Vars[p.VariablesPath()])
 	if diags.HasErrors() {
 		return diags
 	}
@@ -70,51 +73,6 @@ func asMapOfStringToAny(m map[VariableID]*Variable) (map[string]any, hcl.Diagnos
 	return o, diags
 }
 
-// ConvertVariablesToMapOfAny translates the parsed variables into their
-// native go types. The returned map is always keyed by the pack namespace for
-// the variables.
-//
-// Even though parsing the variable went without error, it is highly possible
-// that conversion to native go types can incur an error. If an error is
-// returned, it should be considered terminal.
-func (p *ParsedVariables) ConvertVariablesToMapOfAny() (map[string]any, hcl.Diagnostics) {
-
-	// Create our output; no matter what we return something.
-	out := make(map[string]any)
-
-	// Errors can occur when performing the translation. We want to capture all
-	// of these and return them to the user. This allows them to fix problems
-	// in a single cycle.
-	var diags hcl.Diagnostics
-
-	packNames := maps.Keys(p.Vars)
-	slices.Sort(packNames)
-	fmt.Println(packNames)
-	for _, packName := range packNames {
-		fmt.Println(packName)
-	}
-	// Iterate each set of pack variable.
-	for packName, variables := range p.Vars {
-
-		// packVar collects all variables associated to a pack.
-		packVar := map[VariableID]any{}
-
-		// Convert each variable and add this to the pack map.
-		for variableName, variable := range variables {
-			varInterface, err := convertCtyToInterface(variable.Value)
-			if err != nil {
-				diags = safeDiagnosticsAppend(diags, packdiags.DiagFailedToConvertCty(err, variable.DeclRange.Ptr()))
-				continue
-			}
-			packVar[variableName] = varInterface
-		}
-
-		// Add the pack variable to the full output.
-		out[packName.String()] = packVar
-	}
-
-	return out, diags
-}
 func (vf ParsedVariables) String() string { return asJSON(vf) }
 
 func asJSON(a any) string {

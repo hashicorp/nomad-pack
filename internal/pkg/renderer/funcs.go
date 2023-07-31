@@ -10,15 +10,20 @@ import (
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/davecgh/go-spew/spew"
+	"github.com/hashicorp/nomad-pack/internal/pkg/variable"
 	"github.com/hashicorp/nomad/api"
+	"golang.org/x/exp/maps"
 )
 
 // funcMap instantiates our default template function map with populated
 // functions for use within text.Template.
 func funcMap(nomadClient *api.Client) template.FuncMap {
 
-	// Sprig defines our base map.
-	f := sprig.TxtFuncMap()
+	// The base of the funcmap comes from the template context funcs
+	f := variable.PackTemplateContextFuncs()
+
+	// Copy the sprig funcs into the funcmap.
+	maps.Copy(f, sprig.TxtFuncMap())
 
 	// Add debugging functions. These are useful when debugging templates and
 	// variables.

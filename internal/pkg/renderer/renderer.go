@@ -12,8 +12,11 @@ import (
 	"github.com/hashicorp/hcl/hcl/printer"
 	"github.com/hashicorp/nomad/api"
 
+	"github.com/hashicorp/nomad-pack/internal/pkg/variable"
 	"github.com/hashicorp/nomad-pack/sdk/pack"
 )
+
+type PackTemplateContext = variable.PackTemplateContext
 
 // Renderer provides template rendering functionality using the text/template
 // package.
@@ -38,16 +41,16 @@ type Renderer struct {
 
 	// stores the pack information, variables and tpl, so we can perform the
 	// output template rendering after pack deployment.
-	pack      *pack.Pack
-	variables map[string]any
-	tpl       *template.Template
+	pack   *pack.Pack
+	tpl    *template.Template
+	tplCtx PackTemplateContext
 }
 
-// toRender details an individual template to render along with it's scoped
+// toRender details an individual template to render along with its scoped
 // variables.
 type toRender struct {
-	content   string
-	variables map[string]any
+	content string
+	tplCtx  PackTemplateContext
 }
 
 const (
@@ -57,12 +60,12 @@ const (
 
 // Render is responsible for iterating the pack and rendering each defined
 // template using the parsed variable map.
-func (r *Renderer) Render(p *pack.Pack, variables map[string]any) (*Rendered, error) {
+func (r *Renderer) Render(p *pack.Pack, tplCtx PackTemplateContext) (*Rendered, error) {
 
 	// filesToRender stores all the templates and auxiliary files that should be
 	// rendered
 	filesToRender := map[string]toRender{}
-	prepareFiles(p, filesToRender, variables, r.RenderAuxFiles)
+	prepareFiles(p, filesToRender, tplCtx, r.RenderAuxFiles)
 
 	// Set up our new template, add the function mapping, and set the
 	// delimiters.
@@ -87,7 +90,7 @@ func (r *Renderer) Render(p *pack.Pack, variables map[string]any) (*Rendered, er
 	// Generate our output structure.
 	rendered := &Rendered{
 		parentRenders:    make(map[string]string),
-		dependentRenders: make(map[string]string),
+		dependentRenders: make(map[string]string), // TODO: Are these "dependencyRenders"?
 	}
 
 	for name, src := range filesToRender {
@@ -102,7 +105,8 @@ func (r *Renderer) Render(p *pack.Pack, variables map[string]any) (*Rendered, er
 		// is an error.
 		var buf strings.Builder
 
-		if err := tpl.ExecuteTemplate(&buf, name, src.variables); err != nil {
+		if err := tpl.ExecuteTemplate(&buf, name, src.tplCtx); err != nil {
+			fmt.Printf("❌ Error: %v", err) // TODO: delete
 			return nil, fmt.Errorf("failed to render %s: %v", name, err)
 		}
 
@@ -120,7 +124,8 @@ func (r *Renderer) Render(p *pack.Pack, variables map[string]any) (*Rendered, er
 			continue
 		}
 
-		if r.Format {
+		if r.Format &&
+			(strings.HasSuffix(name, ".nomad.tpl") || strings.HasSuffix(name, ".hcl.tpl")) {
 			// hclfmt the templates
 			f, err := printer.Format([]byte(replacedTpl))
 			if err != nil {
@@ -138,9 +143,9 @@ func (r *Renderer) Render(p *pack.Pack, variables map[string]any) (*Rendered, er
 		}
 	}
 
-	r.variables = variables
 	r.pack = p
 	r.tpl = tpl
+	r.tplCtx = tplCtx
 
 	return rendered, nil
 }
@@ -158,7 +163,7 @@ func (r *Renderer) RenderOutput() (string, error) {
 	}
 
 	var buf strings.Builder
-	if err := r.tpl.ExecuteTemplate(&buf, r.pack.OutputTemplateFile.Name, r.variables); err != nil {
+	if err := r.tpl.ExecuteTemplate(&buf, r.pack.OutputTemplateFile.Name, r.tplCtx); err != nil {
 		return "", fmt.Errorf("failed to render %s: %v", r.pack.OutputTemplateFile.Name, err)
 	}
 
@@ -170,45 +175,24 @@ func (r *Renderer) RenderOutput() (string, error) {
 // correspond.
 func prepareFiles(p *pack.Pack,
 	files map[string]toRender,
-	variables map[string]any,
+	tplCtx PackTemplateContext,
 	renderAuxFiles bool,
 ) {
 
-	newVars := make(map[string]any)
-
-	// If the pack is a dependency, it only has access to its namespaced
-	// variables. If the pack is the parent/root pack, then it has access to
-	// all.
-	if p.HasParent() {
-		if v, ok := variables[p.Name()]; ok {
-			newVars["my"] = v
-			newVars[p.Name()] = v
-		}
-	} else {
-		newVars = variables
-	}
-
-	// Add the pack's metadata to the variable mapping.
-	newVars = p.Metadata.AddToInterfaceMap(newVars)
-
-	// Make the `my` alias for the parent pack.
-	if !p.HasParent() {
-		newVars["my"] = newVars[p.Name()]
-	}
 	// Iterate the dependencies and prepareTemplates for each.
 	for _, child := range p.Dependencies() {
-		prepareFiles(child, files, newVars, renderAuxFiles)
+		prepareFiles(child, files, tplCtx[child.AliasOrName()].(PackTemplateContext), renderAuxFiles)
 	}
 
 	// Add each template within the pack with scoped variables.
 	for _, t := range p.TemplateFiles {
-		files[path.Join(p.Name(), t.Name)] = toRender{content: string(t.Content), variables: newVars}
+		files[path.Join(p.PackID().AsPath(), t.Name)] = toRender{content: string(t.Content), tplCtx: tplCtx}
 	}
 
 	if renderAuxFiles {
 		// Add each aux file within the pack with scoped variables.
 		for _, f := range p.AuxiliaryFiles {
-			files[path.Join(p.Name(), f.Name)] = toRender{content: string(f.Content), variables: newVars}
+			files[path.Join(p.PackID().AsPath(), f.Name)] = toRender{content: string(f.Content), tplCtx: tplCtx}
 		}
 	}
 }
