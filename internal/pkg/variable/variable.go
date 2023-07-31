@@ -29,6 +29,47 @@ type ParsedVariables struct {
 	Metadata *pack.Metadata
 }
 
+// ToPackTemplateContext creates a PackTemplateContext from this ParsedVariables
+func (pv ParsedVariables) ToPackTemplateContext(p *pack.Pack) (PackTemplateContext, hcl.Diagnostics) {
+	out := make(PackTemplateContext)
+	diags := pv.toPackTemplateContextR(&out, p)
+	return out, diags
+}
+
+func (pv ParsedVariables) toPackTemplateContextR(tgt *PackTemplateContext, p *pack.Pack) hcl.Diagnostics {
+	pVars, diags := asMapOfStringToAny(pv.Vars[p.PackID()])
+	if diags.HasErrors() {
+		return diags
+	}
+
+	(*tgt)["_self"] = PackData{
+		Pack: p,
+		vars: pVars,
+	}
+
+	for _, d := range p.Dependencies() {
+		out := make(PackTemplateContext)
+		diags.Extend(pv.toPackTemplateContextR(&out, d))
+		(*tgt)[d.AliasOrName()] = out
+	}
+
+	return diags
+}
+
+func asMapOfStringToAny(m map[VariableID]*Variable) (map[string]any, hcl.Diagnostics) {
+	var diags hcl.Diagnostics
+	o := make(map[string]any)
+	for k, cVal := range m {
+		val, err := variables.ConvertCtyToInterface(cVal.Value)
+		if err != nil {
+			diags = safeDiagnosticsAppend(diags, packdiags.DiagFailedToConvertCty(err, cVal.DeclRange.Ptr()))
+			continue
+		}
+		o[string(k)] = val
+	}
+	return o, diags
+}
+
 // ConvertVariablesToMapOfAny translates the parsed variables into their
 // native go types. The returned map is always keyed by the pack namespace for
 // the variables.
