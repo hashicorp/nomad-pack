@@ -26,6 +26,7 @@ func TestParser_parseCLIVariable(t *testing.T) {
 		name            string
 	}{
 		{
+			name: "non-namespaced variable",
 			inputParser: &Parser{
 				fs:  afero.Afero{Fs: afero.OsFs{}},
 				cfg: &ParserConfig{ParentPackID: "example"},
@@ -56,9 +57,9 @@ func TestParser_parseCLIVariable(t *testing.T) {
 				},
 			},
 			expectedEnvVars: make(map[PackID][]*Variable),
-			name:            "non-namespaced variable",
 		},
 		{
+			name: "namespaced variable",
 			inputParser: &Parser{
 				fs:  afero.Afero{Fs: afero.OsFs{}},
 				cfg: &ParserConfig{ParentPackID: "example"},
@@ -87,7 +88,6 @@ func TestParser_parseCLIVariable(t *testing.T) {
 					},
 				},
 			},
-			name: "namespaced variable",
 		},
 		{
 			inputParser: &Parser{
@@ -103,6 +103,7 @@ func TestParser_parseCLIVariable(t *testing.T) {
 			name:            "root variable absent",
 		},
 		{
+			name: "unconvertable variable",
 			inputParser: &Parser{
 				fs:  afero.Afero{Fs: afero.OsFs{}},
 				cfg: &ParserConfig{ParentPackID: "example"},
@@ -124,7 +125,6 @@ func TestParser_parseCLIVariable(t *testing.T) {
 			inputRawVal:     "vlc",
 			expectedError:   true,
 			expectedCLIVars: map[PackID][]*Variable{},
-			name:            "unconvertable variable",
 		},
 	}
 
