@@ -5,13 +5,19 @@ package pack
 
 import (
 	"errors"
-	"path"
+	"strings"
 )
 
 type PackID string
 
-func (p PackID) String() string           { return string(p) }
+func (p PackID) String() string { return string(p) }
+
+// Join returns a new PackID with the child path appended to it.
 func (p PackID) Join(child PackID) PackID { return PackID(string(p) + "." + string(child)) }
+
+// AsPath returns a string with the dot delimiters converted to `/` for use with
+// file system paths.
+func (p PackID) AsPath() string { return strings.ReplaceAll(string(p), ".", "/") }
 
 // File is an individual file component of a Pack.
 type File struct {
@@ -164,16 +170,28 @@ func (p *Pack) Validate() error {
 	return nil
 }
 
-func (p *Pack) parentPath() string {
-	return p.parentPathImpl()
+func (p *Pack) VariablesPath() PackID {
+	parts := variablesPathR(p, []string{})
+	// Since variablesPathR is depth-first, we need
+	// to reverse it before joining it together
+	reverse(parts)
+	out := PackID(strings.Join(parts, "."))
+	return out
 }
 
-func (p *Pack) parentPathImpl() string {
-	var pPath string
+func variablesPathR(p *Pack, in []string) []string {
 	if p.parent == nil {
-		pPath = p.Name()
-	} else {
-		pPath = path.Join(p.parentPathImpl(), p.Name())
+		return append(in, p.AliasOrName())
 	}
-	return pPath
+	return variablesPathR(p.parent, append(in, p.AliasOrName()))
+}
+
+func reverse[T any](s []T) {
+	first := 0
+	last := len(s) - 1
+	for first < last {
+		s[first], s[last] = s[last], s[first]
+		first++
+		last--
+	}
 }
