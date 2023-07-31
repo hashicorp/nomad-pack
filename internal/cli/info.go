@@ -11,9 +11,12 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
 	"github.com/hashicorp/nomad-pack/internal/pkg/loader"
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable"
+	"github.com/hashicorp/nomad-pack/sdk/pack/variables"
 	"github.com/mitchellh/go-glint"
 	"github.com/zclconf/go-cty/cty"
 )
+
+type PackID = variables.PackID
 
 type InfoCommand struct {
 	*baseCommand
