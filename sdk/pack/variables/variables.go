@@ -64,6 +64,20 @@ func (v *Variable) SetType(t cty.Type)      { v.Type = t; v.hasType = true }
 
 func (v Variable) String() string { return asJSON(v) }
 
+func (v Variable) Equal(ov Variable) bool {
+	eq := true &&
+		v.Name == ov.Name &&
+		v.Description == ov.Description &&
+		v.hasDescription == ov.hasDescription &&
+		v.Default == ov.Default &&
+		v.hasDefault == ov.hasDefault &&
+		v.Type == ov.Type &&
+		v.hasType == v.hasType &&
+		v.Value == ov.Value
+
+	return eq
+}
+
 func (v Variable) AsOverrideString(pID pack.PackID) string {
 	var out strings.Builder
 	out.WriteString(fmt.Sprintf(`# variable "%s.%s"`, pID, v.Name))
