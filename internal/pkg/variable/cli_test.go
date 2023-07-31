@@ -129,13 +129,17 @@ func TestParser_parseCLIVariable(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		actualErr := tc.inputParser.parseCLIVariable(tc.inputName, tc.inputRawVal)
-		if tc.expectedError {
-			must.NotNil(t, actualErr, must.Sprint(tc.name))
-		} else {
-			must.Nil(t, actualErr, must.Sprint(tc.name))
-			must.Eq(t, tc.expectedCLIVars, tc.inputParser.cliOverrideVars, must.Sprint(tc.name))
-		}
+		t.Run(tc.name, func(t *testing.T) {
+			tc := tc
+			actualErr := tc.inputParser.parseCLIVariable(tc.inputName, tc.inputRawVal)
+
+			if tc.expectedError {
+				must.NotNil(t, actualErr)
+				return
+			}
+			must.Nil(t, actualErr, must.Sprintf("actualErr: %v", actualErr))
+			must.MapEq(t, tc.expectedCLIVars, tc.inputParser.cliOverrideVars)
+		})
 	}
 }
 
