@@ -11,7 +11,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-func convertCtyToInterface(val cty.Value) (any, error) {
+func ConvertCtyToInterface(val cty.Value) (any, error) {
 
 	if val.IsNull() {
 		return nil, nil
@@ -48,7 +48,7 @@ func convertCtyToInterface(val cty.Value) (any, error) {
 		it := val.ElementIterator()
 		for it.Next() {
 			_, ev := it.Element()
-			evi, err := convertCtyToInterface(ev)
+			evi, err := ConvertCtyToInterface(ev)
 			if err != nil {
 				return nil, err
 			}
@@ -61,7 +61,7 @@ func convertCtyToInterface(val cty.Value) (any, error) {
 		it := val.ElementIterator()
 		for it.Next() {
 			_, ev := it.Element()
-			evi, err := convertCtyToInterface(ev)
+			evi, err := ConvertCtyToInterface(ev)
 			if err != nil {
 				return nil, err
 			}
@@ -75,7 +75,7 @@ func convertCtyToInterface(val cty.Value) (any, error) {
 			ek, ev := it.Element()
 
 			ekv := ek.AsString()
-			evv, err := convertCtyToInterface(ev)
+			evv, err := ConvertCtyToInterface(ev)
 			if err != nil {
 				return nil, err
 			}
@@ -88,7 +88,7 @@ func convertCtyToInterface(val cty.Value) (any, error) {
 
 		for k := range t.AttributeTypes() {
 			av := val.GetAttr(k)
-			avv, err := convertCtyToInterface(av)
+			avv, err := ConvertCtyToInterface(av)
 			if err != nil {
 				return nil, err
 			}

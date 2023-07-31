@@ -87,7 +87,7 @@ func printDefaultR(v cty.Value) string {
 }
 
 func printPrimitiveValue(v cty.Value) string {
-	vI, _ := convertCtyToInterface(v)
+	vI, _ := ConvertCtyToInterface(v)
 	if v.Type() == cty.String {
 		return fmt.Sprintf("%q", vI)
 	}
