@@ -83,22 +83,6 @@ func getPackDeps(p PackTemplateContext) PackTemplateContext {
 	return out
 }
 
-// mustGetPackVar is the underlying implementation for the `must_var` template
-// func
-func mustGetPackDep(k string, p PackContextable) (any, error) {
-	if v, ok := p.getVars()[k]; ok {
-		return v, nil
-	} else {
-		return nil, fmt.Errorf("variable %q not found", k)
-	}
-}
-func getPackDep(k string, p PackTemplateContext) PackTemplateContext {
-	if v, ok := p[k].(PackTemplateContext); ok {
-		return v
-	}
-	return nil
-}
-
 func getPackDepTree(p PackTemplateContext) []string {
 	if len(p) <= 1 {
 		fmt.Println("getPackDepTree: base case")
