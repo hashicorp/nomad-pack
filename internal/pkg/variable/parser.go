@@ -99,7 +99,7 @@ type PackIDKeyedVarMap map[PackID][]*Variable
 
 func (p PackIDKeyedVarMap) Variables(k PackID) []*Variable { return p[k] }
 func (p PackIDKeyedVarMap) AsMapOfStringToVariable() map[string][]*Variable {
-	var o map[string][]*Variable
+	var o map[string][]*Variable = make(map[string][]*Variable)
 	for k, v := range p {
 		o[string(k)] = v
 	}
@@ -168,8 +168,8 @@ func (p *Parser) newParseOverridesFile(file string) (map[string]*hcl.File, hcl.D
 	ovrds := make(varfile.Overrides)
 
 	// Decode into the local recipient object
-	if hfm, diags := varfile.Decode(file, src, nil, &ovrds); diags.HasErrors() {
-		return hfm, diags.Extend(diags)
+	if hfm, vfDiags := varfile.Decode(file, src, nil, &ovrds); vfDiags.HasErrors() {
+		return hfm, vfDiags.Extend(diags)
 	}
 	for _, o := range ovrds[varfile.PackID(file)] {
 		// Identify whether this variable override is for a dependency pack
