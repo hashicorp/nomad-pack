@@ -204,37 +204,32 @@ func wrapBytes(b *[]byte, prefix, postfix []byte) {
 func unwrapBytes(sp *[]byte) {
 	src := *sp
 
-	//TODO: DELETEME
-	//spew.Printf("\n  💾 BEFORE:\n%s\n", spew.Sdump(src))
+	// spew.Printf("\n  💾 BEFORE:\n%s\n", spew.Sdump(src)) 	// TODO: DELETEME
 
 	// Trim the first 6 and last 2 bytes (since we added those).
 	out := slices.Clip(src[6 : len(src)-2])
 
-	//TODO: DELETEME
-	//spew.Printf("  💾 AFTER:\n%s\n", spew.Sdump(out))
+	// spew.Printf("  💾 AFTER:\n%s\n", spew.Sdump(out)) 	// TODO: DELETEME
 
 	*sp = out
 }
 
 func fixupRange(r *hcl.Range) {
-	//TODO: DELETEME
-	// fmt.Printf("🟢 BEFORE: [%-5s] filename: %s Line: %v, Column: %v, Byte: %v\n", "Start", r.Filename, r.Start.Line, r.Start.Column, r.Start.Byte)
-	// fmt.Printf("🟢 BEFORE: [%-5s] filename: %s Line: %v, Column: %v, Byte: %v\n", "End", r.Filename, r.End.Line, r.End.Column, r.End.Byte)
+	// fmt.Printf("🟢 BEFORE: [%-5s] filename: %s Line: %v, Column: %v, Byte: %v\n", "Start", r.Filename, r.Start.Line, r.Start.Column, r.Start.Byte) // TODO: DELETEME
+	// fmt.Printf("🟢 BEFORE: [%-5s] filename: %s Line: %v, Column: %v, Byte: %v\n", "End", r.Filename, r.End.Line, r.End.Column, r.End.Byte) // TODO: DELETEME
 
 	fixupStart(r)
 	fixupEnd(r)
 
-	//TODO: DELETEME
-	// fmt.Printf("🟢  AFTER: [%-5s] filename: %s Line: %v, Column: %v, Byte: %v\n", "Start", r.Filename, r.Start.Line, r.Start.Column, r.Start.Byte)
-	// fmt.Printf("🟢  AFTER: [%-5s] filename: %s Line: %v, Column: %v, Byte: %v\n", "End", r.Filename, r.End.Line, r.End.Column, r.End.Byte)
+	// fmt.Printf("🟢  AFTER: [%-5s] filename: %s Line: %v, Column: %v, Byte: %v\n", "Start", r.Filename, r.Start.Line, r.Start.Column, r.Start.Byte) // TODO: DELETEME
+	// fmt.Printf("🟢  AFTER: [%-5s] filename: %s Line: %v, Column: %v, Byte: %v\n", "End", r.Filename, r.End.Line, r.End.Column, r.End.Byte) // TODO: DELETEME
 }
 
 func fixupStart(r *hcl.Range) { fixupPos("Start", r.Filename, &r.Start) }
 func fixupEnd(r *hcl.Range)   { fixupPos("End", r.Filename, &r.End) }
 
 func fixupPos(e string, filename string, p *hcl.Pos) {
-	//TODO: DELETEME
-	// fmt.Printf("  🟡 BEFORE: [%-5s] filename: %s Line: %v, Column: %v, Byte: %v\n", e, filename, p.Line, p.Column, p.Byte)
+	// fmt.Printf("  🟡 BEFORE: [%-5s] filename: %s Line: %v, Column: %v, Byte: %v\n", e, filename, p.Line, p.Column, p.Byte) // TODO: DELETEME
 
 	// Adjust the byte position to account for the map wrapper that we have to
 	// take back out
@@ -252,8 +247,7 @@ func fixupPos(e string, filename string, p *hcl.Pos) {
 
 	p.Line -= 1
 
-	//TODO: DELETEME
-	// fmt.Printf("  🟡  AFTER: [%-5s] filename: %s Line: %v, Column: %v, Byte: %v\n", e, filename, p.Line, p.Column, p.Byte)
+	// fmt.Printf("  🟡  AFTER: [%-5s] filename: %s Line: %v, Column: %v, Byte: %v\n", e, filename, p.Line, p.Column, p.Byte) // TODO: DELETEME
 }
 
 type DiagExtraFixup struct{ Fixed bool }
@@ -283,18 +277,14 @@ func (f *fixableDiags) Fixup() {
 	for _, diag := range *f {
 		if diag.Extra == nil {
 			if diag.Subject != nil {
-				//TODO: DELETEME
-				// fmt.Printf("Diag %v Subject: BEFORE: %s, %[1]v bytes\n", i, diag.Subject)
+				// fmt.Printf("Diag %v Subject: BEFORE: %s, %[1]v bytes\n", i, diag.Subject) // TODO: DELETEME
 				fixupRange(diag.Subject)
-				//TODO: DELETEME
-				// fmt.Printf("Diag %v Subject: AFTER: %s, %[1]v bytes\n", i, diag.Subject)
+				// fmt.Printf("Diag %v Subject: AFTER: %s, %[1]v bytes\n", i, diag.Subject) // TODO: DELETEME
 			}
 			if diag.Context != nil {
-				//TODO: DELETEME
-				// fmt.Printf("Diag %v Context: BEFORE: %s, %[1]v bytes\n", i, diag.Context)
+				// fmt.Printf("Diag %v Context: BEFORE: %s, %[1]v bytes\n", i, diag.Context) // TODO: DELETEME
 				fixupRange(diag.Context)
-				//TODO: DELETEME
-				// fmt.Printf("Diag %v Context: AFTER: %s, %[1]v bytes\n", i, diag.Context)
+				// fmt.Printf("Diag %v Context: AFTER: %s, %[1]v bytes\n", i, diag.Context) // TODO: DELETEME
 			}
 			markFixed(diag)
 		}

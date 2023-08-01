@@ -106,7 +106,7 @@ func (r *Renderer) Render(p *pack.Pack, tplCtx PackTemplateContext) (*Rendered, 
 		var buf strings.Builder
 
 		if err := tpl.ExecuteTemplate(&buf, name, src.tplCtx); err != nil {
-			fmt.Printf("❌ Error: %v", err) // TODO: delete
+			fmt.Printf("❌ Error: %v", err) // TODO: DELETEME
 			return nil, fmt.Errorf("failed to render %s: %v", name, err)
 		}
 
