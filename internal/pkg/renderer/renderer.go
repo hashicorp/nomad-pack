@@ -186,13 +186,13 @@ func prepareFiles(p *pack.Pack,
 
 	// Add each template within the pack with scoped variables.
 	for _, t := range p.TemplateFiles {
-		files[path.Join(p.PackID().AsPath(), t.Name)] = toRender{content: string(t.Content), tplCtx: tplCtx}
+		files[path.Join(p.VariablesPath().AsPath(), t.Name)] = toRender{content: string(t.Content), tplCtx: tplCtx}
 	}
 
 	if renderAuxFiles {
 		// Add each aux file within the pack with scoped variables.
 		for _, f := range p.AuxiliaryFiles {
-			files[path.Join(p.PackID().AsPath(), f.Name)] = toRender{content: string(f.Content), tplCtx: tplCtx}
+			files[path.Join(p.VariablesPath().AsPath(), f.Name)] = toRender{content: string(f.Content), tplCtx: tplCtx}
 		}
 	}
 }
