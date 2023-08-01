@@ -12,6 +12,8 @@ import (
 	"strings"
 
 	"github.com/posener/complete"
+	"golang.org/x/exp/maps"
+	"golang.org/x/exp/slices"
 
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
@@ -159,13 +161,39 @@ func writeFile(c *RenderCommand, path string, content string) error {
 	return nil
 }
 
-// formatRenderName trims the low-value elements from the rendered template
-// name.
-func formatRenderName(name string) string {
-	outName := strings.Replace(name, "/templates/", "/", 1)
-	outName = strings.TrimSuffix(outName, ".tpl")
+func rangeRenders(subj map[string]string, target *[]Render) {
+	// The problem: the keys don't sort in pack order anymore because they have
+	// both a template and a filename in them
 
-	return outName
+	type pk string // pack key
+	type fn string // filename
+	type co string // render
+
+	packKeySet := make(map[pk]map[fn]co, len(subj))
+	for k, v := range subj {
+		key, val, _ := strings.Cut(k, "/templates/")
+
+		var packKey pk = pk(key)
+		var filename fn = fn(strings.TrimSuffix(val, ".tpl"))
+		if _, found := packKeySet[packKey]; !found {
+			packKeySet[packKey] = make(map[fn]co)
+		}
+		packKeySet[packKey][filename] = co(v)
+	}
+
+	// At this point, we should be able to to some sorting and traversing into
+	// an ordered slice.
+	pks := maps.Keys(packKeySet)
+	slices.Sort(pks)
+	for _, pk := range pks {
+		elem := packKeySet[pk]
+		fns := maps.Keys(elem)
+		slices.Sort(fns)
+		for _, fn := range fns {
+			render := elem[fn]
+			*target = append(*target, Render{Name: fmt.Sprintf("%v/%v", pk, fn), Content: string(render)})
+		}
+	}
 }
 
 // Run satisfies the Run function of the cli.Command interface.
@@ -228,13 +256,8 @@ func (c *RenderCommand) Run(args []string) int {
 	// Iterate the rendered files and add these to the list of renders to
 	// output. This allows errors to surface and end things without emitting
 	// partial output and then erroring out.
-
-	for name, renderedFile := range renderOutput.DependentRenders() {
-		renders = append(renders, Render{Name: formatRenderName(name), Content: renderedFile})
-	}
-	for name, renderedFile := range renderOutput.ParentRenders() {
-		renders = append(renders, Render{Name: formatRenderName(name), Content: renderedFile})
-	}
+	rangeRenders(renderOutput.DependentRenders(), &renders)
+	rangeRenders(renderOutput.ParentRenders(), &renders)
 
 	// If the user wants to render and display the outputs template file then
 	// render this. In the event the render returns an error, print this but do
