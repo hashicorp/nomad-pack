@@ -1,1 +1,1 @@
-[[- .my.job_name -]]
+[[- var "job_name" . -]]

@@ -1,15 +1,15 @@
-job [[ coalesce .simple_raw_exec.job_name .nomad_pack.pack.name ]] {
-  [[- if empty .simple_raw_exec.region | not ]]
-  region = [[quote .simple_raw_exec.region ]]
+job [[ coalesce ( var "job_name" .) (meta "pack.name" .) ]] {
+  [[- if (var "region" .) ]]
+  region = [[.region ]]
   [[- end ]]
-  [[- if empty .simple_raw_exec.namespace | not ]]
-  namespace = [[quote .simple_raw_exec.namespace ]]
+  [[- if (var "namespace" .) ]]
+  namespace = [[ var "namespace" . ]]
   [[- end ]]
-  datacenters = [[ .simple_raw_exec.datacenters | toJson ]]
+  datacenters = [[ var "datacenters" . | toJson ]]
   type = "service"
 
   group "app" {
-    count = [[ .simple_raw_exec.count ]]
+    count = [[ var "count" . ]]
 
     restart {
       attempts = 2
@@ -23,11 +23,11 @@ job [[ coalesce .simple_raw_exec.job_name .nomad_pack.pack.name ]] {
 
       config {
         command = "/bin/bash"
-        args = ["-c",[[ quote .simple_raw_exec.command ]]]
+        args = ["-c",[[ var "command" . | quote ]]]
       }
-      [[- if (not (empty .simple_raw_exec.env) ) ]]
+      [[- if (var "env" .) ]]
       [[- print "\n\n      env {\n" -]]
-        [[- range $k, $v := .simple_raw_exec.env -]]
+        [[- range $k, $v := var "env" . -]]
         [[- printf "        %s = %q\n" $k $v -]]
         [[- end -]]
       [[- print "      }" -]][[- end -]][[- print "" ]]
