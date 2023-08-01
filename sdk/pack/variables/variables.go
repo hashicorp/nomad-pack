@@ -72,7 +72,7 @@ func (v Variable) Equal(ov Variable) bool {
 		v.Default == ov.Default &&
 		v.hasDefault == ov.hasDefault &&
 		v.Type == ov.Type &&
-		v.hasType == v.hasType &&
+		v.hasType == ov.hasType &&
 		v.Value == ov.Value
 
 	return eq
