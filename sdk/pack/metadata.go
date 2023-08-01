@@ -94,7 +94,7 @@ type MetadataIntegration struct {
 // metadata object. The conversion doesn't take into account empty values and
 // will add them.
 func (md *Metadata) ConvertToMapInterface() map[string]any {
-	innerMap := map[string]any{
+	m := map[string]any{
 		"app": map[string]any{
 			"url": md.App.URL,
 		},
@@ -106,7 +106,7 @@ func (md *Metadata) ConvertToMapInterface() map[string]any {
 		"dependencies": []map[string]any{},
 	}
 	if md.Integration != nil {
-		innerMap["integration"] = map[string]any{
+		m["integration"] = map[string]any{
 			"identifier": md.Integration.Identifier,
 			"flags":      md.Integration.Flags,
 			"name":       md.Integration.Name,
@@ -124,33 +124,8 @@ func (md *Metadata) ConvertToMapInterface() map[string]any {
 			},
 		}
 	}
-	innerMap["dependencies"] = dSlice
+	m["dependencies"] = dSlice
 
-	return map[string]any{"nomad_pack": innerMap}
-}
-
-// AddToInterfaceMap adds the metadata information to the provided map as a new
-// entry under the "nomad_pack" key. This is useful for adding this information
-// to the template rendering data.
-func (md *Metadata) AddToInterfaceMap(m map[string]any) map[string]any {
-	innerMap := map[string]any{
-		"app": map[string]any{
-			"url": md.App.URL,
-		},
-		"pack": map[string]any{
-			"name":        md.Pack.Name,
-			"description": md.Pack.Description,
-			"version":     md.Pack.Version,
-		},
-	}
-	if md.Integration != nil {
-		innerMap["integration"] = map[string]any{
-			"identifier": md.Integration.Identifier,
-			"flags":      md.Integration.Flags,
-			"name":       md.Integration.Name,
-		}
-	}
-	m["nomad_pack"] = innerMap
 	return m
 }
 

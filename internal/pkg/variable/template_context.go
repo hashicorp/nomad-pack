@@ -10,19 +10,24 @@ import (
 
 type PackData struct {
 	Pack *pack.Pack
-	meta map[string]string
+	meta map[string]any
 	vars map[string]any
 }
 
-func (p PackData) getVars() map[string]any { return p.vars }
-func (p PackData) getPack() PackData       { return p }
+func (p PackData) getVars() map[string]any  { return p.vars }
+func (p PackData) getMetas() map[string]any { return p.meta }
+func (p PackData) getPack() PackData        { return p }
 
 type PackTemplateContext map[string]PackContextable
 
-func (p PackTemplateContext) getVars() map[string]any { return p.getPack().vars }
-func (p PackTemplateContext) getPack() PackData       { return p["_self"].(PackData) }
+func (p PackTemplateContext) getVars() map[string]any  { return p.getPack().vars }
+func (p PackTemplateContext) getMetas() map[string]any { return p.getPack().meta }
+func (p PackTemplateContext) getPack() PackData        { return p["_self"].(PackData) }
 
-type PackContextable interface{ getVars() map[string]any }
+type PackContextable interface {
+	getVars() map[string]any
+	getMetas() map[string]any
+}
 
 // getPackVars is the underlying implementation for the `vars` template func
 func getPackVars(p PackContextable) map[string]any { return p.getVars() }
@@ -40,6 +45,28 @@ func mustGetPackVar(k string, p PackContextable) (any, error) {
 // getPackVar is the underlying implementation for the `var` template func
 func getPackVar(k string, p PackContextable) any {
 	if v, err := mustGetPackVar(k, p); err == nil {
+		return v
+	} else {
+		return ""
+	}
+}
+
+// getPackMetas is the underlying implementation for the `metas` template func
+func getPackMetas(p PackContextable) map[string]any { return p.getMetas() }
+
+// mustGetPackMeta is the underlying implementation for the `must_meta` template
+// func
+func mustGetPackMeta(k string, p PackContextable) (any, error) {
+	if v, ok := p.getVars()[k]; ok {
+		return v, nil
+	} else {
+		return nil, fmt.Errorf("variable %q not found", k)
+	}
+}
+
+// getPackMeta is the underlying implementation for the `meta` template func
+func getPackMeta(k string, p PackContextable) any {
+	if v, err := mustGetPackMeta(k, p); err == nil {
 		return v
 	} else {
 		return ""
@@ -98,7 +125,7 @@ func getPackDepTreeR(k string, p PackTemplateContext, path string, pAcc *[]strin
 
 	for _, k := range p.depKeys() {
 		v := p[k]
-		path := path + "." + k
+		path = path + "." + k
 		*pAcc = append(*pAcc, path)
 		ptc := v.(PackTemplateContext)
 		getPackDepTreeR(k, ptc, path, pAcc)
@@ -126,6 +153,9 @@ func PackTemplateContextFuncs() template.FuncMap {
 		"vars":      getPackVars,
 		"var":       getPackVar,
 		"must_var":  mustGetPackVar,
+		"metas":     getPackMetas,
+		"meta":      getPackMeta,
+		"must_meta": mustGetPackMeta,
 		"deps":      getPackDeps,
 		"deps_tree": getPackDepTree,
 	}

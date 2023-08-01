@@ -48,6 +48,7 @@ func (pv ParsedVariables) toPackTemplateContextR(tgt *PackTemplateContext, p *pa
 	(*tgt)["_self"] = PackData{
 		Pack: p,
 		vars: pVars,
+		meta: p.Metadata.ConvertToMapInterface(),
 	}
 
 	for _, d := range p.Dependencies() {
