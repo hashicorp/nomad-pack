@@ -57,10 +57,10 @@ func getPackMetas(p PackContextable) map[string]any { return p.getMetas() }
 // mustGetPackMeta is the underlying implementation for the `must_meta` template
 // func
 func mustGetPackMeta(k string, p PackContextable) (any, error) {
-	if v, ok := p.getVars()[k]; ok {
+	if v, ok := p.getMetas()[k]; ok {
 		return v, nil
 	} else {
-		return nil, fmt.Errorf("variable %q not found", k)
+		return nil, fmt.Errorf("metadata item %q not found", k)
 	}
 }
 
