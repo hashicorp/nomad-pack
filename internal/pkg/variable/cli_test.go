@@ -43,19 +43,10 @@ func TestParser_parseCLIVariable(t *testing.T) {
 				cliOverrideVars: make(map[PackID][]*Variable),
 				envOverrideVars: make(map[PackID][]*Variable),
 			},
-			inputName:     "region",
-			inputRawVal:   "vlc",
-			expectedError: false,
-			expectedCLIVars: map[PackID][]*Variable{
-				"example": {
-					{
-						Name:      "region",
-						Type:      cty.String,
-						Value:     cty.StringVal("vlc"),
-						DeclRange: hcl.Range{Filename: "<value for var.region from arguments>"},
-					},
-				},
-			},
+			inputName:       "region",
+			inputRawVal:     "vlc",
+			expectedError:   true,
+			expectedCLIVars: map[PackID][]*Variable{},
 			expectedEnvVars: make(map[PackID][]*Variable),
 		},
 		{
