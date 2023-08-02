@@ -10,6 +10,8 @@ import (
 	"testing"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/nomad-pack/internal/pkg/loader"
+	"github.com/hashicorp/nomad-pack/sdk/pack"
 	"github.com/shoenig/test/must"
 	"github.com/spf13/afero"
 	"github.com/zclconf/go-cty/cty"
@@ -136,16 +138,25 @@ func TestParser_parseCLIVariable(t *testing.T) {
 
 func TestParser_parseHeredocAtEOF(t *testing.T) {
 	inputParser := &Parser{
-		fs:               afero.Afero{Fs: afero.OsFs{}},
-		cfg:              &ParserConfig{ParentPackID: "example"},
+		fs: afero.Afero{Fs: afero.OsFs{}},
+		cfg: &ParserConfig{
+			RootVariableFiles: map[pack.PackID]*pack.File{},
+		},
 		rootVars:         map[PackID]map[VariableID]*Variable{},
 		fileOverrideVars: make(map[PackID][]*Variable),
 	}
-	fixturePath := Fixture("variable_test/heredoc.vars.hcl")
-	_, diags := inputParser.newParseOverridesFile(fixturePath)
+
+	fixtureRoot := Fixture("variable_test")
+	p, err := loader.Load(fixtureRoot + "/variable_test")
+	must.NoError(t, err)
+	must.NotNil(t, p)
+
+	inputParser.cfg.RootVariableFiles = p.RootVariableFiles()
+
+	_, diags := inputParser.newParseOverridesFile(fixtureRoot + "/heredoc.vars.hcl")
 	must.False(t, diags.HasErrors(), must.Sprintf("diags: %v", diags))
-	must.Len(t, 1, inputParser.fileOverrideVars["example"])
-	must.Eq(t, "heredoc\n", inputParser.fileOverrideVars["example"][0].Value.AsString())
+	must.Len(t, 1, inputParser.fileOverrideVars["variable_test_pack"])
+	must.Eq(t, "heredoc\n", inputParser.fileOverrideVars["variable_test_pack"][0].Value.AsString())
 }
 
 func TestParser_VariableOverrides(t *testing.T) {

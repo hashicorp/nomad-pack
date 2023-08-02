@@ -1,6 +1,6 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
-input = <<EOF
+variable_test_pack.input = <<EOF
 heredoc
 EOF

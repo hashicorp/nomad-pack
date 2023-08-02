@@ -1,4 +1,4 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
-input = "varfile"
+variable_test_pack.input = "varfile"
