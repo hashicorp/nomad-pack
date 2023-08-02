@@ -43,7 +43,7 @@ func (p *Parser) parseEnvVariable(name string, rawVal string) hcl.Diagnostics {
 
 	// Generate a filename based on the CLI var, so we have some context for any
 	// HCL diagnostics.
-	fakeRange := hcl.Range{Filename: fmt.Sprintf("<value for var.%s from environment>", name)}
+	fakeRange := hcl.Range{Filename: fmt.Sprintf("<value for var %s from environment>", name)}
 
 	// If the variable has not been configured in the root then ignore it. This
 	// is a departure from the way in which flags and var-files are handled.
