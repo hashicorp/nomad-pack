@@ -57,12 +57,15 @@ func TestDependency_Validate(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		err := tc.inputDependency.validate()
-		if tc.expectError {
-			must.NotNil(t, err, must.Sprint(tc.name))
-		} else {
-			must.Nil(t, err, must.Sprint(tc.name))
-		}
-		must.Eq(t, tc.expectedOutputDependency, tc.inputDependency, must.Sprint(tc.name))
+		t.Run(tc.name, func(t *testing.T) {
+			tc := tc
+			err := tc.inputDependency.validate()
+			if tc.expectError {
+				must.NotNil(t, err)
+			} else {
+				must.Nil(t, err)
+			}
+			must.Eq(t, tc.expectedOutputDependency, tc.inputDependency)
+		})
 	}
 }

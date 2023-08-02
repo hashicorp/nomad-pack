@@ -33,22 +33,20 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 				},
 			},
 			expectedOutput: map[string]any{
-				"nomad_pack": map[string]any{
-					"app": map[string]any{
-						"url": "https://example.com",
-					},
-					"pack": map[string]any{
-						"name":        "Example",
-						"description": "The most basic, yet awesome, example",
-						"version":     "v0.0.1",
-					},
-					"integration": map[string]any{
-						"identifier": "nomad/hashicorp/example",
-						"flags":      []string{"foo", "bar"},
-						"name":       "Example",
-					},
-					"dependencies": []map[string]any{},
+				"app": map[string]any{
+					"url": "https://example.com",
 				},
+				"pack": map[string]any{
+					"name":        "Example",
+					"description": "The most basic, yet awesome, example",
+					"version":     "v0.0.1",
+				},
+				"integration": map[string]any{
+					"identifier": "nomad/hashicorp/example",
+					"flags":      []string{"foo", "bar"},
+					"name":       "Example",
+				},
+				"dependencies": []map[string]any{},
 			},
 		},
 		{
@@ -80,36 +78,34 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 				},
 			},
 			expectedOutput: map[string]any{
-				"nomad_pack": map[string]any{
-					"app": map[string]any{
-						"url": "https://example.com",
-					},
-					"pack": map[string]any{
-						"name":        "Example",
-						"description": "The most basic, yet awesome, example",
-						"version":     "v0.0.1",
-					},
-					"integration": map[string]any{
-						"identifier": "nomad/hashicorp/example",
-						"flags":      []string{"foo", "bar"},
-						"name":       "Example",
-					},
-					"dependencies": []map[string]any{
-						{
-							"dep1": map[string]any{
-								"name":    "dep1",
-								"alias":   "",
-								"source":  "",
-								"enabled": pointerOf(true),
-							},
+				"app": map[string]any{
+					"url": "https://example.com",
+				},
+				"pack": map[string]any{
+					"name":        "Example",
+					"description": "The most basic, yet awesome, example",
+					"version":     "v0.0.1",
+				},
+				"integration": map[string]any{
+					"identifier": "nomad/hashicorp/example",
+					"flags":      []string{"foo", "bar"},
+					"name":       "Example",
+				},
+				"dependencies": []map[string]any{
+					{
+						"dep1": map[string]any{
+							"name":    "dep1",
+							"alias":   "",
+							"source":  "",
+							"enabled": pointerOf(true),
 						},
-						{
-							"dep2": map[string]any{
-								"name":    "dep1",
-								"alias":   "dep2",
-								"source":  "",
-								"enabled": pointerOf(true),
-							},
+					},
+					{
+						"dep2": map[string]any{
+							"name":    "dep1",
+							"alias":   "dep2",
+							"source":  "",
+							"enabled": pointerOf(true),
 						},
 					},
 				},
@@ -131,22 +127,20 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 				Integration: &MetadataIntegration{},
 			},
 			expectedOutput: map[string]any{
-				"nomad_pack": map[string]any{
-					"app": map[string]any{
-						"url": "https://example.com",
-					},
-					"pack": map[string]any{
-						"name":        "Example",
-						"description": "",
-						"version":     "v0.0.1",
-					},
-					"integration": map[string]any{
-						"identifier": "",
-						"flags":      []string(nil),
-						"name":       "",
-					},
-					"dependencies": []map[string]any{},
+				"app": map[string]any{
+					"url": "https://example.com",
 				},
+				"pack": map[string]any{
+					"name":        "Example",
+					"description": "",
+					"version":     "v0.0.1",
+				},
+				"integration": map[string]any{
+					"identifier": "",
+					"flags":      []string(nil),
+					"name":       "",
+				},
+				"dependencies": []map[string]any{},
 			},
 		},
 		{
@@ -162,19 +156,20 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 				Integration: &MetadataIntegration{},
 			},
 			expectedOutput: map[string]any{
-				"nomad_pack": map[string]any{
-					"app":          map[string]any{"url": "https://example.com"},
-					"pack":         map[string]any{"name": "", "description": "", "version": ""},
-					"integration":  map[string]any{"identifier": "", "flags": []string(nil), "name": ""},
-					"dependencies": []map[string]any{},
-				},
+				"app":          map[string]any{"url": "https://example.com"},
+				"pack":         map[string]any{"name": "", "description": "", "version": ""},
+				"integration":  map[string]any{"identifier": "", "flags": []string(nil), "name": ""},
+				"dependencies": []map[string]any{},
 			},
 		},
 	}
 
 	for _, tc := range testCases {
-		actualOutput := tc.inputMetadata.ConvertToMapInterface()
-		must.Eq(t, tc.expectedOutput, actualOutput, must.Sprint(tc.name))
+		t.Run(tc.name, func(t *testing.T) {
+			tc := tc
+			actualOutput := tc.inputMetadata.ConvertToMapInterface()
+			must.Eq(t, tc.expectedOutput, actualOutput, must.Sprint(tc.name))
+		})
 	}
 }
 
@@ -206,11 +201,14 @@ func TestMetadata_Validate(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		err := tc.inputMetadata.Validate()
-		if tc.expectError {
-			must.NotNil(t, err, must.Sprint(tc.name))
-		} else {
-			must.Nil(t, err, must.Sprint(tc.name))
-		}
+		t.Run(tc.name, func(t *testing.T) {
+			tc := tc
+			err := tc.inputMetadata.Validate()
+			if tc.expectError {
+				must.NotNil(t, err, must.Sprint(tc.name))
+			} else {
+				must.Nil(t, err, must.Sprint(tc.name))
+			}
+		})
 	}
 }
