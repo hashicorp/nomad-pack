@@ -1,7 +1,9 @@
 package variable
 
 import (
+	"errors"
 	"fmt"
+	"strings"
 	"text/template"
 
 	"github.com/hashicorp/nomad-pack/sdk/pack"
@@ -25,6 +27,7 @@ func (p PackTemplateContext) getMetas() map[string]any { return p.getPack().meta
 func (p PackTemplateContext) getPack() PackData        { return p["_self"].(PackData) }
 
 type PackContextable interface {
+	getPack() PackData
 	getVars() map[string]any
 	getMetas() map[string]any
 }
@@ -51,16 +54,66 @@ func getPackVar(k string, p PackContextable) any {
 	}
 }
 
+// mustGetPackMetaR recursively descends into a pack's metadata map to collect
+// the values.
+func mustGetPackVarR(keys []string, p map[string]any) (any, error) {
+	if len(keys) > 0 {
+		np, found := p[keys[0]]
+		if !found {
+			return nil, fmt.Errorf("var key %s not found", keys[0])
+		}
+
+		switch item := np.(type) {
+		case string:
+			if len(keys) == 1 {
+				return item, nil
+			}
+			return nil, fmt.Errorf("encountered non-traversable key while traversing")
+
+		case map[string]any:
+			if len(keys) == 1 {
+				return nil, fmt.Errorf("traversal ended on non-metadata item key")
+			}
+			return mustGetPackMetaR(keys[1:], item)
+		}
+	}
+
+	return nil, errors.New("meta key not found and hit base case")
+}
+
 // getPackMetas is the underlying implementation for the `metas` template func
 func getPackMetas(p PackContextable) map[string]any { return p.getMetas() }
 
 // mustGetPackMeta is the underlying implementation for the `must_meta` template
 // func
 func mustGetPackMeta(k string, p PackContextable) (any, error) {
-	if v, ok := p.getMetas()[k]; ok {
-		return v, nil
-	} else {
-		return nil, fmt.Errorf("metadata item %q not found", k)
+	return mustGetPackMetaR(strings.Split(k, "."), p.getMetas())
+}
+
+// mustGetPackMetaR recursively descends into a pack's metadata map to collect
+// the values.
+func mustGetPackMetaR(keys []string, p map[string]any) (any, error) {
+	if len(keys) == 0 {
+		return nil, errors.New("end of traversal")
+	}
+	np, found := p[keys[0]]
+	if !found {
+		return nil, fmt.Errorf("meta key %s not found", keys[0])
+	}
+
+	switch item := np.(type) {
+	case string:
+		if len(keys) == 1 {
+			return item, nil
+		}
+		return nil, fmt.Errorf("encountered non-map key while traversing")
+	case map[string]any:
+		if len(keys) == 1 {
+			return nil, fmt.Errorf("traversal ended on non-metadata item key")
+		}
+		return mustGetPackMetaR(keys[1:], item)
+	default:
+		return nil, fmt.Errorf("meta key not found and hit non-traversible type (%T)", np)
 	}
 }
 
