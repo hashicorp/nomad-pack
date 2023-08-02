@@ -35,16 +35,6 @@ type PackContextable interface {
 // getPackVars is the underlying implementation for the `vars` template func
 func getPackVars(p PackContextable) map[string]any { return p.getVars() }
 
-// mustGetPackVar is the underlying implementation for the `must_var` template
-// func
-func mustGetPackVar(k string, p PackContextable) (any, error) {
-	if v, ok := p.getVars()[k]; ok {
-		return v, nil
-	} else {
-		return nil, fmt.Errorf("variable %q not found", k)
-	}
-}
-
 // getPackVar is the underlying implementation for the `var` template func
 func getPackVar(k string, p PackContextable) any {
 	if v, err := mustGetPackVar(k, p); err == nil {
@@ -52,6 +42,12 @@ func getPackVar(k string, p PackContextable) any {
 	} else {
 		return ""
 	}
+}
+
+// mustGetPackVar is the underlying implementation for the `must_var` template
+// func
+func mustGetPackVar(k string, p PackContextable) (any, error) {
+	return mustGetPackVarR(strings.Split(k, "."), p.getVars())
 }
 
 // mustGetPackMetaR recursively descends into a pack's metadata map to collect
