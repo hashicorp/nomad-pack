@@ -1,4 +1,4 @@
-job [[ coalesce ( var "job_name" .) (meta "pack.name" .) ]] {
+job [[ coalesce ( var "job_name" .) (meta "pack.name" .) | quote ]] {
   [[- if (var "region" .) ]]
   region = [[.region ]]
   [[- end ]]
