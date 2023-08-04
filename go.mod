@@ -2,7 +2,8 @@ module github.com/hashicorp/nomad-pack
 
 go 1.20
 
-replace github.com/hashicorp/hcl/v2 => github.com/hashicorp/hcl/v2 v2.9.2-0.20220525143345-ab3cae0737bc
+// This replace is required by Nomad or the dependency won't build correctly.
+replace github.com/hashicorp/hcl => github.com/hashicorp/hcl v1.0.1-0.20201016140508-a07e7d50bbee
 
 require (
 	github.com/Masterminds/sprig/v3 v3.2.3
@@ -16,7 +17,7 @@ require (
 	github.com/hashicorp/go-hclog v1.5.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/hcl v1.0.1-vault-5
-	github.com/hashicorp/hcl/v2 v2.17.0
+	github.com/hashicorp/hcl/v2 v2.17.1-0.20230725002108-58caf00be5aa
 	github.com/hashicorp/nomad v1.5.0-beta.1.0.20230804093607-388198abef93
 	github.com/hashicorp/nomad/api v0.0.0-20230804093607-388198abef93
 	github.com/kr/text v0.2.0
