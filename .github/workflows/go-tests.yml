@@ -19,8 +19,8 @@ jobs:
       # Get values for cache paths to be used in later steps
       - id: go-cache-paths
         run: |
-          echo "::set-output name=go-build::$(go env GOCACHE)"
-          echo "::set-output name=go-mod::$(go env GOMODCACHE)"
+          echo "go-build=$(go env GOCACHE)" >> $GITHUB_OUTPUT
+          echo "go-mod=$(go env GOMODCACHE)" >> $GITHUB_OUTPUT
 
       # Cache go build cache, used to speedup go test
       - name: Go Build Cache
@@ -44,7 +44,6 @@ jobs:
           wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
           echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
           sudo apt update && sudo apt -y install nomad
-          
 
       # Run tests with nice formatting. Save the original log in /tmp/gotest.log
       - name: Run tests
