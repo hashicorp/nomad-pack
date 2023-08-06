@@ -46,7 +46,7 @@ endif
 bootstrap: tools # Install all dependencies
 
 .PHONY: tools
-tools: lint-deps test-deps  # Install all tools
+tools: lint-deps test-deps misc-deps  # Install all tools
 
 .PHONY: lint-deps
 lint-deps: ## Install linter dependencies
@@ -58,6 +58,11 @@ lint-deps: ## Install linter dependencies
 test-deps: ## Install test dependencies
 	@echo "==> Updating test dependencies..."
 	go install gotest.tools/gotestsum@latest
+
+.PHONY: misc-deps
+misc-deps: ## Install other makefile dependencies
+	@echo "==> Updating other makefile dependencies..."
+	go install github.com/google/osv-scanner/cmd/osv-scanner@v1
 
 .PHONY: hclfmt
 hclfmt: ## Format HCL files with hclfmt
@@ -112,7 +117,7 @@ mod:
 	go mod tidy
 
 .PHONY: check
-check: check-mod check-sdk
+check: check-mod check-sdk check-osv
 
 .PHONY: check-mod
 check-mod: ## Checks the Go mod is tidy
@@ -124,6 +129,11 @@ check-mod: ## Checks the Go mod is tidy
 		git --no-pager diff go.sum; \
 		exit 1; fi
 	@echo "==> Done"
+
+.PHONY: check-osv
+check-osv: ## Checks if there are any disclosed vulnerabilities
+	@echo "==> Checking for any known vulnerabilities..."
+	osv-scanner -r .
 
 .PHONY: lint
 lint: tools hclfmt ## Lint the source code
