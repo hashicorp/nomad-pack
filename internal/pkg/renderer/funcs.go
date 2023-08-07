@@ -6,6 +6,7 @@ package renderer
 import (
 	"fmt"
 	"os"
+	"strings"
 	"text/template"
 
 	"github.com/Masterminds/sprig/v3"
@@ -89,15 +90,25 @@ func nomadRegions(client *api.Client) func() ([]string, error) {
 
 // toStringList takes a list of string and returns the HCL equivalent which is
 // useful when templating jobs and params such as datacenters.
-func toStringList(l []any) (string, error) {
-	var out string
-	for i := range l {
-		if i > 0 && i < len(l) {
-			out += ", "
+func toStringList(l any) (string, error) {
+	var out strings.Builder
+	out.WriteRune('[')
+	switch tl := l.(type) {
+	case []any:
+		// If l is a []string, then the caller probably wants that printed
+		// as a list of quoted elements, JSON style.
+		for i, v := range tl {
+			if i > 0 {
+				out.WriteString(", ")
+			}
+			out.WriteString(fmt.Sprintf("%q", v))
 		}
-		out += fmt.Sprintf("%q", l[i])
+	default:
+		out.WriteString(fmt.Sprintf("%q", l))
 	}
-	return "[" + out + "]", nil
+	out.WriteRune(']')
+	o := out.String()
+	return o, nil
 }
 
 // Spew helper funcs
