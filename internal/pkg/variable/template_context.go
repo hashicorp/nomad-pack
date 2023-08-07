@@ -50,31 +50,32 @@ func mustGetPackVar(k string, p PackContextable) (any, error) {
 	return mustGetPackVarR(strings.Split(k, "."), p.getVars())
 }
 
-// mustGetPackMetaR recursively descends into a pack's metadata map to collect
+// mustGetPackMetaR recursively descends into a pack's variable map to collect
 // the values.
 func mustGetPackVarR(keys []string, p map[string]any) (any, error) {
 	if len(keys) > 0 {
 		np, found := p[keys[0]]
 		if !found {
+			// TODO: This should probably be the full traversal to this point accumulated.
 			return nil, fmt.Errorf("var key %s not found", keys[0])
 		}
 
+		if found && len(keys) == 1 {
+			return np, nil
+		}
+
+		// If we're here, there's more than one key remaining in the traversal.
+		// See if we can continue
 		switch item := np.(type) {
 		case string:
-			if len(keys) == 1 {
-				return item, nil
-			}
 			return nil, fmt.Errorf("encountered non-traversable key while traversing")
 
 		case map[string]any:
-			if len(keys) == 1 {
-				return nil, fmt.Errorf("traversal ended on non-metadata item key")
-			}
-			return mustGetPackMetaR(keys[1:], item)
+			return mustGetPackVarR(keys[1:], item)
 		}
 	}
 
-	return nil, errors.New("meta key not found and hit base case")
+	return nil, errors.New("var key not found")
 }
 
 // getPackMetas is the underlying implementation for the `metas` template func
