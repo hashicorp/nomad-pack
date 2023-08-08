@@ -17,15 +17,15 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-func TestParser_parseCLIVariable(t *testing.T) {
+func TestParser_parseFlagVariable(t *testing.T) {
 	testCases := []struct {
-		inputParser     *Parser
-		inputName       string
-		inputRawVal     string
-		expectedError   bool
-		expectedCLIVars map[PackID][]*Variable
-		expectedEnvVars map[PackID][]*Variable
-		name            string
+		inputParser      *Parser
+		inputName        string
+		inputRawVal      string
+		expectedError    bool
+		expectedFlagVars map[PackID][]*Variable
+		expectedEnvVars  map[PackID][]*Variable
+		name             string
 	}{
 		{
 			name: "non-namespaced variable",
@@ -42,14 +42,14 @@ func TestParser_parseCLIVariable(t *testing.T) {
 						},
 					},
 				},
-				cliOverrideVars: make(map[PackID][]*Variable),
-				envOverrideVars: make(map[PackID][]*Variable),
+				flagOverrideVars: make(map[PackID][]*Variable),
+				envOverrideVars:  make(map[PackID][]*Variable),
 			},
-			inputName:       "region",
-			inputRawVal:     "vlc",
-			expectedError:   true,
-			expectedCLIVars: map[PackID][]*Variable{},
-			expectedEnvVars: make(map[PackID][]*Variable),
+			inputName:        "region",
+			inputRawVal:      "vlc",
+			expectedError:    true,
+			expectedFlagVars: map[PackID][]*Variable{},
+			expectedEnvVars:  make(map[PackID][]*Variable),
 		},
 		{
 			name: "namespaced variable",
@@ -66,12 +66,12 @@ func TestParser_parseCLIVariable(t *testing.T) {
 						},
 					},
 				},
-				cliOverrideVars: make(map[PackID][]*Variable),
+				flagOverrideVars: make(map[PackID][]*Variable),
 			},
 			inputName:     "example.region",
 			inputRawVal:   "vlc",
 			expectedError: false,
-			expectedCLIVars: map[PackID][]*Variable{
+			expectedFlagVars: map[PackID][]*Variable{
 				"example": {
 					{
 						Name:      "region",
@@ -84,16 +84,16 @@ func TestParser_parseCLIVariable(t *testing.T) {
 		},
 		{
 			inputParser: &Parser{
-				fs:              afero.Afero{Fs: afero.OsFs{}},
-				cfg:             &ParserConfig{ParentPackID: "example"},
-				rootVars:        map[PackID]map[VariableID]*Variable{},
-				cliOverrideVars: make(map[PackID][]*Variable),
+				fs:               afero.Afero{Fs: afero.OsFs{}},
+				cfg:              &ParserConfig{ParentPackID: "example"},
+				rootVars:         map[PackID]map[VariableID]*Variable{},
+				flagOverrideVars: make(map[PackID][]*Variable),
 			},
-			inputName:       "example.region",
-			inputRawVal:     "vlc",
-			expectedError:   true,
-			expectedCLIVars: map[PackID][]*Variable{},
-			name:            "root variable absent",
+			inputName:        "example.region",
+			inputRawVal:      "vlc",
+			expectedError:    true,
+			expectedFlagVars: map[PackID][]*Variable{},
+			name:             "root variable absent",
 		},
 		{
 			name: "unconvertable variable",
@@ -112,26 +112,26 @@ func TestParser_parseCLIVariable(t *testing.T) {
 						},
 					},
 				},
-				cliOverrideVars: make(map[PackID][]*Variable),
+				flagOverrideVars: make(map[PackID][]*Variable),
 			},
-			inputName:       "example.region",
-			inputRawVal:     "vlc",
-			expectedError:   true,
-			expectedCLIVars: map[PackID][]*Variable{},
+			inputName:        "example.region",
+			inputRawVal:      "vlc",
+			expectedError:    true,
+			expectedFlagVars: map[PackID][]*Variable{},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			tc := tc
-			actualErr := tc.inputParser.parseCLIVariable(tc.inputName, tc.inputRawVal)
+			actualErr := tc.inputParser.parseFlagVariable(tc.inputName, tc.inputRawVal)
 
 			if tc.expectedError {
 				must.NotNil(t, actualErr)
 				return
 			}
 			must.Nil(t, actualErr, must.Sprintf("actualErr: %v", actualErr))
-			must.MapEq(t, tc.expectedCLIVars, tc.inputParser.cliOverrideVars)
+			must.MapEq(t, tc.expectedFlagVars, tc.inputParser.flagOverrideVars)
 		})
 	}
 }
@@ -247,13 +247,13 @@ func WithEnvVar(key, value string) TestParserOption {
 
 func WithCliVar(key, value string) TestParserOption {
 	return func(p *Parser) {
-		p.cliOverrideVars["example"] = append(p.cliOverrideVars["example"], NewStringVariable(key, value, "cli"))
+		p.flagOverrideVars["example"] = append(p.flagOverrideVars["example"], NewStringVariable(key, value, "cli"))
 	}
 }
 
 func WithFileVar(key, value string) TestParserOption {
 	return func(p *Parser) {
-		p.cliOverrideVars["example"] = append(p.cliOverrideVars["example"], NewStringVariable(key, value, "file"))
+		p.flagOverrideVars["example"] = append(p.flagOverrideVars["example"], NewStringVariable(key, value, "file"))
 	}
 }
 
@@ -274,7 +274,7 @@ func NewTestInputParser(opts ...TestParserOption) *Parser {
 		},
 		envOverrideVars:  make(map[PackID][]*Variable),
 		fileOverrideVars: make(map[PackID][]*Variable),
-		cliOverrideVars:  make(map[PackID][]*Variable),
+		flagOverrideVars: make(map[PackID][]*Variable),
 	}
 
 	// Loop through each option

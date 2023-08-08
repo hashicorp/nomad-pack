@@ -87,7 +87,7 @@ func (p *Parser) parseEnvVariable(name string, rawVal string) hcl.Diagnostics {
 	return nil
 }
 
-func (p *Parser) parseCLIVariable(name string, rawVal string) hcl.Diagnostics {
+func (p *Parser) parseFlagVariable(name string, rawVal string) hcl.Diagnostics {
 	// Split the name to see if we have a namespace CLI variable for a child
 	// pack and set the default packVarName.
 	splitName := strings.Split(name, ".")
@@ -154,7 +154,7 @@ func (p *Parser) parseCLIVariable(name string, rawVal string) hcl.Diagnostics {
 		Value:     val,
 		DeclRange: fakeRange,
 	}
-	p.cliOverrideVars[varPID] = append(p.cliOverrideVars[varPID], &v)
+	p.flagOverrideVars[varPID] = append(p.flagOverrideVars[varPID], &v)
 
 	return nil
 }

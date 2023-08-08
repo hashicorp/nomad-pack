@@ -67,7 +67,7 @@ func (pm *PackManager) ProcessVariableFiles() (*variable.ParsedVariables, []*err
 		RootVariableFiles: loadedPack.RootVariableFiles(),
 		EnvOverrides:      pm.cfg.VariableEnvVars,
 		FileOverrides:     pm.cfg.VariableFiles,
-		CLIOverrides:      pm.cfg.VariableCLIArgs,
+		FlagOverrides:     pm.cfg.VariableCLIArgs,
 	}
 
 	variableParser, err := variable.NewParser(pCfg)

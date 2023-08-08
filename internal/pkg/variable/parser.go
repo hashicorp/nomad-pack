@@ -33,7 +33,7 @@ type Parser struct {
 	// variables. The maps are keyed by the pack name they are associated to.
 	envOverrideVars  map[PackID][]*Variable
 	fileOverrideVars map[PackID][]*Variable
-	cliOverrideVars  map[PackID][]*Variable
+	flagOverrideVars map[PackID][]*Variable
 }
 
 // ParserConfig contains details of the numerous sources of variables which
@@ -57,9 +57,9 @@ type ParserConfig struct {
 	// default root declarations.
 	FileOverrides []string
 
-	// CLIOverrides are key=value variables and take the highest precedence of
+	// FlagOverrides are key=value variables and take the highest precedence of
 	// all sources. If the same key is supplied twice, the last wins.
-	CLIOverrides map[string]string
+	FlagOverrides map[string]string
 
 	// IgnoreMissingVars determines whether we error or not on variable overrides
 	// that don't have corresponding vars in the pack.
@@ -91,7 +91,7 @@ func NewParser(cfg *ParserConfig) (*Parser, error) {
 		rootVars:         make(map[PackID]map[VariableID]*Variable),
 		envOverrideVars:  make(PackIDKeyedVarMap),
 		fileOverrideVars: make(PackIDKeyedVarMap),
-		cliOverrideVars:  make(PackIDKeyedVarMap),
+		flagOverrideVars: make(PackIDKeyedVarMap),
 	}, nil
 }
 
@@ -126,9 +126,9 @@ func (p *Parser) Parse() (*ParsedVariables, hcl.Diagnostics) {
 		diags = safeDiagnosticsExtend(diags, fileOverrideDiags)
 	}
 
-	for k, v := range p.cfg.CLIOverrides {
-		cliOverrideDiags := p.parseCLIVariable(k, v)
-		diags = safeDiagnosticsExtend(diags, cliOverrideDiags)
+	for k, v := range p.cfg.FlagOverrides {
+		flagOverrideDiags := p.parseFlagVariable(k, v)
+		diags = safeDiagnosticsExtend(diags, flagOverrideDiags)
 	}
 
 	if diags.HasErrors() {
@@ -137,7 +137,7 @@ func (p *Parser) Parse() (*ParsedVariables, hcl.Diagnostics) {
 
 	// Iterate all our override variables and merge these into our root
 	// variables with the CLI taking highest priority.
-	for _, override := range []map[PackID][]*Variable{p.envOverrideVars, p.fileOverrideVars, p.cliOverrideVars} {
+	for _, override := range []map[PackID][]*Variable{p.envOverrideVars, p.fileOverrideVars, p.flagOverrideVars} {
 		for packName, variables := range override {
 			for _, v := range variables {
 				existing, exists := p.rootVars[packName][v.Name]
