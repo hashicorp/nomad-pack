@@ -15,79 +15,18 @@ import (
 )
 
 func (p *Parser) parseEnvVariable(name string, rawVal string) hcl.Diagnostics {
-	// TODO: extract and use parseCLIVariable's internals passing in the target map
-	// Split the name to see if we have a namespace CLI variable for a child
-	// pack and set the default packVarName.
-	splitName := strings.SplitN(name, ".", 2)
-	packVarName := []string{p.cfg.ParentPackID.String(), name}
+	return p.parseVariableImpl(name, rawVal, p.envOverrideVars, name, "environment")
 
-	switch len(splitName) {
-	case 1:
-		// Fallthrough, nothing to do or see.
-	case 2:
-		// We are dealing with a namespaced variable. Overwrite the preset
-		// values of packVarName.
-		packVarName[0] = splitName[0]
-		packVarName[1] = splitName[1]
-	default:
-		// We cannot handle a splitName where the variable includes more than
-		// one separator.
-		return hcl.Diagnostics{
-			{
-				Severity: hcl.DiagError,
-				Summary:  fmt.Sprintf("Invalid %s option", strings.TrimRight(VarEnvPrefix, "_")),
-				Detail:   fmt.Sprintf("The given environment variable %s%s=%s is not correctly specified. The variable name must not have more than one dot `.` separator.", VarEnvPrefix, name, rawVal),
-			},
-		}
-	}
-
-	// Generate a filename based on the CLI var, so we have some context for any
-	// HCL diagnostics.
-	fakeRange := hcl.Range{Filename: fmt.Sprintf("<value for var %s from environment>", name)}
-
-	// If the variable has not been configured in the root then ignore it. This
-	// is a departure from the way in which flags and var-files are handled.
-	// The environment might contain NOMAD_PACK_VAR variables used for other
-	// packs that might be run on the same system but are not used with this
-	// particular pack.
-	existing, exists := p.rootVars[PackID(packVarName[0])][VariableID(packVarName[1])]
-	if !exists {
-		return nil
-	}
-
-	expr, diags := expressionFromVariableDefinition(fakeRange.Filename, rawVal, existing.Type)
-	if diags.HasErrors() {
-		return diags
-	}
-
-	val, diags := expr.Value(nil)
-	if diags.HasErrors() {
-		return diags
-	}
-
-	// If our stored type isn't cty.NilType then attempt to covert the override
-	// variable, so we know they are compatible.
-	if existing.Type != cty.NilType {
-		var err *hcl.Diagnostic
-		val, err = convertValUsingType(val, existing.Type, expr.Range().Ptr())
-		if err != nil {
-			return hcl.Diagnostics{err}
-		}
-	}
-
-	// We have a verified override variable.
-	v := Variable{
-		Name:      VariableID(packVarName[1]),
-		Type:      val.Type(),
-		Value:     val,
-		DeclRange: fakeRange,
-	}
-	p.envOverrideVars[PackID(packVarName[0])] = append(p.envOverrideVars[PackID(packVarName[0])], &v)
-
-	return nil
+}
+func (p *Parser) parseFlagVariable(name string, rawVal string) hcl.Diagnostics {
+	return p.parseVariableImpl(name, rawVal, p.flagOverrideVars, "-var", "arguments")
 }
 
-func (p *Parser) parseFlagVariable(name string, rawVal string) hcl.Diagnostics {
+func (p *Parser) parseVariableImpl(name, rawVal string, tgt map[PackID][]*Variable, typeTxt, rangeDesc string) hcl.Diagnostics {
+	if rangeDesc == "environment" {
+		name = strings.TrimPrefix(name, VarEnvPrefix)
+	}
+
 	// Split the name to see if we have a namespace CLI variable for a child
 	// pack and set the default packVarName.
 	splitName := strings.Split(name, ".")
@@ -96,14 +35,14 @@ func (p *Parser) parseFlagVariable(name string, rawVal string) hcl.Diagnostics {
 		return hcl.Diagnostics{
 			{
 				Severity: hcl.DiagError,
-				Summary:  "Invalid -var option",
-				Detail:   fmt.Sprintf("The given -var option %s=%s is not correctly specified. The variable name must be an dot-separated, absolute path to a variable starting with the root pack name %s.", name, rawVal, p.cfg.ParentPackID),
+				Summary:  fmt.Sprintf("Invalid %s option", typeTxt),
+				Detail:   fmt.Sprintf("The given %s option %s=%s is not correctly specified. The variable name must be an dot-separated, absolute path to a variable starting with the root pack name %s.", typeTxt, name, rawVal, p.cfg.ParentPackID),
 			},
 		}
 	}
 
-	// Generate a filename based on the CLI var, so we have some context for any
-	// HCL diagnostics.
+	// Generate a filename based on the incoming var, so we have some context for
+	// any HCL diagnostics.
 
 	// Get a reasonable count for the lines in the provided value. You'd think
 	// these had to be flat, but naaah.
@@ -112,7 +51,7 @@ func (p *Parser) parseFlagVariable(name string, rawVal string) hcl.Diagnostics {
 	endCol := len(lines[lc-1])
 
 	fakeRange := hcl.Range{
-		Filename: fmt.Sprintf("<value for var %s from arguments>", name),
+		Filename: fmt.Sprintf("<value for var %s from %s>", name, rangeDesc),
 		Start:    hcl.Pos{Line: 1, Column: 1, Byte: 0},
 		End:      hcl.Pos{Line: lc, Column: endCol, Byte: len(rawVal)},
 	}
@@ -154,7 +93,7 @@ func (p *Parser) parseFlagVariable(name string, rawVal string) hcl.Diagnostics {
 		Value:     val,
 		DeclRange: fakeRange,
 	}
-	p.flagOverrideVars[varPID] = append(p.flagOverrideVars[varPID], &v)
+	tgt[varPID] = append(tgt[varPID], &v)
 
 	return nil
 }
