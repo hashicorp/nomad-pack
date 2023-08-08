@@ -7,29 +7,8 @@ jobs:
     steps:
       - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
 
-      - name: Determine Go version
-        id: get-go-version
-        run: |
-          echo "go-version=$(cat .go-version)" >> $GITHUB_OUTPUT
-
-      - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
-        with:
-          go-version: ${{ steps.get-go-version.outputs.go-version }}
-
-      # Get values for cache paths to be used in later steps
-      - id: go-cache-paths
-        run: |
-          echo "::set-output name=go-build::$(go env GOCACHE)"
-          echo "::set-output name=go-mod::$(go env GOMODCACHE)"
-
-      # Cache go build cache, used to speedup go test
-      - name: Go Build Cache
-        uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
-        with:
-          path: |
-            ${{ steps.go-cache-paths.outputs.go-build }}
-            ${{ steps.go-cache-paths.outputs.go-mod }}
-          key: ${{ runner.os }}-go-cache-${{ hashFiles('**/go.sum') }}
+      - name: Setup Go
+        uses: hashicorp/setup-golang@v1
 
       # install deps using go install
       - name: Install test dependencies
@@ -45,7 +24,6 @@ jobs:
           echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
           sudo apt update && sudo apt -y install nomad
           
-
       # Run tests with nice formatting. Save the original log in /tmp/gotest.log
       - name: Run tests
         run: |
