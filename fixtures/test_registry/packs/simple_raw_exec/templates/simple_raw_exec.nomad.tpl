@@ -3,7 +3,7 @@ job [[ coalesce ( var "job_name" .) (meta "pack.name" .) | quote ]] {
   region = [[.region ]]
   [[- end ]]
   [[- if (var "namespace" .) ]]
-  namespace = [[ var "namespace" . ]]
+  namespace = [[ var "namespace" . | quote ]]
   [[- end ]]
   datacenters = [[ var "datacenters" . | toJson ]]
   type = "service"
