@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/hcl/v2"
@@ -132,6 +133,163 @@ func TestParser_parseFlagVariable(t *testing.T) {
 			}
 			must.Nil(t, actualErr, must.Sprintf("actualErr: %v", actualErr))
 			must.MapEq(t, tc.expectedFlagVars, tc.inputParser.flagOverrideVars)
+		})
+	}
+}
+
+func TestParser_parseEnvVariable(t *testing.T) {
+	type testCase struct {
+		inputParser      *Parser
+		envKey           string
+		envValue         string
+		expectedError    bool
+		expectedFlagVars map[PackID][]*Variable
+		expectedEnvVars  map[PackID][]*Variable
+		name             string
+	}
+
+	withDefault := func(e, d string) string {
+		t.Helper()
+		if e == "" {
+			return d
+		}
+		return e
+	}
+
+	getEnvKey := func(tc testCase) string {
+		t.Helper()
+		return withDefault(tc.envKey, "NOMAD_PACK_VAR_example.region")
+	}
+
+	getEnvValue := func(tc testCase) string {
+		t.Helper()
+		return withDefault(tc.envValue, "vlc")
+	}
+
+	setTestEnvKeyForVar := func(t *testing.T, tc testCase) string {
+		t.Helper()
+		var k string = getEnvKey(tc)
+		var v string = getEnvValue(tc)
+		t.Logf("setting %s to %s", k, v)
+		t.Setenv(k, v)
+		return strings.TrimPrefix(k, VarEnvPrefix)
+	}
+
+	testCases := []testCase{
+		{
+			name:   "non-namespaced variable",
+			envKey: "NOMAD_PACK_VAR_region",
+			inputParser: &Parser{
+				fs:  afero.Afero{Fs: afero.OsFs{}},
+				cfg: &ParserConfig{ParentPackID: "example"},
+				rootVars: map[PackID]map[VariableID]*Variable{
+					"example": {
+						"region": &Variable{
+							Name:      "region",
+							Type:      cty.String,
+							Value:     cty.StringVal("vlc"),
+							DeclRange: hcl.Range{Filename: "<value for var region from arguments>"},
+						},
+					},
+				},
+				flagOverrideVars: make(map[PackID][]*Variable),
+				envOverrideVars:  make(map[PackID][]*Variable),
+			},
+			expectedError:    true,
+			expectedFlagVars: map[PackID][]*Variable{},
+			expectedEnvVars:  make(map[PackID][]*Variable),
+		},
+		{
+			name: "namespaced variable",
+			inputParser: &Parser{
+				fs:  afero.Afero{Fs: afero.OsFs{}},
+				cfg: &ParserConfig{ParentPackID: "example"},
+				rootVars: map[PackID]map[VariableID]*Variable{
+					"example": {
+						"region": &Variable{
+							Name:      "region",
+							Type:      cty.String,
+							Value:     cty.StringVal("vlc"),
+							DeclRange: hcl.Range{Filename: "<value for var example.region from arguments>"},
+						},
+					},
+				},
+				flagOverrideVars: make(map[PackID][]*Variable),
+				envOverrideVars:  make(map[PackID][]*Variable),
+			},
+			expectedError:    false,
+			expectedFlagVars: map[PackID][]*Variable{},
+			expectedEnvVars: map[PackID][]*Variable{
+				"example": {
+					{
+						Name:      "region",
+						Type:      cty.String,
+						Value:     cty.StringVal("vlc"),
+						DeclRange: hcl.Range{Filename: "<value for var example.region from environment>"},
+					},
+				},
+			},
+		},
+		{
+			name: "root variable absent",
+			inputParser: &Parser{
+				fs:               afero.Afero{Fs: afero.OsFs{}},
+				cfg:              &ParserConfig{ParentPackID: "example"},
+				rootVars:         map[PackID]map[VariableID]*Variable{},
+				flagOverrideVars: make(map[PackID][]*Variable),
+				envOverrideVars:  make(map[PackID][]*Variable),
+			},
+			expectedError:    true,
+			expectedFlagVars: map[PackID][]*Variable{},
+			expectedEnvVars:  map[PackID][]*Variable{},
+		},
+		{
+			name:     "unconvertable variable",
+			envKey:   "NOMAD_PACK_VAR_example.region",
+			envValue: `{region: "dc1}`,
+			inputParser: &Parser{
+				fs:  afero.Afero{Fs: afero.OsFs{}},
+				cfg: &ParserConfig{ParentPackID: "example"},
+				rootVars: map[PackID]map[VariableID]*Variable{
+					"example": {
+						"region": &Variable{
+							Name: "region",
+							Type: cty.DynamicPseudoType,
+							Value: cty.MapVal(map[string]cty.Value{
+								"region": cty.StringVal("dc1"),
+							}),
+							DeclRange: hcl.Range{Filename: "<value for var example.region from arguments>"},
+						},
+					},
+				},
+				flagOverrideVars: make(map[PackID][]*Variable),
+				envOverrideVars:  make(map[PackID][]*Variable),
+			},
+			expectedError:    true,
+			expectedFlagVars: map[PackID][]*Variable{},
+			expectedEnvVars:  map[PackID][]*Variable{},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mapKey := setTestEnvKeyForVar(t, tc)
+
+			em := GetVarsFromEnv()
+			must.MapLen(t, 1, em)
+			must.MapContainsKey(t, em, mapKey)
+
+			tV := em[mapKey]
+			actualErr := tc.inputParser.parseEnvVariable(getEnvKey(tc), tV)
+
+			if tc.expectedError {
+				t.Logf(actualErr.Error())
+				must.NotNil(t, actualErr)
+				return
+			}
+			must.Nil(t, actualErr, must.Sprintf("actualErr: %v", actualErr))
+			must.MapEq(t, tc.expectedFlagVars, tc.inputParser.flagOverrideVars)
+			must.MapEq(t, tc.expectedEnvVars, tc.inputParser.envOverrideVars)
 		})
 	}
 }
