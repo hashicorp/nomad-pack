@@ -237,27 +237,27 @@ func Fixture(fPath string) string {
 	return path.Join(cwd, "../../../fixtures/", fPath)
 }
 
-type TestParserOption func(*Parser)
+type testParserOption func(*Parser)
 
-func WithEnvVar(key, value string) TestParserOption {
+func WithEnvVar(key, value string) testParserOption {
 	return func(p *Parser) {
 		p.envOverrideVars["example"] = append(p.envOverrideVars["example"], NewStringVariable(key, value, "env"))
 	}
 }
 
-func WithCliVar(key, value string) TestParserOption {
+func WithCliVar(key, value string) testParserOption {
 	return func(p *Parser) {
 		p.flagOverrideVars["example"] = append(p.flagOverrideVars["example"], NewStringVariable(key, value, "cli"))
 	}
 }
 
-func WithFileVar(key, value string) TestParserOption {
+func WithFileVar(key, value string) testParserOption {
 	return func(p *Parser) {
 		p.flagOverrideVars["example"] = append(p.flagOverrideVars["example"], NewStringVariable(key, value, "file"))
 	}
 }
 
-func NewTestInputParser(opts ...TestParserOption) *Parser {
+func NewTestInputParser(opts ...testParserOption) *Parser {
 
 	p := &Parser{
 		fs:  afero.Afero{Fs: afero.OsFs{}},
