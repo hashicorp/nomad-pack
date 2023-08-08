@@ -392,7 +392,7 @@ func TestCLI_PackDestroy_WithOverrides(t *testing.T) {
 			"expected exitcode 1; got %v\ncmdOut:%v", result.exitCode, result.cmdOut.String()))
 
 		// Stop job with var override
-		result = runTestPackCmd(t, s, []string{"destroy", testPack, "--var=" + testPack + "job_name=foo", "--registry=" + reg.Name})
+		result = runTestPackCmd(t, s, []string{"destroy", testPack, "--var=" + testPack + ".job_name=foo", "--registry=" + reg.Name})
 		must.Eq(t, 0, result.exitCode, must.Sprintf(
 			"expected exitcode 0; got %v\ncmdOut:%v", result.exitCode, result.cmdOut.String()))
 
@@ -488,8 +488,8 @@ func TestCLI_PackRender_MyAlias(t *testing.T) {
 	// output is not guaranteed to be ordered. This requires that the test handle
 	// either order.
 	expected := []string{
-		"child1/child1.nomad=child1",
-		"child2/child2.nomad=child2",
+		"deps_test/child1/child1.nomad=child1",
+		"deps_test/child2/child2.nomad=child2",
 		"deps_test/deps_test.nomad=deps_test",
 	}
 
