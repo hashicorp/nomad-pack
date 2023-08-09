@@ -6,6 +6,7 @@ package cache
 import (
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"os"
 	"path"
 	"strings"
@@ -16,6 +17,7 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/shoenig/test/must"
+	"golang.org/x/exp/slices"
 
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/helper/filesystem"
@@ -49,7 +51,7 @@ func TestListRegistries(t *testing.T) {
 	must.NoError(t, err)
 	must.NotNil(t, registry)
 
-	expected := testPackCount(t, opts)
+	expected := len(listAllTestPacks(t, cacheDir))
 	must.Eq(t, expected, len(registry.Packs))
 }
 
@@ -69,8 +71,7 @@ func TestAddRegistry(t *testing.T) {
 	must.NoError(t, err)
 	must.NotNil(t, registry)
 
-	expected := testPackCount(t, opts)
-	must.NoError(t, err)
+	expected := len(listAllTestPacks(t, cacheDir))
 	must.Eq(t, expected, len(registry.Packs))
 }
 
@@ -103,18 +104,12 @@ func TestAddRegistryPacksAtMultipleRefs(t *testing.T) {
 	must.NoError(t, err)
 	must.NotNil(t, registry)
 
-	expected := testPackCount(t, testOpts)
-
 	// test that registry still exists
-	registryEntries, err := os.ReadDir(cacheDir)
-	must.NoError(t, err)
-	must.Eq(t, 1, len(registryEntries))
+	pts := listAllTestPacks(t, cacheDir)
+	must.Eq(t, 1, len(pts.RegistriesUnique()))
 
 	// test that multiple refs of pack exist
-	packEntries, err := os.ReadDir(path.Join(cacheDir, "multiple-refs"))
-	must.NoError(t, err)
-
-	must.Eq(t, expected, len(packEntries))
+	must.Eq(t, 2, len(pts.RefsUnique()))
 }
 
 func TestAddRegistryWithTarget(t *testing.T) {
@@ -141,7 +136,7 @@ func TestAddRegistryWithTarget(t *testing.T) {
 	must.NoError(t, err)
 	must.NotNil(t, registry)
 
-	must.Eq(t, len(registry.Packs), 1)
+	must.Eq(t, 1, len(registry.Packs))
 }
 
 func TestAddRegistryWithSHA(t *testing.T) {
@@ -168,8 +163,7 @@ func TestAddRegistryWithSHA(t *testing.T) {
 	must.NotNil(t, registry)
 
 	// expected testCount
-	expected := testPackCount(t, addOpts)
-	must.Eq(t, expected, len(registry.Packs))
+	must.Eq(t, len(listAllTestPacks(t, cacheDir)), len(registry.Packs))
 
 	// Make sure the metadata file is there and that it contains what we want
 	f, err := os.ReadFile(path.Join(cacheDir, registry.Name, registry.Ref, "metadata.json"))
@@ -183,7 +177,6 @@ func TestAddRegistryWithSHA(t *testing.T) {
 		LocalRef: tReg.Ref1(),
 	}
 	must.Eq(t, expectedRegistryMetadata, r)
-
 }
 
 func TestAddRegistryWithRefAndPackName(t *testing.T) {
@@ -210,7 +203,7 @@ func TestAddRegistryWithRefAndPackName(t *testing.T) {
 	must.NoError(t, err)
 	must.NotNil(t, registry)
 
-	must.Eq(t, len(registry.Packs), 1)
+	must.Eq(t, 1, len(registry.Packs))
 }
 
 func TestAddRegistryNoCacheDir(t *testing.T) {
@@ -298,7 +291,7 @@ func TestDeletePack(t *testing.T) {
 	must.NoError(t, err)
 	must.NotNil(t, registry)
 
-	packCount := testPackCount(t, opts)
+	packTuplesBefore := listAllTestPacks(t, cacheDir)
 
 	deleteOpts := &DeleteOpts{
 		RegistryName: opts.RegistryName,
@@ -309,17 +302,18 @@ func TestDeletePack(t *testing.T) {
 	err = cache.Delete(deleteOpts)
 	must.NoError(t, err)
 
-	// test that pack is gone
-	registryEntries, err := os.ReadDir(path.Join(opts.RegistryPath(), opts.AtRef()))
-	must.NoError(t, err)
+	packTuplesAfter := listAllTestPacks(t, cacheDir)
 
-	for _, packEntry := range registryEntries {
-		must.NotEq(t, packEntry.Name(), deleteOpts.RegistryName)
+	// test that pack is gone
+	for _, pt := range packTuplesAfter {
+		must.NotEq(t, deleteOpts.RegistryName+"@"+deleteOpts.Ref, pt.name)
 	}
 
-	// test that registry still exists, and other packs are still  there.
-	must.NotEq(t, 0, packCount)
-	must.Eq(t, packCount-1, len(registryEntries)-1)
+	// test that registry still exists, and other packs are still there.
+	must.Eq(t, len(packTuplesBefore.RegistriesUnique()), len(packTuplesAfter.RegistriesUnique()))
+
+	// test that all of the other counts are as expected
+	must.Eq(t, len(packTuplesBefore)-1, len(packTuplesAfter))
 }
 
 func TestDeletePackByRef(t *testing.T) {
@@ -344,7 +338,7 @@ func TestDeletePackByRef(t *testing.T) {
 	must.NoError(t, err)
 	must.NotNil(t, registry)
 
-	packCount := testPackCount(t, opts)
+	packTuplesBefore := listAllTestPacks(t, cacheDir)
 
 	deleteOpts := &DeleteOpts{
 		RegistryName: opts.RegistryName,
@@ -355,17 +349,18 @@ func TestDeletePackByRef(t *testing.T) {
 	err = cache.Delete(deleteOpts)
 	must.NoError(t, err)
 
-	// test that pack is gone
-	registryEntries, err := os.ReadDir(opts.RegistryPath())
-	must.NoError(t, err)
+	packTuplesAfter := listAllTestPacks(t, cacheDir)
 
-	for _, packEntry := range registryEntries {
-		must.NotEq(t, packEntry.Name(), deleteOpts.RegistryName)
+	// test that pack is gone
+	for _, pt := range packTuplesAfter {
+		must.NotEq(t, deleteOpts.RegistryName+"@"+deleteOpts.Ref, pt.name)
 	}
 
-	// test that registry still exists, and other packs are still  there.
-	must.NotEq(t, 0, packCount)
-	must.Eq(t, packCount-1, len(registryEntries)-1)
+	// test that registry still exists, and other packs are still there.
+	must.Eq(t, len(packTuplesBefore.RegistriesUnique()), len(packTuplesAfter.RegistriesUnique()))
+
+	// test that all of the other counts are as expected
+	must.Eq(t, len(packTuplesBefore)-1, len(packTuplesAfter))
 }
 
 func TestParsePackURL(t *testing.T) {
@@ -601,17 +596,148 @@ func testAddOpts(registryName string) *AddOpts {
 	}
 }
 
-func testPackCount(t *testing.T, opts cacheOperationProvider) int {
-	packCount := 0
-
-	dirEntries, err := os.ReadDir(path.Join(opts.RegistryPath(), opts.AtRef()))
-	must.NoError(t, err)
-
-	for _, dirEntry := range dirEntries {
-		if opts.IsTarget(dirEntry) {
-			packCount += 1
-		}
+func dirEntries(t *testing.T, p string) []fs.DirEntry {
+	t.Helper()
+	dirEntries, err := os.ReadDir(p)
+	if err != nil {
+		t.Fatalf("error in dirEntries: p: %s err:%s", p, err)
 	}
+	return dirEntries
+}
 
-	return packCount
+// packtuple describes each pack found in an entire cache
+// directory. The listAllTestPacks produces a packtuples,
+// which is an alias for []packtuple
+type packtuple struct {
+	reg  string
+	ref  string
+	name string
+}
+
+// packtuples is a []packtuple with method receivers on
+// them for filtering and query purposes in test cases
+type packtuples []packtuple
+
+// RefsUnique produces a sorted, unique value list of
+// references in the packtuples
+func (p packtuples) RefsUnique() []string {
+	out := p.Refs()
+	slices.Sort(out)
+	return slices.Compact(out)
+}
+
+// Refs produces a list of references in this packtuples.
+// They are returned in slice order.
+func (p packtuples) Refs() []string {
+	out := make([]string, len(p))
+	for i, p := range p {
+		out[i] = p.ref
+	}
+	return out
+}
+
+// RegistriesUnique produces a sorted, unique value list of
+// registries in the packtuples
+func (p packtuples) RegistriesUnique() []string {
+	out := p.Registries()
+	slices.Sort(out)
+	return slices.Compact(out)
+}
+
+// Registries produces a list of references in this packtuples.
+// They are returned in slice order.
+func (p packtuples) Registries() []string {
+	out := make([]string, len(p))
+	for i, p := range p {
+		out[i] = p.reg
+	}
+	return out
+}
+
+// PacksWithRefs produces a list of packs in this packtuples.
+// They are returned in slice order and include their
+// `@ref` suffix.
+func (p packtuples) PacksWithRefs() []string {
+	out := make([]string, len(p))
+	for i, p := range p {
+		out[i] = p.name
+	}
+	return out
+}
+
+// Packs produces a list of packs in this packtuples.
+// They are returned in slice order without their `@ref`
+// suffix.
+func (p packtuples) Packs() []string {
+	out := make([]string, len(p))
+	for i, p := range p {
+		out[i] = p.name[:strings.Index(p.name, "@")]
+	}
+	return out
+}
+
+// String returns a packtuple in `«reg»@«ref»/«packname»` form
+func (p packtuple) String() string {
+	return fmt.Sprintf("%s@%s/%s", p.reg, p.ref,
+		p.name[:strings.Index(p.name, "@")])
+}
+
+// listAllTestPacks is a test helper that uses the filesystem
+// to discover and count the registries, refs, and packs in a
+// given cachePath
+func listAllTestPacks(t *testing.T, cachePath string) packtuples {
+	acc := make([]packtuple, 0, 10)
+	dirFS := os.DirFS(cachePath)
+	fs.WalkDir(dirFS, ".", func(p string, d fs.DirEntry, err error) error {
+		// If there is an error opening the initial path, WalkDir
+		// calls this function again with an error set.
+		if err != nil {
+			t.Fatalf("listAllTestPacks: WalkDir error: %v", err)
+		}
+
+		if d.IsDir() {
+			t.Logf("walking %q...", p)
+		}
+
+		pts := strings.Split(p, "/")
+		if len(pts) > 3 {
+			// If we haven't reached a three-element directory, it can't
+			// be a correctly placed pack
+			return fs.SkipDir
+		}
+
+		if len(pts) == 3 && d.IsDir() && isPack(t, path.Join(cachePath, p), d) {
+			// Found a pack; add it to the accumulator
+			acc = append(acc, packtuple{reg: pts[0], ref: pts[1], name: pts[2]})
+			// We don't need to descend into the pack itself.
+			return fs.SkipDir
+		}
+
+		if len(pts) == 3 && d.IsDir() {
+			// Don't descend into non-pack directories.
+			return fs.SkipDir
+		}
+
+		// All other cases do nothing
+		return nil
+	})
+	return acc
+}
+
+func isPack(t *testing.T, p string, d fs.DirEntry) bool {
+	dirEntries := dirEntries(t, path.Join(p))
+	return slices.ContainsFunc(dirEntries, hasDir("templates")) &&
+		slices.ContainsFunc(dirEntries, hasFile("metadata.hcl"))
+}
+
+func hasDir(dir string) func(d fs.DirEntry) bool {
+	return func(d fs.DirEntry) bool {
+		return d.IsDir() && d.Name() == dir
+	}
+}
+
+func hasFile(name string) func(d fs.DirEntry) bool {
+	return func(d fs.DirEntry) bool {
+		return d.Type().IsRegular() && d.Name() == name
+	}
 }
