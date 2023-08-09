@@ -238,5 +238,5 @@ func getGitHeadRef(clonePath string) (string, error) {
 		return "n/a", fmt.Errorf("could not get ref of a cloned repository: %v", err)
 	}
 
-	return head.Hash().String()[:7], nil
+	return head.Hash().String(), nil
 }
