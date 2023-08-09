@@ -575,7 +575,7 @@ func makeTestRegRepo(tReg *TestGithubRegistry) {
 	if err != nil {
 		panic(fmt.Errorf("could not get ref of test git repo: %v", err))
 	}
-	tReg.ref1 = head.Hash().String()[:7]
+	tReg.ref1 = head.Hash().String()
 
 	commitOptions.AllowEmptyCommits = true
 	_, err = w.Commit("Second Commit", commitOptions)
