@@ -671,15 +671,24 @@ func (p packtuples) PacksWithRefs() []string {
 func (p packtuples) Packs() []string {
 	out := make([]string, len(p))
 	for i, p := range p {
-		out[i] = p.name[:strings.Index(p.name, "@")]
+		name := p.name
+		atIdx := strings.Index(name, "@")
+		if atIdx >= 0 {
+			name = name[:atIdx]
+		}
+		out[i] = name
 	}
 	return out
 }
 
 // String returns a packtuple in `«reg»@«ref»/«packname»` form
 func (p packtuple) String() string {
-	return fmt.Sprintf("%s@%s/%s", p.reg, p.ref,
-		p.name[:strings.Index(p.name, "@")])
+	name := p.name
+	atIdx := strings.Index(name, "@")
+	if atIdx >= 0 {
+		name = name[:atIdx]
+	}
+	return fmt.Sprintf("%s@%s/%s", p.reg, p.ref, name)
 }
 
 // listAllTestPacks is a test helper that uses the filesystem
