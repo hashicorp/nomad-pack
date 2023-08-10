@@ -15,7 +15,8 @@
 name: OSV-Scanner Scheduled scanning
 
 on:
-  workflow_call:
+  pull_request:
+  workflow_dispatch:
   schedule:
     # Runs against the default branch every day overnight
     - cron: "18 3 * * *"
