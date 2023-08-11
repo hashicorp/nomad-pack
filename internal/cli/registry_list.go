@@ -59,8 +59,9 @@ func (c *RegistryListCommand) Run(args []string) int {
 		if table.Rows[0][2].Value == "" {
 			c.ui.Warning("It appears that you have a cache created before Nomad-Pack 0.1 (hence the\n" +
 				"missing values in LOCAL REF and REGISTRY URL columns). We recommend deleting\n" +
-				"your current cache and re-adding your registries to take full advantage of new\n" +
-				"`nomad-pack registry list` and `nomad-pack list` commands behavior.")
+				"your current cache with `nomad-pack registry delete <name>` and re-adding your\n" +
+				"registries to take full advantage of new `nomad-pack registry list` and\n" +
+				"`nomad-pack list` commands behavior.")
 		}
 	} else {
 		c.ui.Output("No registries present in the cache.")
