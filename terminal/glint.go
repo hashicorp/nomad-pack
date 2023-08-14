@@ -371,11 +371,6 @@ func (ui *glintUI) ErrorWithContext(err error, sub string, ctx ...string) {
 		glint.Text(err.Error()),
 	).Row())
 
-	d.Append(glint.Layout(
-		glint.Style(glint.Text("\tType:    "), glint.Bold()),
-		glint.Text(fmt.Sprintf("%T", err)),
-	).Row())
-
 	// We only want this section once per error output, so we cannot perform
 	// this within the ctx loop.
 	if len(ctx) > 0 {
