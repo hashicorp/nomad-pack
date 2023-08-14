@@ -272,8 +272,8 @@ func (p *ParserV2) parseVariableImpl(name, rawVal string, tgt map[PackID][]*Vari
 		return hcl.Diagnostics{
 			{
 				Severity: hcl.DiagError,
-				Summary:  fmt.Sprintf("Invalid %s option", typeTxt),
-				Detail:   fmt.Sprintf("The given %s option %s=%s is not correctly specified. The variable name must be an dot-separated, absolute path to a variable starting with the root pack name %s.", typeTxt, name, rawVal, p.cfg.ParentPackID),
+				Summary:  fmt.Sprintf("Invalid %s option %s=%s", typeTxt, name, rawVal),
+				Detail:   fmt.Sprintf("The given %s option %s=%s is not correctly specified.\nVariable names must be dot-separated, absolute paths to a variable including the root pack name %q.", typeTxt, name, rawVal, p.cfg.ParentPackID),
 			},
 		}
 	}
