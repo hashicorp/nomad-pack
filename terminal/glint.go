@@ -367,7 +367,7 @@ func (ui *glintUI) ErrorWithContext(err error, sub string, ctx ...string) {
 
 	// Add the error string as well as the error type to the output.
 	d.Append(glint.Layout(
-		glint.Style(glint.Text("\tError:   "), glint.Bold()),
+		glint.Style(glint.Text("    Error:   "), glint.Bold()),
 		glint.Text(err.Error()),
 	).Row())
 
@@ -375,14 +375,14 @@ func (ui *glintUI) ErrorWithContext(err error, sub string, ctx ...string) {
 	// this within the ctx loop.
 	if len(ctx) > 0 {
 		d.Append(glint.Layout(
-			glint.Style(glint.Text("\tContext: "), glint.Bold()),
+			glint.Style(glint.Text("    Context: "), glint.Bold()),
 		).Row())
 	}
 
 	// Iterate the addition context items and append these to the output.
 	for _, additionCTX := range ctx {
 		d.Append(glint.Layout(
-			glint.Style(glint.Text(fmt.Sprintf("\t         - %s", additionCTX))),
+			glint.Style(glint.Text(fmt.Sprintf("        - %s", additionCTX))),
 		).Row())
 	}
 	// Add a new line
