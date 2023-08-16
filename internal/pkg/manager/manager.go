@@ -111,8 +111,8 @@ func (pm *PackManager) ProcessTemplates(renderAux bool, format bool, ignoreMissi
 	}
 
 	// Pre-test the parsed variables so that we can trust them
-	// in rendering
-	_, diags := parsedVars.ToPackTemplateContext(pm.loadedPack)
+	// in rendering and to use for errors later
+	tplCtx, diags := parsedVars.ToPackTemplateContext(pm.loadedPack)
 	if diags != nil && diags.HasErrors() {
 		return nil, errors.HCLDiagsToWrappedUIContext(diags)
 	}
@@ -129,11 +129,9 @@ func (pm *PackManager) ProcessTemplates(renderAux bool, format bool, ignoreMissi
 
 	rendered, err := r.Render(pm.loadedPack, parsedVars)
 	if err != nil {
-		return nil, []*errors.WrappedUIContext{{
-			Err:     err,
-			Subject: "failed to instantiate parser",
-			Context: errors.NewUIErrorContext(),
-		}}
+		return nil, []*errors.WrappedUIContext{
+			errors.ParseTemplateError(tplCtx, err).ToWrappedUIContext(),
+		}
 	}
 	return rendered, nil
 }
