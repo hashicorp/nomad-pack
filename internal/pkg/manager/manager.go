@@ -12,6 +12,8 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/loader"
 	"github.com/hashicorp/nomad-pack/internal/pkg/renderer"
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable"
+	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser"
+	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser/config"
 	"github.com/hashicorp/nomad-pack/sdk/pack"
 	"github.com/hashicorp/nomad/api"
 )
@@ -46,7 +48,7 @@ func NewPackManager(cfg *Config, client *api.Client) *PackManager {
 // ProcessVariableFiles creates the map of packs to their respective variables
 // definition files. This is used between the variable override file generator
 // code and the ProcessTemplates logic in this file.
-func (pm *PackManager) ProcessVariableFiles() (*variable.ParsedVariables, []*errors.WrappedUIContext) {
+func (pm *PackManager) ProcessVariableFiles() (*parser.ParsedVariables, []*errors.WrappedUIContext) {
 	loadedPack, err := pm.loadAndValidatePacks()
 	if err != nil {
 		return nil, []*errors.WrappedUIContext{{
@@ -62,7 +64,7 @@ func (pm *PackManager) ProcessVariableFiles() (*variable.ParsedVariables, []*err
 	// without the version.
 	parentName, _, _ := strings.Cut(path.Base(pm.cfg.Path), "@")
 
-	pCfg := &variable.ParserConfig{
+	pCfg := &config.ParserConfig{
 		ParentPackID:      pack.PackID(parentName),
 		RootVariableFiles: loadedPack.RootVariableFiles(),
 		EnvOverrides:      pm.cfg.VariableEnvVars,
@@ -101,7 +103,9 @@ func (pm *PackManager) ProcessTemplates(renderAux bool, format bool, ignoreMissi
 		return nil, wErr
 	}
 
-	tplCtx, diags := parsedVars.ToPackTemplateContext(pm.loadedPack)
+	// Pre-test the parsed variables so that we can trust them
+	// in rendering
+	_, diags := parsedVars.ToPackTemplateContext(pm.loadedPack)
 	if diags != nil && diags.HasErrors() {
 		return nil, errors.HCLDiagsToWrappedUIContext(diags)
 	}
@@ -116,7 +120,7 @@ func (pm *PackManager) ProcessTemplates(renderAux bool, format bool, ignoreMissi
 	// should we format before rendering?
 	pm.renderer.Format = format
 
-	rendered, err := r.Render(pm.loadedPack, tplCtx)
+	rendered, err := r.Render(pm.loadedPack, parsedVars)
 	if err != nil {
 		return nil, []*errors.WrappedUIContext{{
 			Err:     err,
