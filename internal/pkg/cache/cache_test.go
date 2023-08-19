@@ -705,8 +705,8 @@ func listAllTestPacks(t *testing.T, cachePath string) packtuples {
 			t.Fatalf("listAllTestPacks: WalkDir error: %v", err)
 		}
 
-		if d.IsDir() {
-			// t.Logf("walking %q...", p)
+		if testing.Verbose() && d.IsDir() {
+			t.Logf("walking %q...", p)
 		}
 
 		pts := strings.Split(p, "/")
