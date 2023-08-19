@@ -21,6 +21,7 @@ import (
 
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/helper/filesystem"
+	"github.com/hashicorp/nomad-pack/internal/pkg/testfixture"
 )
 
 var (
@@ -530,7 +531,7 @@ func makeTestRegRepo(tReg *TestGithubRegistry) {
 	tReg.cleanupFn = func() { os.RemoveAll(tReg.tmpDir) }
 
 	tReg.sourceURL = path.Join(tReg.tmpDir, "test_registry.git")
-	err = filesystem.CopyDir("../../../fixtures/test_registry", tReg.SourceURL(), false, NoopLogger{})
+	err = filesystem.CopyDir(testfixture.MustAbsPath("v2/test_registry"), tReg.SourceURL(), false, NoopLogger{})
 	if err != nil {
 		tReg.Cleanup()
 		panic(fmt.Errorf("unable to copy test fixtures to test git repo: %v", err))
@@ -705,7 +706,7 @@ func listAllTestPacks(t *testing.T, cachePath string) packtuples {
 		}
 
 		if d.IsDir() {
-			t.Logf("walking %q...", p)
+			// t.Logf("walking %q...", p)
 		}
 
 		pts := strings.Split(p, "/")
