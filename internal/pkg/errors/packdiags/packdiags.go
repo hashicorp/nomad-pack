@@ -62,3 +62,17 @@ func DiagInvalidVariableName(sub *hcl.Range) *hcl.Diagnostic {
 		Subject:  sub,
 	}
 }
+
+func SafeDiagnosticsAppend(base hcl.Diagnostics, new *hcl.Diagnostic) hcl.Diagnostics {
+	if new != nil {
+		base = base.Append(new)
+	}
+	return base
+}
+
+func SafeDiagnosticsExtend(base, new hcl.Diagnostics) hcl.Diagnostics {
+	if new != nil && new.HasErrors() {
+		base = base.Extend(new)
+	}
+	return base
+}
