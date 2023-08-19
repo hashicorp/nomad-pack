@@ -20,6 +20,7 @@ import (
 
 	"github.com/hashicorp/nomad-pack/internal/pkg/helper"
 	"github.com/hashicorp/nomad-pack/internal/pkg/helper/filesystem"
+	"github.com/hashicorp/nomad-pack/internal/pkg/testfixture"
 	"github.com/hashicorp/nomad-pack/internal/testui"
 	"github.com/hashicorp/nomad-pack/sdk/pack"
 )
@@ -90,7 +91,7 @@ func TestVendor(t *testing.T) {
 	}
 
 	tmpDependencySourceDir2 := t.TempDir()
-	must.NoError(t, createTestDepRepo(tmpDependencySourceDir2))
+	must.NoError(t, createTestDepRepo(t, tmpDependencySourceDir2))
 	goodMetadata.Dependencies[0].Source = path.Join(
 		tmpDependencySourceDir2,
 		"simple_raw_exec",
@@ -110,9 +111,10 @@ func TestVendor(t *testing.T) {
 }
 
 // createTestDepRepo creates a git repository with a dependency pack in it
-func createTestDepRepo(dst string) error {
+func createTestDepRepo(t *testing.T, dst string) error {
+
 	err := filesystem.CopyDir(
-		"../../../fixtures/test_registry/packs/simple_raw_exec",
+		testfixture.AbsPath(t, "v2/test_registry/packs/simple_raw_exec"),
 		path.Join(dst, "simple_raw_exec"),
 		false,
 		NoopLogger{},
