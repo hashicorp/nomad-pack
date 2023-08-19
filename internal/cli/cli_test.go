@@ -28,6 +28,7 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/helper"
 	"github.com/hashicorp/nomad-pack/internal/pkg/helper/filesystem"
 	"github.com/hashicorp/nomad-pack/internal/pkg/logging"
+	"github.com/hashicorp/nomad-pack/internal/pkg/testfixture"
 	"github.com/hashicorp/nomad-pack/internal/pkg/version"
 	"github.com/hashicorp/nomad-pack/internal/runner/job"
 	"github.com/hashicorp/nomad-pack/internal/testui"
@@ -84,22 +85,22 @@ func TestCLI_Version(t *testing.T) {
 
 func TestCLI_JobRun(t *testing.T) {
 	ct.HTTPTestParallel(t, ct.WithDefaultConfig(), func(s *agent.TestAgent) {
-		expectGoodPackDeploy(t, runTestPackCmd(t, s, []string{"run", getTestPackPath(testPack)}))
+		expectGoodPackDeploy(t, runTestPackCmd(t, s, []string{"run", getTestPackPath(t, testPack)}))
 	})
 }
 
 // Confirm that another pack with the same job names but a different deployment name fails
 func TestCLI_JobRunConflictingDeployment(t *testing.T) {
 	ct.HTTPTestParallel(t, ct.WithDefaultConfig(), func(s *agent.TestAgent) {
-		expectGoodPackDeploy(t, runTestPackCmd(t, s, []string{"run", getTestPackPath(testPack)}))
+		expectGoodPackDeploy(t, runTestPackCmd(t, s, []string{"run", getTestPackPath(t, testPack)}))
 
-		result := runTestPackCmd(t, s, []string{"run", getTestPackPath(testPack), "--name=with-name"})
+		result := runTestPackCmd(t, s, []string{"run", getTestPackPath(t, testPack), "--name=with-name"})
 		must.Eq(t, 1, result.exitCode)
 		must.Eq(t, result.cmdErr.String(), "", must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
 		must.StrContains(t, result.cmdOut.String(), job.ErrExistsInDeployment{JobID: testPack, Deployment: testPack}.Error())
 
 		// Confirm that it's still possible to update the existing pack
-		expectGoodPackDeploy(t, runTestPackCmd(t, s, []string{"run", getTestPackPath(testPack)}))
+		expectGoodPackDeploy(t, runTestPackCmd(t, s, []string{"run", getTestPackPath(t, testPack)}))
 	})
 }
 
@@ -107,11 +108,11 @@ func TestCLI_JobRunConflictingDeployment(t *testing.T) {
 func TestCLI_JobRunConflictingNonPackJob(t *testing.T) {
 	ct.HTTPTestParallel(t, ct.WithDefaultConfig(), func(s *agent.TestAgent) {
 		// Register non pack job
-		err := ct.NomadRun(s, getTestNomadJobPath(testPack))
+		err := ct.NomadRun(s, getTestNomadJobPath(t, testPack))
 		must.NoError(t, err)
 
 		// Now try to register the pack
-		result := runTestPackCmd(t, s, []string{"run", getTestPackPath(testPack)})
+		result := runTestPackCmd(t, s, []string{"run", getTestPackPath(t, testPack)})
 
 		must.Eq(t, 1, result.exitCode)
 		must.Eq(t, result.cmdErr.String(), "", must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
@@ -123,11 +124,11 @@ func TestCLI_JobRunConflictingNonPackJob(t *testing.T) {
 func TestCLI_JobRunConflictingJobWithMeta(t *testing.T) {
 	ct.HTTPTestParallel(t, ct.WithDefaultConfig(), func(s *agent.TestAgent) {
 		// Register non pack job
-		err := ct.NomadRun(s, getTestNomadJobPath("simple_raw_exec_with_meta"))
+		err := ct.NomadRun(s, getTestNomadJobPath(t, "simple_raw_exec_with_meta"))
 		must.NoError(t, err)
 
 		// Now try to register the pack
-		result := runTestPackCmd(t, s, []string{"run", getTestPackPath(testPack)})
+		result := runTestPackCmd(t, s, []string{"run", getTestPackPath(t, testPack)})
 		must.Eq(t, 1, result.exitCode)
 		must.Eq(t, result.cmdErr.String(), "", must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
 		must.StrContains(t, result.cmdOut.String(), job.ErrExistsNonPack{JobID: testPack}.Error())
@@ -146,7 +147,7 @@ func TestCLI_JobRunFails(t *testing.T) {
 
 func TestCLI_JobPlan(t *testing.T) {
 	ct.HTTPTestParallel(t, ct.WithDefaultConfig(), func(s *agent.TestAgent) {
-		expectGoodPackPlan(t, runTestPackCmd(t, s, []string{"plan", getTestPackPath(testPack)}))
+		expectGoodPackPlan(t, runTestPackCmd(t, s, []string{"plan", getTestPackPath(t, testPack)}))
 	})
 }
 
@@ -180,11 +181,11 @@ func TestCLI_JobPlan_ConflictingDeployment(t *testing.T) {
 func TestCLI_JobPlan_ConflictingNonPackJob(t *testing.T) {
 	ct.HTTPTestParallel(t, ct.WithDefaultConfig(), func(s *agent.TestAgent) {
 		// Register non pack job
-		err := ct.NomadRun(s, getTestNomadJobPath(testPack))
+		err := ct.NomadRun(s, getTestNomadJobPath(t, testPack))
 		must.NoError(t, err)
 
 		// Now try to register the pack
-		result := runTestPackCmd(t, s, []string{"plan", getTestPackPath(testPack)})
+		result := runTestPackCmd(t, s, []string{"plan", getTestPackPath(t, testPack)})
 		must.Eq(t, "", result.cmdErr.String(), must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
 		must.StrContains(t, result.cmdOut.String(), job.ErrExistsNonPack{JobID: testPack}.Error())
 		must.Eq(t, 255, result.exitCode) // Should return 255 indicating an error
@@ -199,14 +200,14 @@ func TestCLI_PackPlan_OverrideExitCodes(t *testing.T) {
 			"--exit-code-makes-changes=91",
 			"--exit-code-no-changes=90",
 			"--exit-code-error=92",
-			getTestPackPath(testPack),
+			getTestPackPath(t, testPack),
 		})
 		must.Eq(t, "", result.cmdErr.String(), must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
 		must.StrContains(t, result.cmdOut.String(), "Plan succeeded\n")
 		must.Eq(t, 91, result.exitCode) // Should return exit-code-makes-changes
 
 		// Register non pack job
-		err := ct.NomadRun(s, getTestNomadJobPath(testPack))
+		err := ct.NomadRun(s, getTestNomadJobPath(t, testPack))
 		must.NoError(t, err)
 
 		// Now try to register the pack, should make error
@@ -215,7 +216,7 @@ func TestCLI_PackPlan_OverrideExitCodes(t *testing.T) {
 			"--exit-code-makes-changes=91",
 			"--exit-code-no-changes=90",
 			"--exit-code-error=92",
-			getTestPackPath(testPack),
+			getTestPackPath(t, testPack),
 		})
 		must.Eq(t, "", result.cmdErr.String(), must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
 		must.StrContains(t, result.cmdOut.String(), job.ErrExistsNonPack{JobID: testPack}.Error())
@@ -237,7 +238,7 @@ func TestCLI_PackPlan_OverrideExitCodes(t *testing.T) {
 			wait.Gap(500*time.Millisecond),
 		), must.Sprint("test job failed to purge"))
 
-		result = runTestPackCmd(t, s, []string{"run", getTestPackPath(testPack)})
+		result = runTestPackCmd(t, s, []string{"run", getTestPackPath(t, testPack)})
 		must.Eq(t, "", result.cmdErr.String(), must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
 		must.StrContains(t, result.cmdOut.String(), "")
 		must.Eq(t, 0, result.exitCode) // Should return 0
@@ -260,7 +261,7 @@ func TestCLI_PackPlan_OverrideExitCodes(t *testing.T) {
 			"--exit-code-makes-changes=91",
 			"--exit-code-no-changes=90",
 			"--exit-code-error=92",
-			getTestPackPath(testPack),
+			getTestPackPath(t, testPack),
 		})
 		must.Eq(t, "", result.cmdErr.String(), must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
 		must.StrContains(t, result.cmdOut.String(), "Plan succeeded\n")
@@ -270,9 +271,9 @@ func TestCLI_PackPlan_OverrideExitCodes(t *testing.T) {
 
 func TestCLI_PackStop(t *testing.T) {
 	ct.HTTPTestParallel(t, ct.WithDefaultConfig(), func(s *agent.TestAgent) {
-		expectGoodPackDeploy(t, runTestPackCmd(t, s, []string{"run", getTestPackPath(testPack)}))
+		expectGoodPackDeploy(t, runTestPackCmd(t, s, []string{"run", getTestPackPath(t, testPack)}))
 
-		result := runTestPackCmd(t, s, []string{"stop", getTestPackPath(testPack), "--purge=true"})
+		result := runTestPackCmd(t, s, []string{"stop", getTestPackPath(t, testPack), "--purge=true"})
 		must.Eq(t, result.cmdErr.String(), "", must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
 		must.StrContains(t, result.cmdOut.String(), `Pack "`+testPack+`" destroyed`)
 		must.Eq(t, 0, result.exitCode)
@@ -327,16 +328,16 @@ func TestCLI_PackStop_Conflicts(t *testing.T) {
 
 				// Create job
 				if tC.nonPackJob {
-					err = ct.NomadRun(s, getTestNomadJobPath(testPack))
+					err = ct.NomadRun(s, getTestNomadJobPath(t, testPack))
 					must.NoError(t, err)
 				} else {
 					deploymentName := fmt.Sprintf("--name=%s", tC.deploymentName)
 					varJobName := fmt.Sprintf("--var=%s.job_name=%s", testPack, tC.jobName)
 					if tC.namespace != "" {
 						namespaceFlag := fmt.Sprintf("--namespace=%s", tC.namespace)
-						expectGoodPackDeploy(t, runTestPackCmd(t, s, []string{"run", getTestPackPath(testPack), deploymentName, varJobName, namespaceFlag}))
+						expectGoodPackDeploy(t, runTestPackCmd(t, s, []string{"run", getTestPackPath(t, testPack), deploymentName, varJobName, namespaceFlag}))
 					} else {
-						expectGoodPackDeploy(t, runTestPackCmd(t, s, []string{"run", getTestPackPath(testPack), deploymentName, varJobName}))
+						expectGoodPackDeploy(t, runTestPackCmd(t, s, []string{"run", getTestPackPath(t, testPack), deploymentName, varJobName}))
 					}
 				}
 
@@ -352,9 +353,9 @@ func TestCLI_PackStop_Conflicts(t *testing.T) {
 // test that specific functionality
 func TestCLI_PackDestroy(t *testing.T) {
 	ct.HTTPTestParallel(t, ct.WithDefaultConfig(), func(s *agent.TestAgent) {
-		expectGoodPackDeploy(t, runTestPackCmd(t, s, []string{"run", getTestPackPath(testPack)}))
+		expectGoodPackDeploy(t, runTestPackCmd(t, s, []string{"run", getTestPackPath(t, testPack)}))
 
-		result := runTestPackCmd(t, s, []string{"destroy", getTestPackPath(testPack)})
+		result := runTestPackCmd(t, s, []string{"destroy", getTestPackPath(t, testPack)})
 		must.StrContains(t, result.cmdOut.String(), `Pack "`+testPack+`" destroyed`)
 		must.Eq(t, 0, result.exitCode)
 
@@ -430,7 +431,7 @@ func TestCLI_CLIFlag_NotDefined(t *testing.T) {
 
 func TestCLI_PackStatus(t *testing.T) {
 	ct.HTTPTestParallel(t, ct.WithDefaultConfig(), func(s *agent.TestAgent) {
-		result := runTestPackCmd(t, s, []string{"run", getTestPackPath(testPack)})
+		result := runTestPackCmd(t, s, []string{"run", getTestPackPath(t, testPack)})
 		must.Eq(t, 0, result.exitCode)
 
 		testcases := []struct {
@@ -469,9 +470,9 @@ func TestCLI_PackStatus(t *testing.T) {
 func TestCLI_PackStatus_Fails(t *testing.T) {
 	ct.HTTPTestParallel(t, ct.WithDefaultConfig(), func(s *agent.TestAgent) {
 		// test for status on missing pack
-		result := runTestPackCmd(t, s, []string{"status", getTestPackPath(testPack)})
+		result := runTestPackCmd(t, s, []string{"status", getTestPackPath(t, testPack)})
 		must.Eq(t, result.cmdErr.String(), "", must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
-		must.StrContains(t, result.cmdOut.String(), "no jobs found for pack \""+getTestPackPath(testPack)+"\"")
+		must.StrContains(t, result.cmdOut.String(), "no jobs found for pack \""+getTestPackPath(t, testPack)+"\"")
 		// FIXME: Should this have a non-success exit-code?
 		must.Eq(t, 0, result.exitCode)
 
@@ -496,7 +497,7 @@ func TestCLI_PackRender_MyAlias(t *testing.T) {
 	result := runPackCmd(t, []string{
 		"render",
 		"--no-format=true",
-		getTestPackPath("my_alias_test"),
+		getTestPackPath(t, "my_alias_test"),
 	})
 	must.Eq(t, result.cmdErr.String(), "", must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
 
@@ -566,7 +567,7 @@ func TestCLI_CLIFlag_Namespace(t *testing.T) {
 
 				result := runTestPackCmd(t, srv, append([]string{
 					"run",
-					getTestPackPath(testPack),
+					getTestPackPath(t, testPack),
 				},
 					tC.args...),
 				)
@@ -593,7 +594,7 @@ func TestCLI_CLIFlag_Token(t *testing.T) {
 
 		result := runTestPackCmd(t, srv, []string{
 			"run",
-			getTestPackPath(testPack),
+			getTestPackPath(t, testPack),
 			"--token=bad00000-bad0-bad0-bad0-badbadbadbad",
 		})
 		must.Eq(t, result.cmdErr.String(), "", must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
@@ -602,7 +603,7 @@ func TestCLI_CLIFlag_Token(t *testing.T) {
 
 		result = runTestPackCmd(t, srv, []string{
 			"run",
-			getTestPackPath(testPack),
+			getTestPackPath(t, testPack),
 			"--token=" + srv.Config.Client.Meta["token"],
 		})
 
@@ -622,7 +623,7 @@ func TestCLI_EnvConfig_Token(t *testing.T) {
 
 		result := runTestPackCmd(t, srv, []string{
 			"run",
-			getTestPackPath(testPack),
+			getTestPackPath(t, testPack),
 		})
 		must.Eq(t, result.cmdErr.String(), "", must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
 		must.StrContains(t, result.cmdOut.String(), "403 (ACL token not found)", must.Sprintf(
@@ -632,7 +633,7 @@ func TestCLI_EnvConfig_Token(t *testing.T) {
 		t.Setenv("NOMAD_TOKEN", srv.Config.Client.Meta["token"])
 		result = runTestPackCmd(t, srv, []string{
 			"run",
-			getTestPackPath(testPack),
+			getTestPackPath(t, testPack),
 		})
 
 		must.Eq(t, result.cmdErr.String(), "", must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
@@ -705,7 +706,7 @@ func TestCLI_EnvConfig_Namespace(t *testing.T) {
 				t.Setenv("NOMAD_NAMESPACE", "env")
 				result := runTestPackCmd(t, srv, append([]string{
 					"run",
-					getTestPackPath(testPack),
+					getTestPackPath(t, testPack),
 				},
 					tC.args...),
 				)
@@ -788,27 +789,21 @@ func runPackCmd(t *testing.T, args []string) PackCommandResult {
 // Test Helper functions
 
 // getTestPackPath returns the full path to a pack in the test fixtures folder.
-func getTestPackPath(packname string) string {
-	return path.Join(getTestPackRegistryPath(), "packs", packname)
+func getTestPackPath(t *testing.T, packname string) string {
+	return path.Join(getTestPackRegistryPath(t), "packs", packname)
 }
 
 // getTestPackRegistryPath returns the full path to a registry in the test
 // fixtures folder.
-func getTestPackRegistryPath() string {
-	return path.Join(testFixturePath(), "test_registry")
+func getTestPackRegistryPath(t *testing.T) string {
+	return path.Join(testfixture.AbsPath(t, "v2/test_registry"))
 }
 
 // getTestNomadJobPath returns the full path to a pack in the test
 // fixtures/jobspecs folder. The `.nomad` extension will be added
 // for you.
-func getTestNomadJobPath(job string) string {
-	return path.Join(testFixturePath(), "jobspecs", job+".nomad")
-}
-
-func testFixturePath() string {
-	// This is a function to prevent a massive refactor if this ever needs to be
-	// dynamically determined.
-	return "../../fixtures/"
+func getTestNomadJobPath(t *testing.T, job string) string {
+	return path.Join(testfixture.AbsPath(t, path.Join("jobspecs", job+".nomad")))
 }
 
 // expectGoodPackDeploy bundles the test expectations that should be met when
@@ -842,7 +837,7 @@ func createTestRegistries(t *testing.T) (*cache.Registry, *cache.Registry, strin
 
 	for _, r := range []string{"latest", testRef} {
 		must.NoError(t, filesystem.CopyDir(
-			getTestPackPath(testPack),
+			getTestPackPath(t, testPack),
 			path.Join(regDir, r, testPack+"@"+r),
 			false,
 			logging.Default(),
