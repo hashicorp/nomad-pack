@@ -16,7 +16,7 @@ import (
 
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	flag "github.com/hashicorp/nomad-pack/internal/pkg/flag"
-	"github.com/hashicorp/nomad-pack/internal/pkg/variable"
+	"github.com/hashicorp/nomad-pack/internal/pkg/variable/envloader"
 	"github.com/hashicorp/nomad-pack/terminal"
 )
 
@@ -185,7 +185,7 @@ func (c *baseCommand) Init(opts ...Option) error {
 	}
 	c.args = baseCfg.Flags.Args()
 
-	c.envVars = variable.GetVarsFromEnv()
+	c.envVars = envloader.New().GetVarsFromEnv()
 
 	// Do any validation after parsing
 	if baseCfg.Validation != nil {
