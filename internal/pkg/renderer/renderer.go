@@ -10,13 +10,14 @@ import (
 	"text/template"
 
 	"github.com/hashicorp/hcl/hcl/printer"
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/nomad/api"
 
-	"github.com/hashicorp/nomad-pack/internal/pkg/variable"
+	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser"
 	"github.com/hashicorp/nomad-pack/sdk/pack"
 )
 
-type PackTemplateContext = variable.PackTemplateContext
+type PackTemplateContext = parser.PackTemplateContext
 
 // Renderer provides template rendering functionality using the text/template
 // package.
@@ -41,16 +42,17 @@ type Renderer struct {
 
 	// stores the pack information, variables and tpl, so we can perform the
 	// output template rendering after pack deployment.
-	pack   *pack.Pack
-	tpl    *template.Template
-	tplCtx PackTemplateContext
+	pack *pack.Pack
+	tpl  *template.Template
+	pv   *parser.ParsedVariables
 }
 
 // toRender details an individual template to render along with its scoped
 // variables.
 type toRender struct {
-	content string
-	tplCtx  PackTemplateContext
+	content   string
+	tplCtx    PackTemplateContext
+	variables map[string]any
 }
 
 const (
@@ -60,16 +62,22 @@ const (
 
 // Render is responsible for iterating the pack and rendering each defined
 // template using the parsed variable map.
-func (r *Renderer) Render(p *pack.Pack, tplCtx PackTemplateContext) (*Rendered, error) {
+func (r *Renderer) Render(p *pack.Pack, variables *parser.ParsedVariables) (*Rendered, error) {
+
+	// save the ParsedVariables into the renderer state
+	r.pv = variables
 
 	// filesToRender stores all the templates and auxiliary files that should be
 	// rendered
 	filesToRender := map[string]toRender{}
-	prepareFiles(p, filesToRender, tplCtx, r.RenderAuxFiles)
+	err := r.prepareFiles(p, filesToRender, variables, r.RenderAuxFiles)
+	if err != nil {
+		return nil, err
+	}
 
 	// Set up our new template, add the function mapping, and set the
 	// delimiters.
-	tpl := template.New("tpl").Funcs(funcMap(r.Client)).Delims(leftTemplateDelim, rightTemplateDelim)
+	tpl := template.New("tpl").Funcs(funcMap(r)).Delims(leftTemplateDelim, rightTemplateDelim)
 
 	// Control the behaviour of rendering when it encounters an element
 	// referenced which doesn't exist within the variable mapping.
@@ -145,7 +153,7 @@ func (r *Renderer) Render(p *pack.Pack, tplCtx PackTemplateContext) (*Rendered, 
 
 	r.pack = p
 	r.tpl = tpl
-	r.tplCtx = tplCtx
+	r.pv = variables
 
 	return rendered, nil
 }
@@ -163,25 +171,50 @@ func (r *Renderer) RenderOutput() (string, error) {
 	}
 
 	var buf strings.Builder
-	if err := r.tpl.ExecuteTemplate(&buf, r.pack.OutputTemplateFile.Name, r.tplCtx); err != nil {
+	if err := r.tpl.ExecuteTemplate(&buf, r.pack.OutputTemplateFile.Name, r.pv); err != nil {
 		return "", fmt.Errorf("failed to render %s: %v", r.pack.OutputTemplateFile.Name, err)
 	}
 
 	return buf.String(), nil
 }
 
-// prepareFiles recurses the pack and its dependencies and returns a map
+// prepareFiles dispatches the request to prepare the Renderer's file configs
+// to the parser version specific implementation
+func (r *Renderer) prepareFiles(p *pack.Pack,
+	files map[string]toRender,
+	variables *parser.ParsedVariables,
+	renderAuxFiles bool,
+) hcl.Diagnostics {
+
+	if variables.IsV1() {
+		v1TplCtx, diags := variables.ConvertVariablesToMapInterface()
+		if diags.HasErrors() {
+			return diags
+		}
+		prepareFilesV1(p, files, v1TplCtx, renderAuxFiles)
+		return nil
+	}
+
+	v2TplCtx, diags := variables.ToPackTemplateContext(p)
+	if diags.HasErrors() {
+		return diags
+	}
+	prepareFilesV2(p, files, v2TplCtx, renderAuxFiles)
+	return nil
+}
+
+// prepareFilesV2 recurses the pack and its dependencies and returns a map
 // with the templates/auxiliary files to render along with the variables which
 // correspond.
-func prepareFiles(p *pack.Pack,
+func prepareFilesV2(p *pack.Pack,
 	files map[string]toRender,
-	tplCtx PackTemplateContext,
+	tplCtx parser.PackTemplateContext,
 	renderAuxFiles bool,
 ) {
 
 	// Iterate the dependencies and prepareTemplates for each.
 	for _, child := range p.Dependencies() {
-		prepareFiles(child, files, tplCtx[child.AliasOrName()].(PackTemplateContext), renderAuxFiles)
+		prepareFilesV2(child, files, tplCtx[child.AliasOrName()].(PackTemplateContext), renderAuxFiles)
 	}
 
 	// Add each template within the pack with scoped variables.
@@ -193,6 +226,55 @@ func prepareFiles(p *pack.Pack,
 		// Add each aux file within the pack with scoped variables.
 		for _, f := range p.AuxiliaryFiles {
 			files[path.Join(p.VariablesPath().AsPath(), f.Name)] = toRender{content: string(f.Content), tplCtx: tplCtx}
+		}
+	}
+}
+
+// prepareFilesV1 recurses the pack and its dependencies and returns a map
+// with the templates/auxiliary files to render along with the variables which
+// correspond. It is retained so that users can fall back to the original
+// template contexts as they migrate their packs to the newer syntax.
+func prepareFilesV1(p *pack.Pack,
+	files map[string]toRender,
+	variables map[string]any,
+	renderAuxFiles bool,
+) {
+
+	newVars := make(map[string]any)
+
+	// If the pack is a dependency, it only has access to its namespaced
+	// variables. If the pack is the parent/root pack, then it has access to
+	// all.
+	if p.HasParent() {
+		if v, ok := variables[p.Name()]; ok {
+			newVars["my"] = v
+			newVars[p.Name()] = v
+		}
+	} else {
+		newVars = variables
+	}
+
+	// Add the pack's metadata to the variable mapping.
+	newVars = p.Metadata.AddToInterfaceMap(newVars)
+
+	// Make the `my` alias for the parent pack.
+	if !p.HasParent() {
+		newVars["my"] = newVars[p.Name()]
+	}
+	// Iterate the dependencies and prepareTemplates for each.
+	for _, child := range p.Dependencies() {
+		prepareFilesV1(child, files, newVars, renderAuxFiles)
+	}
+
+	// Add each template within the pack with scoped variables.
+	for _, t := range p.TemplateFiles {
+		files[path.Join(p.Name(), t.Name)] = toRender{content: string(t.Content), variables: newVars}
+	}
+
+	if renderAuxFiles {
+		// Add each aux file within the pack with scoped variables.
+		for _, f := range p.AuxiliaryFiles {
+			files[path.Join(p.Name(), f.Name)] = toRender{content: string(f.Content), variables: newVars}
 		}
 	}
 }

@@ -11,17 +11,17 @@ import (
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/davecgh/go-spew/spew"
-	"github.com/hashicorp/nomad-pack/internal/pkg/variable"
+	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser"
 	"github.com/hashicorp/nomad/api"
 	"golang.org/x/exp/maps"
 )
 
 // funcMap instantiates our default template function map with populated
 // functions for use within text.Template.
-func funcMap(nomadClient *api.Client) template.FuncMap {
+func funcMap(r *Renderer) template.FuncMap {
 
 	// The base of the funcmap comes from the template context funcs
-	f := variable.PackTemplateContextFuncs()
+	f := parser.PackTemplateContextFuncs(r.pv.IsV1())
 
 	// Copy the sprig funcs into the funcmap.
 	maps.Copy(f, sprig.TxtFuncMap())
@@ -42,10 +42,10 @@ func funcMap(nomadClient *api.Client) template.FuncMap {
 	f["withSortKeys"] = withSortKeys
 	f["withSpewKeys"] = withSpewKeys
 
-	if nomadClient != nil {
-		f["nomadNamespaces"] = nomadNamespaces(nomadClient)
-		f["nomadNamespace"] = nomadNamespace(nomadClient)
-		f["nomadRegions"] = nomadRegions(nomadClient)
+	if r.Client != nil {
+		f["nomadNamespaces"] = nomadNamespaces(r.Client)
+		f["nomadNamespace"] = nomadNamespace(r.Client)
+		f["nomadRegions"] = nomadRegions(r.Client)
 	}
 
 	// Add additional custom functions.
