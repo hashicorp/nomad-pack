@@ -473,12 +473,12 @@ func NewTestLogger(t *testing.T) *TestLogger {
 // a parameter.
 type NoopLogger struct{}
 
-func (_ NoopLogger) Debug(_ string)                                  {}
-func (_ NoopLogger) Error(_ string)                                  {}
-func (_ NoopLogger) ErrorWithContext(_ error, _ string, _ ...string) {}
-func (_ NoopLogger) Info(_ string)                                   {}
-func (_ NoopLogger) Trace(_ string)                                  {}
-func (_ NoopLogger) Warning(_ string)                                {}
+func (NoopLogger) Trace(string)                              {}
+func (NoopLogger) Debug(string)                              {}
+func (NoopLogger) Info(string)                               {}
+func (NoopLogger) Warning(string)                            {}
+func (NoopLogger) Error(string)                              {}
+func (NoopLogger) ErrorWithContext(error, string, ...string) {}
 
 type TestGithubRegistry struct {
 	sourceURL string
