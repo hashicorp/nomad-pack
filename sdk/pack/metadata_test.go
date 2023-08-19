@@ -96,6 +96,7 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 						"dep1": map[string]any{
 							"name":    "dep1",
 							"alias":   "",
+							"id":      "dep1",
 							"source":  "",
 							"enabled": pointerOf(true),
 						},
@@ -104,6 +105,7 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 						"dep2": map[string]any{
 							"name":    "dep1",
 							"alias":   "dep2",
+							"id":      "dep2",
 							"source":  "",
 							"enabled": pointerOf(true),
 						},
@@ -168,7 +170,7 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			tc := tc
 			actualOutput := tc.inputMetadata.ConvertToMapInterface()
-			must.Eq(t, tc.expectedOutput, actualOutput, must.Sprint(tc.name))
+			must.Eq(t, tc.expectedOutput, actualOutput)
 		})
 	}
 }

@@ -117,6 +117,7 @@ func (md *Metadata) ConvertToMapInterface() map[string]any {
 	for i, d := range md.Dependencies {
 		dSlice[i] = map[string]any{
 			d.AliasOrName(): map[string]any{
+				"id":      d.AliasOrName(),
 				"name":    d.Name,
 				"alias":   d.Alias,
 				"source":  d.Source,
@@ -169,4 +170,12 @@ func (mp *MetadataPack) validate() error {
 		return errors.New("Pack metadata is uninitialized")
 	}
 	return nil
+}
+
+// AddToInterfaceMap adds the metadata information to the provided map as a new
+// entry under the "nomad_pack" key. This is useful for adding this information
+// to the template rendering data.  Used in the deprecated V1 Renderer
+func (md *Metadata) AddToInterfaceMap(m map[string]any) map[string]any {
+	m["nomad_pack"] = md.ConvertToMapInterface()
+	return m
 }
