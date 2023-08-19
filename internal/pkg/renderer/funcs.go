@@ -21,7 +21,10 @@ import (
 func funcMap(r *Renderer) template.FuncMap {
 
 	// The base of the funcmap comes from the template context funcs
-	f := parser.PackTemplateContextFuncs(r.pv.IsV1())
+	f := make(template.FuncMap)
+	if r != nil && r.pv != nil {
+		maps.Copy(f, parser.PackTemplateContextFuncs(r.pv.IsV1()))
+	}
 
 	// Copy the sprig funcs into the funcmap.
 	maps.Copy(f, sprig.TxtFuncMap())
@@ -42,7 +45,7 @@ func funcMap(r *Renderer) template.FuncMap {
 	f["withSortKeys"] = withSortKeys
 	f["withSpewKeys"] = withSpewKeys
 
-	if r.Client != nil {
+	if r != nil && r.Client != nil {
 		f["nomadNamespaces"] = nomadNamespaces(r.Client)
 		f["nomadNamespace"] = nomadNamespace(r.Client)
 		f["nomadRegions"] = nomadRegions(r.Client)
