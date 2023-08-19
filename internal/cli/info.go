@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
 	"github.com/hashicorp/nomad-pack/internal/pkg/loader"
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable"
+	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser/config"
 	"github.com/hashicorp/nomad-pack/sdk/pack/variables"
 	"github.com/mitchellh/go-glint"
 	"github.com/zclconf/go-cty/cty"
@@ -56,7 +57,7 @@ func (c *InfoCommand) Run(args []string) int {
 		return 1
 	}
 
-	variableParser, err := variable.NewParser(&variable.ParserConfig{
+	variableParser, err := variable.NewParser(&config.ParserConfig{
 		ParentPackID:      PackID(path.Base(packPath)),
 		RootVariableFiles: pack.RootVariableFiles(),
 		IgnoreMissingVars: c.baseCommand.ignoreMissingVars,
@@ -89,7 +90,7 @@ func (c *InfoCommand) Run(args []string) int {
 		glint.Text(pack.Metadata.App.URL),
 	).Row())
 
-	for pName, variables := range parsedVars.Vars {
+	for pName, variables := range parsedVars.GetVars() {
 
 		doc.Append(glint.Layout(
 			glint.Style(glint.Text(fmt.Sprintf("Pack %q Variables:", pName)), glint.Bold()),
