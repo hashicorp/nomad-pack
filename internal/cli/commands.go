@@ -71,6 +71,9 @@ type baseCommand struct {
 	// one instance of a pack within the same cluster
 	deploymentName string
 
+	// useParserV1 is true when the user supplies the --parser-v1 flag
+	useParserV1 bool
+
 	// args that were present after parsing flags
 	args []string
 
@@ -273,6 +276,15 @@ func (c *baseCommand) flagSet(bit flagSetBit, f func(*flag.Sets)) *flag.Sets {
 					replaced. When managing packs, the name specified here is
 					the name that should be passed to nomad-pack's plan and
 					destroy commands.`,
+		})
+
+		f.BoolVar(&flag.BoolVar{
+			Name:    "parser-v1",
+			Target:  &c.useParserV1,
+			Default: false,
+			Usage: `Use the legacy syntax parser to parse your job. This
+			enables pack to run packs for earlier versions while you are
+			migrating them to the new syntax`,
 		})
 	}
 	if bit&flagSetNeedsApproval != 0 {

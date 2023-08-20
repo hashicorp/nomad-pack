@@ -25,6 +25,7 @@ type Config struct {
 	VariableFiles   []string
 	VariableCLIArgs map[string]string
 	VariableEnvVars map[string]string
+	UseParserV1     bool
 }
 
 // PackManager is responsible for loading, parsing, and rendering a Pack and
@@ -65,11 +66,17 @@ func (pm *PackManager) ProcessVariableFiles() (*parser.ParsedVariables, []*error
 	parentName, _, _ := strings.Cut(path.Base(pm.cfg.Path), "@")
 
 	pCfg := &config.ParserConfig{
+		Version:           config.V2,
 		ParentPackID:      pack.PackID(parentName),
 		RootVariableFiles: loadedPack.RootVariableFiles(),
 		EnvOverrides:      pm.cfg.VariableEnvVars,
 		FileOverrides:     pm.cfg.VariableFiles,
 		FlagOverrides:     pm.cfg.VariableCLIArgs,
+	}
+
+	if pm.cfg.UseParserV1 {
+		pCfg.Version = config.V1
+		pCfg.ParentName = parentName
 	}
 
 	variableParser, err := variable.NewParser(pCfg)

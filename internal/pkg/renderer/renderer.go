@@ -55,6 +55,21 @@ type toRender struct {
 	variables map[string]any
 }
 
+// getDot is an ugly convenience function to deal with
+// the fact that ParserV1 and ParserV2 create differently
+// shaped contexts. Template is very forgiving with the
+// data (or dot) object's typing.
+func (t toRender) getDot() any {
+	var out any
+	if len(t.variables) > 0 {
+		out = t.variables
+	}
+	if len(t.tplCtx) > 0 {
+		out = t.tplCtx
+	}
+	return out
+}
+
 const (
 	leftTemplateDelim  = "[["
 	rightTemplateDelim = "]]"
@@ -113,8 +128,8 @@ func (r *Renderer) Render(p *pack.Pack, variables *parser.ParsedVariables) (*Ren
 		// is an error.
 		var buf strings.Builder
 
-		if err := tpl.ExecuteTemplate(&buf, name, src.tplCtx); err != nil {
-			fmt.Printf("❌ Error: %v", err) // TODO: DELETEME
+		dot := src.getDot()
+		if err := tpl.ExecuteTemplate(&buf, name, dot); err != nil {
 			return nil, fmt.Errorf("failed to render %s: %v", name, err)
 		}
 
