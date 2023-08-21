@@ -73,14 +73,14 @@ func TestCLI_CreateTestRegistry(t *testing.T) {
 		t.Logf("match %v:  %v\n", i, match)
 	}
 	must.RegexMatch(t, regex, out)
-	must.Eq(t, 0, result.exitCode)
+	must.Zero(t, result.exitCode)
 }
 
 func TestCLI_Version(t *testing.T) {
 	t.Parallel()
 	// This test doesn't require a Nomad cluster.
 	exitCode := Main([]string{"nomad-pack", "-v"})
-	must.Eq(t, 0, exitCode)
+	must.Zero(t, exitCode)
 }
 
 func TestCLI_JobRun(t *testing.T) {
@@ -241,7 +241,7 @@ func TestCLI_PackPlan_OverrideExitCodes(t *testing.T) {
 		result = runTestPackCmd(t, s, []string{"run", getTestPackPath(t, testPack)})
 		must.Eq(t, "", result.cmdErr.String(), must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
 		must.StrContains(t, result.cmdOut.String(), "")
-		must.Eq(t, 0, result.exitCode) // Should return 0
+		must.Zero(t, result.exitCode) // Should return 0
 		isStarted := func() bool {
 			j, err := ct.NomadJobStatus(s, testPack)
 			if err != nil {
@@ -276,7 +276,7 @@ func TestCLI_PackStop(t *testing.T) {
 		result := runTestPackCmd(t, s, []string{"stop", getTestPackPath(t, testPack), "--purge=true"})
 		must.Eq(t, result.cmdErr.String(), "", must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
 		must.StrContains(t, result.cmdOut.String(), `Pack "`+testPack+`" destroyed`)
-		must.Eq(t, 0, result.exitCode)
+		must.Zero(t, result.exitCode)
 	})
 }
 
@@ -357,7 +357,7 @@ func TestCLI_PackDestroy(t *testing.T) {
 
 		result := runTestPackCmd(t, s, []string{"destroy", getTestPackPath(t, testPack)})
 		must.StrContains(t, result.cmdOut.String(), `Pack "`+testPack+`" destroyed`)
-		must.Eq(t, 0, result.exitCode)
+		must.Zero(t, result.exitCode)
 
 		// Assert job no longer queryable
 		c, err := ct.NewTestClient(s)
@@ -394,7 +394,7 @@ func TestCLI_PackDestroy_WithOverrides(t *testing.T) {
 
 		// Stop job with var override
 		result = runTestPackCmd(t, s, []string{"destroy", testPack, "--var=" + testPack + ".job_name=foo", "--registry=" + reg.Name})
-		must.Eq(t, 0, result.exitCode, must.Sprintf(
+		must.Zero(t, result.exitCode, must.Sprintf(
 			"expected exitcode 0; got %v\ncmdOut:%v", result.exitCode, result.cmdOut.String()))
 
 		// Assert job "bar" still exists
@@ -404,7 +404,7 @@ func TestCLI_PackDestroy_WithOverrides(t *testing.T) {
 
 		// Stop job with no overrides passed
 		result = runTestPackCmd(t, s, []string{"destroy", testPack, "--registry=" + reg.Name})
-		must.Eq(t, 0, result.exitCode, must.Sprintf(
+		must.Zero(t, result.exitCode, must.Sprintf(
 			"expected exitcode 0; got %v\ncmdOut:%v", result.exitCode, result.cmdOut.String()))
 
 		// Assert job bar is gone
@@ -432,7 +432,7 @@ func TestCLI_CLIFlag_NotDefined(t *testing.T) {
 func TestCLI_PackStatus(t *testing.T) {
 	ct.HTTPTestParallel(t, ct.WithDefaultConfig(), func(s *agent.TestAgent) {
 		result := runTestPackCmd(t, s, []string{"run", getTestPackPath(t, testPack)})
-		must.Eq(t, 0, result.exitCode)
+		must.Zero(t, result.exitCode)
 
 		testcases := []struct {
 			name string
@@ -460,7 +460,7 @@ func TestCLI_PackStatus(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				args := append([]string{"status"}, tc.args...)
 				result := runTestPackCmd(t, s, args)
-				must.Eq(t, 0, result.exitCode)
+				must.Zero(t, result.exitCode)
 				must.StrContains(t, result.cmdOut.String(), "simple_raw_exec | "+cache.DevRegistryName+" ")
 			})
 		}
@@ -474,7 +474,7 @@ func TestCLI_PackStatus_Fails(t *testing.T) {
 		must.Eq(t, result.cmdErr.String(), "", must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
 		must.StrContains(t, result.cmdOut.String(), "no jobs found for pack \""+getTestPackPath(t, testPack)+"\"")
 		// FIXME: Should this have a non-success exit-code?
-		must.Eq(t, 0, result.exitCode)
+		must.Zero(t, result.exitCode)
 
 		// test flag validation for name flag without pack
 		result = runTestPackCmd(t, s, []string{"status", "--name=foo"})
@@ -803,22 +803,24 @@ func getTestPackRegistryPath(t *testing.T) string {
 // fixtures/jobspecs folder. The `.nomad` extension will be added
 // for you.
 func getTestNomadJobPath(t *testing.T, job string) string {
+	t.Helper()
 	return path.Join(testfixture.AbsPath(t, path.Join("jobspecs", job+".nomad")))
 }
 
 // expectGoodPackDeploy bundles the test expectations that should be met when
 // determining if the pack CLI successfully deployed a pack.
 func expectGoodPackDeploy(t *testing.T, r PackCommandResult) {
-	must.Eq(t, r.cmdErr.String(), "", must.Sprintf("cmdErr should be empty, but was %q", r.cmdErr.String()))
+	t.Helper()
+	expectNoStdErrOutput(t, r)
 	must.StrContains(t, r.cmdOut.String(), "Pack successfully deployed", must.Sprintf(
 		"Expected success message, received %q", r.cmdOut.String()))
-	must.Eq(t, 0, r.exitCode)
+	must.Zero(t, r.exitCode)
 }
 
 // expectGoodPackPlan bundles the test expectations that should be met when
 // determining if the pack CLI successfully planned a pack.
 func expectGoodPackPlan(t *testing.T, r PackCommandResult) {
-	must.Eq(t, r.cmdErr.String(), "", must.Sprintf("cmdErr should be empty, but was %q", r.cmdErr.String()))
+	expectNoStdErrOutput(t, r)
 	must.StrContains(t, r.cmdOut.String(), "Plan succeeded", must.Sprintf(
 		"Expected success message, received %q", r.cmdOut.String()))
 	must.Eq(t, 1, r.exitCode) // exitcode 1 means that an allocation will be created
@@ -828,6 +830,8 @@ func expectGoodPackPlan(t *testing.T, r PackCommandResult) {
 // second one has testRef ref. It returns registry objects, and a string that
 // points to the root where the two refs are on the filesystem.
 func createTestRegistries(t *testing.T) (*cache.Registry, *cache.Registry, string) {
+	t.Helper()
+
 	// Fake a clone
 	registryName := fmt.Sprintf("test-%v", time.Now().UnixMilli())
 
@@ -869,5 +873,11 @@ func createTestRegistries(t *testing.T) (*cache.Registry, *cache.Registry, strin
 }
 
 func cleanTestRegistry(t *testing.T, regPath string) {
+	t.Helper()
 	os.RemoveAll(regPath)
+}
+
+func expectNoStdErrOutput(t *testing.T, r PackCommandResult) {
+	t.Helper()
+	must.Eq(t, "", r.cmdErr.String(), must.Sprintf("cmdErr should be empty, but was %q", r.cmdErr.String()))
 }
