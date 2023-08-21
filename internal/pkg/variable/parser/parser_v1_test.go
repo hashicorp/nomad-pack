@@ -223,6 +223,15 @@ func TestParserV1_VariableOverrides(t *testing.T) {
 	}
 }
 
+func TestParserV1_parseNestedPack(t *testing.T) {
+	fixturePath := testfixture.AbsPath(t, "v1/test_registry/packs/my_alias_test")
+	pm := newTestPackManager(t, fixturePath, true)
+
+	pvs := pm.ProcessVariables()
+	must.NotNil(t, pvs)
+	must.MapNotEmpty(t, pvs.v1Vars)
+}
+
 type testParserV1Option func(*ParserV1)
 
 func WithEnvVarV1(key, value string) testParserV1Option {
