@@ -194,8 +194,9 @@ func PackTemplateContextFuncs(isV1 bool) template.FuncMap {
 func PackTemplateContextFuncsV1() template.FuncMap {
 	fm := PackTemplateContextFuncsV2()
 	for k := range fm {
-		fm[k] = func() error {
-			return fmt.Errorf("%s is not implemented for nomad-pack's v1 syntax", k)
+		k := k
+		fm[k] = func(_ ...any) (string, error) {
+			return "", fmt.Errorf("%s is not implemented for nomad-pack's v1 syntax", k)
 		}
 	}
 	return fm
