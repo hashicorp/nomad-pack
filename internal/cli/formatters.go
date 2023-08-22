@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"strings"
 	"time"
 
 	"github.com/ryanuber/columnize"
@@ -33,4 +34,17 @@ func formatTime(t time.Time) string {
 // E.g. formatTimeDifference(first=1m22s33ms, second=1m28s55ms, time.Second) -> 6s
 func formatTimeDifference(first, second time.Time, d time.Duration) string {
 	return second.Truncate(d).Sub(first.Truncate(d)).String()
+}
+
+func formatSHA1Reference(in string) string {
+	// a SHA1 hash is 20 bytes written as a hexadecimal string (40 chars)
+	if len(in) != 40 && len(strings.Trim(strings.ToLower(in), "0123456789abcdef")) != 0 {
+		// if it can't be a sha1, return it unchanged
+		return in
+	}
+	l := 8
+	if len(in) < l {
+		l = len(in)
+	}
+	return in[:l]
 }
