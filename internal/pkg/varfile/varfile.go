@@ -203,33 +203,20 @@ func wrapBytes(b *[]byte, prefix, postfix []byte) {
 // unwrapBytes reverses the changes made by wrapHCLBytes and wrapJSONBytes
 func unwrapBytes(sp *[]byte) {
 	src := *sp
-
-	// spew.Printf("\n  💾 BEFORE:\n%s\n", spew.Sdump(src)) 	// TODO: DELETEME
-
 	// Trim the first 6 and last 2 bytes (since we added those).
 	out := slices.Clip(src[6 : len(src)-2])
-
-	// spew.Printf("  💾 AFTER:\n%s\n", spew.Sdump(out)) 	// TODO: DELETEME
-
 	*sp = out
 }
 
 func fixupRange(r *hcl.Range) {
-	// fmt.Printf("🟢 BEFORE: [%-5s] filename: %s Line: %v, Column: %v, Byte: %v\n", "Start", r.Filename, r.Start.Line, r.Start.Column, r.Start.Byte) // TODO: DELETEME
-	// fmt.Printf("🟢 BEFORE: [%-5s] filename: %s Line: %v, Column: %v, Byte: %v\n", "End", r.Filename, r.End.Line, r.End.Column, r.End.Byte) // TODO: DELETEME
-
 	fixupStart(r)
 	fixupEnd(r)
-
-	// fmt.Printf("🟢  AFTER: [%-5s] filename: %s Line: %v, Column: %v, Byte: %v\n", "Start", r.Filename, r.Start.Line, r.Start.Column, r.Start.Byte) // TODO: DELETEME
-	// fmt.Printf("🟢  AFTER: [%-5s] filename: %s Line: %v, Column: %v, Byte: %v\n", "End", r.Filename, r.End.Line, r.End.Column, r.End.Byte) // TODO: DELETEME
 }
 
 func fixupStart(r *hcl.Range) { fixupPos("Start", r.Filename, &r.Start) }
 func fixupEnd(r *hcl.Range)   { fixupPos("End", r.Filename, &r.End) }
 
 func fixupPos(e string, filename string, p *hcl.Pos) {
-	// fmt.Printf("  🟡 BEFORE: [%-5s] filename: %s Line: %v, Column: %v, Byte: %v\n", e, filename, p.Line, p.Column, p.Byte) // TODO: DELETEME
 
 	// Adjust the byte position to account for the map wrapper that we have to
 	// take back out
@@ -246,8 +233,6 @@ func fixupPos(e string, filename string, p *hcl.Pos) {
 	}
 
 	p.Line -= 1
-
-	// fmt.Printf("  🟡  AFTER: [%-5s] filename: %s Line: %v, Column: %v, Byte: %v\n", e, filename, p.Line, p.Column, p.Byte) // TODO: DELETEME
 }
 
 type DiagExtraFixup struct{ Fixed bool }
@@ -261,12 +246,7 @@ type diagFileMap map[string]*hcl.File
 
 func (d *diagFileMap) Fixup() {
 	// We need to fix all of the byte arrays so that they have the original data
-	first := true
 	for _, f := range *d {
-		if !first {
-			fmt.Println()
-		}
-		first = false
 		unwrapBytes(&f.Bytes)
 	}
 }
@@ -277,14 +257,10 @@ func (f *fixableDiags) Fixup() {
 	for _, diag := range *f {
 		if diag.Extra == nil {
 			if diag.Subject != nil {
-				// fmt.Printf("Diag %v Subject: BEFORE: %s, %[1]v bytes\n", i, diag.Subject) // TODO: DELETEME
 				fixupRange(diag.Subject)
-				// fmt.Printf("Diag %v Subject: AFTER: %s, %[1]v bytes\n", i, diag.Subject) // TODO: DELETEME
 			}
 			if diag.Context != nil {
-				// fmt.Printf("Diag %v Context: BEFORE: %s, %[1]v bytes\n", i, diag.Context) // TODO: DELETEME
 				fixupRange(diag.Context)
-				// fmt.Printf("Diag %v Context: AFTER: %s, %[1]v bytes\n", i, diag.Context) // TODO: DELETEME
 			}
 			markFixed(diag)
 		}
