@@ -24,25 +24,27 @@ type DecodeResult struct {
 
 func (d *DecodeResult) Merge(i DecodeResult) {
 	d.Diags = d.Diags.Extend(i.Diags)
-	for id, overs := range i.Overrides {
-		for _, o := range overs {
-			if slices.Contains(d.Overrides[id], o) {
+	for packID, packOverrides := range i.Overrides {
+
+		for _, inOverride := range packOverrides {
+
+			if slices.Contains(d.Overrides[packID], inOverride) {
 				var match *Override
-				for i, exo := range d.Overrides[id] {
-					if exo.Name != o.Name {
+				for i, exo := range d.Overrides[packID] {
+					if exo.Name != inOverride.Name {
 						continue
 					}
-					match = d.Overrides[id][i]
+					match = d.Overrides[packID][i]
 				}
 				d.Diags = d.Diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Duplicate definition",
-					Detail:   fmt.Sprintf("The variable %s can not be redefined. Existing definition found at %s ", o.Name, match.Range),
-					Subject:  &o.Range,
+					Detail:   fmt.Sprintf("The variable %s can not be redefined. Existing definition found at %s ", inOverride.Name, match.Range),
+					Subject:  &inOverride.Range,
 				})
 				continue
 			}
-			d.Overrides[id] = append(d.Overrides[id], o)
+			d.Overrides[packID] = append(d.Overrides[packID], inOverride)
 		}
 	}
 	if d.HCLFiles == nil && i.HCLFiles != nil {
@@ -52,6 +54,7 @@ func (d *DecodeResult) Merge(i DecodeResult) {
 		d.HCLFiles[n] = f
 	}
 }
+
 func DecodeVariableOverrides(files []*pack.File) DecodeResult {
 	dr := DecodeResult{}
 	for _, f := range files {
