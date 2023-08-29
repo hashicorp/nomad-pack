@@ -10,26 +10,164 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+// PackTemplateContext v2
+//
+// A v2 PackTemplateContext is a tree of PackData elements organized by name and
+// dependency depth. Consider the following Pack structure:
+//
+// A Pack named "a", which will be the pack that is being targeted by the user
+// via the nomad-pack command. The "a" pack's metadata points to two dependency
+// packs: "d1" aliased to "c1" and "d2" aliased to "c2". Lastly, the "d2" pack's
+// metadata points to a singular dependency named "dep", which is left unaliased.
+//
+// The generated template context would match the following diagram.
+//
+// ┌────────────────────────────────────────────────────────┐
+// │ PackTemplateContext                                    │
+// │ map[string]PackContextable                             │
+// ├───────┬────────────────────────────────────────────────┤
+// │  KEY  │ VALUE                                          │
+// ├───────┼────────────────────────────────────────────────┤
+// │       │ ┌────────────────────┐                         │
+// │ _self │ │PackData            │                         │
+// │       │ ├────────────────────┤                         │
+// │       │ │Pack *pack.Pack     │                         │
+// │       │ │meta map[string]any │                         │
+// │       │ │vars map[string]any │                         │
+// │       │ └────────────────────┘                         │
+// ├───────┼────────────────────────────────────────────────┤
+// │       │ ┌────────────────────────────────┐             │
+// │   c1  │ │ PackTemplateContext            │             │
+// │       │ │ map[string]PackContextable     │             │
+// │       │ ├───────┬────────────────────────┤             │
+// │       │ │  KEY  │ VALUE                  │             │
+// │       │ ├───────┼────────────────────────┤             │
+// │       │ │       │ ┌────────────────────┐ │             │
+// │       │ │ _self │ │PackData            │ │             │
+// │       │ │       │ ├────────────────────┤ │             │
+// │       │ │       │ │Pack *pack.Pack     │ │             │
+// │       │ │       │ │meta map[string]any │ │             │
+// │       │ │       │ │vars map[string]any │ │             │
+// │       │ │       │ └────────────────────┘ │             │
+// │       │ └───────┴────────────────────────┘             │
+// ├───────┼────────────────────────────────────────────────┤
+// │       │ ┌────────────────────────────────────────────┐ │
+// │  c2   │ │ PackTemplateContext                        │ │
+// │       │ │ map[string]PackContextable                 │ │
+// │       │ ├───────┬────────────────────────────────────┤ │
+// │       │ │  KEY  │ VALUE                              │ │
+// │       │ ├───────┼────────────────────────────────────┤ │
+// │       │ │       │ ┌────────────────────┐             │ │
+// │       │ │ _self │ │PackData            │             │ │
+// │       │ │       │ ├────────────────────┤             │ │
+// │       │ │       │ │Pack *pack.Pack     │             │ │
+// │       │ │       │ │meta map[string]any │             │ │
+// │       │ │       │ │vars map[string]any │             │ │
+// │       │ │       │ └────────────────────┘             │ │
+// │       │ ├───────┼────────────────────────────────────┤ │
+// │       │ │       │ ┌────────────────────────────────┐ │ │
+// │       │ │  dep  │ │ PackTemplateContext            │ │ │
+// │       │ │       │ │ map[string]PackContextable     │ │ │
+// │       │ │       │ ├───────┬────────────────────────┤ │ │
+// │       │ │       │ │  KEY  │ VALUE                  │ │ │
+// │       │ │       │ ├───────┼────────────────────────┤ │ │
+// │       │ │       │ │       │ ┌────────────────────┐ │ │ │
+// │       │ │       │ │ _self │ │PackData            │ │ │ │
+// │       │ │       │ │       │ ├────────────────────┤ │ │ │
+// │       │ │       │ │       │ │Pack *pack.Pack     │ │ │ │
+// │       │ │       │ │       │ │meta map[string]any │ │ │ │
+// │       │ │       │ │       │ │vars map[string]any │ │ │ │
+// │       │ │       │ │       │ └────────────────────┘ │ │ │
+// │       │ │       │ └───────┴────────────────────────┘ │ │
+// │       │ └───────┴────────────────────────────────────┘ │
+// └───────┴────────────────────────────────────────────────┘
+//
+// This organization scheme allows users to select a pack using a dotted descent
+// into the context map and to access the pack's data using functions that then
+// read the PackData at `_self`
+
+type PackTemplateContext map[string]PackContextable
+
+type PackContextable interface {
+	getPack() PackData
+	getVars() map[string]any
+	getMetas() map[string]any
+}
+
+// getVars retrieves the `vars` map from the currently selected Pack's PackData
+// element--`_self`
+func (p PackTemplateContext) getVars() map[string]any { return p.getPack().vars }
+
+// getMetas retrieves the `meta` map from the currently selected Pack's PackData
+// element--`_self`
+func (p PackTemplateContext) getMetas() map[string]any { return p.getPack().meta }
+
+// getPack retrieves the `_self` element from the currently selected
+// PackTemplateContext
+func (p PackTemplateContext) getPack() PackData { return p["_self"].(PackData) }
+
+// PackData is the currently selected Pack's metadata and variables, normally
+// stored in `_self` in a PackTemplateContext.
 type PackData struct {
 	Pack *pack.Pack
 	meta map[string]any
 	vars map[string]any
 }
 
-func (p PackData) getVars() map[string]any  { return p.vars }
+// getVars retrieves the `vars` map from the currently selected Pack's PackData
+// element--`_self`
+func (p PackData) getVars() map[string]any { return p.vars }
+
+// getMetas retrieves the `meta` map from the currently selected Pack's PackData
+// element--`_self`
 func (p PackData) getMetas() map[string]any { return p.meta }
-func (p PackData) getPack() PackData        { return p }
 
-type PackTemplateContext map[string]PackContextable
+// getPack retrieves the `_self` element from the currently selected
+// PackTemplateContext
+func (p PackData) getPack() PackData { return p }
 
-func (p PackTemplateContext) getVars() map[string]any  { return p.getPack().vars }
-func (p PackTemplateContext) getMetas() map[string]any { return p.getPack().meta }
-func (p PackTemplateContext) getPack() PackData        { return p["_self"].(PackData) }
+//
+// Template function implementations
+//
 
-type PackContextable interface {
-	getPack() PackData
-	getVars() map[string]any
-	getMetas() map[string]any
+// PackTemplateContextFuncs returns a text/template FuncMap that are necessary
+// to access the variables and metadata information stored in the template
+// context
+func PackTemplateContextFuncs(isV1 bool) template.FuncMap {
+	if isV1 {
+		return PackTemplateContextFuncsV1()
+	}
+	return PackTemplateContextFuncsV2()
+}
+
+// PackTemplateContextFuncsV1 returns the a funcMap with error-only functions
+// with the same names as v2 ones, so users are presented with more informative
+// errors than the generic go-template ones.
+func PackTemplateContextFuncsV1() template.FuncMap {
+	fm := PackTemplateContextFuncsV2()
+	for k := range fm {
+		k := k
+		fm[k] = func(_ ...any) (string, error) {
+			return "", fmt.Errorf("%s is not implemented for nomad-pack's v1 syntax", k)
+		}
+	}
+	return fm
+}
+
+// PackTemplateContextFuncsV2 returns the funcMap for the V2 Pack template
+// context. These are added to other template functions provided in the
+// Renderer
+func PackTemplateContextFuncsV2() template.FuncMap {
+	return template.FuncMap{
+		"vars":      getPackVars,
+		"var":       getPackVar,
+		"must_var":  mustGetPackVar,
+		"metas":     getPackMetas,
+		"meta":      getPackMeta,
+		"must_meta": mustGetPackMeta,
+		"deps":      getPackDeps,
+		"deps_tree": getPackDepTree,
+	}
 }
 
 // getPackVars is the underlying implementation for the `vars` template func
@@ -180,37 +318,4 @@ func (p PackTemplateContext) depKeys() []string {
 
 func (p PackTemplateContext) Name() string {
 	return p.getPack().Pack.Name()
-}
-
-func PackTemplateContextFuncs(isV1 bool) template.FuncMap {
-	if isV1 {
-		return PackTemplateContextFuncsV1()
-	}
-	return PackTemplateContextFuncsV2()
-}
-
-// PackTemplateContextFuncsV1 returns the v2 functions that error, so users
-// get more informative errors than the generic go-template ones (barely).
-func PackTemplateContextFuncsV1() template.FuncMap {
-	fm := PackTemplateContextFuncsV2()
-	for k := range fm {
-		k := k
-		fm[k] = func(_ ...any) (string, error) {
-			return "", fmt.Errorf("%s is not implemented for nomad-pack's v1 syntax", k)
-		}
-	}
-	return fm
-}
-
-func PackTemplateContextFuncsV2() template.FuncMap {
-	return template.FuncMap{
-		"vars":      getPackVars,
-		"var":       getPackVar,
-		"must_var":  mustGetPackVar,
-		"metas":     getPackMetas,
-		"meta":      getPackMeta,
-		"must_meta": mustGetPackMeta,
-		"deps":      getPackDeps,
-		"deps_tree": getPackDepTree,
-	}
 }
