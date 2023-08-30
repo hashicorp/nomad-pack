@@ -77,7 +77,11 @@ func (f *Set) VarFlagP(i *VarFlagP) {
 	}
 
 	if i.Default != "" {
-		usage += fmt.Sprintf(" Defaults to %s.", i.Default)
+		if i.Value.Type() == "string" {
+			usage += fmt.Sprintf(" Defaults to %q.", i.Default)
+		} else {
+			usage += fmt.Sprintf(" Defaults to %s.", i.Default)
+		}
 	}
 
 	if i.EnvVar != "" {

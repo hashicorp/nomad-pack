@@ -232,7 +232,7 @@ func printFlagDetail(w io.Writer, f *flag.Flag) {
 
 	if !defaultIsZeroValue(f) {
 		if f.Value.Type() == "string" {
-			fmt.Fprintf(w, " (default %q", f.DefValue)
+			fmt.Fprintf(w, " (default %q)", f.DefValue)
 		} else {
 			fmt.Fprintf(w, " (default %s)", f.DefValue)
 		}
