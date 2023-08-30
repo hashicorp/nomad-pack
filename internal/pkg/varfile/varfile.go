@@ -13,58 +13,105 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+// Alias the SDK types that are used a lot
 type PackID = pack.PackID
 type VariableID = variables.VariableID
 
+func DecodeVariableOverrides(files []*pack.File) DecodeResult {
+	decodeResult := DecodeResult{}
+	for _, file := range files {
+		fileDecodeResult := DecodeResult{
+			Overrides: make(Overrides),
+		}
+		fileDecodeResult.HCLFiles, fileDecodeResult.Diags = Decode(file.Name, file.Content, nil, &fileDecodeResult.Overrides)
+		decodeResult.Merge(fileDecodeResult)
+	}
+	return decodeResult
+}
+
+// DecodeResult is returned by the
 type DecodeResult struct {
 	Overrides Overrides
 	Diags     hcl.Diagnostics
 	HCLFiles  map[string]*hcl.File
 }
 
-func (d *DecodeResult) Merge(i DecodeResult) {
-	d.Diags = d.Diags.Extend(i.Diags)
-	for packID, packOverrides := range i.Overrides {
+func (d *DecodeResult) Merge(in DecodeResult) {
+	// If the incoming DecodeResult contains diags, add them to our Diags
+	// collection
+	d.Diags = d.Diags.Extend(in.Diags)
 
+	// For each of the incoming DecodeResults Overrides, which is a PackID-keyed
+	// map of Pack Variables and their Values.
+	for packID, packOverrides := range in.Overrides {
+
+		// Traverse the incoming pack's overrides
 		for _, inOverride := range packOverrides {
 
-			if slices.Contains(d.Overrides[packID], inOverride) {
-				var match *Override
-				for i, exo := range d.Overrides[packID] {
-					if exo.Name != inOverride.Name {
-						continue
-					}
-					match = d.Overrides[packID][i]
+			// If any existing values in the destination pack's slice conflict with
+			// the current value, they will be stored here since otherwise they'd be
+			// out of scope
+			var match *Override
+
+			// exactMatch is used to signal that the two Override values have the
+			// same pointer address so that the code can special case that.
+			var exactMatch bool
+
+			if slices.ContainsFunc(d.Overrides[packID], func(e *Override) bool {
+				// If either one of the values is nil, then it isn't a match for this
+				// purpose.
+				if inOverride == nil || d.Overrides[packID] == nil {
+					return false
 				}
+
+				// Set the sentinel bool in the unlikely case that there is an
+				// exact match on the pointer address, so that the later code
+				// can choose how to deal with it.
+				if exactMatch = e == inOverride; exactMatch {
+					return true
+				}
+
+				// If an override has the same name and path it is a conflict
+				if e.Name == inOverride.Name && e.Path == inOverride.Path {
+					// Retain the conflicting existing value's pointer so it can be used
+					// in generating an error
+					match = e
+					return true
+				}
+
+				return false
+			}) {
+
+				// Since it's an exact match, the destination already contains the
+				// incoming override; skip it
+				if exactMatch {
+					continue
+				}
+
+				// Since there's an existing override in the destination, add an HCL
+				// diagnostic to the destination
 				d.Diags = d.Diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Duplicate definition",
 					Detail:   fmt.Sprintf("The variable %s can not be redefined. Existing definition found at %s ", inOverride.Name, match.Range),
 					Subject:  &inOverride.Range,
 				})
+
+				// Continue in order to collect more diagnostics if they happen
 				continue
 			}
+
+			// Add the Override to the destination Overrides struct
 			d.Overrides[packID] = append(d.Overrides[packID], inOverride)
 		}
 	}
-	if d.HCLFiles == nil && i.HCLFiles != nil {
-		d.HCLFiles = i.HCLFiles
+	if d.HCLFiles == nil && in.HCLFiles != nil {
+		d.HCLFiles = in.HCLFiles
 	}
-	for n, f := range i.HCLFiles {
+
+	for n, f := range in.HCLFiles {
 		d.HCLFiles[n] = f
 	}
-}
-
-func DecodeVariableOverrides(files []*pack.File) DecodeResult {
-	dr := DecodeResult{}
-	for _, f := range files {
-		fdr := DecodeResult{
-			Overrides: make(Overrides),
-		}
-		fdr.HCLFiles, fdr.Diags = Decode(f.Name, f.Content, nil, &fdr.Overrides)
-		dr.Merge(fdr)
-	}
-	return dr
 }
 
 // Decode parses, decodes, and evaluates expressions in the given HCL source
@@ -230,23 +277,28 @@ func fixupPos(e string, filename string, p *hcl.Pos) {
 	// position on line two works nicely with the subtraction we have to do in
 	// all the other cases.
 	if p.Line == 1 {
-		p.Byte = 0 // Step on the computed Byte val, because it will be negative
-		p.Line = 2
-		p.Column = 1
+		p.Byte = 0   // Step on the computed Byte val, because it will be negative
+		p.Line = 2   // Set to 2 since Line is always decremented by one
+		p.Column = 1 // The first column aligns with the zero byte.
 	}
 
 	p.Line -= 1
 }
 
+// DiagExtraFixup is a custom type for the sentinel value stored in Extra that
+// indicates whether or not the Ranges in the Diagnostic have been reset to be
+// consistent with the user-supplied input.
 type DiagExtraFixup struct{ Fixed bool }
-type FixerUpper interface{ HasFixedRange() bool }
 
-func (d *DiagExtraFixup) HasFixedRange() bool { return d.Fixed }
-
+// markFixed adds the sentinel value to the passed Diagnostic
 func markFixed(d *hcl.Diagnostic) { d.Extra = DiagExtraFixup{Fixed: true} }
 
+// The HCL DiagnosticsWriter can use a map of filenames to parsed HCL files to
+// enrich the Diagnostic's output with actual file content.
 type diagFileMap map[string]*hcl.File
 
+// Fixup removes the data added to the original inputs so that they print out
+// as they were originally provided.
 func (d *diagFileMap) Fixup() {
 	// We need to fix all of the byte arrays so that they have the original data
 	for _, f := range *d {
@@ -254,8 +306,15 @@ func (d *diagFileMap) Fixup() {
 	}
 }
 
+// fixableDiags
 type fixableDiags hcl.Diagnostics
 
+// Fixup adjusts the ranges of Diagnostics that have ranges different than they
+// should because of the manipulation of the input data. For example, the Pack
+// v2 variable override files are modified dynamically to transform them into
+// HCL2 maps, which allows up to cheat and use dotted identifiers. However, this
+// modification causes the Ranges to be incorrect on any hcl.Diagnostic based on
+// them. Fixup calculates where the ranges would have originally referred to.
 func (f *fixableDiags) Fixup() {
 	for _, diag := range *f {
 		if diag.Extra == nil {
