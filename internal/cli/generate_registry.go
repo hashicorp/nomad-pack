@@ -32,12 +32,12 @@ func (c *GenerateRegistryCommand) Run(args []string) int {
 		return 1
 	}
 
-	c.cfg.PackName = c.args[0]
+	c.cfg.RegistryName = c.args[0]
 
 	// Generate our UI error context.
 	errorContext := errors.NewUIErrorContext()
 
-	errorContext.Add(errors.UIContextPrefixRegistryName, c.cfg.PackName)
+	errorContext.Add(errors.UIContextPrefixRegistryName, c.cfg.RegistryName)
 	errorContext.Add(errors.UIContextPrefixOutputPath, c.cfg.OutPath)
 
 	err := creator.CreateRegistry(c.cfg)
@@ -89,7 +89,6 @@ func (c *GenerateRegistryCommand) Help() string {
 	c.Example = `
 	# Create a new registry named "my-new-registry" in the current directory.
 	nomad-pack generate registry my-new-registry
-
 	`
 	return formatHelp(`
 	Usage: nomad-pack generate registry <name>
