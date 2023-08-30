@@ -1,11 +1,10 @@
-package varfile_test
+package varfile
 
 import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/nomad-pack/internal/pkg/varfile"
 	"github.com/shoenig/test/must"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -15,7 +14,7 @@ func TestVarfile_DecodeHCL(t *testing.T) {
 		dLen  int
 		diags hcl.Diagnostics
 		oLen  int
-		oMap  varfile.Overrides
+		oMap  Overrides
 	}
 	testCases := []struct {
 		name string
@@ -38,8 +37,8 @@ func TestVarfile_DecodeHCL(t *testing.T) {
 			exp: exp{
 				dLen: 0,
 				oLen: 1,
-				oMap: varfile.Overrides{
-					"embedded.hcl": []*varfile.Override{
+				oMap: Overrides{
+					"embedded.hcl": []*Override{
 						{
 							Name:  "foo",
 							Path:  "mypack",
@@ -76,7 +75,7 @@ func TestVarfile_DecodeHCL(t *testing.T) {
 							End:      hcl.Pos{Line: 1, Column: 13, Byte: 12},
 						},
 						EvalContext: nil,
-						Extra:       varfile.DiagExtraFixup{Fixed: true},
+						Extra:       DiagExtraFixup{Fixed: true},
 					},
 				},
 			},
@@ -93,8 +92,8 @@ func TestVarfile_DecodeHCL(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			tc := tc
-			om := make(varfile.Overrides)
-			_, diags := varfile.Decode("embedded.hcl", tc.src, nil, &om)
+			om := make(Overrides)
+			_, diags := Decode("embedded.hcl", tc.src, nil, &om)
 			must.Len(t, tc.exp.dLen, diags, must.Sprintf("slice values: %v", diags))
 
 			if len(tc.exp.diags) > 0 {
@@ -127,4 +126,63 @@ func TestVarfile_DecodeHCL(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestVarfile_DecodeResult_Merge(t *testing.T) {
+	d1 := DecodeResult{
+		Overrides: Overrides{
+			"p1": []*Override{{Name: "o1"}, {Name: "o2"}},
+		},
+	}
+
+	t.Run("errors when redefined", func(t *testing.T) {
+		dr := DecodeResult{
+			Overrides: Overrides{
+				"p1": []*Override{{Name: "o1"}},
+			},
+		}
+
+		dr.Merge(d1)
+		must.True(t, dr.Diags.HasErrors())
+		must.ErrorContains(t, dr.Diags, "variable o1 can not be redefined")
+	})
+
+	t.Run("succeeds for", func(t *testing.T) {
+		t.Run("okay for variables of same name in different pack", func(t *testing.T) {
+			d2 := DecodeResult{
+				Overrides: Overrides{
+					"p2": []*Override{{Name: "o1"}, {Name: "o2"}},
+				},
+			}
+			d2.Merge(d1)
+			must.False(t, d2.Diags.HasErrors())
+			must.Len(t, 2, d2.Overrides["p1"])
+			must.Len(t, 2, d2.Overrides["p2"])
+		})
+
+		t.Run("okay for repeated pointers to same override", func(t *testing.T) {
+			dr := d1
+			dr.Merge(d1)
+			must.False(t, dr.Diags.HasErrors())
+			must.Len(t, 2, dr.Overrides["p1"])
+		})
+
+		t.Run("okay for nil overrides", func(t *testing.T) {
+			dr := DecodeResult{
+				Overrides: Overrides{},
+			}
+			dr.Merge(d1)
+			must.False(t, dr.Diags.HasErrors())
+			must.Len(t, 2, dr.Overrides["p1"])
+		})
+
+		t.Run("okay for nil override pointer", func(t *testing.T) {
+			dr := DecodeResult{
+				Overrides: Overrides{"p1": nil},
+			}
+			d1.Merge(dr)
+			must.False(t, dr.Diags.HasErrors())
+			must.Len(t, 2, dr.Overrides["p1"])
+		})
+	})
 }
