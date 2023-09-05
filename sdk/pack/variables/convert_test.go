@@ -1,17 +1,19 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: MPL-2.0
 
-package converter
+package variables
 
 import (
 	"reflect"
 	"testing"
 
+	"github.com/hashicorp/nomad/ci"
 	"github.com/shoenig/test/must"
 	"github.com/zclconf/go-cty/cty"
 )
 
 func TestConvertCtyToInterface(t *testing.T) {
+	ci.Parallel(t)
 
 	// test basic type
 	testCases := []struct {
@@ -26,7 +28,9 @@ func TestConvertCtyToInterface(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
+		tc := tc // capture range variable
 		t.Run(tc.name, func(t *testing.T) {
+			ci.Parallel(t) // Parallel has to be set on the subtest also
 			res, err := ConvertCtyToInterface(tc.val)
 			must.NoError(t, err)
 
@@ -37,6 +41,7 @@ func TestConvertCtyToInterface(t *testing.T) {
 
 	// test list of list
 	t.Run("lists of lists", func(t *testing.T) {
+		ci.Parallel(t) // Parallel has to be set on the subtest also
 		testListOfList := cty.ListVal([]cty.Value{
 			cty.ListVal([]cty.Value{
 				cty.BoolVal(true),
@@ -55,6 +60,7 @@ func TestConvertCtyToInterface(t *testing.T) {
 
 	// test list of maps
 	t.Run("list of maps", func(t *testing.T) {
+		ci.Parallel(t) // Parallel has to be set on the subtest also
 		testListOfMaps := cty.ListVal([]cty.Value{
 			cty.MapVal(map[string]cty.Value{
 				"test": cty.BoolVal(true),
@@ -70,6 +76,7 @@ func TestConvertCtyToInterface(t *testing.T) {
 
 	// test map of maps
 	t.Run("map of maps", func(t *testing.T) {
+		ci.Parallel(t) // Parallel has to be set on the subtest also
 		testMapOfMaps := cty.MapVal(map[string]cty.Value{
 			"test": cty.MapVal(map[string]cty.Value{"test": cty.BoolVal(true)}),
 		})
