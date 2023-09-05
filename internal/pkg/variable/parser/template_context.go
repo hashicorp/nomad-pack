@@ -273,7 +273,6 @@ func getPackDeps(p PackTemplateContext) PackTemplateContext {
 
 func getPackDepTree(p PackTemplateContext) []string {
 	if len(p) <= 1 {
-		fmt.Println("getPackDepTree: base case")
 		return []string{}
 	}
 

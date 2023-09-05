@@ -40,7 +40,7 @@ func (p *ParsedVariables) LoadV1Result(in map[string]map[string]*Variable) error
 	if p.isLoaded() {
 		return errors.New("already loaded")
 	}
-	var vPtr config.ParserVersion = config.V1
+	var vPtr = config.V1
 	p.v1Vars = maps.Clone(in)
 	p.version = &vPtr
 	return nil
@@ -50,7 +50,7 @@ func (p *ParsedVariables) LoadV2Result(in map[PackID]map[VariableID]*Variable) e
 	if p.isLoaded() {
 		return errors.New("already loaded")
 	}
-	var vPtr config.ParserVersion = config.V2
+	var vPtr = config.V2
 	p.v2Vars = maps.Clone(in)
 	p.version = &vPtr
 	return nil

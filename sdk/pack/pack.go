@@ -187,11 +187,7 @@ func variablesPathR(p *Pack, in []string) []string {
 }
 
 func reverse[T any](s []T) {
-	first := 0
-	last := len(s) - 1
-	for first < last {
+	for first, last := 0, len(s)-1; first < last; first, last = first+1, last-1 {
 		s[first], s[last] = s[last], s[first]
-		first++
-		last--
 	}
 }

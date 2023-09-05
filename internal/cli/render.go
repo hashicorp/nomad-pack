@@ -190,10 +190,10 @@ func rangeRenders(subj map[string]string, target *[]Render) {
 		// low value.
 		key, val, _ := strings.Cut(k, "/templates/")
 
-		var packKey PackKey = PackKey(key)
+		var packKey = PackKey(key)
 
 		// Remove the .tpl from the rendered template filenames
-		var filename Filename = Filename(strings.TrimSuffix(val, ".tpl"))
+		var filename = Filename(strings.TrimSuffix(val, ".tpl"))
 
 		// If this is the first time we have encountered this pack's key,
 		// we need to build the map to hold the Filename and content.
