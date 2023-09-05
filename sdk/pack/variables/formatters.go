@@ -47,6 +47,8 @@ func printTypeR(t cty.Type) string {
 			i++
 		}
 		return "object({" + strings.Join(ats, ", ") + "})"
+	case t.HasDynamicTypes():
+		return ("dynamic")
 	default:
 		return "«unknown type»"
 	}
