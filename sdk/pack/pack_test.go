@@ -6,10 +6,12 @@ package pack
 import (
 	"testing"
 
+	"github.com/hashicorp/nomad/ci"
 	"github.com/shoenig/test/must"
 )
 
 func TestPack_Name(t *testing.T) {
+	ci.Parallel(t)
 	testCases := []struct {
 		inputPack      *Pack
 		expectedOutput string
@@ -28,14 +30,16 @@ func TestPack_Name(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
+		tc := tc // capture range variable
 		t.Run(tc.name, func(t *testing.T) {
-			tc := tc
+			ci.Parallel(t) // Parallel has to be called in the subtest too
 			must.Eq(t, tc.expectedOutput, tc.inputPack.Name())
 		})
 	}
 }
 
 func TestPack_RootVariableFiles(t *testing.T) {
+	ci.Parallel(t)
 	testCases := []struct {
 		inputPack      *Pack
 		expectedOutput map[PackID]*File
@@ -124,8 +128,9 @@ func TestPack_RootVariableFiles(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
+		tc := tc // capture range variable
 		t.Run(tc.name, func(t *testing.T) {
-			tc := tc
+			ci.Parallel(t) // Parallel has to be called in the subtest too
 			must.Eq(t, tc.expectedOutput, tc.inputPack.RootVariableFiles())
 		})
 	}
