@@ -118,7 +118,7 @@ func (d *DecodeResult) Merge(in DecodeResult) {
 // code, in a single step.
 func Decode(filename string, src []byte, ctx *hcl.EvalContext, target *Overrides) (map[string]*hcl.File, hcl.Diagnostics) {
 	fm, diags := decode(filename, src, ctx, target)
-	var fd fixableDiags = fixableDiags(diags)
+	var fd = fixableDiags(diags)
 
 	fm.Fixup() // the hcl.File that we will return to the diagnostic printer will have our modifications
 	fd.Fixup() // The Ranges in the diags will all be based on our modified byte slice
@@ -209,7 +209,7 @@ func decode(filename string, src []byte, ctx *hcl.EvalContext, target *Overrides
 		default:
 			// If this happens, then there's something really wrong with my algorithm
 			// This might have to be relaxed after testing it a while.
-			panic("Too many variables in keyname")
+			panic("Too many variables in key name")
 		}
 
 		// Create a range that represents the sum of the key and value ranges.

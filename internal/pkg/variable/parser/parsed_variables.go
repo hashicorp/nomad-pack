@@ -40,7 +40,7 @@ func (p *ParsedVariables) LoadV1Result(in map[string]map[string]*Variable) error
 	if p.isLoaded() {
 		return errors.New("already loaded")
 	}
-	var vPtr config.ParserVersion = config.V1
+	var vPtr = config.V1
 	p.v1Vars = maps.Clone(in)
 	p.version = &vPtr
 	return nil
@@ -50,7 +50,7 @@ func (p *ParsedVariables) LoadV2Result(in map[PackID]map[VariableID]*Variable) e
 	if p.isLoaded() {
 		return errors.New("already loaded")
 	}
-	var vPtr config.ParserVersion = config.V2
+	var vPtr = config.V2
 	p.v2Vars = maps.Clone(in)
 	p.version = &vPtr
 	return nil
@@ -84,13 +84,13 @@ func asV2Vars(in map[string]map[string]*Variable) map[PackID]map[VariableID]*Var
 // Even though parsing the variable went without error, it is highly
 // possible that conversion to native go types can incur an error.
 // If an error is returned, it should be considered terminal.
-func (pv ParsedVariables) ToPackTemplateContext(p *pack.Pack) (PackTemplateContext, hcl.Diagnostics) {
+func (pv *ParsedVariables) ToPackTemplateContext(p *pack.Pack) (PackTemplateContext, hcl.Diagnostics) {
 	out := make(PackTemplateContext)
 	diags := pv.toPackTemplateContextR(&out, p)
 	return out, diags
 }
 
-func (pv ParsedVariables) toPackTemplateContextR(tgt *PackTemplateContext, p *pack.Pack) hcl.Diagnostics {
+func (pv *ParsedVariables) toPackTemplateContextR(tgt *PackTemplateContext, p *pack.Pack) hcl.Diagnostics {
 	pVars, diags := asMapOfStringToAny(pv.v2Vars[p.VariablesPath()])
 	if diags.HasErrors() {
 		return diags
@@ -125,13 +125,13 @@ func asMapOfStringToAny(m map[VariableID]*Variable) (map[string]any, hcl.Diagnos
 	return o, diags
 }
 
-func (pv ParsedVariables) String() string { return asJSON(pv) }
+func (pv *ParsedVariables) String() string { return asJSON(pv) }
 
 func asJSON(a any) string {
 	return func() string { b, _ := json.MarshalIndent(a, "", "  "); return string(b) }()
 }
 
-func (pv ParsedVariables) AsOverrideFile() string {
+func (pv *ParsedVariables) AsOverrideFile() string {
 	var out strings.Builder
 	out.WriteString(pv.varFileHeader())
 
@@ -151,7 +151,7 @@ func (pv ParsedVariables) AsOverrideFile() string {
 	return out.String()
 }
 
-func (pv ParsedVariables) varFileHeader() string {
+func (pv *ParsedVariables) varFileHeader() string {
 	// Use pack metadata to enhance the header if desired.
 	// _ = vf.Metadata
 	// This value will be added to the top of the varfile
@@ -169,13 +169,13 @@ func (p *ParsedVariables) ConvertVariablesToMapInterface() (map[string]any, hcl.
 	var diags hcl.Diagnostics
 
 	// Iterate each set of pack variable.
-	for packName, variables := range p.v1Vars {
+	for packName, packVars := range p.v1Vars {
 
 		// packVar collects all variables associated to a pack.
 		packVar := map[string]any{}
 
 		// Convert each variable and add this to the pack map.
-		for variableName, variable := range variables {
+		for variableName, variable := range packVars {
 			varInterface, err := converter.ConvertCtyToInterface(variable.Value)
 			if err != nil {
 				diags = packdiags.SafeDiagnosticsAppend(diags, packdiags.DiagFailedToConvertCty(err, variable.DeclRange.Ptr()))

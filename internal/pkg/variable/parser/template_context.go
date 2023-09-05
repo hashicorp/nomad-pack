@@ -273,7 +273,6 @@ func getPackDeps(p PackTemplateContext) PackTemplateContext {
 
 func getPackDepTree(p PackTemplateContext) []string {
 	if len(p) <= 1 {
-		fmt.Println("getPackDepTree: base case")
 		return []string{}
 	}
 
@@ -284,13 +283,13 @@ func getPackDepTree(p PackTemplateContext) []string {
 		path := "." + k
 		*pAcc = append(*pAcc, path)
 		ptc := v.(PackTemplateContext)
-		getPackDepTreeR(k, ptc, path, pAcc)
+		getPackDepTreeR(ptc, path, pAcc)
 
 	}
 	return *pAcc
 }
 
-func getPackDepTreeR(k string, p PackTemplateContext, path string, pAcc *[]string) {
+func getPackDepTreeR(p PackTemplateContext, path string, pAcc *[]string) {
 	if len(p) <= 1 {
 		return
 	}
@@ -300,7 +299,7 @@ func getPackDepTreeR(k string, p PackTemplateContext, path string, pAcc *[]strin
 		path = path + "." + k
 		*pAcc = append(*pAcc, path)
 		ptc := v.(PackTemplateContext)
-		getPackDepTreeR(k, ptc, path, pAcc)
+		getPackDepTreeR(ptc, path, pAcc)
 	}
 }
 

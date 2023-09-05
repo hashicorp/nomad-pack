@@ -32,13 +32,6 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/testui"
 )
 
-// const (
-// 	testPack    = "simple_raw_exec"
-// 	testRef     = "48eb7d5"
-// 	testRefFlag = "--ref=" + testRef
-// 	badACLToken = "bad00000-bad0-bad0-bad0-badbadbadbad"
-// )
-
 func TestCLI_V1_JobRun(t *testing.T) {
 	ct.HTTPTestParallel(t, ct.WithDefaultConfig(), func(s *agent.TestAgent) {
 		expectGoodPackDeploy(t, runTestPackV1Cmd(t, s, []string{"run", getTestPackV1Path(t, testPack)}))

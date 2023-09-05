@@ -65,8 +65,7 @@ func (v *Variable) SetType(t cty.Type)      { v.Type = t; v.hasType = true }
 func (v Variable) String() string { return asJSON(v) }
 
 func (v Variable) Equal(ov Variable) bool {
-	eq := true &&
-		v.Name == ov.Name &&
+	eq := v.Name == ov.Name &&
 		v.Description == ov.Description &&
 		v.hasDescription == ov.hasDescription &&
 		v.Default == ov.Default &&
