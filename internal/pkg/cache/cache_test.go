@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/helper/filesystem"
 	"github.com/hashicorp/nomad-pack/internal/pkg/testfixture"
+	"github.com/hashicorp/nomad/ci"
 )
 
 var (
@@ -365,7 +366,7 @@ func TestDeletePackByRef(t *testing.T) {
 }
 
 func TestParsePackURL(t *testing.T) {
-	t.Parallel()
+	ci.Parallel(t)
 	reg := &Registry{}
 
 	testCases := []struct {
@@ -402,6 +403,7 @@ func TestParsePackURL(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			ci.Parallel(t)
 			ok := reg.parsePackURL(tc.path)
 			t.Logf("  path: %s\nsource: %s\n    ok: %v\n\n", tc.path, reg.Source, ok)
 			if tc.expectOk {
