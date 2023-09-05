@@ -94,36 +94,32 @@ type PackContextable interface {
 	getMetas() map[string]any
 }
 
-// getVars retrieves the `vars` map from the currently selected Pack's PackData
-// element--`_self`
+const CurrentPackKey = "_self"
+
+// getVars retrieves the `vars` map of the PackData at the `CurrentPackKey` key
 func (p PackTemplateContext) getVars() map[string]any { return p.getPack().vars }
 
-// getMetas retrieves the `meta` map from the currently selected Pack's PackData
-// element--`_self`
+// getMetas retrieves the `meta` map of the PackData at the `CurrentPackKey` key
 func (p PackTemplateContext) getMetas() map[string]any { return p.getPack().meta }
 
-// getPack retrieves the `_self` element from the currently selected
-// PackTemplateContext
-func (p PackTemplateContext) getPack() PackData { return p["_self"].(PackData) }
+// getPack retrieves the PackData at the `CurrentPackKey` key
+func (p PackTemplateContext) getPack() PackData { return p[CurrentPackKey].(PackData) }
 
 // PackData is the currently selected Pack's metadata and variables, normally
-// stored in `_self` in a PackTemplateContext.
+// stored at `CurrentPackKey` in a PackTemplateContext.
 type PackData struct {
 	Pack *pack.Pack
 	meta map[string]any
 	vars map[string]any
 }
 
-// getVars retrieves the `vars` map from the currently selected Pack's PackData
-// element--`_self`
+// getVars returns the vars value from a PackData
 func (p PackData) getVars() map[string]any { return p.vars }
 
-// getMetas retrieves the `meta` map from the currently selected Pack's PackData
-// element--`_self`
+// getMetas returns the meta value from a PackData
 func (p PackData) getMetas() map[string]any { return p.meta }
 
-// getPack retrieves the `_self` element from the currently selected
-// PackTemplateContext
+// getPack returns this PackData
 func (p PackData) getPack() PackData { return p }
 
 //
