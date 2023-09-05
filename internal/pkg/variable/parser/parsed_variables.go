@@ -84,13 +84,13 @@ func asV2Vars(in map[string]map[string]*Variable) map[PackID]map[VariableID]*Var
 // Even though parsing the variable went without error, it is highly
 // possible that conversion to native go types can incur an error.
 // If an error is returned, it should be considered terminal.
-func (pv ParsedVariables) ToPackTemplateContext(p *pack.Pack) (PackTemplateContext, hcl.Diagnostics) {
+func (pv *ParsedVariables) ToPackTemplateContext(p *pack.Pack) (PackTemplateContext, hcl.Diagnostics) {
 	out := make(PackTemplateContext)
 	diags := pv.toPackTemplateContextR(&out, p)
 	return out, diags
 }
 
-func (pv ParsedVariables) toPackTemplateContextR(tgt *PackTemplateContext, p *pack.Pack) hcl.Diagnostics {
+func (pv *ParsedVariables) toPackTemplateContextR(tgt *PackTemplateContext, p *pack.Pack) hcl.Diagnostics {
 	pVars, diags := asMapOfStringToAny(pv.v2Vars[p.VariablesPath()])
 	if diags.HasErrors() {
 		return diags
@@ -125,13 +125,13 @@ func asMapOfStringToAny(m map[VariableID]*Variable) (map[string]any, hcl.Diagnos
 	return o, diags
 }
 
-func (pv ParsedVariables) String() string { return asJSON(pv) }
+func (pv *ParsedVariables) String() string { return asJSON(pv) }
 
 func asJSON(a any) string {
 	return func() string { b, _ := json.MarshalIndent(a, "", "  "); return string(b) }()
 }
 
-func (pv ParsedVariables) AsOverrideFile() string {
+func (pv *ParsedVariables) AsOverrideFile() string {
 	var out strings.Builder
 	out.WriteString(pv.varFileHeader())
 
@@ -151,7 +151,7 @@ func (pv ParsedVariables) AsOverrideFile() string {
 	return out.String()
 }
 
-func (pv ParsedVariables) varFileHeader() string {
+func (pv *ParsedVariables) varFileHeader() string {
 	// Use pack metadata to enhance the header if desired.
 	// _ = vf.Metadata
 	// This value will be added to the top of the varfile
