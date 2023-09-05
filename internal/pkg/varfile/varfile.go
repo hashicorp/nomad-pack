@@ -259,14 +259,11 @@ func unwrapBytes(sp *[]byte) {
 }
 
 func fixupRange(r *hcl.Range) {
-	fixupStart(r)
-	fixupEnd(r)
+	fixupPos(&r.Start)
+	fixupPos(&r.End)
 }
 
-func fixupStart(r *hcl.Range) { fixupPos("Start", r.Filename, &r.Start) }
-func fixupEnd(r *hcl.Range)   { fixupPos("End", r.Filename, &r.End) }
-
-func fixupPos(e string, filename string, p *hcl.Pos) {
+func fixupPos(p *hcl.Pos) {
 
 	// Adjust the byte position to account for the map wrapper that we have to
 	// take back out
