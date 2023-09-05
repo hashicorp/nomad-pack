@@ -303,7 +303,8 @@ func (d *diagFileMap) Fixup() {
 	}
 }
 
-// fixableDiags
+// fixableDiags are diagnostics that have additional funcs attached to true
+// up the data stored in the Ranges before presenting them to the user.
 type fixableDiags hcl.Diagnostics
 
 // Fixup adjusts the ranges of Diagnostics that have ranges different than they
