@@ -8,7 +8,6 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors/packdiags"
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser/config"
-	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser/converter"
 	"github.com/hashicorp/nomad-pack/sdk/pack"
 	"github.com/hashicorp/nomad-pack/sdk/pack/variables"
 	"golang.org/x/exp/maps"
@@ -176,7 +175,7 @@ func (p *ParsedVariables) ConvertVariablesToMapInterface() (map[string]any, hcl.
 
 		// Convert each variable and add this to the pack map.
 		for variableName, variable := range packVars {
-			varInterface, err := converter.ConvertCtyToInterface(variable.Value)
+			varInterface, err := variables.ConvertCtyToInterface(variable.Value)
 			if err != nil {
 				diags = packdiags.SafeDiagnosticsAppend(diags, packdiags.DiagFailedToConvertCty(err, variable.DeclRange.Ptr()))
 				continue
