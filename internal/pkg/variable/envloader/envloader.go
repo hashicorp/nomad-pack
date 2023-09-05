@@ -15,10 +15,6 @@ func New() *EnvLoader {
 	return &EnvLoader{prefix: DefaultPrefix}
 }
 
-func NewWithPrefix(prefix string) *EnvLoader {
-	return &EnvLoader{prefix: prefix}
-}
-
 func (e *EnvLoader) GetVarsFromEnv() map[string]string {
 	if e.prefix == "" {
 		return getVarsFromEnv(DefaultPrefix)
