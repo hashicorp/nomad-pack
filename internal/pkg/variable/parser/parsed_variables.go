@@ -169,13 +169,13 @@ func (p *ParsedVariables) ConvertVariablesToMapInterface() (map[string]any, hcl.
 	var diags hcl.Diagnostics
 
 	// Iterate each set of pack variable.
-	for packName, variables := range p.v1Vars {
+	for packName, packVars := range p.v1Vars {
 
 		// packVar collects all variables associated to a pack.
 		packVar := map[string]any{}
 
 		// Convert each variable and add this to the pack map.
-		for variableName, variable := range variables {
+		for variableName, variable := range packVars {
 			varInterface, err := converter.ConvertCtyToInterface(variable.Value)
 			if err != nil {
 				diags = packdiags.SafeDiagnosticsAppend(diags, packdiags.DiagFailedToConvertCty(err, variable.DeclRange.Ptr()))
