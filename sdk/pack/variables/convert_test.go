@@ -90,4 +90,31 @@ func TestConvertCtyToInterface(t *testing.T) {
 		_, ok = tempMapOfMaps["test"].(map[string]any)
 		must.True(t, ok)
 	})
+
+	// test map of objects
+	t.Run("map of objects", func(t *testing.T) {
+		ci.Parallel(t) // Parallel has to be set on the subtest also
+		testMapOfObj := cty.MapVal(map[string]cty.Value{
+			"t1": cty.ObjectVal(map[string]cty.Value{"b": cty.BoolVal(true)}),
+			"t2": cty.ObjectVal(map[string]cty.Value{"b": cty.BoolVal(false)}),
+		})
+
+		restMapOfObj, err := ConvertCtyToInterface(testMapOfObj)
+		must.NoError(t, err)
+
+		tempMapOfObj, ok := restMapOfObj.(map[string]any)
+		must.True(t, ok)
+
+		tp1, ok := tempMapOfObj["t1"].(map[string]any)
+		must.True(t, ok)
+		tp2, ok := tempMapOfObj["t2"].(map[string]any)
+		must.True(t, ok)
+
+		b1, ok := tp1["b"].(bool)
+		must.True(t, ok)
+		must.True(t, b1)
+		b2, ok := tp2["b"].(bool)
+		must.True(t, ok)
+		must.False(t, b2)
+	})
 }
