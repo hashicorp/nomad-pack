@@ -1,11 +1,36 @@
 ## UNRELEASED
 
+* **Generate Variable Override Files for Packs** - With
+`nomad-pack generate var-file`, you can create a documented variable override
+file as a starting point for customizing a Nomad Pack for deploying in your
+environment.
+
+* **Templating Non-Job Files** - Pack authors can now add non-job templates to
+their packs. These extra files could be used to provide pre-built configuration
+files, or to generate Nomad dependency configurations, like ACL policies and
+Volume configurations for operators to load into their clusters before deploying
+the pack to their cluster.
+
+* **Vendoring Dependencies** - With `nomad-pack deps vendor`, you can
+automatically download all the dependencies listed in the `metadata.hcl` file
+into a `deps/` subdirectory. 
+
 IMPROVEMENTS:
-* deps: Update the Nomad OpenAPI depedency [[GH-288](https://github.com/hashicorp/nomad-pack/pull/288)] and require Go 1.18 as a build dependency
+
+* cache: Change the way registries are stored and versioned in the cache [[GH-356](https://github.com/hashicorp/nomad-pack/pull/356)]
+* cli: Add `generate var-file` command [[GH-333](https://github.com/hashicorp/nomad-pack/pull/333)]
+* cli: `registry list` command now shows git refs to repositories present in the cache [[GH-318](https://github.com/hashicorp/nomad-pack/pull/318)]
+* cli: `registry list` command now shows only registries, and a new command `list` shows packs [[GH-337](https://github.com/hashicorp/nomad-pack/pull/337)], [[GH-373](https://github.com/hashicorp/nomad-pack/pull/373)]
+* cli: `deps vendor` command [[GH-367](https://github.com/hashicorp/nomad-pack/pull/367)]
+* cli: `generate pack` command now supports `--overwrite` flag [[GH-380](https://github.com/hashicorp/nomad-pack/pull/380)]
+* deps: Update the Nomad OpenAPI dependency; require Go 1.18 as a build dependency [[GH-288](https://github.com/hashicorp/nomad-pack/pull/288)]
 * pack: Author field no longer supported in pack metadata [[GH-317](https://github.com/hashicorp/nomad-pack/pull/317)]
-* template: Render other templates than jobspecs inside `templates/` [[GH-303](https://github.com/hashicorp/nomad-pack/pull/303)]
+* pack: URL field no longer supported in pack metadata [[GH-343](https://github.com/hashicorp/nomad-pack/pull/343)]
+* runner: Submit the job spec to Nomad while running pack [[GH-375](https://github.com/hashicorp/nomad-pack/pull/375)]
+* template: Render templates other than Nomad job specifications inside `templates/` [[GH-303](https://github.com/hashicorp/nomad-pack/pull/303)]
 * template: Automatically format templates before outputting [[GH-311](https://github.com/hashicorp/nomad-pack/pull/311)]
 * template: Skip templates that would render to just whitespace [[GH-313](https://github.com/hashicorp/nomad-pack/pull/313)]
+* template: Extract namespace and region from the templates before submitting them to the client [[GH-366](https://github.com/hashicorp/nomad-pack/pull/366)]
 * vars: Add flag to ignore variables provided in the given var-files unused by the pack [[GH-315](https://github.com/hashicorp/nomad-pack/pull/315)]
 
 ## 0.0.1-techpreview.3 (July 21, 2022)

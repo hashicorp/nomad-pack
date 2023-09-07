@@ -92,8 +92,8 @@ func (s *enumSingleValue) Set(val string) error {
 	return fmt.Errorf("'%s' not valid. Must be one of: %s", val, strings.Join(s.ev.Values, ", "))
 }
 
-func (s *enumSingleValue) Get() interface{} { return *s.target }
-func (s *enumSingleValue) String() string   { return *s.target }
-func (s *enumSingleValue) Example() string  { return "string" }
-func (s *enumSingleValue) Hidden() bool     { return s.hidden }
-func (s *enumSingleValue) Type() string     { return "EnumSingle" }
+func (s *enumSingleValue) Get() any        { return *s.target }
+func (s *enumSingleValue) String() string  { return *s.target }
+func (s *enumSingleValue) Example() string { return "string" }
+func (s *enumSingleValue) Hidden() bool    { return s.hidden }
+func (s *enumSingleValue) Type() string    { return "EnumSingle" }

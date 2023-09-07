@@ -45,7 +45,9 @@ func HCLDiagsToWrappedUIContext(diags hcl.Diagnostics) []*WrappedUIContext {
 			Subject: diag.Summary,
 			Context: NewUIErrorContext(),
 		}
-		wrapped[i].Context.Add(UIContextPrefixHCLRange, diag.Subject.String())
+		if diag.Subject != nil {
+			wrapped[i].Context.Add(UIContextPrefixHCLRange, diag.Subject.String())
+		}
 	}
 	return wrapped
 }

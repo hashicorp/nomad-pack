@@ -24,7 +24,7 @@ type glintStepGroup struct {
 }
 
 // Start a step in the output
-func (f *glintStepGroup) Add(str string, args ...interface{}) Step {
+func (f *glintStepGroup) Add(str string, args ...any) Step {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
@@ -98,7 +98,7 @@ func (f *glintStep) TermOutput() io.Writer {
 	return f.term
 }
 
-func (f *glintStep) Update(str string, args ...interface{}) {
+func (f *glintStep) Update(str string, args ...any) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.msg = fmt.Sprintf(str, args...)

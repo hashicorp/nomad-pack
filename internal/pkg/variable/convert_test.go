@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"github.com/shoenig/test/must"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -28,10 +28,10 @@ func TestConvertCtyToInterface(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			res, err := convertCtyToInterface(tc.val)
-			require.NoError(t, err)
+			must.NoError(t, err)
 
 			resType := reflect.TypeOf(res).Kind()
-			require.Equal(t, tc.t, resType)
+			must.Eq(t, tc.t, resType)
 		})
 	}
 
@@ -44,13 +44,13 @@ func TestConvertCtyToInterface(t *testing.T) {
 		})
 
 		resListOfList, err := convertCtyToInterface(testListOfList)
-		require.NoError(t, err)
+		must.NoError(t, err)
 
-		tempList, ok := resListOfList.([]interface{})
-		require.True(t, ok)
+		tempList, ok := resListOfList.([]any)
+		must.True(t, ok)
 
-		_, ok = tempList[0].([]interface{})
-		require.True(t, ok)
+		_, ok = tempList[0].([]any)
+		must.True(t, ok)
 	})
 
 	// test list of maps
@@ -62,10 +62,10 @@ func TestConvertCtyToInterface(t *testing.T) {
 		})
 
 		resListOfMaps, err := convertCtyToInterface(testListOfMaps)
-		require.NoError(t, err)
+		must.NoError(t, err)
 
-		_, ok := resListOfMaps.([]map[string]interface{})
-		require.True(t, ok)
+		_, ok := resListOfMaps.([]map[string]any)
+		must.True(t, ok)
 	})
 
 	// test map of maps
@@ -75,12 +75,12 @@ func TestConvertCtyToInterface(t *testing.T) {
 		})
 
 		restMapOfMaps, err := convertCtyToInterface(testMapOfMaps)
-		require.NoError(t, err)
+		must.NoError(t, err)
 
-		tempMapOfMaps, ok := restMapOfMaps.(map[string]interface{})
-		require.True(t, ok)
+		tempMapOfMaps, ok := restMapOfMaps.(map[string]any)
+		must.True(t, ok)
 
-		_, ok = tempMapOfMaps["test"].(map[string]interface{})
-		require.True(t, ok)
+		_, ok = tempMapOfMaps["test"].(map[string]any)
+		must.True(t, ok)
 	})
 }

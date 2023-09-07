@@ -4,11 +4,12 @@
 package cli
 
 import (
+	"github.com/posener/complete"
+
 	"github.com/hashicorp/nomad-pack/internal/config"
 	"github.com/hashicorp/nomad-pack/internal/creator"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
-	"github.com/posener/complete"
 )
 
 // GeneratePackCommand adds a registry to the global cache.
@@ -58,9 +59,19 @@ func (c *GeneratePackCommand) Flags() *flag.Sets {
 				Name:    "to-dir",
 				Target:  &c.cfg.OutPath,
 				Usage:   `Path to write generated pack to.`,
-				Default: ".",
+				Default: "",
 			},
 			Shorthand: "o",
+		})
+
+		f.BoolVarP(&flag.BoolVarP{
+			BoolVar: &flag.BoolVar{
+				Name:    "overwrite",
+				Target:  &c.cfg.Overwrite,
+				Usage:   `If the output directory is not empty, should we overwrite?`,
+				Default: false,
+			},
+			Shorthand: "f",
 		})
 	})
 }

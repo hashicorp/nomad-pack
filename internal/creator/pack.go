@@ -10,6 +10,7 @@ import (
 	"path"
 
 	"github.com/hashicorp/nomad-pack/internal/config"
+	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 )
 
 type packCreator struct {
@@ -32,22 +33,33 @@ type packCreator struct {
 
 func CreatePack(c config.PackConfig) error {
 	ui := c.GetUI()
-	// First implementation is naive and destructive
-	outPath := c.OutPath
-	if outPath == "" {
-		outPath = "."
+
+	var outPath string
+	var err error
+	if c.OutPath == "" {
+		outPath, err = os.Getwd()
+		if err != nil {
+			newCreatePackError(err)
+		}
+	}
+
+	_, err = os.Stat(path.Join(outPath, c.PackName))
+	if err == nil && !c.Overwrite {
+		return newCreatePackError(
+			fmt.Errorf(
+				"%s appears to be non-empty, re-run the command with --overwrite to overwrite",
+				path.Join(outPath, c.PackName),
+			))
 	}
 	ui.Output("Creating %q Pack in %q...\n", c.PackName, outPath)
+
 	pc := packCreator{
 		name:    c.PackName,
 		path:    path.Join(outPath, c.PackName),
 		tplPath: path.Join(outPath, c.PackName, "templates"),
 	}
 
-	// TODO: Make this optional
-	// TODO: Make this interactive
-
-	err := os.MkdirAll(pc.tplPath, 0700)
+	err = os.MkdirAll(pc.tplPath, cache.DefaultDirPerms)
 	if err != nil {
 		return newCreatePackError(err)
 	}

@@ -97,7 +97,7 @@ func (ui *basicUI) Interactive() bool {
 }
 
 // Output implements UI
-func (ui *basicUI) Output(msg string, raw ...interface{}) {
+func (ui *basicUI) Output(msg string, raw ...any) {
 	msg, style, w := Interpret(msg, raw...)
 
 	switch style {

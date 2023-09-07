@@ -6,13 +6,13 @@ package pack
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/shoenig/test/must"
 )
 
 func TestMetadata_ConvertToMapInterface(t *testing.T) {
 	testCases := []struct {
 		inputMetadata  *Metadata
-		expectedOutput map[string]interface{}
+		expectedOutput map[string]any
 		name           string
 	}{
 		{
@@ -23,20 +23,34 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 				Pack: &MetadataPack{
 					Name:        "Example",
 					Description: "The most basic, yet awesome, example",
-					URL:         "https://example.com",
 					Version:     "v0.0.1",
 				},
+				Integration: &MetadataIntegration{
+					Name:       "Example",
+					Identifier: "nomad/hashicorp/example",
+					Flags: []string{
+						"foo",
+						"bar",
+					},
+				},
 			},
-			expectedOutput: map[string]interface{}{
-				"nomad_pack": map[string]interface{}{
-					"app": map[string]interface{}{
+			expectedOutput: map[string]any{
+				"nomad_pack": map[string]any{
+					"app": map[string]any{
 						"url": "https://example.com",
 					},
-					"pack": map[string]interface{}{
+					"pack": map[string]any{
 						"name":        "Example",
 						"description": "The most basic, yet awesome, example",
-						"url":         "https://example.com",
 						"version":     "v0.0.1",
+					},
+					"integration": map[string]any{
+						"identifier": "nomad/hashicorp/example",
+						"flags": []string{
+							"foo",
+							"bar",
+						},
+						"name": "Example",
 					},
 				},
 			},
@@ -52,17 +66,22 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 					URL:     "https://example.com",
 					Version: "v0.0.1",
 				},
+				Integration: &MetadataIntegration{},
 			},
-			expectedOutput: map[string]interface{}{
-				"nomad_pack": map[string]interface{}{
-					"app": map[string]interface{}{
+			expectedOutput: map[string]any{
+				"nomad_pack": map[string]any{
+					"app": map[string]any{
 						"url": "https://example.com",
 					},
-					"pack": map[string]interface{}{
+					"pack": map[string]any{
 						"name":        "Example",
 						"description": "",
-						"url":         "https://example.com",
 						"version":     "v0.0.1",
+					},
+					"integration": map[string]any{
+						"identifier": "",
+						"flags":      []string(nil),
+						"name":       "",
 					},
 				},
 			},
@@ -74,25 +93,27 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 					URL:    "https://example.com",
 					Author: "The Nomad Team",
 				},
-				Pack: &MetadataPack{},
+				Pack: &MetadataPack{
+					URL: "https://example.com",
+				},
+				Integration: &MetadataIntegration{},
 			},
-			expectedOutput: map[string]interface{}{
-				"nomad_pack": map[string]interface{}{
-					"app": map[string]interface{}{
-						"url": "https://example.com",
-					},
-					"pack": map[string]interface{}{"name": "", "description": "", "url": "", "version": ""},
+			expectedOutput: map[string]any{
+				"nomad_pack": map[string]any{
+					"app":         map[string]any{"url": "https://example.com"},
+					"pack":        map[string]any{"name": "", "description": "", "version": ""},
+					"integration": map[string]any{"identifier": "", "flags": []string(nil), "name": ""},
 				},
 			},
 			// TODO test added to cover graceful failure while we're in the process of
-			// retiring "Author" metadata field. Can be removed later.
-			name: "author field ignored gracefully",
+			// retiring "Author" and "URL" metadata fields. Can be removed in the future.
+			name: "author and url fields ignored gracefully",
 		},
 	}
 
 	for _, tc := range testCases {
 		actualOutput := tc.inputMetadata.ConvertToMapInterface()
-		assert.Equal(t, tc.expectedOutput, actualOutput, tc.name)
+		must.Eq(t, tc.expectedOutput, actualOutput, must.Sprint(tc.name))
 	}
 }
 
@@ -111,6 +132,7 @@ func TestMetadata_Validate(t *testing.T) {
 					Name:        "Example",
 					Description: "The most basic, yet awesome, example",
 				},
+				Integration: &MetadataIntegration{},
 			},
 			expectError: false,
 			name:        "valid metadata",
@@ -125,9 +147,9 @@ func TestMetadata_Validate(t *testing.T) {
 	for _, tc := range testCases {
 		err := tc.inputMetadata.Validate()
 		if tc.expectError {
-			assert.NotNil(t, err, tc.name)
+			must.NotNil(t, err, must.Sprint(tc.name))
 		} else {
-			assert.Nil(t, err, tc.name)
+			must.Nil(t, err, must.Sprint(tc.name))
 		}
 	}
 }

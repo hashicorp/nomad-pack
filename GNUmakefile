@@ -51,7 +51,7 @@ tools: lint-deps test-deps  # Install all tools
 .PHONY: lint-deps
 lint-deps: ## Install linter dependencies
 	@echo "==> Updating linter dependencies..."
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.50.1
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.51.2
 	go install github.com/hashicorp/hcl/v2/cmd/hclfmt@d0c4fa8b0bbc2e4eeccd1ed2a32c2089ed8c5cf1
 
 .PHONY: test-deps
@@ -110,10 +110,6 @@ test: $(mtlsCerts)
 .PHONY: mod
 mod:
 	go mod tidy
-
-.PHONY: api
-api:
-	go get github.com/hashicorp/nomad-openapi/v1
 
 .PHONY: check
 check: check-mod check-sdk

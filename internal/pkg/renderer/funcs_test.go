@@ -8,32 +8,31 @@ import (
 	"testing"
 	"text/template"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/shoenig/test/must"
 )
 
 func Test_toStringList(t *testing.T) {
 	testCases := []struct {
-		input          []interface{}
+		input          []any
 		expectedOutput string
 	}{
 		{
-			input:          []interface{}{"dc1", "dc2", "dc3", "dc4"},
+			input:          []any{"dc1", "dc2", "dc3", "dc4"},
 			expectedOutput: `["dc1", "dc2", "dc3", "dc4"]`,
 		},
 		{
-			input:          []interface{}{"dc1"},
+			input:          []any{"dc1"},
 			expectedOutput: `["dc1"]`,
 		},
 		{
-			input:          []interface{}{},
+			input:          []any{},
 			expectedOutput: `[]`,
 		},
 	}
 
 	for _, tc := range testCases {
 		actualOutput, _ := toStringList(tc.input)
-		assert.Equal(t, tc.expectedOutput, actualOutput)
+		must.Eq(t, tc.expectedOutput, actualOutput)
 	}
 }
 
@@ -50,7 +49,7 @@ func TestSpewHelpersInTemplate(t *testing.T) {
 	testCases := []struct {
 		desc      string
 		input     string
-		expect    interface{}
+		expect    string
 		expectErr bool
 	}{
 		{
@@ -87,11 +86,11 @@ func TestSpewHelpersInTemplate(t *testing.T) {
 
 	type Foo struct {
 		unexportedField Bar
-		ExportedField   map[interface{}]interface{}
+		ExportedField   map[any]any
 	}
 	var a uint = 100
 	bar := Bar{&a}
-	s1 := Foo{bar, map[interface{}]interface{}{"one": true}}
+	s1 := Foo{bar, map[any]any{"one": true}}
 
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
@@ -99,12 +98,12 @@ func TestSpewHelpersInTemplate(t *testing.T) {
 			tpl := template.Must(template.New("test").Funcs(funcMap(nil)).Delims("[[", "]]").Parse(tC.input))
 			err := tpl.Execute(&b, s1)
 			if tC.expectErr {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), tC.expect)
+				must.Error(t, err)
+				must.StrContains(t, err.Error(), tC.expect)
 				return
 			}
-			require.NoError(t, err)
-			require.Equal(t, tC.expect, b.String())
+			must.NoError(t, err)
+			must.Eq(t, tC.expect, b.String())
 		})
 	}
 }

@@ -8,20 +8,16 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
-	"path"
 	"runtime"
 
 	"github.com/hashicorp/go-hclog"
-	v1 "github.com/hashicorp/nomad-openapi/v1"
+	"github.com/hashicorp/nomad/api"
+	"github.com/posener/complete"
+
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	flag "github.com/hashicorp/nomad-pack/internal/pkg/flag"
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable"
 	"github.com/hashicorp/nomad-pack/terminal"
-	"github.com/mitchellh/go-wordwrap"
-	"github.com/posener/complete"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 // baseCommand is embedded in all commands to provide common logic and data.
@@ -215,7 +211,7 @@ func (c *baseCommand) Init(opts ...Option) error {
 
 func (c *baseCommand) ensureCache() error {
 	// Creates global cache
-	globalCache, err := cache.NewCache(&cache.CacheConfig{
+	_, err := cache.NewCache(&cache.CacheConfig{
 		Path:   cache.DefaultCachePath(),
 		Logger: c.ui,
 	})
@@ -223,21 +219,6 @@ func (c *baseCommand) ensureCache() error {
 		return err
 	}
 
-	// Check if default registry exists
-	_, err = os.Stat(path.Join(cache.DefaultCachePath(), cache.DefaultRegistryName))
-	// If it does not error, then the registry already exists
-	if err == nil {
-		return nil
-	}
-
-	// Add the registry or registry target to the global cache
-	_, err = globalCache.Add(&cache.AddOpts{
-		RegistryName: cache.DefaultRegistryName,
-		Source:       cache.DefaultRegistrySource,
-	})
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -245,32 +226,6 @@ func (c *baseCommand) ensureCache() error {
 // to configure the set with your own custom options.
 func (c *baseCommand) flagSet(bit flagSetBit, f func(*flag.Sets)) *flag.Sets {
 	set := flag.NewSets()
-	{
-		// f := set.NewSet("Global Options")
-
-		// f.BoolVar(&flag.BoolVar{
-		// 	Name:    "plain",
-		// 	Target:  &c.flagPlain,
-		// 	Default: false,
-		// 	Usage:   "Plain output: no colors, no animation.",
-		// })
-
-		// f.StringVar(&flag.StringVar{
-		// 	Name:    "app",
-		// 	Target:  &c.flagApp,
-		// 	Default: "",
-		// 	Usage: "App to target. Certain commands require a single app target for " +
-		// 		"Waypoint configurations with multiple apps. If you have a single app, " +
-		// 		"then this can be ignored.",
-		// })
-
-		// f.StringVar(&flag.StringVar{
-		// 	Name:    "workspace",
-		// 	Target:  &c.flagWorkspace,
-		// 	Default: "default",
-		// 	Usage:   "Workspace to operate in.",
-		// })
-	}
 	if bit&flagSetOperation != 0 {
 		f := set.NewSet("Operation Options")
 		f.StringSliceVarP(&flag.StringSliceVarP{
@@ -451,38 +406,6 @@ var (
 	ErrParsingArgsOrFlags = "error parsing args or flags"
 )
 
-func Humanize(err error) string {
-	if err == nil {
-		return ""
-	}
-
-	if IsCanceled(err) {
-		return "operation canceled"
-	}
-
-	v := err.Error()
-	if s, ok := status.FromError(err); ok {
-		v = s.Message()
-	}
-
-	return wordwrap.WrapString(v, 80)
-}
-
-// IsCanceled is true if the error represents a cancellation. This detects
-// context cancellation as well as gRPC cancellation codes.
-func IsCanceled(err error) bool {
-	if err == context.Canceled {
-		return true
-	}
-
-	s, ok := status.FromError(err)
-	if !ok {
-		return false
-	}
-
-	return s.Code() == codes.Canceled
-}
-
-func (c *baseCommand) getAPIClient() (*v1.Client, error) {
-	return v1.NewClient(clientOptsFromCLI(c)...)
+func (c *baseCommand) getAPIClient() (*api.Client, error) {
+	return api.NewClient(clientOptsFromCLI(c))
 }

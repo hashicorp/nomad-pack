@@ -4,20 +4,18 @@
 package renderer
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"text/template"
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/davecgh/go-spew/spew"
-	v1client "github.com/hashicorp/nomad-openapi/clients/go/v1"
-	v1 "github.com/hashicorp/nomad-openapi/v1"
+	"github.com/hashicorp/nomad/api"
 )
 
 // funcMap instantiates our default template function map with populated
 // functions for use within text.Template.
-func funcMap(nomadClient *v1.Client) template.FuncMap {
+func funcMap(nomadClient *api.Client) template.FuncMap {
 
 	// Sprig defines our base map.
 	f := sprig.TxtFuncMap()
@@ -62,17 +60,17 @@ func fileContents(file string) (string, error) {
 
 // nomadNamespaces performs a Nomad API query against the namespace endpoint to
 // list the namespaces.
-func nomadNamespaces(client *v1.Client) func() (*[]v1client.Namespace, error) {
-	return func() (*[]v1client.Namespace, error) {
-		out, _, err := client.Namespaces().GetNamespaces(context.Background())
+func nomadNamespaces(client *api.Client) func() ([]*api.Namespace, error) {
+	return func() ([]*api.Namespace, error) {
+		out, _, err := client.Namespaces().List(&api.QueryOptions{})
 		return out, err
 	}
 }
 
 // nomadNamespace performs a query against the passed namespace.
-func nomadNamespace(client *v1.Client) func(string) (*v1client.Namespace, error) {
-	return func(ns string) (*v1client.Namespace, error) {
-		out, _, err := client.Namespaces().GetNamespace(context.Background(), ns)
+func nomadNamespace(client *api.Client) func(string) (*api.Namespace, error) {
+	return func(ns string) (*api.Namespace, error) {
+		out, _, err := client.Namespaces().Info(ns, &api.QueryOptions{})
 		return out, err
 	}
 }
@@ -80,13 +78,13 @@ func nomadNamespace(client *v1.Client) func(string) (*v1client.Namespace, error)
 // nomadRegions performs a listing of the Nomad regions from the Nomad API. It
 // returns these within a list along with any error whilst performing the API
 // call.
-func nomadRegions(client *v1.Client) func() (*[]string, error) {
-	return func() (*[]string, error) { return client.Regions().GetRegions(context.Background()) }
+func nomadRegions(client *api.Client) func() ([]string, error) {
+	return func() ([]string, error) { return client.Regions().List() }
 }
 
 // toStringList takes a list of string and returns the HCL equivalent which is
 // useful when templating jobs and params such as datacenters.
-func toStringList(l []interface{}) (string, error) {
+func toStringList(l []any) (string, error) {
 	var out string
 	for i := range l {
 		if i > 0 && i < len(l) {
@@ -98,47 +96,47 @@ func toStringList(l []interface{}) (string, error) {
 }
 
 // Spew helper funcs
-func withIndent(in string, s *spew.ConfigState) interface{} {
+func withIndent(in string, s *spew.ConfigState) any {
 	s.Indent = in
 	return s
 }
 
-func withMaxDepth(in int, s *spew.ConfigState) interface{} {
+func withMaxDepth(in int, s *spew.ConfigState) any {
 	s.MaxDepth = in
 	return s
 }
 
-func withDisableMethods(s *spew.ConfigState) interface{} {
+func withDisableMethods(s *spew.ConfigState) any {
 	s.DisableMethods = true
 	return s
 }
 
-func withDisablePointerMethods(s *spew.ConfigState) interface{} {
+func withDisablePointerMethods(s *spew.ConfigState) any {
 	s.DisablePointerMethods = true
 	return s
 }
 
-func withDisablePointerAddresses(s *spew.ConfigState) interface{} {
+func withDisablePointerAddresses(s *spew.ConfigState) any {
 	s.DisablePointerAddresses = true
 	return s
 }
 
-func withDisableCapacities(s *spew.ConfigState) interface{} {
+func withDisableCapacities(s *spew.ConfigState) any {
 	s.DisableCapacities = true
 	return s
 }
 
-func withContinueOnMethod(s *spew.ConfigState) (interface{}, error) {
+func withContinueOnMethod(s *spew.ConfigState) (any, error) {
 	s.ContinueOnMethod = true
 	return s, nil
 }
 
-func withSortKeys(s *spew.ConfigState) interface{} {
+func withSortKeys(s *spew.ConfigState) any {
 	s.SortKeys = true
 	return s
 }
 
-func withSpewKeys(s *spew.ConfigState) interface{} {
+func withSpewKeys(s *spew.ConfigState) any {
 	s.SpewKeys = true
 	return s
 }

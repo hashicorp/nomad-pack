@@ -26,7 +26,7 @@ type fancyStepGroup struct {
 }
 
 // Start a step in the output
-func (f *fancyStepGroup) Add(str string, args ...interface{}) Step {
+func (f *fancyStepGroup) Add(str string, args ...any) Step {
 	f.steps++
 
 	ent := f.display.NewStatus(0)
@@ -85,7 +85,7 @@ func (f *fancyStep) TermOutput() io.Writer {
 	return f.term
 }
 
-func (f *fancyStep) Update(str string, args ...interface{}) {
+func (f *fancyStep) Update(str string, args ...any) {
 	f.ent.Update(str, args...)
 }
 

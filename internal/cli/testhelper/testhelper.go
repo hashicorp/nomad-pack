@@ -10,11 +10,10 @@ import (
 	"testing"
 
 	"github.com/hashicorp/go-multierror"
-	client "github.com/hashicorp/nomad-openapi/clients/go/v1"
-	v1 "github.com/hashicorp/nomad-openapi/v1"
+	"github.com/hashicorp/nomad/api"
 	"github.com/hashicorp/nomad/command/agent"
 	"github.com/hashicorp/nomad/testutil"
-	"github.com/stretchr/testify/require"
+	"github.com/shoenig/test/must"
 )
 
 const testLogLevel = "ERROR"
@@ -42,14 +41,14 @@ func makeACLEnabledHTTPServer(t testing.TB, cb func(c *agent.Config)) *agent.Tes
 	srv := agent.NewTestAgent(t, t.Name(), aclCB)
 	testutil.WaitForLeader(t, srv.Agent.RPC)
 	c, err := NewTestClient(srv)
-	require.NoError(t, err)
-	tResp, _, err := c.ACL().Bootstrap(c.WriteOpts().Ctx())
-	require.NoError(t, err)
+	must.NoError(t, err)
+	tResp, _, err := c.ACLTokens().Bootstrap(&api.WriteOptions{})
+	must.NoError(t, err)
 
 	// Store the bootstrap ACL secret in the TestServer's client meta map
 	// so that it is easily accessible from tests.
 	srv.Config.Client.Meta = make(map[string]string, 1)
-	srv.Config.Client.Meta["token"] = tResp.GetSecretID()
+	srv.Config.Client.Meta["token"] = tResp.SecretID
 
 	return srv
 }
@@ -104,8 +103,8 @@ func httpTest(t *testing.T, cb func(c *agent.Config), f func(srv *agent.TestAgen
 	f(s)
 }
 
-// httpTestMultiRegionCluster generates a multi-region two node cluster and
-// automatically enables test parallelism. This will panic on test which use
+// HTTPTestMultiRegionClusterParallel generates a multi-region two node cluster
+// and automatically enables test parallelism. This will panic on test which use
 // the environment. For those, use httpTestMultiRegionCluster instead.
 func HTTPTestMultiRegionClusterParallel(t *testing.T, cb1, cb2 func(c *agent.Config), f func(s1 *agent.TestAgent, s2 *agent.TestAgent)) {
 	httpTestMultiRegionClusters(t, cb1, cb2, f, true)
@@ -157,31 +156,18 @@ func join(nodes ...*agent.TestAgent) {
 		addrs[i] = fmt.Sprintf("%s:%d", member.Addr, member.Port)
 	}
 	count, err := first.Client().Agent().Join(addrs...)
-	require.NoError(first.T, err)
-	require.Equal(first.T, len(nodes)-1, count)
+	must.NoError(first.T, err)
+	must.Eq(first.T, len(nodes)-1, count)
 }
 
-func NewTestClient(testAgent *agent.TestAgent, opts ...v1.ClientOption) (*v1.Client, error) {
-	maybeTokenFn := func() func(*v1.Client) { return func(*v1.Client) {} }
-
+func NewTestClient(testAgent *agent.TestAgent) (*api.Client, error) {
+	clientConfig := api.DefaultConfig()
+	clientConfig.Address = testAgent.HTTPAddr()
 	if token := testAgent.Config.Client.Meta["token"]; token != "" {
-		maybeTokenFn = func() func(*v1.Client) {
-			testAgent.T.Logf("building test client with token %q", token)
-			return v1.WithToken(token)
-		}
+		clientConfig.SecretID = token
 	}
 
-	// Push the address and possible token to the end of the options list since
-	// they are applied in order to the client config.
-	opts = append(opts, v1.WithAddress(testAgent.HTTPAddr()), maybeTokenFn())
-	c, err := v1.NewClient(opts...)
-
-	if err != nil {
-		return nil, err
-	}
-
-	testAgent.T.Log(FormatAPIClientConfig(c))
-	return c, nil
+	return api.NewClient(clientConfig)
 }
 
 // TestAgent configuration helpers
@@ -254,33 +240,26 @@ func mTLSFixturePath(nodeType, pemType string) string {
 	return path.Join(testFixturePath(), "mtls", filename)
 }
 
-func MakeTestNamespaces(t *testing.T, c *v1.Client) {
-	opts := c.WriteOpts()
-
-	testNs := client.NewNamespace()
+func MakeTestNamespaces(t *testing.T, c *api.Client) {
+	testNs := &api.Namespace{}
 	namespaces := map[string]string{
 		"job":  "job namespace",
 		"flag": "flag namespace",
 		"env":  "env namespace",
 	}
 	for nsName, nsDesc := range namespaces {
-		testNs.Name = &nsName
-		testNs.Description = &nsDesc
-		_, err := c.Namespaces().PostNamespace(opts.Ctx(), testNs)
-		require.NoError(t, err)
+		testNs.Name = nsName
+		testNs.Description = nsDesc
+		_, err := c.Namespaces().Register(testNs, &api.WriteOptions{})
+		must.NoError(t, err)
 	}
 
 }
 
-func NomadRun(s *agent.TestAgent, path string, opts ...v1.ClientOption) error {
-	c, err := NewTestClient(s, opts...)
+func NomadRun(s *agent.TestAgent, path string) error {
+	c, err := NewTestClient(s)
 	if err != nil {
 		return err
-	}
-
-	// Apply client options
-	for _, opt := range opts {
-		opt(c)
 	}
 
 	// Get Job
@@ -289,58 +268,43 @@ func NomadRun(s *agent.TestAgent, path string, opts ...v1.ClientOption) error {
 		return err
 	}
 	// Parse into JSON Jobspec
-	j, err := c.Jobs().Parse(c.WriteOpts().Ctx(), string(jB), true, false)
+	j, err := c.Jobs().ParseHCLOpts(&api.JobsParseRequest{
+		JobHCL:       string(jB),
+		HCLv1:        false,
+		Canonicalize: true,
+	})
 	if err != nil {
 		return err
 	}
 
 	// Run parsed job
-	resp, _, err := c.Jobs().Register(c.WriteOpts().Ctx(), j, &v1.RegisterOpts{})
+	resp, _, err := c.Jobs().Register(j, &api.WriteOptions{})
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to register nomad job: %v", err)
 	}
 	s.T.Log(FormatRegistrationResponse(resp))
 	return nil
 }
 
-func NomadJobStatus(s *agent.TestAgent, jobname string, opts ...v1.ClientOption) (*client.Job, error) {
-	c, err := NewTestClient(s, opts...)
+func NomadJobStatus(s *agent.TestAgent, jobID string) (*api.Job, error) {
+	c, err := NewTestClient(s)
 	if err != nil {
 		return nil, err
 	}
-	resp, _, err := c.Jobs().GetJob(c.QueryOpts().Ctx(), jobname)
+	resp, _, err := c.Jobs().Info(jobID, &api.QueryOptions{})
 	if err != nil {
 		return nil, err
 	}
 	return resp, nil
 }
 
-func NomadStop(s *agent.TestAgent, jobname string, opts ...v1.ClientOption) error {
-	c, err := NewTestClient(s, opts...)
-
+func NomadStop(s *agent.TestAgent, jobID string) error {
+	c, err := NewTestClient(s)
 	if err != nil {
 		return err
 	}
 
-	resp, _, err := c.Jobs().Delete(c.WriteOpts().Ctx(), jobname, false, false)
-	if err != nil {
-		return err
-	}
-	s.T.Log(FormatStopResponse(resp))
-	return nil
-}
-
-func NomadPurge(s *agent.TestAgent, jobname string, opts ...v1.ClientOption) error {
-	c, err := NewTestClient(s, opts...)
-	for _, opt := range opts {
-		opt(c)
-	}
-
-	if err != nil {
-		return err
-	}
-
-	resp, _, err := c.Jobs().Delete(c.WriteOpts().Ctx(), jobname, true, false)
+	resp, _, err := c.Jobs().Deregister(jobID, false, &api.WriteOptions{})
 	if err != nil {
 		return err
 	}
@@ -348,43 +312,48 @@ func NomadPurge(s *agent.TestAgent, jobname string, opts ...v1.ClientOption) err
 	return nil
 }
 
-func NomadCleanup(s *agent.TestAgent, opts ...v1.ClientOption) (error, error) {
+func NomadPurge(s *agent.TestAgent, jobID string) error {
+	c, err := NewTestClient(s)
+	if err != nil {
+		return err
+	}
+
+	resp, _, err := c.Jobs().Deregister(jobID, true, &api.WriteOptions{})
+	if err != nil {
+		return err
+	}
+	s.T.Log(FormatStopResponse(resp))
+	return nil
+}
+
+func NomadCleanup(s *agent.TestAgent) (error, error) {
 	c, err := NewTestClient(s)
 	if err != nil {
 		return err, nil
 	}
-	qo := c.QueryOpts()
-	qo.Namespace = "*"
+	c.SetNamespace("*")
 
-	jR, _, err := c.Jobs().GetJobs(qo.Ctx())
+	jR, _, err := c.Jobs().List(&api.QueryOptions{})
 	if err != nil {
 		return err, nil
 	}
 
 	var mErr *multierror.Error
-	for _, job := range *jR {
-		err := NomadPurge(s, job.GetName(), v1.WithDefaultNamespace(job.GetNamespace()))
+	for _, job := range jR {
+		err := NomadPurge(s, job.ID)
 		mErr = multierror.Append(mErr, err)
 	}
 	return nil, mErr.ErrorOrNil()
 }
 
-func FormatRegistrationResponse(resp *client.JobRegisterResponse) string {
+func FormatRegistrationResponse(resp *api.JobRegisterResponse) string {
 	format := `register response. eval_id: %q warnings: %q`
-	return fmt.Sprintf(format, resp.GetEvalID(), resp.GetWarnings())
+	return fmt.Sprintf(format, resp.EvalID, resp.Warnings)
 }
 
-func FormatStopResponse(resp *client.JobDeregisterResponse) string {
+func FormatStopResponse(resp string) string {
 	format := `deregister response. eval_id: %q`
-	return fmt.Sprintf(format, resp.GetEvalID())
-}
-
-// FormatAPIClientConfig can be used during a test to emit a client's current
-// configuration.
-func FormatAPIClientConfig(c *v1.Client) string {
-	format := `current API client config. region: %q, namespace: %q, token: %q`
-	opts := c.QueryOpts()
-	return fmt.Sprintf(format, opts.Region, opts.Namespace, opts.AuthToken)
+	return fmt.Sprintf(format, resp)
 }
 
 // getTestNomadJobPath returns the full path to a pack in the test

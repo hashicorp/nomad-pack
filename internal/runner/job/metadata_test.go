@@ -6,16 +6,18 @@ package job
 import (
 	"testing"
 
-	v1client "github.com/hashicorp/nomad-openapi/clients/go/v1"
+	"github.com/hashicorp/nomad/api"
+	"github.com/shoenig/test/must"
+
+	"github.com/hashicorp/nomad-pack/internal/pkg/helper/pointer"
 	"github.com/hashicorp/nomad-pack/internal/runner"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestDeployer_setJobMeta(t *testing.T) {
 	testCases := []struct {
 		inputRunner       *Runner
-		inputJob          *v1client.Job
-		expectedOutputJob *v1client.Job
+		inputJob          *api.Job
+		expectedOutputJob *api.Job
 		name              string
 	}{
 		{
@@ -28,19 +30,19 @@ func TestDeployer_setJobMeta(t *testing.T) {
 					RegistryName:   "default",
 				},
 			},
-			inputJob: &v1client.Job{
-				Name: stringToPtr("foobar"),
+			inputJob: &api.Job{
+				Name: pointer.Of("foobar"),
 			},
-			expectedOutputJob: &v1client.Job{
-				Name: stringToPtr("foobar"),
-				Meta: mapToPtr(map[string]string{
+			expectedOutputJob: &api.Job{
+				Name: pointer.Of("foobar"),
+				Meta: map[string]string{
 					PackPathKey:           "/opt/src/foobar",
 					PackNameKey:           "foobar",
 					PackRegistryKey:       "default",
 					PackDeploymentNameKey: "foobar@123456",
 					PackJobKey:            "foobar",
 					PackRefKey:            "123456",
-				}),
+				},
 			},
 			name: "nil input meta",
 		},
@@ -49,10 +51,7 @@ func TestDeployer_setJobMeta(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			tc.inputRunner.setJobMeta(tc.inputJob)
-			assert.Equal(t, tc.expectedOutputJob, tc.inputJob, tc.name)
+			must.Eq(t, tc.expectedOutputJob, tc.inputJob)
 		})
 	}
 }
-
-func mapToPtr(m map[string]string) *map[string]string { return &m }
-func stringToPtr(s string) *string                    { return &s }

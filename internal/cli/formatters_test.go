@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
+	"github.com/shoenig/test/must"
 )
 
 func Test_FormatList(t *testing.T) {
@@ -30,7 +30,7 @@ func Test_FormatList(t *testing.T) {
 	for _, tC := range testCases {
 		t.Run(tC.name, func(t *testing.T) {
 			out := formatList(tC.input)
-			require.Equal(t, tC.expected, out)
+			must.Eq(t, tC.expected, out)
 		})
 	}
 }
@@ -49,7 +49,7 @@ func Test_FormatTime(t *testing.T) {
 	}
 	for _, tC := range testCases {
 		t.Run(tC.name, func(t *testing.T) {
-			require.Equal(t, tC.expected, formatTime(tC.input))
+			must.Eq(t, tC.expected, formatTime(tC.input))
 		})
 	}
 }
@@ -60,5 +60,5 @@ func Test_FormatTime(t *testing.T) {
 func Test_FormatTimeDifference(t *testing.T) {
 	first := time.Now().Truncate(time.Second)
 	second := first.Add(6*time.Second + 22*time.Millisecond)
-	require.Equal(t, "6s", formatTimeDifference(first, second, time.Second))
+	must.Eq(t, "6s", formatTimeDifference(first, second, time.Second))
 }

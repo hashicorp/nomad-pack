@@ -300,7 +300,7 @@ func (e *DisplayEntry) SetStatus(status string) {
 	e.status = status
 }
 
-func (e *DisplayEntry) Update(str string, args ...interface{}) {
+func (e *DisplayEntry) Update(str string, args ...any) {
 	e.d.mu.Lock()
 	e.text = fmt.Sprintf(str, args...)
 	e.d.mu.Unlock()
@@ -376,7 +376,7 @@ func (t *Term) MoveCursor(p state.Pos) error {
 	return nil
 }
 
-func (t *Term) SetTermProp(attr state.TermAttr, val interface{}) error {
+func (t *Term) SetTermProp(attr state.TermAttr, val any) error {
 	// Ignore it.
 	return nil
 }

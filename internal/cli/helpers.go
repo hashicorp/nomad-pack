@@ -6,14 +6,15 @@ package cli
 import (
 	"fmt"
 	"os"
+	"strings"
 
-	v1client "github.com/hashicorp/nomad-openapi/clients/go/v1"
-	v1 "github.com/hashicorp/nomad-openapi/v1"
+	"github.com/hashicorp/nomad/api"
 
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/manager"
 	"github.com/hashicorp/nomad-pack/internal/pkg/renderer"
+	"github.com/hashicorp/nomad-pack/internal/pkg/variable"
 	"github.com/hashicorp/nomad-pack/internal/runner"
 	"github.com/hashicorp/nomad-pack/internal/runner/job"
 	"github.com/hashicorp/nomad-pack/terminal"
@@ -35,7 +36,7 @@ func initPackCommand(cfg *cache.PackConfig) (errorContext *errors.UIErrorContext
 }
 
 // generatePackManager is used to generate the pack manager for this Nomad Pack run.
-func generatePackManager(c *baseCommand, client *v1.Client, packCfg *cache.PackConfig) *manager.PackManager {
+func generatePackManager(c *baseCommand, client *api.Client, packCfg *cache.PackConfig) *manager.PackManager {
 	// TODO: Refactor to have manager use cache.
 	cfg := manager.Config{
 		Path:            packCfg.Path,
@@ -47,32 +48,31 @@ func generatePackManager(c *baseCommand, client *v1.Client, packCfg *cache.PackC
 }
 
 func registryTable() *terminal.Table {
-	return terminal.NewTable("PACK NAME", "REF", "METADATA VERSION", "REGISTRY", "REGISTRY_URL")
+	return terminal.NewTable("REGISTRY NAME", "REF", "LOCAL_REF", "REGISTRY_URL")
 }
 
-func emptyRegistryTableRow(cachedRegistry *cache.Registry) []terminal.TableEntry {
+func registryPackTable() *terminal.Table {
+	return terminal.NewTable("PACK NAME", "REF", "LOCAL_REF", "METADATA VERSION", "REGISTRY NAME", "REGISTRY_URL")
+}
+
+func packTable() *terminal.Table {
+	return terminal.NewTable("PACK NAME", "METADATA VERSION", "REGISTRY NAME")
+}
+
+func registryTableRow(cachedRegistry *cache.Registry) []terminal.TableEntry {
 	return []terminal.TableEntry{
-		// blank pack name
-		{
-			Value: "",
-		},
-		// blank revision
-		{
-			Value: "",
-		},
-		// blank metadata version
-		{
-			Value: "",
-		},
-		// CachedRegistry name - user defined alias or registry URL slug
 		{
 			Value: cachedRegistry.Name,
 		},
-		// The cachedRegistry URL from where the registryPack was cloned
+		{
+			Value: cachedRegistry.Ref,
+		},
+		{
+			Value: cachedRegistry.LocalRef,
+		},
 		{
 			Value: cachedRegistry.Source,
 		},
-		// TODO: The app version
 	}
 }
 
@@ -86,17 +86,39 @@ func registryPackRow(cachedRegistry *cache.Registry, cachedPack *cache.Pack) []t
 		{
 			Value: cachedPack.Ref,
 		},
+		// The canonical revision from where the registryPack was cloned
+		{
+			Value: cachedRegistry.LocalRef,
+		},
 		// The metadata version
 		{
 			Value: cachedPack.Metadata.Pack.Version,
 		},
-		// CachedRegistry name - user defined alias or registry URL slug
+		// CachedRegistry name  user defined alias or registry URL slug
 		{
 			Value: cachedRegistry.Name,
 		},
 		// The cachedRegistry URL from where the registryPack was cloned
 		{
 			Value: cachedRegistry.Source,
+		},
+		// TODO: The app version
+	}
+}
+
+func packRow(cachedRegistry *cache.Registry, cachedPack *cache.Pack) []terminal.TableEntry {
+	return []terminal.TableEntry{
+		// The Name of the registryPack
+		{
+			Value: cachedPack.Name(),
+		},
+		// The metadata version
+		{
+			Value: cachedPack.Metadata.Pack.Version,
+		},
+		// CachedRegistry name  user defined alias or registry URL slug
+		{
+			Value: fmt.Sprintf("%s@%s", cachedRegistry.Name, cachedRegistry.LocalRef),
 		},
 		// TODO: The app version
 	}
@@ -131,9 +153,34 @@ func renderPack(
 // TODO: This needs to be on a domain specific pkg rather than a UI helpers file.
 // This will be possible once we create a logger interface that can be passed
 // between layers.
+// Uses the pack manager to parse the templates, override template variables with var files
+// and cli vars as applicable
+func renderVariableOverrideFile(
+	manager *manager.PackManager,
+	ui terminal.UI,
+	errCtx *errors.UIErrorContext,
+) (*variable.ParsedVariables, error) {
+
+	r, err := manager.ProcessVariableFiles()
+	if err != nil {
+		packName := manager.PackName()
+		errCtx.Add(errors.UIContextPrefixPackName, packName)
+		for i := range err {
+			err[i].Context.Append(errCtx)
+			ui.ErrorWithContext(err[i].Err, "failed to process pack", err[i].Context.GetAll()...)
+		}
+		return nil, errors.New("failed to render")
+	}
+	r.Metadata = manager.Metadata()
+	return r, nil
+}
+
+// TODO: This needs to be on a domain specific pkg rather than a UI helpers file.
+// This will be possible once we create a logger interface that can be passed
+// between layers.
 // Uses open api client to parse rendered hcl templates to
 // open api jobs to send to nomad
-func parseJob(cmd *baseCommand, hcl string, hclV1 bool, errCtx *errors.UIErrorContext) (*v1client.Job, error) {
+func parseJob(cmd *baseCommand, hcl string, hclV1 bool, errCtx *errors.UIErrorContext) (*api.Job, error) {
 	// instantiate client to parse hcl
 	c, err := cmd.getAPIClient()
 	if err != nil {
@@ -141,8 +188,11 @@ func parseJob(cmd *baseCommand, hcl string, hclV1 bool, errCtx *errors.UIErrorCo
 		return nil, err
 	}
 
-	opts := newQueryOpts(c)
-	parsedJob, err := c.Jobs().Parse(opts.Ctx(), hcl, true, hclV1)
+	parsedJob, err := c.Jobs().ParseHCLOpts(&api.JobsParseRequest{
+		JobHCL:       hcl,
+		HCLv1:        hclV1,
+		Canonicalize: true,
+	})
 	if err != nil {
 		cmd.ui.ErrorWithContext(err, "failed to parse job specification", errCtx.GetAll()...)
 		return nil, err
@@ -159,27 +209,26 @@ func getDeploymentName(c *baseCommand, cfg *cache.PackConfig) string {
 }
 
 // TODO: Move to a domain specific package.
-func getPackJobsByDeploy(c *v1.Client, cfg *cache.PackConfig, deploymentName string) ([]*v1client.Job, error) {
-	opts := newQueryOpts(c)
+func getPackJobsByDeploy(c *api.Client, cfg *cache.PackConfig, deploymentName string) ([]*api.Job, error) {
 	jobsApi := c.Jobs()
-	jobs, _, err := jobsApi.GetJobs(opts.Ctx())
+	jobs, _, err := jobsApi.List(&api.QueryOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("error finding jobs for pack %s: %s", cfg.Name, err)
 	}
-	if len(*jobs) == 0 {
+	if len(jobs) == 0 {
 		return nil, fmt.Errorf("no job(s) found")
 	}
 
-	var packJobs []*v1client.Job
+	var packJobs []*api.Job
 	hasOtherDeploys := false
-	for _, jobStub := range *jobs {
-		nomadJob, _, err := jobsApi.GetJob(opts.Ctx(), *jobStub.ID)
+	for _, jobStub := range jobs {
+		nomadJob, _, err := jobsApi.Info(jobStub.ID, &api.QueryOptions{})
 		if err != nil {
 			return nil, fmt.Errorf("error retrieving job %s for pack %s: %s", *nomadJob.ID, cfg.Name, err)
 		}
 
 		if nomadJob.Meta != nil {
-			jobMeta := *nomadJob.Meta
+			jobMeta := nomadJob.Meta
 			jobDeploymentName, ok := jobMeta[job.PackDeploymentNameKey]
 
 			if ok {
@@ -211,7 +260,7 @@ func getPackJobsByDeploy(c *v1.Client, cfg *cache.PackConfig, deploymentName str
 
 // TODO: Needs code review. Will likely move if we decide to move client management
 // out of CLI commands.
-func generateRunner(client *v1.Client, packType, cliCfg interface{}, runnerCfg *runner.Config) (runner.Runner, error) {
+func generateRunner(client *api.Client, packType, cliCfg any, runnerCfg *runner.Config) (runner.Runner, error) {
 
 	var (
 		err          error
@@ -249,23 +298,22 @@ func hasVarOverrides(c *baseCommand) bool {
 }
 
 // TODO: Move to a domain specific package.
-func getDeployedPacks(c *v1.Client) (map[string]map[string]struct{}, error) {
-	opts := newQueryOpts(c)
+func getDeployedPacks(c *api.Client) (map[string]map[string]struct{}, error) {
 	jobsApi := c.Jobs()
-	jobStubs, _, err := jobsApi.GetJobs(opts.Ctx())
+	jobs, _, err := jobsApi.List(&api.QueryOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("error finding jobs: %s", err)
 	}
 
 	packRegistryMap := map[string]map[string]struct{}{}
-	for _, jobStub := range *jobStubs {
-		nomadJob, _, err := jobsApi.GetJob(opts.Ctx(), *jobStub.ID)
+	for _, jobStub := range jobs {
+		nomadJob, _, err := jobsApi.Info(jobStub.ID, &api.QueryOptions{})
 		if err != nil {
 			return nil, fmt.Errorf("error retrieving job %s: %s", *nomadJob.ID, err)
 		}
 
 		if nomadJob.Meta != nil {
-			jobMeta := *nomadJob.Meta
+			jobMeta := nomadJob.Meta
 			// Check metadata for pack info
 			packName, packNameOk := jobMeta[job.PackNameKey]
 			packRegistry, registryNameOk := jobMeta[job.PackRegistryKey]
@@ -309,28 +357,27 @@ type JobStatusError struct {
 }
 
 // TODO: Move to a domain specific package.
-func getDeployedPackJobs(c *v1.Client, cfg *cache.PackConfig, deploymentName string) ([]JobStatusInfo, []JobStatusError, error) {
-	opts := newQueryOpts(c)
+func getDeployedPackJobs(c *api.Client, cfg *cache.PackConfig, deploymentName string) ([]JobStatusInfo, []JobStatusError, error) {
 	jobsApi := c.Jobs()
-	jobs, _, err := jobsApi.GetJobs(opts.Ctx())
+	jobs, _, err := jobsApi.List(&api.QueryOptions{})
 	if err != nil {
 		return nil, nil, fmt.Errorf("error finding jobs for pack %s: %s", cfg.Name, err)
 	}
 
 	var packJobs []JobStatusInfo
 	var jobErrs []JobStatusError
-	for _, jobStub := range *jobs {
-		nomadJob, _, err := jobsApi.GetJob(opts.Ctx(), *jobStub.ID)
+	for _, jobStub := range jobs {
+		nomadJob, _, err := jobsApi.Info(jobStub.ID, &api.QueryOptions{})
 		if err != nil {
 			jobErrs = append(jobErrs, JobStatusError{
-				jobID:    *jobStub.ID,
+				jobID:    jobStub.ID,
 				jobError: err,
 			})
 			continue
 		}
 
 		if nomadJob.Meta != nil {
-			jobMeta := *nomadJob.Meta
+			jobMeta := nomadJob.Meta
 			jobPackName, ok := jobMeta[job.PackNameKey]
 			if ok && jobPackName == cfg.Name {
 				// Filter by deployment name if specified
@@ -353,97 +400,102 @@ func getDeployedPackJobs(c *v1.Client, cfg *cache.PackConfig, deploymentName str
 	return packJobs, jobErrs, nil
 }
 
-func newQueryOpts(c *v1.Client) *v1.QueryOpts {
-	return c.QueryOpts()
-}
-
-// func newWriteOpts(c *v1.Client) *v1.WriteOpts {
-// 	return c.WriteOpts()
-// }
-
-// clientOptionCount is used to help size the arrays that back the slices of
-// v1.ClientOption from the clientOptsFromEnvironment and clientOptsFromFlags
-// funcs. If it becomes lower than the truth, the underlying array could be grown
-// but that's not the end of the world.
-const clientOptionCount = 8
-
 // clientOptsFromCLI emits a slice of v1.ClientOptions based on the environment
 // and flag set passed to the command.
-func clientOptsFromCLI(c *baseCommand) []v1.ClientOption {
+func clientOptsFromCLI(c *baseCommand) *api.Config {
 	// This implementation leverages the fact that flags always take precedence
 	// over environment variables to naively append the flags to the env
 	// settings.
+	conf := api.DefaultConfig()
 
-	// This will not handle the case where client_key is set in an env var and
-	// client_cert is set via flag, but that is currently the only case where
-	// two settings have a strong affinity.
-	opts := make([]v1.ClientOption, 0, 2*clientOptionCount)
-	opts = append(opts, clientOptsFromEnvironment()...)
-	opts = append(opts, clientOptsFromFlags(c)...)
-	return opts
+	clientOptsFromEnvironment(conf)
+	clientOptsFromFlags(c, conf)
+	return conf
 }
 
-// clientOptsFromEnvironment creates a slice of v1.ClientOptions based on the
-// environment variables present at the CLI's runtime.
-func clientOptsFromEnvironment() []v1.ClientOption {
-	opts := make([]v1.ClientOption, 0, clientOptionCount)
+// handlBasicAuth checks whether the NOMAD_ADDR string is in the user:pass@addr
+// format and if it is, it returns user, password and address. It returns "", "",
+// address otherwise.
+func handleBasicAuth(s string) (string, string, string) {
+	before, after, found := strings.Cut(s, "@")
+	if found {
+		user, pass, found := strings.Cut(before, ":")
+		if found {
+			return user, pass, after
+		}
+	}
+	return "", "", before
+}
+
+// clientOptsFromEnvironment populates api client conf with environment
+// variables present at the CLI's runtime.
+func clientOptsFromEnvironment(conf *api.Config) {
 	if v := os.Getenv("NOMAD_ADDR"); v != "" {
-		opts = append(opts, v1.WithAddress(v))
+		// we support user:pass@addr here
+		user, pass, addr := handleBasicAuth(v)
+		conf.Address = addr
+		if user != "" && pass != "" {
+			conf.HttpAuth.Username = user
+			conf.HttpAuth.Password = pass
+		}
 	}
 	if v := os.Getenv("NOMAD_NAMESPACE"); v != "" {
-		opts = append(opts, v1.WithDefaultNamespace(v))
+		conf.Namespace = v
 	}
 	if v := os.Getenv("NOMAD_REGION"); v != "" {
-		opts = append(opts, v1.WithDefaultRegion(v))
+		conf.Region = v
 	}
 	if v := os.Getenv("NOMAD_TOKEN"); v != "" {
-		opts = append(opts, v1.WithToken(v))
+		conf.SecretID = v
 	}
 	if cc, ck := os.Getenv("NOMAD_CLIENT_CERT"), os.Getenv("NOMAD_CLIENT_KEY"); cc != "" && ck != "" {
-		opts = append(opts, v1.WithClientCert(cc, ck))
+		conf.TLSConfig.ClientCert = cc
+		conf.TLSConfig.ClientKey = ck
 	}
 	if v := os.Getenv("NOMAD_CACERT"); v != "" {
-		opts = append(opts, v1.WithCACert(v))
+		conf.TLSConfig.CACert = v
 	}
 	if v := os.Getenv("NOMAD_TLS_SERVER_NAME"); v != "" {
-		opts = append(opts, v1.WithTLSServerName(v))
+		conf.TLSConfig.TLSServerName = v
 	}
 	if _, found := os.LookupEnv("NOMAD_SKIP_VERIFY"); found {
-		opts = append(opts, v1.WithTLSSkipVerify())
+		conf.TLSConfig.Insecure = true
 	}
-
-	return opts
 }
 
-// clientOptsFromFlags creates a slice of v1.ClientOptions based on the flags
-// passed to the CLI at runtime.
-func clientOptsFromFlags(c *baseCommand) []v1.ClientOption {
+// clientOptsFromFlags populates api client conf based on the flags passed to
+// the CLI at runtime.
+func clientOptsFromFlags(c *baseCommand, conf *api.Config) {
 	cfg := c.nomadConfig
-	opts := make([]v1.ClientOption, 0, clientOptionCount)
 	if cfg.address != "" {
-		opts = append(opts, v1.WithAddress(cfg.address))
+		// we support user:pass@addr here
+		user, pass, addr := handleBasicAuth(cfg.address)
+		conf.Address = addr
+		if user != "" && pass != "" {
+			conf.HttpAuth.Username = user
+			conf.HttpAuth.Password = pass
+		}
 	}
 	if cfg.namespace != "" {
-		opts = append(opts, v1.WithDefaultNamespace(cfg.namespace))
+		conf.Namespace = cfg.namespace
 	}
 	if cfg.region != "" {
-		opts = append(opts, v1.WithDefaultRegion(cfg.region))
+		conf.Region = cfg.region
 	}
 	if cfg.token != "" {
-		opts = append(opts, v1.WithToken(cfg.token))
+		conf.SecretID = cfg.token
 	}
 	if cfg.clientCert != "" && cfg.clientKey != "" {
-		opts = append(opts, v1.WithClientCert(cfg.clientCert, cfg.clientKey))
+		conf.TLSConfig.ClientCert = cfg.clientCert
+		conf.TLSConfig.ClientKey = cfg.clientKey
 	}
 	if cfg.caCert != "" {
-		opts = append(opts, v1.WithCACert(cfg.caCert))
+		conf.TLSConfig.CACert = cfg.caCert
 	}
 	if cfg.tlsServerName != "" {
-		opts = append(opts, v1.WithTLSServerName(cfg.tlsServerName))
+		conf.TLSConfig.TLSServerName = cfg.tlsServerName
 	}
 	if cfg.tlsSkipVerify {
-		opts = append(opts, v1.WithTLSSkipVerify())
+		conf.TLSConfig.Insecure = true
 	}
-
-	return opts
 }

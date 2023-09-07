@@ -4,9 +4,10 @@
 package cli
 
 import (
+	"github.com/posener/complete"
+
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
-	"github.com/posener/complete"
 )
 
 // RegistryListCommand lists all registries and pack that have been downloaded
@@ -42,30 +43,29 @@ func (c *RegistryListCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Initialize a table for a nice glint UI rendering
-	table := registryTable()
-
 	// Iterate over the registries and build a table row for each cachedRegistry/pack
 	// entry at each ref. Hierarchically, this should equate to the default
 	// cachedRegistry and all its peers.
-	for _, cachedRegistry := range globalCache.Registries() {
-		// If no packs, just show registry.
-		if cachedRegistry.Packs == nil || len(cachedRegistry.Packs) == 0 {
-			tableRow := emptyRegistryTableRow(cachedRegistry)
-			// append table row
+	if len(globalCache.Registries()) > 0 {
+		table := registryTable()
+		for _, registry := range globalCache.Registries() {
+			tableRow := registryTableRow(registry)
 			table.Rows = append(table.Rows, tableRow)
-		} else {
-			// Show registry/pack combo for each pack.
-			for _, registryPack := range cachedRegistry.Packs {
-				tableRow := registryPackRow(cachedRegistry, registryPack)
-				// append table row
-				table.Rows = append(table.Rows, tableRow)
-			}
 		}
-	}
+		c.ui.Table(table)
 
-	// Display output table
-	c.ui.Table(table)
+		// TODO: This message is to make upgrading from tech preview versions
+		// to 0.1 easier. Remove it at 0.2 release.
+		if table.Rows[0][2].Value == "" {
+			c.ui.Warning("It appears that you have a cache created before Nomad-Pack 0.1 (hence the\n" +
+				"missing values in LOCAL REF and REGISTRY URL columns). We recommend deleting\n" +
+				"your current cache with `nomad-pack registry delete <name>` and re-adding your\n" +
+				"registries to take full advantage of new `nomad-pack registry list` and\n" +
+				"`nomad-pack list` commands behavior.")
+		}
+	} else {
+		c.ui.Output("No registries present in the cache.")
+	}
 
 	return 0
 }

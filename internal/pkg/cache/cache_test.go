@@ -4,18 +4,23 @@
 package cache
 
 import (
-	"bytes"
+	"encoding/json"
 	"fmt"
+	"io/fs"
 	"os"
-	"os/exec"
 	"path"
 	"strings"
 	"sync"
 	"testing"
+	"time"
+
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/shoenig/test/must"
+	"golang.org/x/exp/slices"
 
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/helper/filesystem"
-	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -39,15 +44,15 @@ func TestListRegistries(t *testing.T) {
 		Path:   cacheDir,
 		Logger: NewTestLogger(t),
 	})
-	require.NoError(t, err)
-	require.NotNil(t, cache)
+	must.NoError(t, err)
+	must.NotNil(t, cache)
 
 	registry, err := cache.Add(opts)
-	require.NoError(t, err)
-	require.NotNil(t, registry)
+	must.NoError(t, err)
+	must.NotNil(t, registry)
 
-	expected := testPackCount(t, opts)
-	require.Equal(t, expected, len(registry.Packs))
+	expected := len(listAllTestPacks(t, cacheDir))
+	must.Eq(t, expected, len(registry.Packs))
 }
 
 func TestAddRegistry(t *testing.T) {
@@ -59,16 +64,15 @@ func TestAddRegistry(t *testing.T) {
 		Path:   cacheDir,
 		Logger: NewTestLogger(t),
 	})
-	require.NoError(t, err)
-	require.NotNil(t, cache)
+	must.NoError(t, err)
+	must.NotNil(t, cache)
 
 	registry, err := cache.Add(opts)
-	require.NoError(t, err)
-	require.NotNil(t, registry)
+	must.NoError(t, err)
+	must.NotNil(t, registry)
 
-	expected := testPackCount(t, opts)
-	require.NoError(t, err)
-	require.Equal(t, expected, len(registry.Packs))
+	expected := len(listAllTestPacks(t, cacheDir))
+	must.Eq(t, expected, len(registry.Packs))
 }
 
 func TestAddRegistryPacksAtMultipleRefs(t *testing.T) {
@@ -87,31 +91,25 @@ func TestAddRegistryPacksAtMultipleRefs(t *testing.T) {
 		Path:   cacheDir,
 		Logger: NewTestLogger(t),
 	})
-	require.NoError(t, err)
-	require.NotNil(t, cache)
+	must.NoError(t, err)
+	must.NotNil(t, cache)
 
 	// Add at ref
 	registry, err := cache.Add(addOpts)
-	require.NoError(t, err)
-	require.NotNil(t, registry)
+	must.NoError(t, err)
+	must.NotNil(t, registry)
 
 	// Add at latest
 	registry, err = cache.Add(testOpts)
-	require.NoError(t, err)
-	require.NotNil(t, registry)
-
-	expected := testPackCount(t, testOpts)
+	must.NoError(t, err)
+	must.NotNil(t, registry)
 
 	// test that registry still exists
-	registryEntries, err := os.ReadDir(cacheDir)
-	require.NoError(t, err)
-	require.Equal(t, 1, len(registryEntries))
+	pts := listAllTestPacks(t, cacheDir)
+	must.Eq(t, 1, len(pts.RegistriesUnique()))
 
 	// test that multiple refs of pack exist
-	packEntries, err := os.ReadDir(path.Join(cacheDir, "multiple-refs"))
-	require.NoError(t, err)
-
-	require.Equal(t, expected, len(packEntries))
+	must.Eq(t, 2, len(pts.RefsUnique()))
 }
 
 func TestAddRegistryWithTarget(t *testing.T) {
@@ -130,15 +128,15 @@ func TestAddRegistryWithTarget(t *testing.T) {
 		Path:   cacheDir,
 		Logger: NewTestLogger(t),
 	})
-	require.NoError(t, err)
-	require.NotNil(t, cache)
+	must.NoError(t, err)
+	must.NotNil(t, cache)
 
 	// Add at ref
 	registry, err := cache.Add(addOpts)
-	require.NoError(t, err)
-	require.NotNil(t, registry)
+	must.NoError(t, err)
+	must.NotNil(t, registry)
 
-	require.Len(t, registry.Packs, 1)
+	must.Eq(t, 1, len(registry.Packs))
 }
 
 func TestAddRegistryWithSHA(t *testing.T) {
@@ -156,18 +154,29 @@ func TestAddRegistryWithSHA(t *testing.T) {
 		Path:   cacheDir,
 		Logger: NewTestLogger(t),
 	})
-	require.NoError(t, err)
-	require.NotNil(t, cache)
+	must.NoError(t, err)
+	must.NotNil(t, cache)
 
 	// Add at SHA
 	registry, err := cache.Add(addOpts)
-	require.NoError(t, err)
-	require.NotNil(t, registry)
+	must.NoError(t, err)
+	must.NotNil(t, registry)
 
 	// expected testCount
-	expected := testPackCount(t, addOpts)
+	must.Eq(t, len(listAllTestPacks(t, cacheDir)), len(registry.Packs))
 
-	require.Equal(t, expected, len(registry.Packs))
+	// Make sure the metadata file is there and that it contains what we want
+	f, err := os.ReadFile(path.Join(cacheDir, registry.Name, registry.Ref, "metadata.json"))
+	must.NoError(t, err)
+	r := &Registry{}
+	must.NoError(t, json.Unmarshal(f, r))
+	expectedRegistryMetadata := &Registry{
+		Name:     "with-sha",
+		Source:   tReg.SourceURL(),
+		Ref:      tReg.Ref1(),
+		LocalRef: tReg.Ref1(),
+	}
+	must.Eq(t, expectedRegistryMetadata, r)
 }
 
 func TestAddRegistryWithRefAndPackName(t *testing.T) {
@@ -186,15 +195,15 @@ func TestAddRegistryWithRefAndPackName(t *testing.T) {
 		Path:   cacheDir,
 		Logger: NewTestLogger(t),
 	})
-	require.NoError(t, err)
-	require.NotNil(t, cache)
+	must.NoError(t, err)
+	must.NotNil(t, cache)
 
 	// Add Ref and PackName
 	registry, err := cache.Add(addOpts)
-	require.NoError(t, err)
-	require.NotNil(t, registry)
+	must.NoError(t, err)
+	must.NotNil(t, registry)
 
-	require.Len(t, registry.Packs, 1)
+	must.Eq(t, 1, len(registry.Packs))
 }
 
 func TestAddRegistryNoCacheDir(t *testing.T) {
@@ -204,13 +213,12 @@ func TestAddRegistryNoCacheDir(t *testing.T) {
 		Path:   "",
 		Logger: NewTestLogger(t),
 	})
-	require.Error(t, err)
+	must.Error(t, err)
 
 	registry, err := cache.Add(opts)
-
-	require.Error(t, err)
-	require.Nil(t, registry)
-	require.Equal(t, errors.ErrCachePathRequired, err)
+	must.Error(t, err)
+	must.Nil(t, registry)
+	must.Eq(t, errors.ErrCachePathRequired, err)
 }
 
 func TestAddRegistryNoSource(t *testing.T) {
@@ -223,14 +231,14 @@ func TestAddRegistryNoSource(t *testing.T) {
 		Path:   cacheDir,
 		Logger: NewTestLogger(t),
 	})
-	require.NoError(t, err)
-	require.NotNil(t, cache)
+	must.NoError(t, err)
+	must.NotNil(t, cache)
 
 	registry, err := cache.Add(opts)
 
-	require.Error(t, err)
-	require.Nil(t, registry)
-	require.Equal(t, errors.ErrRegistrySourceRequired, err)
+	must.Error(t, err)
+	must.Nil(t, registry)
+	must.Eq(t, errors.ErrRegistrySourceRequired, err)
 }
 
 func TestDeleteRegistry(t *testing.T) {
@@ -242,12 +250,12 @@ func TestDeleteRegistry(t *testing.T) {
 		Path:   cacheDir,
 		Logger: NewTestLogger(t),
 	})
-	require.NoError(t, err)
-	require.NotNil(t, cache)
+	must.NoError(t, err)
+	must.NotNil(t, cache)
 
 	registry, err := cache.Add(opts)
-	require.NoError(t, err)
-	require.NotNil(t, registry)
+	must.NoError(t, err)
+	must.NotNil(t, registry)
 
 	deleteOpts := &DeleteOpts{
 		RegistryName: opts.RegistryName,
@@ -256,14 +264,14 @@ func TestDeleteRegistry(t *testing.T) {
 	}
 
 	err = cache.Delete(deleteOpts)
-	require.NoError(t, err)
+	must.NoError(t, err)
 
 	// test that registry is gone
 	registryEntries, err := os.ReadDir(cacheDir)
-	require.NoError(t, err)
+	must.NoError(t, err)
 
 	for _, registryEntry := range registryEntries {
-		require.NotEqual(t, registryEntry.Name(), deleteOpts.RegistryName)
+		must.NotEq(t, registryEntry.Name(), deleteOpts.RegistryName)
 	}
 }
 
@@ -276,14 +284,14 @@ func TestDeletePack(t *testing.T) {
 		Path:   cacheDir,
 		Logger: NewTestLogger(t),
 	})
-	require.NoError(t, err)
-	require.NotNil(t, cache)
+	must.NoError(t, err)
+	must.NotNil(t, cache)
 
 	registry, err := cache.Add(opts)
-	require.NoError(t, err)
-	require.NotNil(t, registry)
+	must.NoError(t, err)
+	must.NotNil(t, registry)
 
-	packCount := testPackCount(t, opts)
+	packTuplesBefore := listAllTestPacks(t, cacheDir)
 
 	deleteOpts := &DeleteOpts{
 		RegistryName: opts.RegistryName,
@@ -292,19 +300,20 @@ func TestDeletePack(t *testing.T) {
 	}
 
 	err = cache.Delete(deleteOpts)
-	require.NoError(t, err)
+	must.NoError(t, err)
+
+	packTuplesAfter := listAllTestPacks(t, cacheDir)
 
 	// test that pack is gone
-	registryEntries, err := os.ReadDir(opts.RegistryPath())
-	require.NoError(t, err)
-
-	for _, packEntry := range registryEntries {
-		require.NotEqual(t, packEntry.Name(), deleteOpts.RegistryName)
+	for _, pt := range packTuplesAfter {
+		must.NotEq(t, deleteOpts.RegistryName+"@"+deleteOpts.Ref, pt.name)
 	}
 
-	// test that registry still exists, and other packs are still  there.
-	require.NotEqual(t, 0, packCount)
-	require.Equal(t, packCount-1, len(registryEntries))
+	// test that registry still exists, and other packs are still there.
+	must.Eq(t, len(packTuplesBefore.RegistriesUnique()), len(packTuplesAfter.RegistriesUnique()))
+
+	// test that all of the other counts are as expected
+	must.Eq(t, len(packTuplesBefore)-1, len(packTuplesAfter))
 }
 
 func TestDeletePackByRef(t *testing.T) {
@@ -316,20 +325,20 @@ func TestDeletePackByRef(t *testing.T) {
 		Path:   cacheDir,
 		Logger: NewTestLogger(t),
 	})
-	require.NoError(t, err)
-	require.NotNil(t, cache)
+	must.NoError(t, err)
+	must.NotNil(t, cache)
 
 	registry, err := cache.Add(opts)
-	require.NoError(t, err)
-	require.NotNil(t, registry)
+	must.NoError(t, err)
+	must.NotNil(t, registry)
 
 	// Now add at different ref
 	opts.Ref = tReg.Ref1()
 	registry, err = cache.Add(opts)
-	require.NoError(t, err)
-	require.NotNil(t, registry)
+	must.NoError(t, err)
+	must.NotNil(t, registry)
 
-	packCount := testPackCount(t, opts)
+	packTuplesBefore := listAllTestPacks(t, cacheDir)
 
 	deleteOpts := &DeleteOpts{
 		RegistryName: opts.RegistryName,
@@ -338,19 +347,20 @@ func TestDeletePackByRef(t *testing.T) {
 	}
 
 	err = cache.Delete(deleteOpts)
-	require.NoError(t, err)
+	must.NoError(t, err)
+
+	packTuplesAfter := listAllTestPacks(t, cacheDir)
 
 	// test that pack is gone
-	registryEntries, err := os.ReadDir(opts.RegistryPath())
-	require.NoError(t, err)
-
-	for _, packEntry := range registryEntries {
-		require.NotEqual(t, packEntry.Name(), deleteOpts.RegistryName)
+	for _, pt := range packTuplesAfter {
+		must.NotEq(t, deleteOpts.RegistryName+"@"+deleteOpts.Ref, pt.name)
 	}
 
-	// test that registry still exists, and other packs are still  there.
-	require.NotEqual(t, 0, packCount)
-	require.Equal(t, packCount-1, len(registryEntries))
+	// test that registry still exists, and other packs are still there.
+	must.Eq(t, len(packTuplesBefore.RegistriesUnique()), len(packTuplesAfter.RegistriesUnique()))
+
+	// test that all of the other counts are as expected
+	must.Eq(t, len(packTuplesBefore)-1, len(packTuplesAfter))
 }
 
 func TestParsePackURL(t *testing.T) {
@@ -394,12 +404,12 @@ func TestParsePackURL(t *testing.T) {
 			ok := reg.parsePackURL(tc.path)
 			t.Logf("  path: %s\nsource: %s\n    ok: %v\n\n", tc.path, reg.Source, ok)
 			if tc.expectOk {
-				require.True(t, ok)
-				require.Equal(t, tc.expectedResult, reg.Source)
+				must.True(t, ok)
+				must.Eq(t, tc.expectedResult, reg.Source)
 			} else {
-				require.False(t, ok)
+				must.False(t, ok)
 				// If we get an error, reg.Source should be unset.
-				require.True(t, strings.Contains(reg.Source, "invalid url") || reg.Source == "")
+				must.True(t, strings.Contains(reg.Source, "invalid url") || reg.Source == "")
 			}
 		})
 	}
@@ -458,7 +468,7 @@ func NewTestLogger(t *testing.T) *TestLogger {
 }
 
 // NoopLogger returns a logger that meets the Logger interface, but does nothing
-// for any of the methods. This can be useful for cases that require a Logger as
+// for any of the methods. This can be useful for cases that must a Logger as
 // a parameter.
 type NoopLogger struct{}
 
@@ -515,94 +525,64 @@ func makeTestRegRepo(tReg *TestGithubRegistry) {
 	var err error
 	tReg.tmpDir, err = os.MkdirTemp("", "cache-test-*")
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("unable to create temp dir for test git repo: %w", err))
 	}
 	tReg.cleanupFn = func() { os.RemoveAll(tReg.tmpDir) }
-	maybeFatal := func(err error) {
-		if err != nil {
-			var out string
-
-			switch err := err.(type) {
-			case *exec.ExitError:
-				out = fmt.Sprintf("Error: %v \nStdErr:\n%s", err, string(err.Stderr))
-			default:
-				out = fmt.Sprintf("Error: (%T) %v ", err, err)
-			}
-
-			tReg.Cleanup()
-			panic(out)
-		}
-	}
 
 	tReg.sourceURL = path.Join(tReg.tmpDir, "test_registry.git")
-	maybeFatal(filesystem.CopyDir("../../../fixtures/test_registry", tReg.SourceURL(), NoopLogger{}))
-	var exitErr *exec.ExitError
-
-	formatPanic := func(res GitCommandResult) {
-		var out strings.Builder
-		out.WriteString(fmt.Sprintf("git err: %v running %v\n", res.err.Error(), res.cmd))
-		out.WriteString(fmt.Sprintf("stdout:\n%s\nstderr:\n%s\n", res.stdout, res.stderr))
-		// If these setup git commands fail, there's no use in continuing
-		// because almost all of the cache tests will fail. Could these
-		// be refactored into a sync.Once and a check for cache tests?
+	err = filesystem.CopyDir("../../../fixtures/test_registry", tReg.SourceURL(), false, NoopLogger{})
+	if err != nil {
 		tReg.Cleanup()
-		panic(out)
+		panic(fmt.Errorf("unable to copy test fixtures to test git repo: %v", err))
 	}
 
-	handleInitError := func(res GitCommandResult) GitCommandResult {
-		if res.err != nil && errors.As(res.err, &exitErr) && !strings.Contains(
-			res.stdout,
-			"Initialized empty Git repository",
-		) {
-			formatPanic(res)
-		}
-		return res
+	// initialize git repo...
+	r, err := git.PlainInit(tReg.SourceURL(), false)
+	if err != nil {
+		tReg.Cleanup()
+		panic(fmt.Errorf("unable to initialize test git repo: %v", err))
+	}
+	// ...and worktree
+	w, err := r.Worktree()
+	if err != nil {
+		tReg.Cleanup()
+		panic(fmt.Errorf("unable to initialize worktree for test git repo: %v", err))
 	}
 
-	handleGitError := func(res GitCommandResult) GitCommandResult {
-		if res.err != nil {
-			formatPanic(res)
-		}
-		return res
+	_, err = w.Add(".")
+	if err != nil {
+		tReg.Cleanup()
+		panic(fmt.Errorf("unable to stage test files to test git repo: %v", err))
 	}
 
-	handleInitError(git("init"))
-	handleGitError(git("config", "user.email", "test@example.com"))
-	handleGitError(git("config", "user.name", "Github Action Test User"))
-	handleGitError(git("add", "."))
-	handleGitError(git("commit", "-m", "Initial Commit"))
-	res := handleGitError(git("log", "-1", `--pretty=%H`))
-	tReg.ref1 = strings.TrimSpace(res.stdout)
+	commitOptions := &git.CommitOptions{Author: &object.Signature{
+		Name:  "Github Action Test User",
+		Email: "test@example.com",
+		When:  time.Now(),
+	}}
 
-	handleGitError(git("commit", "--allow-empty", "-m", "Second Commit"))
-	res = handleGitError(git("log", "-1", `--pretty=%H`))
-	tReg.ref2 = strings.TrimSpace(res.stdout)
-}
-
-func git(args ...string) GitCommandResult {
-	git := exec.Command("git", args...)
-	git.Dir = tReg.SourceURL()
-	oB := new(bytes.Buffer)
-	eB := new(bytes.Buffer)
-	git.Stdout = oB
-	git.Stderr = eB
-	err := git.Run()
-	res := GitCommandResult{
-		exitCode: git.ProcessState.ExitCode(),
-		cmd:      git,
-		err:      err,
-		stdout:   oB.String(),
-		stderr:   eB.String(),
+	_, err = w.Commit("Initial Commit", commitOptions)
+	if err != nil {
+		tReg.Cleanup()
+		panic(fmt.Errorf("unable to commit test files to test git repo: %v", err))
 	}
-	return res
-}
+	head, err := r.Head()
+	if err != nil {
+		panic(fmt.Errorf("could not get ref of test git repo: %v", err))
+	}
+	tReg.ref1 = head.Hash().String()
 
-type GitCommandResult struct {
-	cmd      *exec.Cmd
-	exitCode int
-	err      error
-	stdout   string
-	stderr   string
+	commitOptions.AllowEmptyCommits = true
+	_, err = w.Commit("Second Commit", commitOptions)
+	if err != nil {
+		tReg.Cleanup()
+		panic(fmt.Errorf("unable to commit test files to test git repo: %v", err))
+	}
+	head, err = r.Head()
+	if err != nil {
+		panic(fmt.Errorf("could not get ref of test git repo: %v", err))
+	}
+	tReg.ref2 = head.Hash().String()
 }
 
 func testAddOpts(registryName string) *AddOpts {
@@ -616,17 +596,157 @@ func testAddOpts(registryName string) *AddOpts {
 	}
 }
 
-func testPackCount(t *testing.T, opts cacheOperationProvider) int {
-	packCount := 0
-
-	dirEntries, err := os.ReadDir(opts.RegistryPath())
-	require.NoError(t, err)
-
-	for _, dirEntry := range dirEntries {
-		if opts.IsTarget(dirEntry) {
-			packCount += 1
-		}
+func dirEntries(t *testing.T, p string) []fs.DirEntry {
+	t.Helper()
+	dirEntries, err := os.ReadDir(p)
+	if err != nil {
+		t.Fatalf("error in dirEntries: p: %s err:%s", p, err)
 	}
+	return dirEntries
+}
 
-	return packCount
+// packtuple describes each pack found in an entire cache
+// directory. The listAllTestPacks produces a packtuples,
+// which is an alias for []packtuple
+type packtuple struct {
+	reg  string
+	ref  string
+	name string
+}
+
+// packtuples is a []packtuple with method receivers on
+// them for filtering and query purposes in test cases
+type packtuples []packtuple
+
+// RefsUnique produces a sorted, unique value list of
+// references in the packtuples
+func (p packtuples) RefsUnique() []string {
+	out := p.Refs()
+	slices.Sort(out)
+	return slices.Compact(out)
+}
+
+// Refs produces a list of references in this packtuples.
+// They are returned in slice order.
+func (p packtuples) Refs() []string {
+	out := make([]string, len(p))
+	for i, p := range p {
+		out[i] = p.ref
+	}
+	return out
+}
+
+// RegistriesUnique produces a sorted, unique value list of
+// registries in the packtuples
+func (p packtuples) RegistriesUnique() []string {
+	out := p.Registries()
+	slices.Sort(out)
+	return slices.Compact(out)
+}
+
+// Registries produces a list of references in this packtuples.
+// They are returned in slice order.
+func (p packtuples) Registries() []string {
+	out := make([]string, len(p))
+	for i, p := range p {
+		out[i] = p.reg
+	}
+	return out
+}
+
+// PacksWithRefs produces a list of packs in this packtuples.
+// They are returned in slice order and include their
+// `@ref` suffix.
+func (p packtuples) PacksWithRefs() []string {
+	out := make([]string, len(p))
+	for i, p := range p {
+		out[i] = p.name
+	}
+	return out
+}
+
+// Packs produces a list of packs in this packtuples.
+// They are returned in slice order without their `@ref`
+// suffix.
+func (p packtuples) Packs() []string {
+	out := make([]string, len(p))
+	for i, p := range p {
+		name := p.name
+		atIdx := strings.Index(name, "@")
+		if atIdx >= 0 {
+			name = name[:atIdx]
+		}
+		out[i] = name
+	}
+	return out
+}
+
+// String returns a packtuple in `«reg»@«ref»/«packname»` form
+func (p packtuple) String() string {
+	name := p.name
+	atIdx := strings.Index(name, "@")
+	if atIdx >= 0 {
+		name = name[:atIdx]
+	}
+	return fmt.Sprintf("%s@%s/%s", p.reg, p.ref, name)
+}
+
+// listAllTestPacks is a test helper that uses the filesystem
+// to discover and count the registries, refs, and packs in a
+// given cachePath
+func listAllTestPacks(t *testing.T, cachePath string) packtuples {
+	acc := make([]packtuple, 0, 10)
+	dirFS := os.DirFS(cachePath)
+	fs.WalkDir(dirFS, ".", func(p string, d fs.DirEntry, err error) error {
+		// If there is an error opening the initial path, WalkDir
+		// calls this function again with an error set.
+		if err != nil {
+			t.Fatalf("listAllTestPacks: WalkDir error: %v", err)
+		}
+
+		if d.IsDir() {
+			t.Logf("walking %q...", p)
+		}
+
+		pts := strings.Split(p, "/")
+		if len(pts) > 3 {
+			// If we haven't reached a three-element directory, it can't
+			// be a correctly placed pack
+			return fs.SkipDir
+		}
+
+		if len(pts) == 3 && d.IsDir() && isPack(t, path.Join(cachePath, p), d) {
+			// Found a pack; add it to the accumulator
+			acc = append(acc, packtuple{reg: pts[0], ref: pts[1], name: pts[2]})
+			// We don't need to descend into the pack itself.
+			return fs.SkipDir
+		}
+
+		if len(pts) == 3 && d.IsDir() {
+			// Don't descend into non-pack directories.
+			return fs.SkipDir
+		}
+
+		// All other cases do nothing
+		return nil
+	})
+	return acc
+}
+
+func isPack(t *testing.T, p string, d fs.DirEntry) bool {
+	dirEntries := dirEntries(t, path.Join(p))
+	return slices.ContainsFunc(dirEntries, hasDir("templates")) &&
+		slices.ContainsFunc(dirEntries, hasFile("metadata.hcl"))
+}
+
+func hasDir(dir string) func(d fs.DirEntry) bool {
+	return func(d fs.DirEntry) bool {
+		return d.IsDir() && d.Name() == dir
+	}
+}
+
+func hasFile(name string) func(d fs.DirEntry) bool {
+	return func(d fs.DirEntry) bool {
+		return d.Type().IsRegular() && d.Name() == name
+	}
 }

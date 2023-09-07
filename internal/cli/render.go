@@ -11,13 +11,13 @@ import (
 	"path"
 	"strings"
 
-	v1 "github.com/hashicorp/nomad-openapi/v1"
+	"github.com/posener/complete"
+
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
 	"github.com/hashicorp/nomad-pack/internal/pkg/helper/filesystem"
 	"github.com/hashicorp/nomad-pack/terminal"
-	"github.com/posener/complete"
 )
 
 // RenderCommand is a command that allows users to render the templates within
@@ -192,7 +192,7 @@ func (c *RenderCommand) Run(args []string) int {
 		return 1
 	}
 
-	client, err := v1.NewClient()
+	client, err := c.getAPIClient()
 	if err != nil {
 		c.ui.ErrorWithContext(err, "failed to initialize client", errorContext.GetAll()...)
 		return 1

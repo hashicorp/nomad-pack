@@ -40,7 +40,7 @@ variable "command" {
 variable "env" {
   type        = map(string)
   description = "environment variable collection"
-  default     = {}
+  default     = { "FOO" = "bar", "BAZ" = "QUX" }
 }
 
 variable "test_name" {

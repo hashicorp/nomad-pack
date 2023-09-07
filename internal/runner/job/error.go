@@ -7,7 +7,6 @@ import (
 	"regexp"
 	"strings"
 
-	v1 "github.com/hashicorp/nomad-openapi/v1"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 )
 
@@ -59,7 +58,7 @@ func generateRegisterError(err error, errCtx *errors.UIErrorContext, jobName str
 
 	// If the error was due to a problems enforcing the index, alter the
 	// subject, so it is clear.
-	if strings.Contains(err.Error(), v1.RegisterEnforceIndexErrPrefix) {
+	if strings.Contains(err.Error(), "Enforcing job modify index") {
 		matches := enforceIndexRegex.FindStringSubmatch(err.Error())
 		if len(matches) == 2 {
 			deployErr.Subject = "failed to register job due to check index failure"

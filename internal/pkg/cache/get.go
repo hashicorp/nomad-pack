@@ -31,6 +31,7 @@ func (c *Cache) Get(opts *GetOpts) (registry *Registry, err error) {
 	// If no errors, allocate the instance
 	registry = &Registry{
 		Name:  opts.RegistryName,
+		Ref:   opts.Ref,
 		Packs: make([]*Pack, 0),
 	}
 
@@ -59,7 +60,7 @@ type GetOpts struct {
 
 // RegistryPath fulfills the cacheOperationProvider interface for GetOpts
 func (opts *GetOpts) RegistryPath() string {
-	return path.Join(opts.cachePath, opts.RegistryName)
+	return path.Join(opts.cachePath, opts.RegistryName, opts.Ref)
 }
 
 // PackPath fulfills the cacheOperationProvider interface for GetOpts

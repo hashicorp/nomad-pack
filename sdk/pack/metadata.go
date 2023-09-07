@@ -11,9 +11,10 @@ import (
 // high-level information about the pack which is useful for operators and is
 // also exposed as template variables during rendering.
 type Metadata struct {
-	App          *MetadataApp  `hcl:"app,block"`
-	Pack         *MetadataPack `hcl:"pack,block"`
-	Dependencies []*Dependency `hcl:"dependency,block"`
+	App          *MetadataApp         `hcl:"app,block"`
+	Pack         *MetadataPack        `hcl:"pack,block"`
+	Integration  *MetadataIntegration `hcl:"integration,block"`
+	Dependencies []*Dependency        `hcl:"dependency,block"`
 }
 
 // MetadataApp contains information regarding the application that the pack is
@@ -48,47 +49,91 @@ type MetadataPack struct {
 
 	// URL is the HTTP(S) url of the pack which is acts as a convenience when
 	// managing packs within a registry.
-	URL string `hcl:"url"`
+	//
+	// Deprecated: Nomad Pack tech preview 4 removes this field, we keep it here for
+	// backwards compatibility only.
+	URL string `hcl:"url,optional"`
 
 	// Version is the version of the pack which is acts as a convenience when
 	// managing packs within a registry.
 	Version string `hcl:"version"`
 }
 
-// ConvertToMapInterface returns a map[string]interface{} representation of the
+// MetadataIntegration contains information pertaining to the HashiCorp
+// Developer (https://developer.hashicorp.com/) Integrations Library.
+// This block is only needed for packs that are to be displayed in the
+// integrations library.
+//
+// Note: Currently, the integrations library is in closed beta, so you
+// will not be able to register an integration without support from a
+// HashiCorp team member. Furthermore, you may not be able to access
+// some of the links specified below in this structs documentation.
+type MetadataIntegration struct {
+
+	// Identifier is a unique identifier that points to a specific integration
+	// registered in the HashiCorp Developer Integrations Library.
+	Identifier string `hcl:"identifier"`
+
+	// Flags is an array of strings referencing various booleans you
+	// can enable for your pack as it will display in the integrations
+	// library. All flag options are specified within this file:
+	// https://github.com/hashicorp/integrations/blob/main/flags.hcl
+	Flags []string `hcl:"flags,optional"`
+
+	// You can optionally override the pack.name value here to adjust
+	// the name that will be displayed in HashiCorp Developer. For example,
+	// your pack name may be "hello_world", whereas on HashiCorp Developer
+	// you would like the name to render as "Hello World".
+	Name string `hcl:"name,optional"`
+}
+
+// ConvertToMapInterface returns a map[string]any representation of the
 // metadata object. The conversion doesn't take into account empty values and
 // will add them.
-func (md *Metadata) ConvertToMapInterface() map[string]interface{} {
-	return map[string]interface{}{
-		"nomad_pack": map[string]interface{}{
-			"app": map[string]interface{}{
-				"url": md.App.URL,
-			},
-			"pack": map[string]interface{}{
-				"name":        md.Pack.Name,
-				"description": md.Pack.Description,
-				"url":         md.Pack.URL,
-				"version":     md.Pack.Version,
-			},
+func (md *Metadata) ConvertToMapInterface() map[string]any {
+	innerMap := map[string]any{
+		"app": map[string]any{
+			"url": md.App.URL,
+		},
+		"pack": map[string]any{
+			"name":        md.Pack.Name,
+			"description": md.Pack.Description,
+			"version":     md.Pack.Version,
 		},
 	}
+	if md.Integration != nil {
+		innerMap["integration"] = map[string]any{
+			"identifier": md.Integration.Identifier,
+			"flags":      md.Integration.Flags,
+			"name":       md.Integration.Name,
+		}
+	}
+
+	return map[string]any{"nomad_pack": innerMap}
 }
 
 // AddToInterfaceMap adds the metadata information to the provided map as a new
 // entry under the "nomad_pack" key. This is useful for adding this information
 // to the template rendering data.
-func (md *Metadata) AddToInterfaceMap(m map[string]interface{}) map[string]interface{} {
-	m["nomad_pack"] = map[string]interface{}{
-		"app": map[string]interface{}{
+func (md *Metadata) AddToInterfaceMap(m map[string]any) map[string]any {
+	innerMap := map[string]any{
+		"app": map[string]any{
 			"url": md.App.URL,
 		},
-		"pack": map[string]interface{}{
+		"pack": map[string]any{
 			"name":        md.Pack.Name,
 			"description": md.Pack.Description,
-			"url":         md.Pack.URL,
 			"version":     md.Pack.Version,
 		},
 	}
+	if md.Integration != nil {
+		innerMap["integration"] = map[string]any{
+			"identifier": md.Integration.Identifier,
+			"flags":      md.Integration.Flags,
+			"name":       md.Integration.Name,
+		}
+	}
+	m["nomad_pack"] = innerMap
 	return m
 }
 

@@ -81,11 +81,11 @@ func (s *stringMapValue) Set(val string) error {
 	return nil
 }
 
-func (s *stringMapValue) Get() interface{} { return *s.target }
-func (s *stringMapValue) String() string   { return mapToKV(*s.target) }
-func (s *stringMapValue) Example() string  { return "key=value" }
-func (s *stringMapValue) Hidden() bool     { return s.hidden }
-func (s *stringMapValue) Type() string     { return "StringMap" }
+func (s *stringMapValue) Get() any        { return *s.target }
+func (s *stringMapValue) String() string  { return mapToKV(*s.target) }
+func (s *stringMapValue) Example() string { return "key=value" }
+func (s *stringMapValue) Hidden() bool    { return s.hidden }
+func (s *stringMapValue) Type() string    { return "StringMap" }
 
 func mapToKV(m map[string]string) string {
 	list := make([]string, 0, len(m))

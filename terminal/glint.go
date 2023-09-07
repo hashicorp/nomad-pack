@@ -15,10 +15,11 @@ import (
 
 	"github.com/bgentry/speakeasy"
 	"github.com/fatih/color"
-	"github.com/hashicorp/nomad-pack/sdk/helper"
 	"github.com/mattn/go-isatty"
 	"github.com/mitchellh/go-glint"
 	"github.com/olekukonko/tablewriter"
+
+	"github.com/hashicorp/nomad-pack/internal/pkg/helper"
 )
 
 type glintUI struct {
@@ -89,7 +90,7 @@ func (ui *glintUI) Interactive() bool {
 }
 
 // Output implements UI
-func (ui *glintUI) Output(msg string, raw ...interface{}) {
+func (ui *glintUI) Output(msg string, raw ...any) {
 	// Render row and reset
 	// This will still respect new lines (i.e. it won't turn several lines of text
 	// into one massively long single line of text)
@@ -181,7 +182,7 @@ func (ui *glintUI) Output(msg string, raw ...interface{}) {
 // Because there's no way to know if the row is complete within this
 // method, this relies on Output being called after the final call
 // to AppendToRow to force rendering of the row.
-func (ui *glintUI) AppendToRow(msg string, raw ...interface{}) {
+func (ui *glintUI) AppendToRow(msg string, raw ...any) {
 	msg, style, _ := Interpret(msg, raw...)
 
 	var cs []glint.StyleOption

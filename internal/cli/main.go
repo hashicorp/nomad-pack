@@ -10,10 +10,12 @@ import (
 	"sort"
 	"text/tabwriter"
 
-	flag "github.com/hashicorp/nomad-pack/internal/pkg/flag"
-	"github.com/hashicorp/nomad-pack/internal/pkg/version"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/go-glint"
+
+	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
+	"github.com/hashicorp/nomad-pack/internal/pkg/helper"
+	"github.com/hashicorp/nomad-pack/internal/pkg/version"
 )
 
 const (
@@ -59,7 +61,7 @@ func Main(args []string) int {
 	}
 
 	// Build our cancellation context
-	ctx, closer := WithInterrupt(context.Background())
+	ctx, closer := helper.WithInterrupt(context.Background())
 	defer closer()
 
 	// Get our base command
@@ -142,6 +144,11 @@ func Commands(
 				baseCommand: baseCommand,
 			}, nil
 		},
+		"list": func() (cli.Command, error) {
+			return &ListCommand{
+				baseCommand: baseCommand,
+			}, nil
+		},
 		"stop": func() (cli.Command, error) {
 			return &StopCommand{
 				baseCommand: baseCommand,
@@ -191,6 +198,21 @@ func Commands(
 		},
 		"generate registry": func() (cli.Command, error) {
 			return &GenerateRegistryCommand{
+				baseCommand: baseCommand,
+			}, nil
+		},
+		"generate var-file": func() (cli.Command, error) {
+			return &generateVarFileCommand{
+				baseCommand: baseCommand,
+			}, nil
+		},
+		"deps": func() (cli.Command, error) {
+			return &depsHelpCommand{
+				baseCommand: baseCommand,
+			}, nil
+		},
+		"deps vendor": func() (cli.Command, error) {
+			return &depsVendorCommand{
 				baseCommand: baseCommand,
 			}, nil
 		},

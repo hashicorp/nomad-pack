@@ -15,8 +15,9 @@ import (
 	"text/tabwriter"
 
 	"github.com/fatih/color"
-	"github.com/hashicorp/nomad-pack/sdk/helper"
 	"github.com/olekukonko/tablewriter"
+
+	"github.com/hashicorp/nomad-pack/internal/pkg/helper"
 )
 
 type nonInteractiveUI struct {
@@ -38,7 +39,7 @@ func (ui *nonInteractiveUI) Interactive() bool {
 }
 
 // Output implements UI
-func (ui *nonInteractiveUI) Output(msg string, raw ...interface{}) {
+func (ui *nonInteractiveUI) Output(msg string, raw ...any) {
 	ui.mu.Lock()
 	defer ui.mu.Unlock()
 	msg, style, w := Interpret(msg, raw...)
@@ -77,7 +78,7 @@ func (ui *nonInteractiveUI) Output(msg string, raw ...interface{}) {
 }
 
 // TODO: Added purely for compilation purposes. Untested
-func (ui *nonInteractiveUI) AppendToRow(msg string, raw ...interface{}) {
+func (ui *nonInteractiveUI) AppendToRow(msg string, raw ...any) {
 	ui.mu.Lock()
 	defer ui.mu.Unlock()
 	msg, style, w := Interpret(msg, raw...)
@@ -281,7 +282,7 @@ type nonInteractiveStepGroup struct {
 }
 
 // Start a step in the output
-func (f *nonInteractiveStepGroup) Add(str string, args ...interface{}) Step {
+func (f *nonInteractiveStepGroup) Add(str string, args ...any) Step {
 	// Build our step
 	step := &nonInteractiveStep{mu: f.mu}
 
@@ -323,7 +324,7 @@ func (f *nonInteractiveStep) TermOutput() io.Writer {
 	return &stripAnsiWriter{Next: color.Output}
 }
 
-func (f *nonInteractiveStep) Update(str string, args ...interface{}) {
+func (f *nonInteractiveStep) Update(str string, args ...any) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	fmt.Fprintln(color.Output, "-> "+fmt.Sprintf(str, args...))

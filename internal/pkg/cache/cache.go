@@ -9,17 +9,19 @@ import (
 	"path"
 	"strings"
 
+	"github.com/go-git/go-git/v5"
+
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/helper/filesystem"
 	"github.com/hashicorp/nomad-pack/internal/pkg/logging"
 )
 
 const (
-	DefaultRegistryName   = "default"
-	DefaultRegistrySource = "github.com/hashicorp/nomad-pack-community-registry"
-	DefaultRef            = "latest"
-	DevRegistryName       = "<<local folder>>"
-	DevRef                = "<<none>>"
+	DefaultRegistryName = "default"
+	DefaultRef          = "latest"
+	DevRegistryName     = "<<local folder>>"
+	DevRef              = "<<none>>"
+	DefaultDirPerms     = 0700
 )
 
 // NewCache instantiates a new cache instance with the specified config. If no
@@ -76,6 +78,8 @@ func defaultCacheConfig() *CacheConfig {
 type Cache struct {
 	cfg        *CacheConfig
 	registries []*Registry
+	// latestSHA keeps the ref to the last clone operation (if any)
+	latestSHA string
 	// ErrorContext stores any errors that were encountered along the way so that
 	// error handling can be dealt with in one place.
 	ErrorContext *errors.ErrorContext
@@ -169,16 +173,24 @@ func (c *Cache) Load() (err error) {
 			continue
 		}
 
-		opts.RegistryName = registryEntry.Name()
-
-		// Load the registry from the path
-		var registry *Registry
-		registry, err = c.Get(opts)
-		if err != nil {
+		// Process all refs
+		registryRefs, err2 := os.ReadDir(path.Join(c.cfg.Path, registryEntry.Name()))
+		if err2 != nil {
 			return
 		}
+		for _, registryRef := range registryRefs {
+			opts.RegistryName = registryEntry.Name()
+			opts.Ref = registryRef.Name()
 
-		c.registries = append(c.registries, registry)
+			// Load the registry from the path
+			var registry *Registry
+			registry, err = c.Get(opts)
+			if err != nil {
+				return
+			}
+
+			c.registries = append(c.registries, registry)
+		}
 	}
 
 	return
@@ -212,4 +224,19 @@ func refFromPackEntry(packEntry os.DirEntry) (ref string) {
 	}
 
 	return
+}
+
+// getGitHeadRef is a helper method that takes a directory which is a git
+// repository, and returns the SHA of the git HEAD of that repository.
+func getGitHeadRef(clonePath string) (string, error) {
+	r, err := git.PlainOpen(clonePath)
+	if err != nil {
+		return "n/a", fmt.Errorf("could not read cloned repository: %v", err)
+	}
+	head, err := r.Head()
+	if err != nil {
+		return "n/a", fmt.Errorf("could not get ref of a cloned repository: %v", err)
+	}
+
+	return head.Hash().String(), nil
 }

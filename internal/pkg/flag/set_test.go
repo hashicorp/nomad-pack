@@ -6,7 +6,7 @@ package flag
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"github.com/shoenig/test/must"
 )
 
 func TestSets(t *testing.T) {
@@ -65,11 +65,11 @@ func TestSets(t *testing.T) {
 		t.Run(tc.Name, func(t *testing.T) {
 			err := sets.Parse(tc.Args)
 			if tc.expectError {
-				require.Error(t, err)
+				must.Error(t, err)
 			} else {
-				require.NoError(t, err)
-				require.Equal(t, int(21), valA)
-				require.Equal(t, int(42), valB)
+				must.NoError(t, err)
+				must.Eq(t, int(21), valA)
+				must.Eq(t, int(42), valB)
 			}
 		})
 	}

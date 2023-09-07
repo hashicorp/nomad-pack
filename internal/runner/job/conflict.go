@@ -6,8 +6,9 @@ package job
 import (
 	"fmt"
 
+	"github.com/hashicorp/nomad/api"
+
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
-	intHelper "github.com/hashicorp/nomad-pack/internal/pkg/helper"
 )
 
 func (r *Runner) CheckForConflicts(errCtx *errors.UIErrorContext) []*errors.WrappedUIContext {
@@ -20,7 +21,7 @@ func (r *Runner) CheckForConflicts(errCtx *errors.UIErrorContext) []*errors.Wrap
 
 	for tplName, jobSpec := range r.parsedTemplates {
 		if err := r.checkForConflict(jobSpec.GetName()); err != nil {
-			outputErrors = append(outputErrors, newValidationDeployerError(intHelper.UnwrapAPIError(err), validationSubjConflict, tplName))
+			outputErrors = append(outputErrors, newValidationDeployerError(err, validationSubjConflict, tplName))
 			continue
 		}
 	}
@@ -35,11 +36,9 @@ func (r *Runner) CheckForConflicts(errCtx *errors.UIErrorContext) []*errors.Wrap
 // supplied job is found. If the job is found, we confirm if it belongs to this
 // Nomad Pack deployment. In the event it doesn't this will result in an error.
 func (r *Runner) checkForConflict(jobName string) error {
-	existing, _, err := r.client.Jobs().GetJob(r.clientQueryOpts.Ctx(), jobName)
-	if err != nil {
-		if err.Error() != "job not found" {
-			return err
-		}
+	existing, _, err := r.client.Jobs().Info(jobName, &api.QueryOptions{})
+	if err != nil && !errIsNotFound(err) {
+		return err
 	}
 
 	// If no existing job, no possible error condition.
@@ -54,7 +53,7 @@ func (r *Runner) checkForConflict(jobName string) error {
 		return ErrExistsNonPack{*existing.ID}
 	}
 
-	meta := *existing.Meta
+	meta := existing.Meta
 
 	// if there is a job with this ID, that has no pack_deployment_name meta,
 	// it was created by something other than the package manager and this
@@ -88,4 +87,16 @@ type ErrExistsInDeployment struct {
 
 func (e ErrExistsInDeployment) Error() string {
 	return fmt.Sprintf("job with id %q already exists and is part of deployment %q", e.JobID, e.Deployment)
+}
+
+func errIsNotFound(err error) bool {
+	var unexpectedResponse api.UnexpectedResponseError
+	if errors.As(err, &unexpectedResponse) {
+		if unexpectedResponse.HasStatusText() {
+			if unexpectedResponse.StatusText() == "Not Found" {
+				return true
+			}
+		}
+	}
+	return false
 }

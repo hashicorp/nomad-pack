@@ -4,12 +4,12 @@
 # There can only be a single job definition per file. This job is named
 # "countdash" so it will create a job with the ID and Name "countdash".
 
-# The "job" stanza is the top-most configuration option in the job
+# The "job" block is the top-most configuration option in the job
 # specification. A job is a declarative specification of tasks that Nomad
 # should run. Jobs have a globally unique name, one or many task groups, which
 # are themselves collections of one or many tasks.
 #
-# For more information and examples on the "job" stanza, please see
+# For more information and examples on the "job" block, please see
 # the online documentation at:
 #
 #     https://developer.hashicorp.com/nomad/docs/job-specification/job
@@ -34,11 +34,11 @@ job "countdash" {
   #
   type = "service"
 
-  # The "constraint" stanza defines additional constraints for placing this job,
-  # in addition to any resource or driver constraints. This stanza may be placed
+  # The "constraint" block defines additional constraints for placing this job,
+  # in addition to any resource or driver constraints. This block may be placed
   # at the "job", "group", or "task" level, and supports variable interpolation.
   #
-  # For more information and examples on the "constraint" stanza, please see
+  # For more information and examples on the "constraint" block, please see
   # the online documentation at:
   #
   #     https://developer.hashicorp.com/nomad/docs/job-specification/constraint
@@ -48,14 +48,14 @@ job "countdash" {
   #   value     = "linux"
   # }
 
-  # The "update" stanza specifies the update strategy of task groups. The update
+  # The "update" block specifies the update strategy of task groups. The update
   # strategy is used to control things like rolling upgrades, canaries, and
   # blue/green deployments. If omitted, no update strategy is enforced. The
-  # "update" stanza may be placed at the job or task group. When placed at the
+  # "update" block may be placed at the job or task group. When placed at the
   # job, it applies to all groups within the job. When placed at both the job and
-  # group level, the stanzas are merged with the group's taking precedence.
+  # group level, the blocks are merged with the group's taking precedence.
   #
-  # For more information and examples on the "update" stanza, please see
+  # For more information and examples on the "update" block, please see
   # the online documentation at:
   #
   #     https://developer.hashicorp.com/nomad/docs/job-specification/update
@@ -102,10 +102,10 @@ job "countdash" {
     # version is deployed and upon promotion the old version is stopped.
     canary = 0
   }
-  # The migrate stanza specifies the group's strategy for migrating off of
+  # The migrate block specifies the group's strategy for migrating off of
   # draining nodes. If omitted, a default migration strategy is applied.
   #
-  # For more information on the "migrate" stanza, please see
+  # For more information on the "migrate" block, please see
   # the online documentation at:
   #
   #     https://developer.hashicorp.com/nomad/docs/job-specification/migrate
@@ -130,11 +130,11 @@ job "countdash" {
     # is specified using a label suffix like "2m" or "1h".
     healthy_deadline = "5m"
   }
-  # The "group" stanza defines a series of tasks that should be co-located on
+  # The "group" block defines a series of tasks that should be co-located on
   # the same Nomad client. Any task within a group will be placed on the same
   # client.
   #
-  # For more information and examples on the "group" stanza, please see
+  # For more information and examples on the "group" block, please see
   # the online documentation at:
   #
   #     https://developer.hashicorp.com/nomad/docs/job-specification/group
@@ -145,10 +145,10 @@ job "countdash" {
     # to 1.
     count = 1
 
-    # The "restart" stanza configures a group's behavior on task failure. If
+    # The "restart" block configures a group's behavior on task failure. If
     # left unspecified, a default restart policy is used based on the job type.
     #
-    # For more information and examples on the "restart" stanza, please see
+    # For more information and examples on the "restart" block, please see
     # the online documentation at:
     #
     #     https://developer.hashicorp.com/nomad/docs/job-specification/restart
@@ -169,12 +169,12 @@ job "countdash" {
       mode = "fail"
     }
 
-    # The "ephemeral_disk" stanza instructs Nomad to utilize an ephemeral disk
-    # instead of a hard disk requirement. Clients using this stanza should
-    # not specify disk requirements in the resources stanza of the task. All
+    # The "ephemeral_disk" block instructs Nomad to utilize an ephemeral disk
+    # instead of a hard disk requirement. Clients using this block should
+    # not specify disk requirements in the resources block of the task. All
     # tasks in this group will share the same ephemeral disk.
     #
-    # For more information and examples on the "ephemeral_disk" stanza, please
+    # For more information and examples on the "ephemeral_disk" block, please
     # see the online documentation at:
     #
     #     https://developer.hashicorp.com/nomad/docs/job-specification/ephemeral_disk
@@ -195,10 +195,10 @@ job "countdash" {
       size = 300
     }
 
-    # The "affinity" stanza enables operators to express placement preferences
+    # The "affinity" block enables operators to express placement preferences
     # based on node attributes or metadata.
     #
-    # For more information and examples on the "affinity" stanza, please
+    # For more information and examples on the "affinity" block, please
     # see the online documentation at:
     #
     #     https://developer.hashicorp.com/nomad/docs/job-specification/affinity
@@ -217,11 +217,11 @@ job "countdash" {
     # }
 
 
-    # The "spread" stanza allows operators to increase the failure tolerance of
+    # The "spread" block allows operators to increase the failure tolerance of
     # their applications by specifying a node attribute that allocations
     # should be spread over.
     #
-    # For more information and examples on the "spread" stanza, please
+    # For more information and examples on the "spread" block, please
     # see the online documentation at:
     #
     #     https://developer.hashicorp.com/nomad/docs/job-specification/spread
@@ -242,7 +242,7 @@ job "countdash" {
     #   }
     #  }
 
-    # The "network" stanza for a group creates a network namespace shared
+    # The "network" block for a group creates a network namespace shared
     # by all tasks within the group.
     network {
       # "mode" is the CNI plugin used to configure the network namespace.
@@ -258,23 +258,23 @@ job "countdash" {
       #   to = "8080"
       # }
 
-      # The "dns" stanza allows operators to override the DNS configuration
+      # The "dns" block allows operators to override the DNS configuration
       # inherited by the host client.
       # dns {
       #   servers = ["1.1.1.1"]
       # }
     }
-    # The "service" stanza enables Consul Connect.
+    # The "service" block enables Consul Connect.
     service {
       name = "count-api"
 
-      # The port in the service stanza is the port the service listens on.
+      # The port in the service block is the port the service listens on.
       # The Envoy proxy will automatically route traffic to that port
       # inside the network namespace. If the application binds to localhost
       # on this port, the task needs no additional network configuration.
       port = "9001"
 
-      # The "check" stanza specifies a health check associated with the service.
+      # The "check" block specifies a health check associated with the service.
       # This can be specified multiple times to define multiple checks for the
       # service. Note that checks run inside the task indicated by the "task"
       # field.
@@ -288,7 +288,7 @@ job "countdash" {
       # }
 
       connect {
-        # The "sidecar_service" stanza configures the Envoy sidecar admission
+        # The "sidecar_service" block configures the Envoy sidecar admission
         # controller. For each task group with a sidecar_service, Nomad  will
         # inject an Envoy task into the task group. A group network will be
         # required and a dynamic port will be registered for remote services
@@ -298,10 +298,10 @@ job "countdash" {
         sidecar_service {}
       }
     }
-    # The "task" stanza creates an individual unit of work, such as a Docker
+    # The "task" block creates an individual unit of work, such as a Docker
     # container, web application, or batch processing.
     #
-    # For more information and examples on the "task" stanza, please see
+    # For more information and examples on the "task" block, please see
     # the online documentation at:
     #
     #     https://developer.hashicorp.com/nomad/docs/job-specification/task
@@ -311,7 +311,7 @@ job "countdash" {
       # run the task.
       driver = "docker"
 
-      # The "config" stanza specifies the driver configuration, which is passed
+      # The "config" block specifies the driver configuration, which is passed
       # directly to the driver to start the task. The details of configurations
       # are specific to each driver, so please see specific driver
       # documentation for more information.
@@ -319,13 +319,13 @@ job "countdash" {
         image = "hashicorpnomad/counter-api:v3"
       }
 
-      # The "artifact" stanza instructs Nomad to download an artifact from a
+      # The "artifact" block instructs Nomad to download an artifact from a
       # remote source prior to starting the task. This provides a convenient
       # mechanism for downloading configuration files or data needed to run the
-      # task. It is possible to specify the "artifact" stanza multiple times to
+      # task. It is possible to specify the "artifact" block multiple times to
       # download multiple artifacts.
       #
-      # For more information and examples on the "artifact" stanza, please see
+      # For more information and examples on the "artifact" block, please see
       # the online documentation at:
       #
       #     https://developer.hashicorp.com/nomad/docs/job-specification/artifact
@@ -338,12 +338,12 @@ job "countdash" {
       # }
 
 
-      # The "logs" stanza instructs the Nomad client on how many log files and
+      # The "logs" block instructs the Nomad client on how many log files and
       # the maximum size of those logs files to retain. Logging is enabled by
-      # default, but the "logs" stanza allows for finer-grained control over
+      # default, but the "logs" block allows for finer-grained control over
       # the log rotation and storage configuration.
       #
-      # For more information and examples on the "logs" stanza, please see
+      # For more information and examples on the "logs" block, please see
       # the online documentation at:
       #
       #     https://developer.hashicorp.com/nomad/docs/job-specification/logs
@@ -353,12 +353,12 @@ job "countdash" {
       #   max_file_size = 15
       # }
 
-      # The "resources" stanza describes the requirements a task needs to
+      # The "resources" block describes the requirements a task needs to
       # execute. Resource requirements include memory, network, cpu, and more.
       # This ensures the task will execute on a machine that contains enough
       # resource capacity.
       #
-      # For more information and examples on the "resources" stanza, please see
+      # For more information and examples on the "resources" block, please see
       # the online documentation at:
       #
       #     https://developer.hashicorp.com/nomad/docs/job-specification/resources
@@ -370,13 +370,13 @@ job "countdash" {
     }
 
     # The Envoy sidecar admission controller will inject an Envoy task into
-    # any task group for each service with a sidecar_service stanza it contains.
+    # any task group for each service with a sidecar_service block it contains.
     # A group network will be required and a dynamic port will be registered for
     # remote services to connect to Envoy with the name `connect-proxy-<service>`.
     # By default, Envoy will be run via its official upstream Docker image.
     #
     # There are two ways to modify the default behavior:
-    #   * Tasks can define a `sidecar_task` stanza in the `connect` stanza
+    #   * Tasks can define a `sidecar_task` block in the `connect` block
     #     that merges into the default sidecar configuration.
     #   * Add the `kind = "connect-proxy:<service>"` field to another task.
     #     That task will be replace the default Envoy proxy task entirely.
@@ -404,7 +404,7 @@ job "countdash" {
     #   }
     # }
   }
-  # This job has a second "group" stanza to define tasks that might be placed
+  # This job has a second "group" block to define tasks that might be placed
   # on a separate Nomad client from the group above.
   #
   group "dashboard" {
@@ -427,7 +427,7 @@ job "countdash" {
       connect {
         sidecar_service {
           proxy {
-            # The upstreams stanza defines the remote service to access
+            # The upstreams block defines the remote service to access
             # (count-api) and what port to expose that service on inside
             # the network namespace. This allows this task to reach the
             # upstream at localhost:8080.
@@ -438,7 +438,7 @@ job "countdash" {
           }
         }
 
-        # The `sidecar_task` stanza modifies the default configuration
+        # The `sidecar_task` block modifies the default configuration
         # of the Envoy proxy task.
         # sidecar_task {
         #   resources {

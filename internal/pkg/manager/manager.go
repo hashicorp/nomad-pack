@@ -8,12 +8,12 @@ import (
 	"path"
 	"strings"
 
-	v1 "github.com/hashicorp/nomad-openapi/v1"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/loader"
 	"github.com/hashicorp/nomad-pack/internal/pkg/renderer"
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable"
 	"github.com/hashicorp/nomad-pack/sdk/pack"
+	"github.com/hashicorp/nomad/api"
 )
 
 // Config contains all the user specified parameters needed to correctly run
@@ -29,18 +29,60 @@ type Config struct {
 // all dependencies.
 type PackManager struct {
 	cfg      *Config
-	client   *v1.Client
+	client   *api.Client
 	renderer *renderer.Renderer
 
 	// loadedPack is unavailable until the loadAndValidatePacks func is run.
 	loadedPack *pack.Pack
 }
 
-func NewPackManager(cfg *Config, client *v1.Client) *PackManager {
+func NewPackManager(cfg *Config, client *api.Client) *PackManager {
 	return &PackManager{
 		cfg:    cfg,
 		client: client,
 	}
+}
+
+// TODO: This shares a ton of code with ProcessTemplates and is a good refactoring target
+func (pm *PackManager) ProcessVariableFiles() (*variable.ParsedVariables, []*errors.WrappedUIContext) {
+	loadedPack, err := pm.loadAndValidatePacks()
+	if err != nil {
+		return nil, []*errors.WrappedUIContext{{
+			Err:     err,
+			Subject: "failed to validate packs",
+			Context: errors.NewUIErrorContext(),
+		}}
+	}
+
+	pm.loadedPack = loadedPack
+
+	// Root vars are nested under the parent pack name, which is currently
+	// just the pack name without the version. We want to slice the string
+	// so it's just the pack name without the version
+	parentName := path.Base(pm.cfg.Path)
+	idx := strings.LastIndex(path.Base(pm.cfg.Path), "@")
+	if idx != -1 {
+		parentName = path.Base(pm.cfg.Path)[0:idx]
+	}
+	variableParser, err := variable.NewParser(&variable.ParserConfig{
+		ParentName:        parentName,
+		RootVariableFiles: loadedPack.RootVariableFiles(),
+	})
+
+	if err != nil {
+		return nil, []*errors.WrappedUIContext{{
+			Err:     err,
+			Subject: "failed to instantiate parser",
+			Context: errors.NewUIErrorContext(),
+		}}
+	}
+
+	parsedVars, diags := variableParser.Parse()
+	if diags != nil && diags.HasErrors() {
+		return nil, errors.HCLDiagsToWrappedUIContext(diags)
+	}
+
+	return parsedVars, nil
 }
 
 // ProcessTemplates is responsible for running all backend process for the PackManager
@@ -192,4 +234,11 @@ func (pm *PackManager) PackName() string {
 		name = path.Base(pm.cfg.Path)[0:idx]
 	}
 	return name
+}
+
+func (pm *PackManager) Metadata() *pack.Metadata {
+	if pm.loadedPack == nil {
+		return nil
+	}
+	return pm.loadedPack.Metadata
 }

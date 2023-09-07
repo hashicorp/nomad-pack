@@ -6,8 +6,7 @@ package pack
 import (
 	"testing"
 
-	"github.com/hashicorp/nomad-pack/sdk/helper"
-	"github.com/stretchr/testify/assert"
+	"github.com/shoenig/test/must"
 )
 
 func TestDependency_Validate(t *testing.T) {
@@ -25,7 +24,7 @@ func TestDependency_Validate(t *testing.T) {
 			expectedOutputDependency: &Dependency{
 				Name:    "example",
 				Source:  "git://example.com/example",
-				Enabled: helper.BoolToPtr(true),
+				Enabled: pointerOf(true),
 			},
 			name: "nil enabled input",
 		},
@@ -33,12 +32,12 @@ func TestDependency_Validate(t *testing.T) {
 			inputDependency: &Dependency{
 				Name:    "example",
 				Source:  "git://example.com/example",
-				Enabled: helper.BoolToPtr(false),
+				Enabled: pointerOf(false),
 			},
 			expectedOutputDependency: &Dependency{
 				Name:    "example",
 				Source:  "git://example.com/example",
-				Enabled: helper.BoolToPtr(false),
+				Enabled: pointerOf(false),
 			},
 			name: "false enabled input",
 		},
@@ -46,12 +45,12 @@ func TestDependency_Validate(t *testing.T) {
 			inputDependency: &Dependency{
 				Name:    "example",
 				Source:  "git://example.com/example",
-				Enabled: helper.BoolToPtr(true),
+				Enabled: pointerOf(true),
 			},
 			expectedOutputDependency: &Dependency{
 				Name:    "example",
 				Source:  "git://example.com/example",
-				Enabled: helper.BoolToPtr(true),
+				Enabled: pointerOf(true),
 			},
 			name: "false enabled input",
 		},
@@ -60,10 +59,10 @@ func TestDependency_Validate(t *testing.T) {
 	for _, tc := range testCases {
 		err := tc.inputDependency.validate()
 		if tc.expectError {
-			assert.NotNil(t, err, tc.name)
+			must.NotNil(t, err, must.Sprint(tc.name))
 		} else {
-			assert.Nil(t, err, tc.name)
+			must.Nil(t, err, must.Sprint(tc.name))
 		}
-		assert.Equal(t, tc.expectedOutputDependency, tc.inputDependency, tc.name)
+		must.Eq(t, tc.expectedOutputDependency, tc.inputDependency, must.Sprint(tc.name))
 	}
 }
