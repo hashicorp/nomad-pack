@@ -15,10 +15,6 @@ func DiagFileNotFound(f string) *hcl.Diagnostic {
 	}
 }
 
-func DiagsFileNotFound(f string) hcl.Diagnostics {
-	return hcl.Diagnostics{DiagFileNotFound(f)}
-}
-
 func DiagMissingRootVar(name string, sub *hcl.Range) *hcl.Diagnostic {
 	return &hcl.Diagnostic{
 		Severity: hcl.DiagError,
