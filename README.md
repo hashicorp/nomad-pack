@@ -154,8 +154,8 @@ Pull Requests and feedback on both repositories are welcome!
 
 ## Tutorials
 
-- [Introduction to Nomad Pack](https://learn.hashicorp.com/tutorials/nomad/nomad-pack-intro)
-- [Writing Custom Packs](https://learn.hashicorp.com/tutorials/nomad/nomad-pack-writing-packs)
+- [Introduction to Nomad Pack](https://developer.hashicorp.com/nomad/tutorials/nomad-pack/nomad-pack-intro)
+- [Writing Custom Packs](https://developer.hashicorp.com/nomad/tutorials/nomad-pack/nomad-pack-writing-packs)
 
 
 [hashicorp_releases]: (https://releases.hashicorp.com/nomad-pack/)

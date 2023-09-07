@@ -12,7 +12,7 @@
 # For more information and examples on the "job" block, please see
 # the online documentation at:
 #
-#     https://www.nomadproject.io/docs/job-specification/job.html
+#     https://developer.hashicorp.com/nomad/docs/job-specification/job
 #
 job "countdash" {
   # The "region" parameter specifies the region in which to execute the job. If
@@ -30,7 +30,7 @@ job "countdash" {
   #
   # For more information, please see the online documentation at:
   #
-  #     https://www.nomadproject.io/docs/jobspec/schedulers.html
+  #     https://developer.hashicorp.com/nomad/docs/schedulers
   #
   type = "service"
 
@@ -41,7 +41,7 @@ job "countdash" {
   # For more information and examples on the "constraint" block, please see
   # the online documentation at:
   #
-  #     https://www.nomadproject.io/docs/job-specification/constraint.html
+  #     https://developer.hashicorp.com/nomad/docs/job-specification/constraint
   #
   # constraint {
   #   attribute = "${attr.kernel.name}"
@@ -58,7 +58,7 @@ job "countdash" {
   # For more information and examples on the "update" block, please see
   # the online documentation at:
   #
-  #     https://www.nomadproject.io/docs/job-specification/update.html
+  #     https://developer.hashicorp.com/nomad/docs/job-specification/update
   #
   update {
     # The "max_parallel" parameter specifies the maximum number of updates to
@@ -108,7 +108,7 @@ job "countdash" {
   # For more information on the "migrate" block, please see
   # the online documentation at:
   #
-  #     https://www.nomadproject.io/docs/job-specification/migrate.html
+  #     https://developer.hashicorp.com/nomad/docs/job-specification/migrate
   #
   migrate {
     # Specifies the number of task groups that can be migrated at the same
@@ -137,7 +137,7 @@ job "countdash" {
   # For more information and examples on the "group" block, please see
   # the online documentation at:
   #
-  #     https://www.nomadproject.io/docs/job-specification/group.html
+  #     https://developer.hashicorp.com/nomad/docs/job-specification/group
   #
   group "api" {
     # The "count" parameter specifies the number of the task groups that should
@@ -151,7 +151,7 @@ job "countdash" {
     # For more information and examples on the "restart" block, please see
     # the online documentation at:
     #
-    #     https://www.nomadproject.io/docs/job-specification/restart.html
+    #     https://developer.hashicorp.com/nomad/docs/job-specification/restart
     #
     restart {
       # The number of attempts to run the job within the specified interval.
@@ -177,7 +177,7 @@ job "countdash" {
     # For more information and examples on the "ephemeral_disk" block, please
     # see the online documentation at:
     #
-    #     https://www.nomadproject.io/docs/job-specification/ephemeral_disk.html
+    #     https://developer.hashicorp.com/nomad/docs/job-specification/ephemeral_disk
     #
     ephemeral_disk {
       # When sticky is true and the task group is updated, the scheduler
@@ -201,7 +201,7 @@ job "countdash" {
     # For more information and examples on the "affinity" block, please
     # see the online documentation at:
     #
-    #     https://www.nomadproject.io/docs/job-specification/affinity.html
+    #     https://developer.hashicorp.com/nomad/docs/job-specification/affinity
     #
     # affinity {
     #   # attribute specifies the name of a node attribute or metadata
@@ -224,7 +224,7 @@ job "countdash" {
     # For more information and examples on the "spread" block, please
     # see the online documentation at:
     #
-    #     https://www.nomadproject.io/docs/job-specification/spread.html
+    #     https://developer.hashicorp.com/nomad/docs/job-specification/spread
     #
     # spread {
     #   # attribute specifies the name of a node attribute or metadata
@@ -304,7 +304,7 @@ job "countdash" {
     # For more information and examples on the "task" block, please see
     # the online documentation at:
     #
-    #     https://www.nomadproject.io/docs/job-specification/task.html
+    #     https://developer.hashicorp.com/nomad/docs/job-specification/task
     #
     task "web" {
       # The "driver" parameter specifies the task driver that should be used to
@@ -328,10 +328,10 @@ job "countdash" {
       # For more information and examples on the "artifact" block, please see
       # the online documentation at:
       #
-      #     https://www.nomadproject.io/docs/job-specification/artifact.html
+      #     https://developer.hashicorp.com/nomad/docs/job-specification/artifact
       #
       # artifact {
-      #   source = "http://foo.com/artifact.tar.gz"
+      #   source = "https://foo.com/artifact.tar.gz"
       #   options {
       #     checksum = "md5:c4aa853ad2215426eb7d70a21922e794"
       #   }
@@ -346,7 +346,7 @@ job "countdash" {
       # For more information and examples on the "logs" block, please see
       # the online documentation at:
       #
-      #     https://www.nomadproject.io/docs/job-specification/logs.html
+      #     https://developer.hashicorp.com/nomad/docs/job-specification/logs
       #
       # logs {
       #   max_files     = 10
@@ -361,7 +361,7 @@ job "countdash" {
       # For more information and examples on the "resources" block, please see
       # the online documentation at:
       #
-      #     https://www.nomadproject.io/docs/job-specification/resources.html
+      #     https://developer.hashicorp.com/nomad/docs/job-specification/resources
       #
       resources {
         cpu    = 500 # 500 MHz

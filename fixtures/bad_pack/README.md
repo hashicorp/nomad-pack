@@ -93,7 +93,7 @@ consul_tags = [
 
 ## Customizing Consul and Upstream Services
 
-Consul configuration can be tweaked and (upstream services)[https://www.nomadproject.io/docs/job-specification/upstreams]
+Consul configuration can be tweaked and [upstream services](https://developer.hashicorp.com/nomad/docs/job-specification/upstreams)
 can be added as well.
 
 ```
