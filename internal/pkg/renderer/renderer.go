@@ -9,7 +9,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/hashicorp/hcl/hcl/printer"
+	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/hashicorp/nomad/api"
 
 	"github.com/hashicorp/nomad-pack/sdk/pack"
@@ -122,10 +122,7 @@ func (r *Renderer) Render(p *pack.Pack, variables map[string]any) (*Rendered, er
 
 		if r.Format {
 			// hclfmt the templates
-			f, err := printer.Format([]byte(replacedTpl))
-			if err != nil {
-				return nil, fmt.Errorf("failed to format the template %s, %v", name, err)
-			}
+			f := hclwrite.Format([]byte(replacedTpl))
 			replacedTpl = string(f)
 		}
 
