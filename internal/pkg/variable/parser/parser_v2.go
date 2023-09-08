@@ -36,9 +36,9 @@ type ParserV2 struct {
 
 	// envOverrideVars, fileOverrideVars, cliOverrideVars are the override
 	// variables. The maps are keyed by the pack name they are associated to.
-	envOverrideVars  map[pack.ID][]*variables.Variable
-	fileOverrideVars map[pack.ID][]*variables.Variable
-	flagOverrideVars map[pack.ID][]*variables.Variable
+	envOverrideVars  variables.PackIDKeyedVarMap
+	fileOverrideVars variables.PackIDKeyedVarMap
+	flagOverrideVars variables.PackIDKeyedVarMap
 }
 
 func NewParserV2(cfg *config.ParserConfig) (*ParserV2, error) {
@@ -101,7 +101,7 @@ func (p *ParserV2) Parse() (*ParsedVariables, hcl.Diagnostics) {
 
 	// Iterate all our override variables and merge these into our root
 	// variables with the CLI taking highest priority.
-	for _, override := range []map[pack.ID][]*variables.Variable{p.envOverrideVars, p.fileOverrideVars, p.flagOverrideVars} {
+	for _, override := range []variables.PackIDKeyedVarMap{p.envOverrideVars, p.fileOverrideVars, p.flagOverrideVars} {
 		for packName, variables := range override {
 			for _, v := range variables {
 				existing, exists := p.rootVars[packName][v.Name]
@@ -249,7 +249,7 @@ func (p *ParserV2) parseFlagVariable(name string, rawVal string) hcl.Diagnostics
 	return p.parseVariableImpl(name, rawVal, p.flagOverrideVars, "-var", "arguments")
 }
 
-func (p *ParserV2) parseVariableImpl(name, rawVal string, tgt map[pack.ID][]*variables.Variable, typeTxt, rangeDesc string) hcl.Diagnostics {
+func (p *ParserV2) parseVariableImpl(name, rawVal string, tgt variables.PackIDKeyedVarMap, typeTxt, rangeDesc string) hcl.Diagnostics {
 	if rangeDesc == "environment" {
 		name = strings.TrimPrefix(name, envloader.DefaultPrefix)
 	}

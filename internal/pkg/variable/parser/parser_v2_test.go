@@ -27,8 +27,8 @@ func TestParserV2_parseFlagVariable(t *testing.T) {
 		inputName        string
 		inputRawVal      string
 		expectedError    bool
-		expectedFlagVars map[pack.ID][]*variables.Variable
-		expectedEnvVars  map[pack.ID][]*variables.Variable
+		expectedFlagVars variables.PackIDKeyedVarMap
+		expectedEnvVars  variables.PackIDKeyedVarMap
 		name             string
 	}{
 		{
@@ -46,14 +46,14 @@ func TestParserV2_parseFlagVariable(t *testing.T) {
 						},
 					},
 				},
-				flagOverrideVars: make(map[pack.ID][]*variables.Variable),
-				envOverrideVars:  make(map[pack.ID][]*variables.Variable),
+				flagOverrideVars: make(variables.PackIDKeyedVarMap),
+				envOverrideVars:  make(variables.PackIDKeyedVarMap),
 			},
 			inputName:        "region",
 			inputRawVal:      "vlc",
 			expectedError:    true,
-			expectedFlagVars: map[pack.ID][]*variables.Variable{},
-			expectedEnvVars:  make(map[pack.ID][]*variables.Variable),
+			expectedFlagVars: variables.PackIDKeyedVarMap{},
+			expectedEnvVars:  make(variables.PackIDKeyedVarMap),
 		},
 		{
 			name: "namespaced variable",
@@ -70,12 +70,12 @@ func TestParserV2_parseFlagVariable(t *testing.T) {
 						},
 					},
 				},
-				flagOverrideVars: make(map[pack.ID][]*variables.Variable),
+				flagOverrideVars: make(variables.PackIDKeyedVarMap),
 			},
 			inputName:     "example.region",
 			inputRawVal:   "vlc",
 			expectedError: false,
-			expectedFlagVars: map[pack.ID][]*variables.Variable{
+			expectedFlagVars: variables.PackIDKeyedVarMap{
 				"example": {
 					{
 						Name:      "region",
@@ -91,12 +91,12 @@ func TestParserV2_parseFlagVariable(t *testing.T) {
 				fs:               afero.Afero{Fs: afero.OsFs{}},
 				cfg:              &config.ParserConfig{ParentPackID: "example"},
 				rootVars:         map[pack.ID]map[variables.ID]*variables.Variable{},
-				flagOverrideVars: make(map[pack.ID][]*variables.Variable),
+				flagOverrideVars: make(variables.PackIDKeyedVarMap),
 			},
 			inputName:        "example.region",
 			inputRawVal:      "vlc",
 			expectedError:    true,
-			expectedFlagVars: map[pack.ID][]*variables.Variable{},
+			expectedFlagVars: variables.PackIDKeyedVarMap{},
 			name:             "root variable absent",
 		},
 		{
@@ -116,12 +116,12 @@ func TestParserV2_parseFlagVariable(t *testing.T) {
 						},
 					},
 				},
-				flagOverrideVars: make(map[pack.ID][]*variables.Variable),
+				flagOverrideVars: make(variables.PackIDKeyedVarMap),
 			},
 			inputName:        "example.region",
 			inputRawVal:      "vlc",
 			expectedError:    true,
-			expectedFlagVars: map[pack.ID][]*variables.Variable{},
+			expectedFlagVars: variables.PackIDKeyedVarMap{},
 		},
 	}
 
@@ -146,8 +146,8 @@ func TestParserV2_parseEnvVariable(t *testing.T) {
 		envKey           string
 		envValue         string
 		expectedError    bool
-		expectedFlagVars map[pack.ID][]*variables.Variable
-		expectedEnvVars  map[pack.ID][]*variables.Variable
+		expectedFlagVars variables.PackIDKeyedVarMap
+		expectedEnvVars  variables.PackIDKeyedVarMap
 		name             string
 	}
 
@@ -195,12 +195,12 @@ func TestParserV2_parseEnvVariable(t *testing.T) {
 						},
 					},
 				},
-				flagOverrideVars: make(map[pack.ID][]*variables.Variable),
-				envOverrideVars:  make(map[pack.ID][]*variables.Variable),
+				flagOverrideVars: make(variables.PackIDKeyedVarMap),
+				envOverrideVars:  make(variables.PackIDKeyedVarMap),
 			},
 			expectedError:    true,
-			expectedFlagVars: map[pack.ID][]*variables.Variable{},
-			expectedEnvVars:  make(map[pack.ID][]*variables.Variable),
+			expectedFlagVars: variables.PackIDKeyedVarMap{},
+			expectedEnvVars:  make(variables.PackIDKeyedVarMap),
 		},
 		{
 			name: "namespaced variable",
@@ -217,12 +217,12 @@ func TestParserV2_parseEnvVariable(t *testing.T) {
 						},
 					},
 				},
-				flagOverrideVars: make(map[pack.ID][]*variables.Variable),
-				envOverrideVars:  make(map[pack.ID][]*variables.Variable),
+				flagOverrideVars: make(variables.PackIDKeyedVarMap),
+				envOverrideVars:  make(variables.PackIDKeyedVarMap),
 			},
 			expectedError:    false,
-			expectedFlagVars: map[pack.ID][]*variables.Variable{},
-			expectedEnvVars: map[pack.ID][]*variables.Variable{
+			expectedFlagVars: variables.PackIDKeyedVarMap{},
+			expectedEnvVars: variables.PackIDKeyedVarMap{
 				"example": {
 					{
 						Name:      "region",
@@ -239,12 +239,12 @@ func TestParserV2_parseEnvVariable(t *testing.T) {
 				fs:               afero.Afero{Fs: afero.OsFs{}},
 				cfg:              &config.ParserConfig{ParentPackID: "example"},
 				rootVars:         map[pack.ID]map[variables.ID]*variables.Variable{},
-				flagOverrideVars: make(map[pack.ID][]*variables.Variable),
-				envOverrideVars:  make(map[pack.ID][]*variables.Variable),
+				flagOverrideVars: make(variables.PackIDKeyedVarMap),
+				envOverrideVars:  make(variables.PackIDKeyedVarMap),
 			},
 			expectedError:    true,
-			expectedFlagVars: map[pack.ID][]*variables.Variable{},
-			expectedEnvVars:  map[pack.ID][]*variables.Variable{},
+			expectedFlagVars: variables.PackIDKeyedVarMap{},
+			expectedEnvVars:  variables.PackIDKeyedVarMap{},
 		},
 		{
 			name:     "unconvertable variable",
@@ -265,12 +265,12 @@ func TestParserV2_parseEnvVariable(t *testing.T) {
 						},
 					},
 				},
-				flagOverrideVars: make(map[pack.ID][]*variables.Variable),
-				envOverrideVars:  make(map[pack.ID][]*variables.Variable),
+				flagOverrideVars: make(variables.PackIDKeyedVarMap),
+				envOverrideVars:  make(variables.PackIDKeyedVarMap),
 			},
 			expectedError:    true,
-			expectedFlagVars: map[pack.ID][]*variables.Variable{},
-			expectedEnvVars:  map[pack.ID][]*variables.Variable{},
+			expectedFlagVars: variables.PackIDKeyedVarMap{},
+			expectedEnvVars:  variables.PackIDKeyedVarMap{},
 		},
 	}
 
@@ -304,7 +304,7 @@ func TestParserV2_parseHeredocAtEOF(t *testing.T) {
 			RootVariableFiles: map[pack.ID]*pack.File{},
 		},
 		rootVars:         map[pack.ID]map[variables.ID]*variables.Variable{},
-		fileOverrideVars: make(map[pack.ID][]*variables.Variable),
+		fileOverrideVars: make(variables.PackIDKeyedVarMap),
 	}
 
 	fixtureRoot := testfixture.AbsPath(t, "v2/variable_test")
@@ -427,9 +427,9 @@ func NewTestInputParserV2(opts ...testParserV2Option) *ParserV2 {
 				},
 			},
 		},
-		envOverrideVars:  make(map[pack.ID][]*variables.Variable),
-		fileOverrideVars: make(map[pack.ID][]*variables.Variable),
-		flagOverrideVars: make(map[pack.ID][]*variables.Variable),
+		envOverrideVars:  make(variables.PackIDKeyedVarMap),
+		fileOverrideVars: make(variables.PackIDKeyedVarMap),
+		flagOverrideVars: make(variables.PackIDKeyedVarMap),
 	}
 
 	// Loop through each option
