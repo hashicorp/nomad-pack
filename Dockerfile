@@ -10,7 +10,7 @@
 
 # devbuild compiles the binary
 # -----------------------------------
-FROM golang:1.18 AS devbuild
+FROM golang:1.21 AS devbuild
 
 # Disable CGO to make sure we build static binaries
 ENV CGO_ENABLED=0
@@ -22,7 +22,7 @@ RUN go build -o nomad-pack .
 
 # dev runs the binary from devbuild
 # -----------------------------------
-FROM alpine:3.15 AS dev
+FROM alpine:3.18 AS dev
 
 RUN apk add --no-cache git libc6-compat
 COPY --from=devbuild /build/nomad-pack /bin/
