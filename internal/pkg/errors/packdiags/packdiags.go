@@ -7,6 +7,8 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/helper"
 )
 
+// DiagFileNotFound is returned when pack parsing encounters a required file
+// that is missing.
 func DiagFileNotFound(f string) *hcl.Diagnostic {
 	return &hcl.Diagnostic{
 		Severity: hcl.DiagError,
@@ -15,6 +17,8 @@ func DiagFileNotFound(f string) *hcl.Diagnostic {
 	}
 }
 
+// DiagMissingRootVar is returned when a pack consumer passes in a variable that
+// is not defined for the pack.
 func DiagMissingRootVar(name string, sub *hcl.Range) *hcl.Diagnostic {
 	return &hcl.Diagnostic{
 		Severity: hcl.DiagError,
@@ -24,6 +28,8 @@ func DiagMissingRootVar(name string, sub *hcl.Range) *hcl.Diagnostic {
 	}
 }
 
+// DiagInvalidDefaultValue is returned when the default for a variable does not
+// match the specified variable type.
 func DiagInvalidDefaultValue(detail string, sub *hcl.Range) *hcl.Diagnostic {
 	return &hcl.Diagnostic{
 		Severity: hcl.DiagError,
@@ -33,6 +39,8 @@ func DiagInvalidDefaultValue(detail string, sub *hcl.Range) *hcl.Diagnostic {
 	}
 }
 
+// DiagFailedToConvertCty is an error that can happen late in parsing. It should
+// not occur, but is here for coverage.
 func DiagFailedToConvertCty(err error, sub *hcl.Range) *hcl.Diagnostic {
 	return &hcl.Diagnostic{
 		Severity: hcl.DiagError,
@@ -41,6 +49,9 @@ func DiagFailedToConvertCty(err error, sub *hcl.Range) *hcl.Diagnostic {
 		Subject:  sub,
 	}
 }
+
+// DiagInvalidValueForType is returned when a pack consumer attempts to set a
+// variable to an inappopriate value based on the pack's variable specification
 func DiagInvalidValueForType(err error, sub *hcl.Range) *hcl.Diagnostic {
 	return &hcl.Diagnostic{
 		Severity: hcl.DiagError,
@@ -50,6 +61,8 @@ func DiagInvalidValueForType(err error, sub *hcl.Range) *hcl.Diagnostic {
 	}
 }
 
+// DiagInvalidVariableName is returned when a pack author specifies an invalid
+// name for a variable in their varfile
 func DiagInvalidVariableName(sub *hcl.Range) *hcl.Diagnostic {
 	return &hcl.Diagnostic{
 		Severity: hcl.DiagError,
@@ -59,16 +72,20 @@ func DiagInvalidVariableName(sub *hcl.Range) *hcl.Diagnostic {
 	}
 }
 
-func SafeDiagnosticsAppend(base hcl.Diagnostics, new *hcl.Diagnostic) hcl.Diagnostics {
-	if new != nil {
-		base = base.Append(new)
+// SafeDiagnosticsAppend prevents a nil Diagnostic from appending to the target
+// Diagnostics, since HasError is not nil-safe.
+func SafeDiagnosticsAppend(base hcl.Diagnostics, in *hcl.Diagnostic) hcl.Diagnostics {
+	if in != nil {
+		base = base.Append(in)
 	}
 	return base
 }
 
-func SafeDiagnosticsExtend(base, new hcl.Diagnostics) hcl.Diagnostics {
-	if new != nil && new.HasErrors() {
-		base = base.Extend(new)
+// SafeDiagnosticsExtend clean where the input Diagnostics of nils as they are
+// appended to the base
+func SafeDiagnosticsExtend(base, in hcl.Diagnostics) hcl.Diagnostics {
+	for _, diag := range in {
+		base = SafeDiagnosticsAppend(base, diag)
 	}
 	return base
 }
