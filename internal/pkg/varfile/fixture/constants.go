@@ -1,7 +1,6 @@
 package fixture
 
 import (
-	"github.com/hashicorp/nomad-pack/internal/pkg/varfile"
 	"github.com/hashicorp/nomad-pack/sdk/pack"
 )
 
@@ -32,7 +31,7 @@ const BadJSONMissingColon = `{ "mypack.foo": "bar", mypack.bar" "baz" }`
 const JSONEmpty = ""
 const JSONEmptyObject = "{}"
 
-var JSONFiles = map[varfile.PackID][]*pack.File{
+var JSONFiles = map[pack.ID][]*pack.File{
 	"myPack": {
 		{
 			Name:    "tc1.json",

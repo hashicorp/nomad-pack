@@ -39,10 +39,10 @@ func (d *Dependency) AliasOrName() string {
 	return d.Name
 }
 
-// PackID returns the identifier for the pack. The function returns a PackID
+// ID returns the identifier for the pack. The function returns a ID
 // which implements the Stringer interface
-func (d *Dependency) PackID() PackID {
-	return PackID(d.AliasOrName())
+func (d *Dependency) ID() ID {
+	return ID(d.AliasOrName())
 }
 
 // validate the Dependency object to ensure it meets requirements and doesn't

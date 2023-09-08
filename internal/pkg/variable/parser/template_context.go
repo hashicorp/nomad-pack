@@ -260,7 +260,7 @@ func getPackMeta(k string, p PackContextable) any {
 func getPackDeps(p PackTemplateContext) PackTemplateContext {
 	out := make(PackTemplateContext, len(p)-1)
 	for k, v := range p {
-		if k != "_self" {
+		if k != CurrentPackKey {
 			out[k] = v
 		}
 	}
@@ -302,7 +302,7 @@ func getPackDepTreeR(p PackTemplateContext, path string, pAcc *[]string) {
 func (p PackTemplateContext) depKeys() []string {
 	out := make([]string, 0, len(p)-1)
 	for k := range p {
-		if k == "_self" {
+		if k == CurrentPackKey {
 			continue
 		}
 		out = append(out, k)

@@ -42,7 +42,7 @@ func TestPack_RootVariableFiles(t *testing.T) {
 	ci.Parallel(t)
 	testCases := []struct {
 		inputPack      *Pack
-		expectedOutput map[PackID]*File
+		expectedOutput map[ID]*File
 		name           string
 	}{
 		{
@@ -58,7 +58,7 @@ func TestPack_RootVariableFiles(t *testing.T) {
 					Content: []byte(`variable "foo" {default = "bar"}`),
 				},
 			},
-			expectedOutput: map[PackID]*File{
+			expectedOutput: map[ID]*File{
 				"example": {
 					Name:    "variables.hcl",
 					Path:    "/opt/packs/example/variables.hcl",
@@ -106,7 +106,7 @@ func TestPack_RootVariableFiles(t *testing.T) {
 					},
 				},
 			},
-			expectedOutput: map[PackID]*File{
+			expectedOutput: map[ID]*File{
 				"example": {
 					Name:    "variables.hcl",
 					Path:    "/opt/packs/example/variables.hcl",

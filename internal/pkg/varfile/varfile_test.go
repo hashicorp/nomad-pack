@@ -5,6 +5,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/nomad-pack/sdk/pack/variables"
 	"github.com/shoenig/test/must"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -14,7 +15,7 @@ func TestVarfile_DecodeHCL(t *testing.T) {
 		dLen  int
 		diags hcl.Diagnostics
 		oLen  int
-		oMap  Overrides
+		oMap  variables.Overrides
 	}
 	testCases := []struct {
 		name string
@@ -37,8 +38,8 @@ func TestVarfile_DecodeHCL(t *testing.T) {
 			exp: exp{
 				dLen: 0,
 				oLen: 1,
-				oMap: Overrides{
-					"embedded.hcl": []*Override{
+				oMap: variables.Overrides{
+					"embedded.hcl": []*variables.Override{
 						{
 							Name:  "foo",
 							Path:  "mypack",
@@ -92,7 +93,7 @@ func TestVarfile_DecodeHCL(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			tc := tc
-			om := make(Overrides)
+			om := make(variables.Overrides)
 			_, diags := Decode("embedded.hcl", tc.src, nil, &om)
 			must.Len(t, tc.exp.dLen, diags, must.Sprintf("slice values: %v", diags))
 
@@ -106,10 +107,10 @@ func TestVarfile_DecodeHCL(t *testing.T) {
 			// filename as the key
 			switch tc.exp.oLen {
 			case 0:
-				must.MapLen(t, 0, om, must.Sprintf("map contents: %v", spew.Sdump(om)))
+				must.MapLen[variables.Overrides](t, 0, om, must.Sprintf("map contents: %v", spew.Sdump(om)))
 			default:
-				must.MapLen(t, 1, om, must.Sprintf("map contents: %v", spew.Sdump(om)))
-				must.MapContainsKey(t, om, "embedded.hcl")
+				must.MapLen[variables.Overrides](t, 1, om, must.Sprintf("map contents: %v", spew.Sdump(om)))
+				must.MapContainsKey[variables.Overrides](t, om, "embedded.hcl")
 			}
 
 			if len(tc.exp.oMap) > 0 {
@@ -117,7 +118,7 @@ func TestVarfile_DecodeHCL(t *testing.T) {
 				eSlice := tc.exp.oMap["embedded.hcl"]
 				// Extract the slice
 				oSlice := om["embedded.hcl"]
-				must.SliceLen(t, tc.exp.oLen, oSlice, must.Sprintf("slice values: %v", oSlice))
+				must.SliceLen[*variables.Override](t, tc.exp.oLen, oSlice, must.Sprintf("slice values: %v", oSlice))
 
 				for i, o := range oSlice {
 					e := eSlice[i]
@@ -130,14 +131,14 @@ func TestVarfile_DecodeHCL(t *testing.T) {
 
 func TestVarfile_DecodeResult_Merge(t *testing.T) {
 	d1 := DecodeResult{
-		Overrides: Overrides{
-			"p1": []*Override{{Name: "o1"}, {Name: "o2"}},
+		Overrides: variables.Overrides{
+			"p1": []*variables.Override{{Name: "o1"}, {Name: "o2"}},
 		},
 	}
 	t.Run("errors when redefined", func(t *testing.T) {
 		dr := DecodeResult{
-			Overrides: Overrides{
-				"p1": []*Override{{Name: "o1"}},
+			Overrides: variables.Overrides{
+				"p1": []*variables.Override{{Name: "o1"}},
 			},
 		}
 
@@ -149,52 +150,52 @@ func TestVarfile_DecodeResult_Merge(t *testing.T) {
 
 func TestVarFile_Merge_Good(t *testing.T) {
 	d1 := DecodeResult{
-		Overrides: Overrides{
-			"p1": []*Override{{Name: "o1"}, {Name: "o2"}},
+		Overrides: variables.Overrides{
+			"p1": []*variables.Override{{Name: "o1"}, {Name: "o2"}},
 		},
 	}
 
 	t.Run("succeeds for", func(t *testing.T) {
 		t.Run("okay for variables of same name in different pack", func(t *testing.T) {
 			dr := DecodeResult{
-				Overrides: Overrides{
-					"p2": []*Override{{Name: "o1"}, {Name: "o2"}},
+				Overrides: variables.Overrides{
+					"p2": []*variables.Override{{Name: "o1"}, {Name: "o2"}},
 				},
 			}
 			dr.Merge(d1)
 			must.False(t, dr.Diags.HasErrors())
-			must.Len(t, 2, dr.Overrides["p1"])
-			must.Len(t, 2, dr.Overrides["p2"])
+			must.Len[*variables.Override](t, 2, dr.Overrides["p1"])
+			must.Len[*variables.Override](t, 2, dr.Overrides["p2"])
 		})
 
 		t.Run("okay for repeated pointers to same override", func(t *testing.T) {
 			dr := DecodeResult{
-				Overrides: Overrides{
-					"p2": []*Override{{Name: "o1"}, {Name: "o2"}},
+				Overrides: variables.Overrides{
+					"p2": []*variables.Override{{Name: "o1"}, {Name: "o2"}},
 				},
 			}
 			dr2 := dr
 			dr2.Merge(dr)
 			must.False(t, dr.Diags.HasErrors())
-			must.Len(t, 2, dr.Overrides["p2"])
+			must.Len[*variables.Override](t, 2, dr.Overrides["p2"])
 		})
 
 		t.Run("for nil overrides", func(t *testing.T) {
 			dr := DecodeResult{
-				Overrides: Overrides{
-					"p2": []*Override{{Name: "o1"}, {Name: "o2"}},
+				Overrides: variables.Overrides{
+					"p2": []*variables.Override{{Name: "o1"}, {Name: "o2"}},
 				},
 			}
 			d2 := DecodeResult{
-				Overrides: Overrides{},
+				Overrides: variables.Overrides{},
 			}
 			dr.Merge(d2)
 			must.False(t, dr.Diags.HasErrors())
-			must.Len(t, 2, dr.Overrides["p2"])
+			must.Len[*variables.Override](t, 2, dr.Overrides["p2"])
 			must.MapNotContainsKey(t, d2.Overrides, "p1")
 		})
 
-		//TODO: Investigatethis broken test.
+		//TODO: Investigate this broken test.
 		// t.Run("for nil override pointer", func(t *testing.T) {
 
 		// 	ov := &Override{

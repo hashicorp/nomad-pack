@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser/config"
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable/schema"
 	"github.com/hashicorp/nomad-pack/sdk/pack"
+	"github.com/hashicorp/nomad-pack/sdk/pack/variables"
 	"github.com/spf13/afero"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -33,13 +34,13 @@ type ParserV1 struct {
 	// rootVars contains all the root variable declared by all parent and child
 	// packs that are being parsed. The first map is keyed by the pack name,
 	// the second is by the variable name.
-	rootVars map[string]map[string]*Variable
+	rootVars map[string]map[string]*variables.Variable
 
 	// envOverrideVars, fileOverrideVars, cliOverrideVars are the override
 	// variables. The maps are keyed by the pack name they are associated to.
-	envOverrideVars  map[string][]*Variable
-	fileOverrideVars map[string][]*Variable
-	cliOverrideVars  map[string][]*Variable
+	envOverrideVars  map[string][]*variables.Variable
+	fileOverrideVars map[string][]*variables.Variable
+	cliOverrideVars  map[string][]*variables.Variable
 }
 
 func NewParserV1(cfg *config.ParserConfig) (*ParserV1, error) {
@@ -64,10 +65,10 @@ func NewParserV1(cfg *config.ParserConfig) (*ParserV1, error) {
 			Fs: afero.OsFs{},
 		},
 		cfg:              cfg,
-		rootVars:         make(map[string]map[string]*Variable),
-		envOverrideVars:  make(map[string][]*Variable),
-		fileOverrideVars: make(map[string][]*Variable),
-		cliOverrideVars:  make(map[string][]*Variable),
+		rootVars:         make(map[string]map[string]*variables.Variable),
+		envOverrideVars:  make(map[string][]*variables.Variable),
+		fileOverrideVars: make(map[string][]*variables.Variable),
+		cliOverrideVars:  make(map[string][]*variables.Variable),
 	}, nil
 }
 
@@ -102,7 +103,7 @@ func (p *ParserV1) Parse() (*ParsedVariables, hcl.Diagnostics) {
 
 	// Iterate all our override variables and merge these into our root
 	// variables with the CLI taking highest priority.
-	for _, override := range []map[string][]*Variable{p.envOverrideVars, p.fileOverrideVars, p.cliOverrideVars} {
+	for _, override := range []map[string][]*variables.Variable{p.envOverrideVars, p.fileOverrideVars, p.cliOverrideVars} {
 		for packName, variables := range override {
 			for _, v := range variables {
 				existing, exists := p.rootVars[packName][v.Name.String()]
@@ -200,7 +201,7 @@ func (p *ParserV1) parseOverridesFile(file string) hcl.Diagnostics {
 
 		// Identify whether this variable represents overrides concerned with
 		// a dependent pack and then handle it accordingly.
-		isPackVar, packVarDiags := p.isPackVariableObject(PackID(attr.Name), expr.Type())
+		isPackVar, packVarDiags := p.isPackVariableObject(pack.ID(attr.Name), expr.Type())
 		diags = packdiags.SafeDiagnosticsExtend(diags, packVarDiags)
 		p.handleOverrideVar(isPackVar, attr, expr)
 	}
@@ -212,8 +213,8 @@ func (p *ParserV1) handleOverrideVar(isPackVar bool, attr *hcl.Attribute, expr c
 	if isPackVar {
 		p.handlePackVariableObject(attr.Name, expr, attr.Range)
 	} else {
-		v := Variable{
-			Name:      VariableID(attr.Name),
+		v := variables.Variable{
+			Name:      variables.ID(attr.Name),
 			Type:      expr.Type(),
 			Value:     expr,
 			DeclRange: attr.Range,
@@ -225,8 +226,8 @@ func (p *ParserV1) handleOverrideVar(isPackVar bool, attr *hcl.Attribute, expr c
 func (p *ParserV1) handlePackVariableObject(name string, expr cty.Value, declRange hcl.Range) {
 	for k := range expr.Type().AttributeTypes() {
 		av := expr.GetAttr(k)
-		v := Variable{
-			Name:      VariableID(k),
+		v := variables.Variable{
+			Name:      variables.ID(k),
 			Type:      av.Type(),
 			Value:     av,
 			DeclRange: declRange,
@@ -235,7 +236,7 @@ func (p *ParserV1) handlePackVariableObject(name string, expr cty.Value, declRan
 	}
 }
 
-func (p *ParserV1) isPackVariableObject(name PackID, typ cty.Type) (bool, hcl.Diagnostics) {
+func (p *ParserV1) isPackVariableObject(name pack.ID, typ cty.Type) (bool, hcl.Diagnostics) {
 
 	// Check whether the name has an associated entry within the root variable
 	// mapping which indicates whether it's a pack object.
@@ -306,8 +307,8 @@ func (p *ParserV1) parseEnvVariable(name string, rawVal string) hcl.Diagnostics 
 	}
 
 	// We have a verified override variable.
-	v := Variable{
-		Name:      VariableID(packVarName[1]),
+	v := variables.Variable{
+		Name:      variables.ID(packVarName[1]),
 		Type:      val.Type(),
 		Value:     val,
 		DeclRange: fakeRange,
@@ -376,8 +377,8 @@ func (p *ParserV1) parseCLIVariable(name string, rawVal string) hcl.Diagnostics 
 	}
 
 	// We have a verified override variable.
-	v := Variable{
-		Name:      VariableID(packVarName[1]),
+	v := variables.Variable{
+		Name:      variables.ID(packVarName[1]),
 		Type:      val.Type(),
 		Value:     val,
 		DeclRange: fakeRange,
@@ -419,9 +420,9 @@ func (p *ParserV1) parseRootFiles() hcl.Diagnostics {
 
 // parseRootBodyContent process the body of a root variables file, parsing
 // each variable block found.
-func (p *ParserV1) parseRootBodyContent(body *hcl.BodyContent) (map[string]*Variable, hcl.Diagnostics) {
+func (p *ParserV1) parseRootBodyContent(body *hcl.BodyContent) (map[string]*variables.Variable, hcl.Diagnostics) {
 
-	packRootVars := map[string]*Variable{}
+	packRootVars := map[string]*variables.Variable{}
 
 	var diags hcl.Diagnostics
 

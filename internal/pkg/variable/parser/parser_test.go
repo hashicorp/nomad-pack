@@ -66,7 +66,7 @@ func (pm *testPackManager) ProcessVariables() *ParsedVariables {
 				depPack, err := loader.Load(packPath)
 				must.NoError(t, err)
 				must.NoError(t, depPack.Validate())
-				cur.AddDependency(dep.PackID(), depPack)
+				cur.AddDependency(dep.ID(), depPack)
 				must.NoError(t, loadAndValidatePackR(depPack, path.Join(packPath, "deps")))
 			}
 
@@ -86,9 +86,9 @@ func (pm *testPackManager) ProcessVariables() *ParsedVariables {
 	// without the version.
 	parentName, _, _ := strings.Cut(path.Base(pm.cfg.Path), "@")
 
-	pCfg := &ParserConfig{
+	pCfg := &config.ParserConfig{
 		Version:           config.V2,
-		ParentPackID:      PackID(parentName),
+		ParentPackID:      pack.ID(parentName),
 		RootVariableFiles: loadedPack.RootVariableFiles(),
 		EnvOverrides:      pm.cfg.VariableEnvVars,
 		FileOverrides:     pm.cfg.VariableFiles,

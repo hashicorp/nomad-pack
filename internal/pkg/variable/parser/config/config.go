@@ -2,13 +2,7 @@ package config
 
 import (
 	"github.com/hashicorp/nomad-pack/sdk/pack"
-	"github.com/hashicorp/nomad-pack/sdk/pack/variables"
 )
-
-type Pack = pack.Pack
-type PackID = pack.PackID
-type Variable = variables.Variable
-type VariableID = variables.VariableID
 
 type ParserVersion int
 
@@ -30,11 +24,11 @@ type ParserConfig struct {
 	ParentName string
 
 	// ParentPackID is the PackID of the parent pack. Used for ParserV2
-	ParentPackID PackID
+	ParentPackID pack.ID
 
 	// RootVariableFiles contains a map of root variable files, keyed by their
 	// absolute pack name. "«root pack name».«child pack».«grandchild pack»"
-	RootVariableFiles map[PackID]*pack.File
+	RootVariableFiles map[pack.ID]*pack.File
 
 	// EnvOverrides are key=value variables and take the lowest precedence of
 	// all sources. If the same key is supplied twice, the last wins.
