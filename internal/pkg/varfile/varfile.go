@@ -13,15 +13,11 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-// Alias the SDK types that are used a lot
-type PackID = pack.PackID
-type VariableID = variables.VariableID
-
 func DecodeVariableOverrides(files []*pack.File) DecodeResult {
 	decodeResult := DecodeResult{}
 	for _, file := range files {
 		fileDecodeResult := DecodeResult{
-			Overrides: make(Overrides),
+			Overrides: make(variables.Overrides),
 		}
 		fileDecodeResult.HCLFiles, fileDecodeResult.Diags = Decode(file.Name, file.Content, nil, &fileDecodeResult.Overrides)
 		decodeResult.Merge(fileDecodeResult)
@@ -31,7 +27,7 @@ func DecodeVariableOverrides(files []*pack.File) DecodeResult {
 
 // DecodeResult is returned by the
 type DecodeResult struct {
-	Overrides Overrides
+	Overrides variables.Overrides
 	Diags     hcl.Diagnostics
 	HCLFiles  map[string]*hcl.File
 }
@@ -51,13 +47,13 @@ func (d *DecodeResult) Merge(in DecodeResult) {
 			// If any existing values in the destination pack's slice conflict with
 			// the current value, they will be stored here since otherwise they'd be
 			// out of scope
-			var match *Override
+			var match *variables.Override
 
 			// exactMatch is used to signal that the two Override values have the
 			// same pointer address so that the code can special case that.
 			var exactMatch bool
 
-			if slices.ContainsFunc(d.Overrides[packID], func(e *Override) bool {
+			if slices.ContainsFunc(d.Overrides[packID], func(e *variables.Override) bool {
 				// If either one of the values is nil, then it isn't a match for this
 				// purpose.
 				if inOverride == nil || d.Overrides[packID] == nil {
@@ -116,7 +112,7 @@ func (d *DecodeResult) Merge(in DecodeResult) {
 
 // Decode parses, decodes, and evaluates expressions in the given HCL source
 // code, in a single step.
-func Decode(filename string, src []byte, ctx *hcl.EvalContext, target *Overrides) (map[string]*hcl.File, hcl.Diagnostics) {
+func Decode(filename string, src []byte, ctx *hcl.EvalContext, target *variables.Overrides) (map[string]*hcl.File, hcl.Diagnostics) {
 	fm, diags := decode(filename, src, ctx, target)
 	var fd = fixableDiags(diags)
 
@@ -128,7 +124,7 @@ func Decode(filename string, src []byte, ctx *hcl.EvalContext, target *Overrides
 
 // Decode parses, decodes, and evaluates expressions in the given HCL source
 // code, in a single step.
-func decode(filename string, src []byte, ctx *hcl.EvalContext, target *Overrides) (diagFileMap, hcl.Diagnostics) {
+func decode(filename string, src []byte, ctx *hcl.EvalContext, target *variables.Overrides) (diagFileMap, hcl.Diagnostics) {
 	var file *hcl.File
 	var diags hcl.Diagnostics
 
@@ -173,7 +169,7 @@ func decode(filename string, src []byte, ctx *hcl.EvalContext, target *Overrides
 		return fm, diags.Extend(emDiags)
 	}
 
-	vals := make([]*Override, 0, len(em))
+	vals := make([]*variables.Override, 0, len(em))
 	for _, kv := range em {
 
 		// Read the value. If that generates diags, collect them, and stop
@@ -216,9 +212,9 @@ func decode(filename string, src []byte, ctx *hcl.EvalContext, target *Overrides
 		oRange := hcl.RangeBetween(kv.Key.Range(), kv.Value.Range())
 		fixupRange(&oRange)
 
-		val := Override{
-			Name:  VariableID(steps[len(steps)-1]),
-			Path:  pack.PackID(strings.Join(steps[0:len(steps)-1], ".")),
+		val := variables.Override{
+			Name:  variables.ID(steps[len(steps)-1]),
+			Path:  pack.ID(strings.Join(steps[0:len(steps)-1], ".")),
 			Value: value,
 			Type:  value.Type(),
 			Range: oRange,
@@ -227,7 +223,7 @@ func decode(filename string, src []byte, ctx *hcl.EvalContext, target *Overrides
 	}
 
 	if len(vals) > 0 {
-		(*target)[PackID(filename)] = vals
+		(*target)[pack.ID(filename)] = vals
 	}
 	return fm, diags
 }

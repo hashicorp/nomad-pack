@@ -8,16 +8,16 @@ import (
 	"strings"
 )
 
-type PackID string
+type ID string
 
-func (p PackID) String() string { return string(p) }
+func (p ID) String() string { return string(p) }
 
-// Join returns a new PackID with the child path appended to it.
-func (p PackID) Join(child PackID) PackID { return PackID(string(p) + "." + string(child)) }
+// Join returns a new ID with the child path appended to it.
+func (p ID) Join(child ID) ID { return ID(string(p) + "." + string(child)) }
 
 // AsPath returns a string with the dot delimiters converted to `/` for use with
 // file system paths.
-func (p PackID) AsPath() string { return strings.ReplaceAll(string(p), ".", "/") }
+func (p ID) AsPath() string { return strings.ReplaceAll(string(p), ".", "/") }
 
 // File is an individual file component of a Pack.
 type File struct {
@@ -100,10 +100,10 @@ func (p *Pack) AliasOrName() string {
 	return p.Alias()
 }
 
-// PackID returns the identifier for the pack. The function returns a PackID
+// ID returns the identifier for the pack. The function returns a ID
 // which implements the Stringer interface
-func (p *Pack) PackID() PackID {
-	return PackID(p.AliasOrName())
+func (p *Pack) ID() ID {
+	return ID(p.AliasOrName())
 }
 
 // HasParent reports whether this pack has a parent or can be considered the
@@ -112,7 +112,7 @@ func (p *Pack) HasParent() bool { return p.parent != nil }
 
 // AddDependency to the pack, correctly setting their parent pack identifier and
 // alias.
-func (p *Pack) AddDependency(alias PackID, pack *Pack) {
+func (p *Pack) AddDependency(alias ID, pack *Pack) {
 	pack.parent = p
 	pack.alias = alias.String()
 	p.dependencies = append(p.dependencies, pack)
@@ -131,26 +131,26 @@ func (p *Pack) Dependencies() []*Pack { return p.dependencies }
 
 // RootVariableFiles generates a mapping of all root variable files for the
 // pack and all dependencies.
-func (p *Pack) RootVariableFiles() map[PackID]*File {
+func (p *Pack) RootVariableFiles() map[ID]*File {
 
 	// Set up the base output that include the top level packs root variable
 	// file entry.
-	out := map[PackID]*File{p.PackID(): p.RootVariableFile}
+	out := map[ID]*File{p.ID(): p.RootVariableFile}
 
 	// Iterate the dependency packs and add entries into the variable file
 	// mapping for each.
 	for _, dep := range p.dependencies {
-		dep.rootVariableFiles(p.PackID(), &out)
+		dep.rootVariableFiles(p.ID(), &out)
 	}
 
 	return out
 }
 
-func (p *Pack) rootVariableFiles(parentPackID PackID, acc *map[PackID]*File) {
-	depPackID := parentPackID.Join(p.PackID())
-	(*acc)[depPackID] = p.RootVariableFile
+func (p *Pack) rootVariableFiles(parentID ID, acc *map[ID]*File) {
+	depID := parentID.Join(p.ID())
+	(*acc)[depID] = p.RootVariableFile
 	for _, dep := range p.dependencies {
-		dep.rootVariableFiles(depPackID, acc)
+		dep.rootVariableFiles(depID, acc)
 	}
 }
 
@@ -170,12 +170,12 @@ func (p *Pack) Validate() error {
 	return nil
 }
 
-func (p *Pack) VariablesPath() PackID {
+func (p *Pack) VariablesPath() ID {
 	parts := variablesPathR(p, []string{})
 	// Since variablesPathR is depth-first, we need
 	// to reverse it before joining it together
 	reverse(parts)
-	out := PackID(strings.Join(parts, "."))
+	out := ID(strings.Join(parts, "."))
 	return out
 }
 

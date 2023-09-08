@@ -17,60 +17,60 @@ import (
 // ParsedVariables wraps the parsed variables returned by parser.Parse and
 // provides functionality to access them.
 type ParsedVariables struct {
-	v1Vars   map[string]map[string]*Variable
-	v2Vars   map[PackID]map[VariableID]*Variable
+	v1Vars   map[string]map[string]*variables.Variable
+	v2Vars   map[pack.ID]map[variables.ID]*variables.Variable
 	Metadata *pack.Metadata
 	version  *config.ParserVersion
 }
 
-func (p *ParsedVariables) IsV2() bool {
-	return *p.version == config.V2
+func (pv *ParsedVariables) IsV2() bool {
+	return *pv.version == config.V2
 }
 
-func (p *ParsedVariables) IsV1() bool {
-	return *p.version == config.V1
+func (pv *ParsedVariables) IsV1() bool {
+	return *pv.version == config.V1
 }
 
-func (p *ParsedVariables) isLoaded() bool {
-	return !(p.version == nil)
+func (pv *ParsedVariables) isLoaded() bool {
+	return !(pv.version == nil)
 }
 
-func (p *ParsedVariables) LoadV1Result(in map[string]map[string]*Variable) error {
-	if p.isLoaded() {
+func (pv *ParsedVariables) LoadV1Result(in map[string]map[string]*variables.Variable) error {
+	if pv.isLoaded() {
 		return errors.New("already loaded")
 	}
 	var vPtr = config.V1
-	p.v1Vars = maps.Clone(in)
-	p.version = &vPtr
+	pv.v1Vars = maps.Clone(in)
+	pv.version = &vPtr
 	return nil
 }
 
-func (p *ParsedVariables) LoadV2Result(in map[PackID]map[VariableID]*Variable) error {
-	if p.isLoaded() {
+func (pv *ParsedVariables) LoadV2Result(in map[pack.ID]map[variables.ID]*variables.Variable) error {
+	if pv.isLoaded() {
 		return errors.New("already loaded")
 	}
 	var vPtr = config.V2
-	p.v2Vars = maps.Clone(in)
-	p.version = &vPtr
+	pv.v2Vars = maps.Clone(in)
+	pv.version = &vPtr
 	return nil
 }
 
-func (p *ParsedVariables) GetVars() map[PackID]map[VariableID]*Variable {
-	if !p.isLoaded() {
+func (pv *ParsedVariables) GetVars() map[pack.ID]map[variables.ID]*variables.Variable {
+	if !pv.isLoaded() {
 		return nil
 	}
-	if *p.version == config.V1 {
-		return asV2Vars(p.v1Vars)
+	if *pv.version == config.V1 {
+		return asV2Vars(pv.v1Vars)
 	}
-	return p.v2Vars
+	return pv.v2Vars
 }
 
-func asV2Vars(in map[string]map[string]*Variable) map[PackID]map[VariableID]*Variable {
-	var out = make(map[PackID]map[VariableID]*Variable, len(in))
+func asV2Vars(in map[string]map[string]*variables.Variable) map[pack.ID]map[variables.ID]*variables.Variable {
+	var out = make(map[pack.ID]map[variables.ID]*variables.Variable, len(in))
 	for k, vs := range in {
-		out[PackID(k)] = make(map[VariableID]*Variable, len(vs))
+		out[pack.ID(k)] = make(map[variables.ID]*variables.Variable, len(vs))
 		for vk, v := range vs {
-			out[PackID(k)][VariableID(vk)] = v
+			out[pack.ID(k)][variables.ID(vk)] = v
 		}
 	}
 	return out
@@ -95,7 +95,7 @@ func (pv *ParsedVariables) toPackTemplateContextR(tgt *PackTemplateContext, p *p
 		return diags
 	}
 
-	(*tgt)["_self"] = PackData{
+	(*tgt)[CurrentPackKey] = PackData{
 		Pack: p,
 		vars: pVars,
 		meta: p.Metadata.ConvertToMapInterface(),
@@ -110,7 +110,7 @@ func (pv *ParsedVariables) toPackTemplateContextR(tgt *PackTemplateContext, p *p
 	return diags
 }
 
-func asMapOfStringToAny(m map[VariableID]*Variable) (map[string]any, hcl.Diagnostics) {
+func asMapOfStringToAny(m map[variables.ID]*variables.Variable) (map[string]any, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 	o := make(map[string]any)
 	for k, cVal := range m {
@@ -157,7 +157,7 @@ func (pv *ParsedVariables) varFileHeader() string {
 	return ""
 }
 
-func (p *ParsedVariables) ConvertVariablesToMapInterface() (map[string]any, hcl.Diagnostics) {
+func (pv *ParsedVariables) ConvertVariablesToMapInterface() (map[string]any, hcl.Diagnostics) {
 
 	// Create our output; no matter what we return something.
 	out := make(map[string]any)
@@ -168,7 +168,7 @@ func (p *ParsedVariables) ConvertVariablesToMapInterface() (map[string]any, hcl.
 	var diags hcl.Diagnostics
 
 	// Iterate each set of pack variable.
-	for packName, packVars := range p.v1Vars {
+	for packName, packVars := range pv.v1Vars {
 
 		// packVar collects all variables associated to a pack.
 		packVar := map[string]any{}

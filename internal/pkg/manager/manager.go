@@ -67,7 +67,7 @@ func (pm *PackManager) ProcessVariableFiles() (*parser.ParsedVariables, []*error
 
 	pCfg := &config.ParserConfig{
 		Version:           config.V2,
-		ParentPackID:      pack.PackID(parentName),
+		ParentPackID:      pack.ID(parentName),
 		RootVariableFiles: loadedPack.RootVariableFiles(),
 		EnvOverrides:      pm.cfg.VariableEnvVars,
 		FileOverrides:     pm.cfg.VariableFiles,
@@ -188,7 +188,7 @@ func (pm *PackManager) loadAndValidatePack(cur *pack.Pack, depsPath string) erro
 		}
 
 		// Add the dependency to the current pack.
-		cur.AddDependency(dep.PackID(), depPack)
+		cur.AddDependency(dep.ID(), depPack)
 
 		// Recursive call.
 		if err := pm.loadAndValidatePack(depPack, path.Join(packPath, "deps")); err != nil {

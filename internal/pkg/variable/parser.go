@@ -12,7 +12,7 @@ type Parser interface {
 }
 
 type PackTemplateContexter interface {
-	GetPackTemplateContext(p pack.PackID) any
+	GetPackTemplateContext(p pack.ID) any
 }
 
 func NewParser(cfg *config.ParserConfig) (Parser, error) {

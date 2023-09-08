@@ -14,16 +14,9 @@ import (
 	"github.com/zclconf/go-cty/cty/convert"
 )
 
-type PackID = pack.PackID
-type VariableID string
+type ID string
 
-func (p VariableID) String() string { return string(p) }
-
-type Variables []*Variable
-
-func (v Variables) Len() int           { return len(v) }
-func (v Variables) Less(i, j int) bool { return v[i].Name < v[j].Name }
-func (v Variables) Swap(i, j int)      { v[i], v[j] = v[j], v[i] }
+func (p ID) String() string { return string(p) }
 
 // Variable encapsulates a single variable as defined within a block according
 // to variableFileSchema and variableBlockSchema.
@@ -31,7 +24,7 @@ type Variable struct {
 
 	// Name is the variable label. This is used to identify variables being
 	// overridden and during templating.
-	Name VariableID
+	Name ID
 
 	// Description is an optional field which provides additional context to
 	// users identifying what the variable is used for.
@@ -62,9 +55,9 @@ func (v *Variable) SetDescription(d string) { v.Description = d; v.hasDescriptio
 func (v *Variable) SetDefault(d cty.Value)  { v.Default = d; v.hasDefault = true }
 func (v *Variable) SetType(t cty.Type)      { v.Type = t; v.hasType = true }
 
-func (v Variable) String() string { return asJSON(v) }
+func (v *Variable) String() string { return asJSON(v) }
 
-func (v Variable) Equal(ov Variable) bool {
+func (v *Variable) Equal(ov Variable) bool {
 	eq := v.Name == ov.Name &&
 		v.Description == ov.Description &&
 		v.hasDescription == ov.hasDescription &&
@@ -77,7 +70,7 @@ func (v Variable) Equal(ov Variable) bool {
 	return eq
 }
 
-func (v Variable) AsOverrideString(pID pack.PackID) string {
+func (v Variable) AsOverrideString(pID pack.ID) string {
 	var out strings.Builder
 	out.WriteString(fmt.Sprintf(`# variable "%s.%s"`, pID, v.Name))
 	out.WriteByte('\n')

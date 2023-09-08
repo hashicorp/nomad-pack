@@ -28,7 +28,7 @@ func DecodeVariableBlock(block *hcl.Block) (*variables.Variable, hcl.Diagnostics
 	}
 
 	v := &variables.Variable{
-		Name:      variables.VariableID(block.Labels[0]),
+		Name:      variables.ID(block.Labels[0]),
 		DeclRange: block.DefRange,
 	}
 
