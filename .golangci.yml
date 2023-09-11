@@ -29,13 +29,19 @@ linters:
     - gocritic
     - misspell
     - govet
-    - deadcode
-    - varcheck
     - ineffassign
-    - structcheck
     - unconvert
     - gofmt
     - gosimple
-    - depguard
     - staticcheck
+    - asasalint
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - dogsled
+    - durationcheck
+    # - errchkjson (todo)
+    # - errorlint (todo)
+    - exportloopref
+    - usestdlibvars
   fast: false
