@@ -202,7 +202,7 @@ func mustGetPackVarR(keys []string, p map[string]any) (any, error) {
 		// See if we can continue
 		switch item := np.(type) {
 		case string:
-			return nil, fmt.Errorf("encountered non-traversable key while traversing")
+			return nil, errors.New("encountered non-traversable key while traversing")
 
 		case map[string]any:
 			return mustGetPackVarR(keys[1:], item)
@@ -237,10 +237,10 @@ func mustGetPackMetaR(keys []string, p map[string]any) (any, error) {
 		if len(keys) == 1 {
 			return item, nil
 		}
-		return nil, fmt.Errorf("encountered non-map key while traversing")
+		return nil, errors.New("encountered non-map key while traversing")
 	case map[string]any:
 		if len(keys) == 1 {
-			return nil, fmt.Errorf("traversal ended on non-metadata item key")
+			return nil, errors.New("traversal ended on non-metadata item key")
 		}
 		return mustGetPackMetaR(keys[1:], item)
 	default:

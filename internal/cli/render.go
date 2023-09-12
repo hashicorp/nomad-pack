@@ -149,7 +149,7 @@ func writeFile(c *RenderCommand, path string, content string) error {
 			return err
 		}
 		if !overwrite {
-			return fmt.Errorf("destination file exists and overwrite is unset")
+			return errors.New("destination file exists and overwrite is unset")
 		}
 	}
 
