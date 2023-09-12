@@ -5,6 +5,7 @@ package deps
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path"
 
@@ -26,7 +27,7 @@ func Vendor(ctx context.Context, ui terminal.UI, targetPath string) error {
 	}
 
 	if len(metadata.Dependencies) == 0 {
-		return fmt.Errorf("metadata.hcl file does not contain any dependencies")
+		return errors.New("metadata.hcl file does not contain any dependencies")
 	}
 
 	for _, d := range metadata.Dependencies {

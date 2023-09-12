@@ -4,6 +4,7 @@
 package variables
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"math/big"
@@ -18,7 +19,7 @@ func ConvertCtyToInterface(val cty.Value) (any, error) {
 	}
 
 	if !val.IsKnown() {
-		return nil, fmt.Errorf("value is not known")
+		return nil, errors.New("value is not known")
 	}
 
 	t := val.Type()

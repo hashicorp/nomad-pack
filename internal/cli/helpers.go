@@ -217,7 +217,7 @@ func getPackJobsByDeploy(c *api.Client, cfg *cache.PackConfig, deploymentName st
 		return nil, fmt.Errorf("error finding jobs for pack %s: %s", cfg.Name, err)
 	}
 	if len(jobs) == 0 {
-		return nil, fmt.Errorf("no job(s) found")
+		return nil, errors.New("no job(s) found")
 	}
 
 	var packJobs []*api.Job

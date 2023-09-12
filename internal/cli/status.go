@@ -176,7 +176,7 @@ func validateStatusArgs(b *baseCommand, args []string) error {
 	// Flags are already parsed when this function is run
 	// Verify pack name is provided if --name flag is used
 	if b.deploymentName != "" && len(args) == 0 {
-		return fmt.Errorf("--name can only be used if pack name is provided")
+		return errors.New("--name can only be used if pack name is provided")
 	}
 	return nil
 }
