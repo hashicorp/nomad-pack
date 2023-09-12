@@ -16,8 +16,14 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
+// DecodeVariableBlock parses a variable definition into a variable. When the
+// provided block or its Body is nil, the function returns (nil, nil)
 func DecodeVariableBlock(block *hcl.Block) (*variables.Variable, hcl.Diagnostics) {
+	if block == nil || block.Body == nil {
+		return nil, hcl.Diagnostics{}
+	}
 
+	// If block and Body is non-nil, then the block is ready to be parsed
 	content, diags := block.Body.Content(schema.VariableBlockSchema)
 	if content == nil {
 		return nil, diags
@@ -80,6 +86,10 @@ func DecodeVariableBlock(block *hcl.Block) (*variables.Variable, hcl.Diagnostics
 		}
 		v.SetDefault(val)
 		v.Value = val
+	}
+
+	if diags.HasErrors() {
+		return nil, diags
 	}
 
 	return v, diags
