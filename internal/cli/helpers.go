@@ -417,14 +417,29 @@ func clientOptsFromCLI(c *baseCommand) *api.Config {
 // format and if it is, it returns user, password and address. It returns "", "",
 // address otherwise.
 func handleBasicAuth(s string) (string, string, string) {
-	before, after, found := strings.Cut(s, "@")
-	if found {
-		user, pass, found := strings.Cut(before, ":")
-		if found {
-			return user, pass, after
-		}
+	beforeAt, afterAt, found := strings.Cut(s, "@")
+	if !found {
+		return "", "", s
 	}
-	return "", "", before
+
+	scheme, userpass, schemeFound := strings.Cut(beforeAt, "//")
+	if !schemeFound {
+		userpass = beforeAt
+	}
+
+	user, pass, found := strings.Cut(userpass, ":")
+	if !found {
+		return "", "", s
+	}
+
+	var addr string
+	if schemeFound {
+		addr = fmt.Sprintf("%s//%s", scheme, afterAt)
+	} else {
+		addr = afterAt
+	}
+
+	return user, pass, addr
 }
 
 // clientOptsFromEnvironment populates api client conf with environment
@@ -434,9 +449,11 @@ func clientOptsFromEnvironment(conf *api.Config) {
 		// we support user:pass@addr here
 		user, pass, addr := handleBasicAuth(v)
 		conf.Address = addr
-		if user != "" && pass != "" {
-			conf.HttpAuth.Username = user
-			conf.HttpAuth.Password = pass
+		if user != "" || pass != "" {
+			conf.HttpAuth = &api.HttpBasicAuth{
+				Username: user,
+				Password: pass,
+			}
 		}
 	}
 	if v := os.Getenv("NOMAD_NAMESPACE"); v != "" {
@@ -471,9 +488,11 @@ func clientOptsFromFlags(c *baseCommand, conf *api.Config) {
 		// we support user:pass@addr here
 		user, pass, addr := handleBasicAuth(cfg.address)
 		conf.Address = addr
-		if user != "" && pass != "" {
-			conf.HttpAuth.Username = user
-			conf.HttpAuth.Password = pass
+		if user != "" || pass != "" {
+			conf.HttpAuth = &api.HttpBasicAuth{
+				Username: user,
+				Password: pass,
+			}
 		}
 	}
 	if cfg.namespace != "" {
