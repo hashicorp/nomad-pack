@@ -7,7 +7,7 @@ import (
 	"github.com/shoenig/test/must"
 )
 
-func TestHelpers_extractBasicAuth(t *testing.T) {
+func TestHelpers_removeBasicAuth(t *testing.T) {
 	cases := []struct {
 		addr         string
 		expectedUser string
@@ -30,7 +30,7 @@ func TestHelpers_extractBasicAuth(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.addr, func(t *testing.T) {
-			user, pass, addr := extractBasicAuth(c.addr)
+			user, pass, addr := removeBasicAuth(c.addr)
 
 			must.Eq(t, c.expectedUser, user)
 			must.Eq(t, c.expectedPass, pass)
