@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"net/url"
 	"testing"
 
 	"github.com/hashicorp/nomad/api"
@@ -10,31 +11,29 @@ import (
 func TestHelpers_removeBasicAuth(t *testing.T) {
 	cases := []struct {
 		addr         string
-		expectedUser string
-		expectedPass string
 		expectedAddr string
+		expectedUser *url.Userinfo
 	}{
-		{"addr", "", "", "addr"},
-		{"addr:1337", "", "", "addr:1337"},
-		{"user:pass@addr", "", "", "user:pass@addr"},
-		{"user:pass@addr:1337", "", "", "user:pass@addr:1337"},
-		{"scheme://addr", "", "", "scheme://addr"},
-		{"scheme://user:pass@addr", "user", "pass", "scheme://addr"},
-		{"scheme://user:pass@addr:1337", "user", "pass", "scheme://addr:1337"},
-		{"scheme://user:@addr:1337", "user", "", "scheme://addr:1337"},
-		{"scheme://:pass@addr:1337", "", "pass", "scheme://addr:1337"},
-		{"//user:pass@addr:1337", "user", "pass", "//addr:1337"},
-		{"foo@bar", "", "", "foo@bar"},
-		{"", "", "", ""},
+		{"addr", "addr", nil},
+		{"addr:1337", "addr:1337", nil},
+		{"user:pass@addr", "user:pass@addr", nil},
+		{"user:pass@addr:1337", "user:pass@addr:1337", nil},
+		{"scheme://addr", "scheme://addr", nil},
+		{"foo@bar", "foo@bar", nil},
+		{"", "", nil},
+		{"scheme://user:pass@addr", "scheme://addr", url.UserPassword("user", "pass")},
+		{"scheme://user:pass@addr:1337", "scheme://addr:1337", url.UserPassword("user", "pass")},
+		{"scheme://user:@addr:1337", "scheme://addr:1337", url.UserPassword("user", "")},
+		{"scheme://:pass@addr:1337", "scheme://addr:1337", url.UserPassword("", "pass")},
+		{"//user:pass@addr:1337", "//addr:1337", url.UserPassword("user", "pass")},
 	}
 
 	for _, c := range cases {
 		t.Run(c.addr, func(t *testing.T) {
-			user, pass, addr := removeBasicAuth(c.addr)
+			addr, userinfo := removeBasicAuth(c.addr)
 
-			must.Eq(t, c.expectedUser, user)
-			must.Eq(t, c.expectedPass, pass)
 			must.Eq(t, c.expectedAddr, addr)
+			must.Eq(t, c.expectedUser, userinfo)
 		})
 	}
 }

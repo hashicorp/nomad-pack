@@ -413,36 +413,29 @@ func clientOptsFromCLI(c *baseCommand) *api.Config {
 	return conf
 }
 
-// removeBasicAuth removes userinfo from the URL and returns the username,
-// password, and the adjusted URL. If the URL does not contain userinfo,
-// it returns an empty username and password, and the original URL.
-func removeBasicAuth(s string) (string, string, string) {
-	u, err := url.Parse(s)
+// removeBasicAuth removes userinfo from a URL and returns the adjusted URL.
+// The second return value is the userinfo that was removed.
+func removeBasicAuth(addr string) (string, *url.Userinfo) {
+	u, err := url.Parse(addr)
 	if err != nil {
-		return "", "", s
+		return addr, nil
 	}
 
-	if u.User == nil {
-		return "", "", s
-	}
-
-	user := u.User.Username()
-	pass, _ := u.User.Password()
-
+	userinfo := u.User
 	u.User = nil
-
-	return user, pass, u.String()
+	return u.String(), userinfo
 }
 
 // clientOptsFromEnvironment populates api client conf with environment
 // variables present at the CLI's runtime.
 func clientOptsFromEnvironment(conf *api.Config) {
 	if v := os.Getenv("NOMAD_ADDR"); v != "" {
-		user, pass, addr := removeBasicAuth(v)
+		addr, userinfo := removeBasicAuth(v)
 		conf.Address = addr
-		if user != "" || pass != "" {
+		if userinfo != nil {
+			pass, _ := userinfo.Password()
 			conf.HttpAuth = &api.HttpBasicAuth{
-				Username: user,
+				Username: userinfo.Username(),
 				Password: pass,
 			}
 		}
@@ -476,11 +469,12 @@ func clientOptsFromEnvironment(conf *api.Config) {
 func clientOptsFromFlags(c *baseCommand, conf *api.Config) {
 	cfg := c.nomadConfig
 	if cfg.address != "" {
-		user, pass, addr := removeBasicAuth(cfg.address)
+		addr, userinfo := removeBasicAuth(cfg.address)
 		conf.Address = addr
-		if user != "" || pass != "" {
+		if userinfo != nil {
+			pass, _ := userinfo.Password()
 			conf.HttpAuth = &api.HttpBasicAuth{
-				Username: user,
+				Username: userinfo.Username(),
 				Password: pass,
 			}
 		}
