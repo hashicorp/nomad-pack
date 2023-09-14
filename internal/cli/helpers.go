@@ -5,8 +5,8 @@ package cli
 
 import (
 	"fmt"
+	"net/url"
 	"os"
-	"strings"
 
 	"github.com/hashicorp/nomad/api"
 
@@ -413,41 +413,32 @@ func clientOptsFromCLI(c *baseCommand) *api.Config {
 	return conf
 }
 
-// handlBasicAuth checks whether the NOMAD_ADDR string is in the user:pass@addr
-// format and if it is, it returns user, password and address. It returns "", "",
-// address otherwise.
-func handleBasicAuth(s string) (string, string, string) {
-	beforeAt, afterAt, found := strings.Cut(s, "@")
-	if !found {
+// extractBasicAuth removes the userinfo from the URL and returns the username,
+// password, and the adjusted URL. If the URL does not contain userinfo,
+// it returns an empty username and password, and the original URL.
+func extractBasicAuth(s string) (string, string, string) {
+	u, err := url.Parse(s)
+	if err != nil {
 		return "", "", s
 	}
 
-	scheme, userpass, schemeFound := strings.Cut(beforeAt, "//")
-	if !schemeFound {
-		userpass = beforeAt
-	}
-
-	user, pass, found := strings.Cut(userpass, ":")
-	if !found {
+	if u.User == nil {
 		return "", "", s
 	}
 
-	var addr string
-	if schemeFound {
-		addr = fmt.Sprintf("%s//%s", scheme, afterAt)
-	} else {
-		addr = afterAt
-	}
+	user := u.User.Username()
+	pass, _ := u.User.Password()
 
-	return user, pass, addr
+	u.User = nil
+
+	return user, pass, u.String()
 }
 
 // clientOptsFromEnvironment populates api client conf with environment
 // variables present at the CLI's runtime.
 func clientOptsFromEnvironment(conf *api.Config) {
 	if v := os.Getenv("NOMAD_ADDR"); v != "" {
-		// we support user:pass@addr here
-		user, pass, addr := handleBasicAuth(v)
+		user, pass, addr := extractBasicAuth(v)
 		conf.Address = addr
 		if user != "" || pass != "" {
 			conf.HttpAuth = &api.HttpBasicAuth{
@@ -485,8 +476,7 @@ func clientOptsFromEnvironment(conf *api.Config) {
 func clientOptsFromFlags(c *baseCommand, conf *api.Config) {
 	cfg := c.nomadConfig
 	if cfg.address != "" {
-		// we support user:pass@addr here
-		user, pass, addr := handleBasicAuth(cfg.address)
+		user, pass, addr := extractBasicAuth(cfg.address)
 		conf.Address = addr
 		if user != "" || pass != "" {
 			conf.HttpAuth = &api.HttpBasicAuth{

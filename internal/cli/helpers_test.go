@@ -7,7 +7,7 @@ import (
 	"github.com/shoenig/test/must"
 )
 
-func TestHelpers_handleBasicAuth(t *testing.T) {
+func TestHelpers_extractBasicAuth(t *testing.T) {
 	cases := []struct {
 		addr         string
 		expectedUser string
@@ -15,22 +15,22 @@ func TestHelpers_handleBasicAuth(t *testing.T) {
 		expectedAddr string
 	}{
 		{"addr", "", "", "addr"},
-		{"addr:port", "", "", "addr:port"},
-		{"user:pass@addr", "user", "pass", "addr"},
-		{"user:pass@addr:port", "user", "pass", "addr:port"},
+		{"addr:1337", "", "", "addr:1337"},
+		{"user:pass@addr", "", "", "user:pass@addr"},
+		{"user:pass@addr:1337", "", "", "user:pass@addr:1337"},
 		{"scheme://addr", "", "", "scheme://addr"},
 		{"scheme://user:pass@addr", "user", "pass", "scheme://addr"},
-		{"scheme://user:pass@addr:port", "user", "pass", "scheme://addr:port"},
-		{"scheme://user:@addr:port", "user", "", "scheme://addr:port"},
-		{"scheme://:pass@addr:port", "", "pass", "scheme://addr:port"},
-		{"//user:pass@addr:port", "user", "pass", "//addr:port"},
+		{"scheme://user:pass@addr:1337", "user", "pass", "scheme://addr:1337"},
+		{"scheme://user:@addr:1337", "user", "", "scheme://addr:1337"},
+		{"scheme://:pass@addr:1337", "", "pass", "scheme://addr:1337"},
+		{"//user:pass@addr:1337", "user", "pass", "//addr:1337"},
 		{"foo@bar", "", "", "foo@bar"},
 		{"", "", "", ""},
 	}
 
 	for _, c := range cases {
 		t.Run(c.addr, func(t *testing.T) {
-			user, pass, addr := handleBasicAuth(c.addr)
+			user, pass, addr := extractBasicAuth(c.addr)
 
 			must.Eq(t, c.expectedUser, user)
 			must.Eq(t, c.expectedPass, pass)
