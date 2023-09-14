@@ -41,7 +41,6 @@ func TestHelpers_extractBasicAuth(t *testing.T) {
 
 func TestHelpers_clientOptsFromEnvironment_Address(t *testing.T) {
 	cases := []struct {
-		name             string
 		addr             string
 		expectedAddress  string
 		expectedHttpAuth *api.HttpBasicAuth
@@ -69,7 +68,7 @@ func TestHelpers_clientOptsFromEnvironment_Address(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
+		t.Run(c.addr, func(t *testing.T) {
 			t.Setenv("NOMAD_ADDR", c.addr)
 
 			conf := api.Config{HttpAuth: nil}
@@ -110,7 +109,7 @@ func TestHelpers_clientOptsFromFlags_Address(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
+		t.Run(c.addr, func(t *testing.T) {
 			cmd := baseCommand{nomadConfig: nomadConfig{address: c.addr}}
 
 			conf := api.Config{HttpAuth: nil}
