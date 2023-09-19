@@ -43,7 +43,7 @@ it won't.
 ## `constraints` helper
 
 This helper creates Nomad constraint blocks from a value of type
-  `list(object(constraint string, operator string, value string))`
+  `list(object(attribute string, operator string, value string))`
 
 */ -]]
 
