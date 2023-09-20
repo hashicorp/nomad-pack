@@ -28,14 +28,17 @@ func TestPack_Name(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		must.Eq(t, tc.expectedOutput, tc.inputPack.Name(), must.Sprint(tc.name))
+		t.Run(tc.name, func(t *testing.T) {
+			tc := tc
+			must.Eq(t, tc.expectedOutput, tc.inputPack.Name())
+		})
 	}
 }
 
 func TestPack_RootVariableFiles(t *testing.T) {
 	testCases := []struct {
 		inputPack      *Pack
-		expectedOutput map[string]*File
+		expectedOutput map[PackID]*File
 		name           string
 	}{
 		{
@@ -51,7 +54,7 @@ func TestPack_RootVariableFiles(t *testing.T) {
 					Content: []byte(`variable "foo" {default = "bar"}`),
 				},
 			},
-			expectedOutput: map[string]*File{
+			expectedOutput: map[PackID]*File{
 				"example": {
 					Name:    "variables.hcl",
 					Path:    "/opt/packs/example/variables.hcl",
@@ -99,18 +102,18 @@ func TestPack_RootVariableFiles(t *testing.T) {
 					},
 				},
 			},
-			expectedOutput: map[string]*File{
+			expectedOutput: map[PackID]*File{
 				"example": {
 					Name:    "variables.hcl",
 					Path:    "/opt/packs/example/variables.hcl",
 					Content: []byte(`variable "foo" {default = "bar"}`),
 				},
-				"dep1": {
+				"example.dep1": {
 					Name:    "variables.hcl",
 					Path:    "/opt/packs/dep1/variables.hcl",
 					Content: []byte(`variable "hoo" {default = "har"}`),
 				},
-				"dep2": {
+				"example.dep2": {
 					Name:    "variables.hcl",
 					Path:    "/opt/packs/dep2/variables.hcl",
 					Content: []byte(`variable "sun" {default = "start"}`),
@@ -121,6 +124,9 @@ func TestPack_RootVariableFiles(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		must.Eq(t, tc.expectedOutput, tc.inputPack.RootVariableFiles(), must.Sprint(tc.name))
+		t.Run(tc.name, func(t *testing.T) {
+			tc := tc
+			must.Eq(t, tc.expectedOutput, tc.inputPack.RootVariableFiles())
+		})
 	}
 }

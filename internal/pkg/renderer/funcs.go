@@ -6,19 +6,28 @@ package renderer
 import (
 	"fmt"
 	"os"
+	"strings"
 	"text/template"
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/davecgh/go-spew/spew"
+	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser"
 	"github.com/hashicorp/nomad/api"
+	"golang.org/x/exp/maps"
 )
 
 // funcMap instantiates our default template function map with populated
 // functions for use within text.Template.
-func funcMap(nomadClient *api.Client) template.FuncMap {
+func funcMap(r *Renderer) template.FuncMap {
 
-	// Sprig defines our base map.
-	f := sprig.TxtFuncMap()
+	// The base of the funcmap comes from the template context funcs
+	f := make(template.FuncMap)
+	if r != nil && r.pv != nil {
+		maps.Copy(f, parser.PackTemplateContextFuncs(r.pv.IsV1()))
+	}
+
+	// Copy the sprig funcs into the funcmap.
+	maps.Copy(f, sprig.TxtFuncMap())
 
 	// Add debugging functions. These are useful when debugging templates and
 	// variables.
@@ -36,10 +45,10 @@ func funcMap(nomadClient *api.Client) template.FuncMap {
 	f["withSortKeys"] = withSortKeys
 	f["withSpewKeys"] = withSpewKeys
 
-	if nomadClient != nil {
-		f["nomadNamespaces"] = nomadNamespaces(nomadClient)
-		f["nomadNamespace"] = nomadNamespace(nomadClient)
-		f["nomadRegions"] = nomadRegions(nomadClient)
+	if r != nil && r.Client != nil {
+		f["nomadNamespaces"] = nomadNamespaces(r.Client)
+		f["nomadNamespace"] = nomadNamespace(r.Client)
+		f["nomadRegions"] = nomadRegions(r.Client)
 	}
 
 	// Add additional custom functions.
@@ -84,15 +93,25 @@ func nomadRegions(client *api.Client) func() ([]string, error) {
 
 // toStringList takes a list of string and returns the HCL equivalent which is
 // useful when templating jobs and params such as datacenters.
-func toStringList(l []any) (string, error) {
-	var out string
-	for i := range l {
-		if i > 0 && i < len(l) {
-			out += ", "
+func toStringList(l any) (string, error) {
+	var out strings.Builder
+	out.WriteRune('[')
+	switch tl := l.(type) {
+	case []any:
+		// If l is a []string, then the caller probably wants that printed
+		// as a list of quoted elements, JSON style.
+		for i, v := range tl {
+			if i > 0 {
+				out.WriteString(", ")
+			}
+			out.WriteString(fmt.Sprintf("%q", v))
 		}
-		out += fmt.Sprintf("%q", l[i])
+	default:
+		out.WriteString(fmt.Sprintf("%q", l))
 	}
-	return "[" + out + "]", nil
+	out.WriteRune(']')
+	o := out.String()
+	return o, nil
 }
 
 // Spew helper funcs

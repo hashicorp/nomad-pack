@@ -16,7 +16,6 @@ require (
 	github.com/hashicorp/go-getter v1.7.2
 	github.com/hashicorp/go-hclog v1.5.0
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/hashicorp/hcl v1.0.1-vault-5
 	github.com/hashicorp/hcl/v2 v2.17.1-0.20230725002108-58caf00be5aa
 	github.com/hashicorp/nomad v1.5.0-beta.1.0.20230804093607-388198abef93
 	github.com/hashicorp/nomad/api v0.0.0-20230804093607-388198abef93
@@ -34,6 +33,7 @@ require (
 	github.com/spf13/afero v1.9.5
 	github.com/spf13/pflag v1.0.5
 	github.com/zclconf/go-cty v1.14.0
+	golang.org/x/exp v0.0.0-20230728194245-b0cb94b80691
 	golang.org/x/term v0.10.0
 	golang.org/x/text v0.11.0
 )
@@ -169,6 +169,7 @@ require (
 	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.1 // indirect
+	github.com/hashicorp/hcl v1.0.1-vault-5 // indirect
 	github.com/hashicorp/hil v0.0.0-20210521165536-27a72121fd40 // indirect
 	github.com/hashicorp/logutils v1.0.0 // indirect
 	github.com/hashicorp/mdns v1.0.4 // indirect
@@ -265,7 +266,6 @@ require (
 	go.etcd.io/bbolt v1.3.7 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	golang.org/x/crypto v0.11.0 // indirect
-	golang.org/x/exp v0.0.0-20230728194245-b0cb94b80691 // indirect
 	golang.org/x/mod v0.11.0 // indirect
 	golang.org/x/net v0.13.0 // indirect
 	golang.org/x/oauth2 v0.4.0 // indirect

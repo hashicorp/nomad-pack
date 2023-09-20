@@ -1,10 +1,10 @@
 job [[ template "job_name" . ]] {
   [[ template "region" . ]]
-  datacenters = [[ .my.datacenters  | toStringList ]]
+  datacenters = [[ var "datacenters" . | toStringList ]]
   type = "service"
 
   group "app" {
-    count = [[ .my.count ]]
+    count = [[ var "count" . ]]
 
     network {
       port "http" {
@@ -12,10 +12,10 @@ job [[ template "job_name" . ]] {
       }
     }
 
-    [[ if .my.register_consul_service ]]
+    [[ if .register_consul_service ]]
     service {
-      name = "[[ .my.consul_service_name ]]"
-      tags = [[ .my.consul_service_tags | toStringList ]]
+      name = "[[ var "consul_service_name" . ]]"
+      tags = [[ var "consul_service_tags" . | toStringList ]]
       port = "http"
       check {
         name     = "alive"
@@ -43,7 +43,7 @@ job [[ template "job_name" . ]] {
       }
 
       env {
-        MESSAGE = [[.my.message | quote]]
+        MESSAGE = [[ var "message" . | quote ]]
       }
     }
   }

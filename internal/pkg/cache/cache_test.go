@@ -21,6 +21,7 @@ import (
 
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/helper/filesystem"
+	"github.com/hashicorp/nomad-pack/internal/pkg/testfixture"
 )
 
 var (
@@ -472,12 +473,12 @@ func NewTestLogger(t *testing.T) *TestLogger {
 // a parameter.
 type NoopLogger struct{}
 
-func (_ NoopLogger) Debug(_ string)                                  {}
-func (_ NoopLogger) Error(_ string)                                  {}
-func (_ NoopLogger) ErrorWithContext(_ error, _ string, _ ...string) {}
-func (_ NoopLogger) Info(_ string)                                   {}
-func (_ NoopLogger) Trace(_ string)                                  {}
-func (_ NoopLogger) Warning(_ string)                                {}
+func (NoopLogger) Trace(string)                              {}
+func (NoopLogger) Debug(string)                              {}
+func (NoopLogger) Info(string)                               {}
+func (NoopLogger) Warning(string)                            {}
+func (NoopLogger) Error(string)                              {}
+func (NoopLogger) ErrorWithContext(error, string, ...string) {}
 
 type TestGithubRegistry struct {
 	sourceURL string
@@ -530,7 +531,7 @@ func makeTestRegRepo(tReg *TestGithubRegistry) {
 	tReg.cleanupFn = func() { os.RemoveAll(tReg.tmpDir) }
 
 	tReg.sourceURL = path.Join(tReg.tmpDir, "test_registry.git")
-	err = filesystem.CopyDir("../../../fixtures/test_registry", tReg.SourceURL(), false, NoopLogger{})
+	err = filesystem.CopyDir(testfixture.MustAbsPath("v2/test_registry"), tReg.SourceURL(), false, NoopLogger{})
 	if err != nil {
 		tReg.Cleanup()
 		panic(fmt.Errorf("unable to copy test fixtures to test git repo: %v", err))
@@ -704,7 +705,7 @@ func listAllTestPacks(t *testing.T, cachePath string) packtuples {
 			t.Fatalf("listAllTestPacks: WalkDir error: %v", err)
 		}
 
-		if d.IsDir() {
+		if testing.Verbose() && d.IsDir() {
 			t.Logf("walking %q...", p)
 		}
 

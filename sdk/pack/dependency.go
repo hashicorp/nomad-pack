@@ -15,6 +15,11 @@ type Dependency struct {
 	// a dependency with different variables.
 	Name string `hcl:"name,label"`
 
+	// Alias overrides the dependency pack's Name in references when set,
+	// allowing the same pack source to be used multiple times as with different
+	// variable values.
+	Alias string `hcl:"alias,optional"`
+
 	// Source is the remote source where the pack can be fetched. This string
 	// can follow any format as supported by go-getter or be a local path
 	// indicating the pack has already been downloaded.
@@ -23,6 +28,21 @@ type Dependency struct {
 	// Enabled is a boolean flag to determine whether the dependency is
 	// available for loading. This allows easy administrative control.
 	Enabled *bool `hcl:"enabled,optional"`
+}
+
+// AliasOrName returns the pack's Alias or the pack's Name, preferring the
+// Alias when set.
+func (d *Dependency) AliasOrName() string {
+	if d.Alias != "" {
+		return d.Alias
+	}
+	return d.Name
+}
+
+// PackID returns the identifier for the pack. The function returns a PackID
+// which implements the Stringer interface
+func (d *Dependency) PackID() PackID {
+	return PackID(d.AliasOrName())
 }
 
 // validate the Dependency object to ensure it meets requirements and doesn't
