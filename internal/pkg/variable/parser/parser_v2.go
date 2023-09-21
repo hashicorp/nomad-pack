@@ -261,7 +261,6 @@ func (p *ParserV2) parseVariableImpl(name, rawVal string, tgt variables.PackIDKe
 	// pack and set the default packVarName.
 	splitName := strings.Split(name, ".")
 
-	fmt.Println("SPLIT NAME: ", splitName)
 
 	// TODO: HERE IT IS!!
 
@@ -293,15 +292,14 @@ func (p *ParserV2) parseVariableImpl(name, rawVal string, tgt variables.PackIDKe
 	// TODO: ADDED THIS
 	var varPID pack.ID
 	var varVID variables.ID
-	fmt.Println("SPLIT NAME: ", splitName)
 
 	if (len(splitName) < 2) {
-		fmt.Println("LENGTH UNDER 2")
 		varPID = pack.ID(p.cfg.ParentPackID.String())
 		varVID = variables.ID(splitName[len(splitName)-1])
 	} else {
-		fmt.Println("LENGTH OVER 2")
-		varPID = pack.ID(strings.Join(splitName[:len(splitName)-1], "."))
+		// TODO: Add parent here
+		packString := strings.Join(append([]string{p.cfg.ParentPackID.String()}, splitName[0:len(splitName)-1]...), ".")
+		varPID = pack.ID(packString)
 		varVID = variables.ID(splitName[len(splitName)-1])
 	}
 
@@ -309,6 +307,7 @@ func (p *ParserV2) parseVariableImpl(name, rawVal string, tgt variables.PackIDKe
 	// standard requirement, especially because we would be unable to ensure a
 	// consistent type.
 	existing, exists := p.rootVars[varPID][varVID]
+
 	if !exists {
 		return hcl.Diagnostics{packdiags.DiagMissingRootVar(name, &fakeRange)}
 	}
