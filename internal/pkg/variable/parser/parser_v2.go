@@ -120,6 +120,7 @@ func (p *ParserV2) Parse() (*ParsedVariables, hcl.Diagnostics) {
 
 	out := new(ParsedVariables)
 	out.LoadV2Result(p.rootVars)
+
 	return out, diags
 }
 
@@ -134,7 +135,9 @@ func (p *ParserV2) newParseOverridesFile(file string) (map[string]*hcl.File, hcl
 	ovrds := make(variables.Overrides)
 
 	// Decode into the local recipient object
-	if hfm, vfDiags := varfile.Decode(file, src, nil, &ovrds); vfDiags.HasErrors() {
+	// TODO: Pass in here?
+	rootPackName := p.cfg.ParentPackID.String()
+	if hfm, vfDiags := varfile.Decode(rootPackName, file, src, nil, &ovrds); vfDiags.HasErrors() {
 		return hfm, vfDiags.Extend(diags)
 	}
 	for _, o := range ovrds[pack.ID(file)] {

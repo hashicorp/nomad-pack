@@ -94,7 +94,7 @@ func TestVarfile_DecodeHCL(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			tc := tc
 			om := make(variables.Overrides)
-			_, diags := Decode("embedded.hcl", tc.src, nil, &om)
+			_, diags := Decode("mypack", "embedded.hcl", tc.src, nil, &om)
 			must.Len(t, tc.exp.dLen, diags, must.Sprintf("slice values: %v", diags))
 
 			if len(tc.exp.diags) > 0 {

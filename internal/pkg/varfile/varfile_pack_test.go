@@ -13,7 +13,7 @@ import (
 
 func TestVarfile_ProcessPackVarfiles(t *testing.T) {
 	ovrds := make(variables.Overrides)
-	fm, d := varfile.Decode("foo.hcl", []byte(`foo="bar"`), nil, &ovrds)
+	fm, d := varfile.Decode("pack", "foo.hcl", []byte(`foo="bar"`), nil, &ovrds)
 	if d.HasErrors() {
 		dw := hcl.NewDiagnosticTextWriter(os.Stderr, fm, 40, false)
 		t.Log(dw.WriteDiagnostics(d))
