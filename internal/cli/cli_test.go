@@ -265,7 +265,7 @@ func TestCLI_PackPlan_OverrideExitCodes(t *testing.T) {
 		})
 		must.Eq(t, "", result.cmdErr.String(), must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
 		must.StrContains(t, result.cmdOut.String(), "Plan succeeded\n")
-		must.Eq(t, 90, result.exitCode) // Should return exit-code-no-changes
+		must.Eq(t, 90, result.exitCode, must.Sprintf("stdout:\n%s\n\nstderr:\n%s\n", result.cmdOut.String(), result.cmdErr.String())) // Should return exit-code-no-changes
 	})
 }
 
@@ -733,15 +733,18 @@ type PackCommandResult struct {
 }
 
 func AddressFromTestServer(srv *agent.TestAgent) []string {
+	srv.T.Helper()
 	return []string{"--address", srv.HTTPAddr()}
 }
 
 func runTestPackCmd(t *testing.T, srv *agent.TestAgent, args []string) PackCommandResult {
+	t.Helper()
 	args = append(args, AddressFromTestServer(srv)...)
 	return runPackCmd(t, args)
 }
 
 func runPackCmd(t *testing.T, args []string) PackCommandResult {
+	t.Helper()
 	cmdOut := bytes.NewBuffer(make([]byte, 0))
 	cmdErr := bytes.NewBuffer(make([]byte, 0))
 
@@ -790,12 +793,14 @@ func runPackCmd(t *testing.T, args []string) PackCommandResult {
 
 // getTestPackPath returns the full path to a pack in the test fixtures folder.
 func getTestPackPath(t *testing.T, packname string) string {
+	t.Helper()
 	return path.Join(getTestPackRegistryPath(t), "packs", packname)
 }
 
 // getTestPackRegistryPath returns the full path to a registry in the test
 // fixtures folder.
 func getTestPackRegistryPath(t *testing.T) string {
+	t.Helper()
 	return path.Join(testfixture.AbsPath(t, "v2/test_registry"))
 }
 
@@ -820,6 +825,7 @@ func expectGoodPackDeploy(t *testing.T, r PackCommandResult) {
 // expectGoodPackPlan bundles the test expectations that should be met when
 // determining if the pack CLI successfully planned a pack.
 func expectGoodPackPlan(t *testing.T, r PackCommandResult) {
+	t.Helper()
 	expectNoStdErrOutput(t, r)
 	must.StrContains(t, r.cmdOut.String(), "Plan succeeded", must.Sprintf(
 		"Expected success message, received %q", r.cmdOut.String()))
