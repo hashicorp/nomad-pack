@@ -218,15 +218,16 @@ func decode(rootPack, filename string, src []byte, ctx *hcl.EvalContext, target 
 
 		var path pack.ID
 		var name variables.ID
+		fmt.Println(steps)
 		if (len(steps) < 2) {
+			fmt.Println("LENGTH UNDER 2!")
 			name = variables.ID(steps[len(steps)-1])
 			path = pack.ID(rootPack)
 		} else {
+			fmt.Println("LENGTH OVER 2!")
 			name = variables.ID(steps[len(steps)-1])
 			path = pack.ID(strings.Join(steps[0:len(steps)-1], "."))
 		}
-
-		fmt.Println("path", path)
 
 		// TODO: HERE
 		val := variables.Override{

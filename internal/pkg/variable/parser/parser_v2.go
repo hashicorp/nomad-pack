@@ -293,6 +293,8 @@ func (p *ParserV2) parseVariableImpl(name, rawVal string, tgt variables.PackIDKe
 	// TODO: ADDED THIS
 	var varPID pack.ID
 	var varVID variables.ID
+	fmt.Println("SPLIT NAME: ", splitName)
+
 	if (len(splitName) < 2) {
 		fmt.Println("LENGTH UNDER 2")
 		varPID = pack.ID(p.cfg.ParentPackID.String())
