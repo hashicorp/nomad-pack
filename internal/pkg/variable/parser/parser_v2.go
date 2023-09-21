@@ -258,15 +258,19 @@ func (p *ParserV2) parseVariableImpl(name, rawVal string, tgt variables.PackIDKe
 	// pack and set the default packVarName.
 	splitName := strings.Split(name, ".")
 
-	if len(splitName) < 2 || splitName[0] != p.cfg.ParentPackID.String() {
-		return hcl.Diagnostics{
-			{
-				Severity: hcl.DiagError,
-				Summary:  fmt.Sprintf("Invalid %s option %s=%s", typeTxt, name, rawVal),
-				Detail:   fmt.Sprintf("The given %s option %s=%s is not correctly specified.\nVariable names must be dot-separated, absolute paths to a variable including the root pack name %q.", typeTxt, name, rawVal, p.cfg.ParentPackID),
-			},
-		}
-	}
+	fmt.Println("SPLIT NAME: ", splitName)
+
+	// TODO: HERE IT IS!!
+
+	// if len(splitName) < 2 || splitName[0] != p.cfg.ParentPackID.String() {
+	// 	return hcl.Diagnostics{
+	// 		{
+	// 			Severity: hcl.DiagError,
+	// 			Summary:  fmt.Sprintf("Invalid %s option %s=%s", typeTxt, name, rawVal),
+	// 			Detail:   fmt.Sprintf("The given %s option %s=%s is not correctly specified.\nVariable names must be dot-separated, absolute paths to a variable including the root pack name %q.", typeTxt, name, rawVal, p.cfg.ParentPackID),
+	// 		},
+	// 	}
+	// }
 
 	// Generate a filename based on the incoming var, so we have some context for
 	// any HCL diagnostics.
@@ -283,8 +287,19 @@ func (p *ParserV2) parseVariableImpl(name, rawVal string, tgt variables.PackIDKe
 		End:      hcl.Pos{Line: lc, Column: endCol, Byte: len(rawVal)},
 	}
 
-	varPID := pack.ID(strings.Join(splitName[:len(splitName)-1], "."))
-	varVID := variables.ID(splitName[len(splitName)-1])
+	// TODO: ADDED THIS
+	var varPID pack.ID
+	var varVID variables.ID
+	if (len(splitName) < 2) {
+		fmt.Println("LENGTH UNDER 2")
+		varPID = pack.ID(p.cfg.ParentPackID.String())
+		varVID = variables.ID(splitName[len(splitName)-1])
+	} else {
+		fmt.Println("LENGTH OVER 2")
+		varPID = pack.ID(strings.Join(splitName[:len(splitName)-1], "."))
+		varVID = variables.ID(splitName[len(splitName)-1])
+	}
+
 	// If the variable has not been configured in the root then exit. This is a
 	// standard requirement, especially because we would be unable to ensure a
 	// consistent type.

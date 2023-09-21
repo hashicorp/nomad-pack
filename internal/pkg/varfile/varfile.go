@@ -199,6 +199,8 @@ func decode(filename string, src []byte, ctx *hcl.EvalContext, target *variables
 			steps = strings.Split(k.AsString(), ".")
 
 		case 1:
+			// NOTE: traversalToName is recursive
+
 			// In the HCL case, we have to read the traversal to get the path parts.
 			steps = traversalToName(keyVars[0])
 
@@ -212,9 +214,21 @@ func decode(filename string, src []byte, ctx *hcl.EvalContext, target *variables
 		oRange := hcl.RangeBetween(kv.Key.Range(), kv.Value.Range())
 		fixupRange(&oRange)
 
+		var path pack.ID
+		var name variables.ID
+		if (len(steps) < 2) {
+			// TODO: Make this work here!
+			name = variables.ID(steps[len(steps)-1])
+			path = pack.ID(strings.Join(steps[0:len(steps)-1], "."))
+		} else {
+			name = variables.ID(steps[len(steps)-1])
+			path = pack.ID(strings.Join(steps[0:len(steps)-1], "."))
+		}
+
+		// TODO: HERE
 		val := variables.Override{
-			Name:  variables.ID(steps[len(steps)-1]),
-			Path:  pack.ID(strings.Join(steps[0:len(steps)-1], ".")),
+			Name:  name,
+			Path:  path,
 			Value: value,
 			Type:  value.Type(),
 			Range: oRange,
