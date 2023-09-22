@@ -74,7 +74,7 @@ func (v *Variable) Equal(ivp *Variable) bool {
 	return eq
 }
 
-func (v Variable) AsOverrideString(pID pack.ID) string {
+func (v *Variable) AsOverrideString(pID pack.ID) string {
 	var out strings.Builder
 	out.WriteString(fmt.Sprintf(`# variable "%s.%s"`, pID, v.Name))
 	out.WriteByte('\n')
