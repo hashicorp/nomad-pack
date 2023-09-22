@@ -66,7 +66,7 @@ func (pm *PackManager) ProcessVariableFiles() (*parser.ParsedVariables, []*error
 
 	pCfg := &config.ParserConfig{
 		Version:           config.V2,
-		ParentPackID:      pack.ID(parentName),
+		ParentPack:        pm.loadedPack,
 		RootVariableFiles: loadedPack.RootVariableFiles(),
 		EnvOverrides:      pm.cfg.VariableEnvVars,
 		FileOverrides:     pm.cfg.VariableFiles,

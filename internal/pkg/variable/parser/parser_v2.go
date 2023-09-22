@@ -120,6 +120,7 @@ func (p *ParserV2) Parse() (*ParsedVariables, hcl.Diagnostics) {
 
 	out := new(ParsedVariables)
 	out.LoadV2Result(p.rootVars)
+
 	return out, diags
 }
 
@@ -134,7 +135,8 @@ func (p *ParserV2) newParseOverridesFile(file string) (map[string]*hcl.File, hcl
 	ovrds := make(variables.Overrides)
 
 	// Decode into the local recipient object
-	if hfm, vfDiags := varfile.Decode(file, src, nil, &ovrds); vfDiags.HasErrors() {
+	root := p.cfg.ParentPack
+	if hfm, vfDiags := varfile.Decode(root, file, src, nil, &ovrds); vfDiags.HasErrors() {
 		return hfm, vfDiags.Extend(diags)
 	}
 	for _, o := range ovrds[pack.ID(file)] {
@@ -258,16 +260,6 @@ func (p *ParserV2) parseVariableImpl(name, rawVal string, tgt variables.PackIDKe
 	// pack and set the default packVarName.
 	splitName := strings.Split(name, ".")
 
-	if len(splitName) < 2 || splitName[0] != p.cfg.ParentPackID.String() {
-		return hcl.Diagnostics{
-			{
-				Severity: hcl.DiagError,
-				Summary:  fmt.Sprintf("Invalid %s option %s=%s", typeTxt, name, rawVal),
-				Detail:   fmt.Sprintf("The given %s option %s=%s is not correctly specified.\nVariable names must be dot-separated, absolute paths to a variable including the root pack name %q.", typeTxt, name, rawVal, p.cfg.ParentPackID),
-			},
-		}
-	}
-
 	// Generate a filename based on the incoming var, so we have some context for
 	// any HCL diagnostics.
 
@@ -283,12 +275,27 @@ func (p *ParserV2) parseVariableImpl(name, rawVal string, tgt variables.PackIDKe
 		End:      hcl.Pos{Line: lc, Column: endCol, Byte: len(rawVal)},
 	}
 
-	varPID := pack.ID(strings.Join(splitName[:len(splitName)-1], "."))
-	varVID := variables.ID(splitName[len(splitName)-1])
+	var varPID pack.ID
+	var varVID variables.ID
+
+	if len(splitName) > 1 {
+		// TODO: This is another part that needs to be smart about parsing into the
+		// names so we could potentially set a value inside of an object.
+		varPID = p.cfg.ParentPack.ID().Join(
+			pack.ID("." + strings.Join(splitName[0:len(splitName)-1], ".")),
+		)
+		varVID = variables.ID(splitName[len(splitName)-1])
+	} else {
+		// There are no dots in the path; it must refer to the root pack.
+		varPID = p.cfg.ParentPack.ID()
+		varVID = variables.ID(splitName[0])
+	}
+
 	// If the variable has not been configured in the root then exit. This is a
 	// standard requirement, especially because we would be unable to ensure a
 	// consistent type.
 	existing, exists := p.rootVars[varPID][varVID]
+
 	if !exists {
 		return hcl.Diagnostics{packdiags.DiagMissingRootVar(name, &fakeRange)}
 	}

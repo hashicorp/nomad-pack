@@ -13,13 +13,15 @@ import (
 	"github.com/hashicorp/nomad-pack/sdk/pack/variables"
 )
 
-func DecodeVariableOverrides(files []*pack.File) DecodeResult {
+// TODO: this is only used in a test - remove?
+func DecodeVariableOverrides(root *pack.Pack, files []*pack.File) DecodeResult {
 	decodeResult := DecodeResult{}
 	for _, file := range files {
 		fileDecodeResult := DecodeResult{
 			Overrides: make(variables.Overrides),
 		}
-		fileDecodeResult.HCLFiles, fileDecodeResult.Diags = Decode(file.Name, file.Content, nil, &fileDecodeResult.Overrides)
+
+		fileDecodeResult.HCLFiles, fileDecodeResult.Diags = Decode(root, file.Name, file.Content, nil, &fileDecodeResult.Overrides)
 		decodeResult.Merge(fileDecodeResult)
 	}
 	return decodeResult
@@ -117,8 +119,8 @@ func (d *DecodeResult) Merge(in DecodeResult) {
 
 // Decode parses, decodes, and evaluates expressions in the given HCL source
 // code, in a single step.
-func Decode(filename string, src []byte, ctx *hcl.EvalContext, target *variables.Overrides) (map[string]*hcl.File, hcl.Diagnostics) {
-	fm, diags := decode(filename, src, ctx, target)
+func Decode(root *pack.Pack, filename string, src []byte, ctx *hcl.EvalContext, target *variables.Overrides) (map[string]*hcl.File, hcl.Diagnostics) {
+	fm, diags := decode(root, filename, src, ctx, target)
 	var fd = fixableDiags(diags)
 
 	fm.Fixup() // the hcl.File that we will return to the diagnostic printer will have our modifications
@@ -129,7 +131,7 @@ func Decode(filename string, src []byte, ctx *hcl.EvalContext, target *variables
 
 // Decode parses, decodes, and evaluates expressions in the given HCL source
 // code, in a single step.
-func decode(filename string, src []byte, ctx *hcl.EvalContext, target *variables.Overrides) (diagFileMap, hcl.Diagnostics) {
+func decode(root *pack.Pack, filename string, src []byte, ctx *hcl.EvalContext, target *variables.Overrides) (diagFileMap, hcl.Diagnostics) {
 	var file *hcl.File
 	var diags hcl.Diagnostics
 
@@ -204,6 +206,8 @@ func decode(filename string, src []byte, ctx *hcl.EvalContext, target *variables
 			steps = strings.Split(k.AsString(), ".")
 
 		case 1:
+			// NOTE: traversalToName is recursive
+
 			// In the HCL case, we have to read the traversal to get the path parts.
 			steps = traversalToName(keyVars[0])
 
@@ -217,9 +221,30 @@ func decode(filename string, src []byte, ctx *hcl.EvalContext, target *variables
 		oRange := hcl.RangeBetween(kv.Key.Range(), kv.Value.Range())
 		fixupRange(&oRange)
 
+		var path pack.ID
+		var name variables.ID
+
+		// NOTE: This implementation assumes a single element variable value,
+		// which specifically breaks setting a sub-element value. The more
+		// correct way is to perform the traversal based on the provided root
+		// pack
+
+		if len(steps) < 2 {
+			name = variables.ID(steps[len(steps)-1])
+			path = root.ID()
+		} else {
+			name = variables.ID(steps[len(steps)-1])
+			path = pack.ID(strings.Join(
+				append(
+					[]string{root.ID().String()},
+					steps[0:len(steps)-1]...,
+				),
+				"."))
+		}
+
 		val := variables.Override{
-			Name:  variables.ID(steps[len(steps)-1]),
-			Path:  pack.ID(strings.Join(steps[0:len(steps)-1], ".")),
+			Name:  name,
+			Path:  path,
 			Value: value,
 			Type:  value.Type(),
 			Range: oRange,
@@ -228,6 +253,7 @@ func decode(filename string, src []byte, ctx *hcl.EvalContext, target *variables
 	}
 
 	if len(vals) > 0 {
+		// What is this doing?
 		(*target)[pack.ID(filename)] = vals
 	}
 	return fm, diags
