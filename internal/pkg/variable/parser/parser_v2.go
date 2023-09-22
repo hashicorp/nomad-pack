@@ -42,10 +42,13 @@ type ParserV2 struct {
 }
 
 func NewParserV2(cfg *config.ParserConfig) (*ParserV2, error) {
+	if cfg == nil {
+		return nil, errors.New("nil parser configuration")
+	}
 
 	// Ensure the parent name is set, otherwise we can't parse correctly.
-	if cfg.ParentPackID == "" {
-		return nil, errors.New("variable parser config requires ParentName to be set")
+	if cfg.ParentPack == nil {
+		return nil, errors.New("nil ParentPack")
 	}
 
 	// Sort the file overrides to ensure variable merging is consistent on
@@ -54,7 +57,7 @@ func NewParserV2(cfg *config.ParserConfig) (*ParserV2, error) {
 	for _, file := range cfg.FileOverrides {
 		_, err := os.Stat(file)
 		if err != nil {
-			return nil, fmt.Errorf("variable file %q not found", file)
+			return nil, fmt.Errorf("error loading variable file %q: %w", file, err)
 		}
 	}
 

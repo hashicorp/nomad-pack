@@ -36,6 +36,36 @@ func testpack(p ...string) *pack.Pack {
 	}
 }
 
+func TestParserV2_NewParserV2(t *testing.T) {
+	t.Run("fails/with nil config set", func(t *testing.T) {
+		p, err := NewParserV2(nil)
+		must.Nil(t, p)
+		must.Error(t, err)
+		must.ErrorContains(t, err, "nil parser configuration")
+	})
+	t.Run("fails/without ParentPack set", func(t *testing.T) {
+		p, err := NewParserV2(&config.ParserConfig{})
+		must.Nil(t, p)
+		must.Error(t, err)
+		must.ErrorContains(t, err, "nil ParentPack")
+	})
+	t.Run("fails/with missing override file", func(t *testing.T) {
+		p, err := NewParserV2(&config.ParserConfig{
+			ParentPack:    testpack("example"),
+			FileOverrides: []string{"/not/a/real/path/foo.hcl"},
+		})
+		must.Nil(t, p)
+		must.Error(t, err)
+		must.ErrorContains(t, err, "error loading variable file")
+	})
+	t.Run("passes", func(t *testing.T) {
+		p, err := NewParserV2(&config.ParserConfig{
+			ParentPack: testpack("example"),
+		})
+		must.NotNil(t, p)
+		must.NoError(t, err)
+	})
+}
 
 func TestParserV2_parseFlagVariable(t *testing.T) {
 	testCases := []struct {
