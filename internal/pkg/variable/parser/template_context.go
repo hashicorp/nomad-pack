@@ -3,11 +3,11 @@ package parser
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"text/template"
 
 	"github.com/hashicorp/nomad-pack/sdk/pack"
-	"golang.org/x/exp/slices"
 )
 
 // PackTemplateContext v2

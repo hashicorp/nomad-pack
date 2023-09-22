@@ -3,6 +3,7 @@ package parser
 import (
 	"encoding/json"
 	"errors"
+	"slices"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -11,7 +12,6 @@ import (
 	"github.com/hashicorp/nomad-pack/sdk/pack"
 	"github.com/hashicorp/nomad-pack/sdk/pack/variables"
 	"golang.org/x/exp/maps"
-	"golang.org/x/exp/slices"
 )
 
 // ParsedVariables wraps the parsed variables returned by parser.Parse and

@@ -3,6 +3,7 @@ package varfile
 import (
 	"fmt"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -10,7 +11,6 @@ import (
 	"github.com/hashicorp/hcl/v2/json"
 	"github.com/hashicorp/nomad-pack/sdk/pack"
 	"github.com/hashicorp/nomad-pack/sdk/pack/variables"
-	"golang.org/x/exp/slices"
 )
 
 func DecodeVariableOverrides(files []*pack.File) DecodeResult {
