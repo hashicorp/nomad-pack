@@ -1,16 +1,34 @@
 package varfile
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/nomad-pack/sdk/pack"
 	"github.com/hashicorp/nomad-pack/sdk/pack/variables"
 	"github.com/shoenig/test/must"
 	"github.com/zclconf/go-cty/cty"
 )
 
+func testpack(p ...string) *pack.Pack {
+	name := strings.Join(p, ".")
+	if name == "" {
+		name = "example"
+	}
+
+	return &pack.Pack{
+		Metadata: &pack.Metadata{
+			Pack: &pack.MetadataPack{
+				Name: name,
+			},
+		},
+	}
+}
+
 func TestVarfile_DecodeHCL(t *testing.T) {
+	spew.Config.DisableMethods = true
 	type exp struct {
 		dLen  int
 		diags hcl.Diagnostics
@@ -34,7 +52,7 @@ func TestVarfile_DecodeHCL(t *testing.T) {
 		},
 		{
 			name: "single override",
-			src:  []byte(`mypack.foo = "bar"`),
+			src:  []byte(`foo = "bar"`),
 			exp: exp{
 				dLen: 0,
 				oLen: 1,
@@ -48,7 +66,7 @@ func TestVarfile_DecodeHCL(t *testing.T) {
 							Range: hcl.Range{
 								Filename: "embedded.hcl",
 								Start:    hcl.Pos{Line: 1, Column: 1, Byte: 0},
-								End:      hcl.Pos{Line: 1, Column: 19, Byte: 18},
+								End:      hcl.Pos{Line: 1, Column: 12, Byte: 11},
 							},
 						},
 					},
@@ -57,7 +75,7 @@ func TestVarfile_DecodeHCL(t *testing.T) {
 		},
 		{
 			name: "missing equal",
-			src:  []byte(`mypack.foo "bar"`),
+			src:  []byte(`foo "bar"`),
 			exp: exp{
 				dLen: 1,
 				diags: hcl.Diagnostics{
@@ -67,13 +85,13 @@ func TestVarfile_DecodeHCL(t *testing.T) {
 						Detail:   `Expected an equals sign ("=") to mark the beginning of the attribute value.`,
 						Subject: &hcl.Range{
 							Filename: "embedded.hcl",
-							Start:    hcl.Pos{Line: 1, Column: 12, Byte: 11},
-							End:      hcl.Pos{Line: 1, Column: 13, Byte: 12},
+							Start:    hcl.Pos{Line: 1, Column: 5, Byte: 4},
+							End:      hcl.Pos{Line: 1, Column: 6, Byte: 5},
 						},
 						Context: &hcl.Range{
 							Filename: "embedded.hcl",
 							Start:    hcl.Pos{Line: 1, Column: 1, Byte: 0},
-							End:      hcl.Pos{Line: 1, Column: 13, Byte: 12},
+							End:      hcl.Pos{Line: 1, Column: 6, Byte: 5},
 						},
 						EvalContext: nil,
 						Extra:       DiagExtraFixup{Fixed: true},
@@ -91,10 +109,11 @@ func TestVarfile_DecodeHCL(t *testing.T) {
 		},
 	}
 	for _, tc := range testCases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			tc := tc
+			root := testpack("mypack")
 			om := make(variables.Overrides)
-			_, diags := Decode("embedded.hcl", tc.src, nil, &om)
+			_, diags := Decode(root, "embedded.hcl", tc.src, nil, &om)
 			must.Len(t, tc.exp.dLen, diags, must.Sprintf("slice values: %v", diags))
 
 			if len(tc.exp.diags) > 0 {
@@ -122,7 +141,7 @@ func TestVarfile_DecodeHCL(t *testing.T) {
 
 				for i, o := range oSlice {
 					e := eSlice[i]
-					must.True(t, e.Equal(o))
+					must.True(t, e.Equal(o), must.Sprintf("e: %+v\no: %+v\n", spew.Sprintf("%+v", e), spew.Sprintf("%+v", o)))
 				}
 			}
 		})
