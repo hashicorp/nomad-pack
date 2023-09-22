@@ -11,6 +11,8 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser"
 )
 
+// PackTemplateErrors are designed to progressively enhance the errors returned
+// from go template rendering. Implements `error`
 type PackTemplateError struct {
 	Filename    string   // template filename returned
 	Line        int      // the line in the template if found
@@ -27,12 +29,16 @@ type PackTemplateError struct {
 	tplctx     parser.PackTemplateContext
 }
 
+// Error implements the `error` interface using a value receiver so it works
+// with PackTemplateError values or pointers.
 func (p PackTemplateError) Error() string {
 	return p.Err.Error()
 }
 
-func ParseTemplateError(tplCtx parser.PackTemplateContext, err error) PackTemplateError {
-	out := PackTemplateError{Err: err, origErr: err, tplctx: tplCtx}
+// ParseTemplateError returns a PackTemplate error that wraps and attempts to
+// enhance errors returned from go template.
+func ParseTemplateError(tplCtx parser.PackTemplateContext, err error) *PackTemplateError {
+	out := &PackTemplateError{Err: err, origErr: err, tplctx: tplCtx}
 
 	var execErr template.ExecError
 	if errors.As(err, &execErr) {
@@ -42,7 +48,9 @@ func ParseTemplateError(tplCtx parser.PackTemplateContext, err error) PackTempla
 	return out
 }
 
-func (p PackTemplateError) ToWrappedUIContext() *WrappedUIContext {
+// ToWrappedUIContext converts a PackTemplateError into a WrappedUIContext for
+// display to the CLI
+func (p *PackTemplateError) ToWrappedUIContext() *WrappedUIContext {
 	errCtx := NewUIErrorContext()
 	errCtx.Add("Details: ", p.Details)
 	errCtx.Add("Filename: ", p.Filename)
@@ -55,7 +63,7 @@ func (p PackTemplateError) ToWrappedUIContext() *WrappedUIContext {
 	}
 }
 
-func (p PackTemplateError) pos() string {
+func (p *PackTemplateError) pos() string {
 	var out string
 	if p.Line == 0 {
 		return ""
@@ -67,6 +75,12 @@ func (p PackTemplateError) pos() string {
 	return out
 }
 
+// parseExecError attempts to decode the textual representation of a go
+// template ExecError. To quote the Go text/template source:
+//
+// > "TODO: It would be nice if ExecError was more broken down, but
+// the way ErrorContext embeds the template name makes the
+// processing too clumsy."
 func (p *PackTemplateError) parseExecError(execErr template.ExecError) {
 	// Exchange wrapped error for unwrapped one, in case we bail out early
 	p.Err = execErr
