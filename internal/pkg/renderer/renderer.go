@@ -112,8 +112,8 @@ func (r *Renderer) Render(p *pack.Pack, variables *parser.ParsedVariables) (*Ren
 
 	// Generate our output structure.
 	rendered := &Rendered{
-		parentRenders:    make(map[string]string),
-		dependentRenders: make(map[string]string), // TODO: Are these "dependencyRenders"?
+		parentRenders:     make(map[string]string),
+		dependencyRenders: make(map[string]string),
 	}
 
 	for name, src := range filesToRender {
@@ -159,7 +159,7 @@ func (r *Renderer) Render(p *pack.Pack, variables *parser.ParsedVariables) (*Ren
 		if nameSplit[0] == p.Name() {
 			rendered.parentRenders[name] = replacedTpl
 		} else {
-			rendered.dependentRenders[name] = replacedTpl
+			rendered.dependencyRenders[name] = replacedTpl
 		}
 	}
 
@@ -295,8 +295,8 @@ func prepareFilesV1(p *pack.Pack,
 // pack. It splits them based on whether they belong to the parent or a
 // dependency.
 type Rendered struct {
-	parentRenders    map[string]string
-	dependentRenders map[string]string
+	parentRenders     map[string]string
+	dependencyRenders map[string]string
 }
 
 // ParentRenders returns a map of rendered templates belonging to the parent
@@ -310,8 +310,8 @@ func (r *Rendered) LenParentRenders() int { return len(r.parentRenders) }
 // DependentRenders returns a map of rendered templates belonging to the
 // dependent packs of the parent template. The map key represents the path and
 // file name of the template.
-func (r *Rendered) DependentRenders() map[string]string { return r.dependentRenders }
+func (r *Rendered) DependentRenders() map[string]string { return r.dependencyRenders }
 
 // LenDependentRenders returns the number of dependent rendered templates that
 // are stored.
-func (r *Rendered) LenDependentRenders() int { return len(r.dependentRenders) }
+func (r *Rendered) LenDependentRenders() int { return len(r.dependencyRenders) }
