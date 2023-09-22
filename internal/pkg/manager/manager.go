@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/loader"
 	"github.com/hashicorp/nomad-pack/internal/pkg/renderer"
-	"github.com/hashicorp/nomad-pack/internal/pkg/variable"
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser"
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser/config"
 	"github.com/hashicorp/nomad-pack/sdk/pack"
@@ -79,7 +78,7 @@ func (pm *PackManager) ProcessVariableFiles() (*parser.ParsedVariables, []*error
 		pCfg.ParentName = parentName
 	}
 
-	variableParser, err := variable.NewParser(pCfg)
+	variableParser, err := parser.NewParser(pCfg)
 	if err != nil {
 		return nil, []*errors.WrappedUIContext{{
 			Err:     err,

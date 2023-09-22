@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
 	"github.com/hashicorp/nomad-pack/internal/pkg/loader"
-	"github.com/hashicorp/nomad-pack/internal/pkg/variable"
+	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser"
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser/config"
 	"github.com/hashicorp/nomad-pack/sdk/pack"
 	"github.com/mitchellh/go-glint"
@@ -55,7 +55,7 @@ func (c *InfoCommand) Run(args []string) int {
 		return 1
 	}
 
-	variableParser, err := variable.NewParser(&config.ParserConfig{
+	variableParser, err := parser.NewParser(&config.ParserConfig{
 		ParentPackID:      pack.ID(path.Base(packPath)),
 		RootVariableFiles: p.RootVariableFiles(),
 		IgnoreMissingVars: c.baseCommand.ignoreMissingVars,
