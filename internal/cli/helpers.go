@@ -65,10 +65,10 @@ func registryTableRow(cachedRegistry *cache.Registry) []terminal.TableEntry {
 			Value: cachedRegistry.Name,
 		},
 		{
-			Value: cachedRegistry.Ref,
+			Value: formatSHA1Reference(cachedRegistry.Ref),
 		},
 		{
-			Value: cachedRegistry.LocalRef,
+			Value: formatSHA1Reference(cachedRegistry.LocalRef),
 		},
 		{
 			Value: cachedRegistry.Source,
@@ -84,11 +84,11 @@ func registryPackRow(cachedRegistry *cache.Registry, cachedPack *cache.Pack) []t
 		},
 		// The revision from where the registryPack was cloned
 		{
-			Value: cachedPack.Ref,
+			Value: formatSHA1Reference(cachedPack.Ref),
 		},
 		// The canonical revision from where the registryPack was cloned
 		{
-			Value: cachedRegistry.LocalRef,
+			Value: formatSHA1Reference(cachedRegistry.LocalRef),
 		},
 		// The metadata version
 		{
