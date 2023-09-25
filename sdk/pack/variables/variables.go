@@ -1,7 +1,6 @@
 package variables
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -13,6 +12,8 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 )
+
+type PackIDKeyedVarMap map[pack.ID][]*Variable
 
 type ID string
 
@@ -54,8 +55,6 @@ type Variable struct {
 func (v *Variable) SetDescription(d string) { v.Description = d; v.hasDescription = true }
 func (v *Variable) SetDefault(d cty.Value)  { v.Default = d; v.hasDefault = true }
 func (v *Variable) SetType(t cty.Type)      { v.Type = t; v.hasType = true }
-
-func (v *Variable) String() string { return asJSON(v) }
 
 func (v *Variable) Equal(ivp *Variable) bool {
 	if v == ivp {
@@ -105,10 +104,6 @@ func (v *Variable) AsOverrideString(pID pack.ID) string {
 
 	out.WriteString("\n")
 	return out.String()
-}
-
-func asJSON(a any) string {
-	return func() string { b, _ := json.MarshalIndent(a, "", "  "); return string(b) }()
 }
 
 func (v *Variable) Merge(in *Variable) hcl.Diagnostics {
