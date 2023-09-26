@@ -32,6 +32,7 @@ type DecodeResult struct {
 	HCLFiles  map[string]*hcl.File
 }
 
+// Merge combines two DecodeResults. Any nil Overrides are discarded.
 func (d *DecodeResult) Merge(in DecodeResult) {
 	// If the incoming DecodeResult contains diags, add them to our Diags
 	// collection
@@ -43,6 +44,10 @@ func (d *DecodeResult) Merge(in DecodeResult) {
 
 		// Traverse the incoming pack's overrides
 		for _, inOverride := range packOverrides {
+
+			if inOverride == nil {
+				continue
+			}
 
 			// If any existing values in the destination pack's slice conflict with
 			// the current value, they will be stored here since otherwise they'd be

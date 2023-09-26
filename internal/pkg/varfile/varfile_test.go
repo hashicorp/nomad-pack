@@ -192,24 +192,25 @@ func TestVarFile_Merge_Good(t *testing.T) {
 			dr.Merge(d2)
 			must.False(t, dr.Diags.HasErrors())
 			must.Len[*variables.Override](t, 2, dr.Overrides["p2"])
-			must.MapNotContainsKey(t, d2.Overrides, "p1")
 		})
 
-		//TODO: Investigate this broken test.
-		// t.Run("for nil override pointer", func(t *testing.T) {
+		t.Run("for nil override pointer", func(t *testing.T) {
 
-		// 	ov := &Override{
-		// 		Name:  "datacenter",
-		// 		Path:  "simple_raw_exec_1",
-		// 		Type:  cty.List(cty.String),
-		// 		Value: cty.ListValEmpty(cty.String),
-		// 	}
+			d1 := DecodeResult{
+				Overrides: variables.Overrides{
+					"p1": []*variables.Override{{Name: "o1"}, {Name: "o2"}},
+				},
+			}
+			var nilPtr *variables.Override
+			d := DecodeResult{
+				Overrides: variables.Overrides{
+					"p1": []*variables.Override{nilPtr},
+				},
+			}
 
-		// 	dr := DecodeResult{Overrides: Overrides{"p1": []*Override{ov, ov}}}
-
-		// 	dr.Merge(dr)
-		// 	must.False(t, dr.Diags.HasErrors())
-		// 	must.Len(t, 1, dr.Overrides["p1"])
-		// })
+			d1.Merge(d)
+			must.False(t, d1.Diags.HasErrors())
+			must.Len(t, 2, d1.Overrides["p1"])
+		})
 	})
 }
