@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/manager"
 	"github.com/hashicorp/nomad-pack/internal/pkg/renderer"
-	"github.com/hashicorp/nomad-pack/internal/pkg/variable"
+	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser"
 	"github.com/hashicorp/nomad-pack/internal/runner"
 	"github.com/hashicorp/nomad-pack/internal/runner/job"
 	"github.com/hashicorp/nomad-pack/terminal"
@@ -43,6 +43,7 @@ func generatePackManager(c *baseCommand, client *api.Client, packCfg *cache.Pack
 		VariableFiles:   c.varFiles,
 		VariableCLIArgs: c.vars,
 		VariableEnvVars: c.envVars,
+		UseParserV1:     c.useParserV1,
 	}
 	return manager.NewPackManager(&cfg, client)
 }
@@ -159,7 +160,7 @@ func renderVariableOverrideFile(
 	manager *manager.PackManager,
 	ui terminal.UI,
 	errCtx *errors.UIErrorContext,
-) (*variable.ParsedVariables, error) {
+) (*parser.ParsedVariables, error) {
 
 	r, err := manager.ProcessVariableFiles()
 	if err != nil {
@@ -216,7 +217,7 @@ func getPackJobsByDeploy(c *api.Client, cfg *cache.PackConfig, deploymentName st
 		return nil, fmt.Errorf("error finding jobs for pack %s: %s", cfg.Name, err)
 	}
 	if len(jobs) == 0 {
-		return nil, fmt.Errorf("no job(s) found")
+		return nil, errors.New("no job(s) found")
 	}
 
 	var packJobs []*api.Job

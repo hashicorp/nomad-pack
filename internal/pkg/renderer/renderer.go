@@ -9,11 +9,15 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/hashicorp/nomad/api"
 
+	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser"
 	"github.com/hashicorp/nomad-pack/sdk/pack"
 )
+
+type PackTemplateContext = parser.PackTemplateContext
 
 // Renderer provides template rendering functionality using the text/template
 // package.
@@ -38,16 +42,32 @@ type Renderer struct {
 
 	// stores the pack information, variables and tpl, so we can perform the
 	// output template rendering after pack deployment.
-	pack      *pack.Pack
-	variables map[string]any
-	tpl       *template.Template
+	pack *pack.Pack
+	tpl  *template.Template
+	pv   *parser.ParsedVariables
 }
 
-// toRender details an individual template to render along with it's scoped
+// toRender details an individual template to render along with its scoped
 // variables.
 type toRender struct {
 	content   string
+	tplCtx    PackTemplateContext
 	variables map[string]any
+}
+
+// getDot is an ugly convenience function to deal with
+// the fact that ParserV1 and ParserV2 create differently
+// shaped contexts. Template is very forgiving with the
+// data (or dot) object's typing.
+func (t toRender) getDot() any {
+	var out any
+	if len(t.variables) > 0 {
+		out = t.variables
+	}
+	if len(t.tplCtx) > 0 {
+		out = t.tplCtx
+	}
+	return out
 }
 
 const (
@@ -57,16 +77,22 @@ const (
 
 // Render is responsible for iterating the pack and rendering each defined
 // template using the parsed variable map.
-func (r *Renderer) Render(p *pack.Pack, variables map[string]any) (*Rendered, error) {
+func (r *Renderer) Render(p *pack.Pack, variables *parser.ParsedVariables) (*Rendered, error) {
+
+	// save the ParsedVariables into the renderer state
+	r.pv = variables
 
 	// filesToRender stores all the templates and auxiliary files that should be
 	// rendered
 	filesToRender := map[string]toRender{}
-	prepareFiles(p, filesToRender, variables, r.RenderAuxFiles)
+	err := r.prepareFiles(p, filesToRender, variables, r.RenderAuxFiles)
+	if err != nil {
+		return nil, err
+	}
 
 	// Set up our new template, add the function mapping, and set the
 	// delimiters.
-	tpl := template.New("tpl").Funcs(funcMap(r.Client)).Delims(leftTemplateDelim, rightTemplateDelim)
+	tpl := template.New("tpl").Funcs(funcMap(r)).Delims(leftTemplateDelim, rightTemplateDelim)
 
 	// Control the behaviour of rendering when it encounters an element
 	// referenced which doesn't exist within the variable mapping.
@@ -86,8 +112,8 @@ func (r *Renderer) Render(p *pack.Pack, variables map[string]any) (*Rendered, er
 
 	// Generate our output structure.
 	rendered := &Rendered{
-		parentRenders:    make(map[string]string),
-		dependentRenders: make(map[string]string),
+		parentRenders:     make(map[string]string),
+		dependencyRenders: make(map[string]string),
 	}
 
 	for name, src := range filesToRender {
@@ -102,7 +128,8 @@ func (r *Renderer) Render(p *pack.Pack, variables map[string]any) (*Rendered, er
 		// is an error.
 		var buf strings.Builder
 
-		if err := tpl.ExecuteTemplate(&buf, name, src.variables); err != nil {
+		dot := src.getDot()
+		if err := tpl.ExecuteTemplate(&buf, name, dot); err != nil {
 			return nil, fmt.Errorf("failed to render %s: %v", name, err)
 		}
 
@@ -120,24 +147,25 @@ func (r *Renderer) Render(p *pack.Pack, variables map[string]any) (*Rendered, er
 			continue
 		}
 
-		if r.Format {
+		if r.Format &&
+			(strings.HasSuffix(name, ".nomad.tpl") || strings.HasSuffix(name, ".hcl.tpl")) {
 			// hclfmt the templates
 			f := hclwrite.Format([]byte(replacedTpl))
 			replacedTpl = string(f)
 		}
 
 		// Add the rendered pack template to our output, depending on whether
-		// it's name matches that of our parent.
+		// its name matches that of our parent.
 		if nameSplit[0] == p.Name() {
 			rendered.parentRenders[name] = replacedTpl
 		} else {
-			rendered.dependentRenders[name] = replacedTpl
+			rendered.dependencyRenders[name] = replacedTpl
 		}
 	}
 
-	r.variables = variables
 	r.pack = p
 	r.tpl = tpl
+	r.pv = variables
 
 	return rendered, nil
 }
@@ -155,17 +183,70 @@ func (r *Renderer) RenderOutput() (string, error) {
 	}
 
 	var buf strings.Builder
-	if err := r.tpl.ExecuteTemplate(&buf, r.pack.OutputTemplateFile.Name, r.variables); err != nil {
+	if err := r.tpl.ExecuteTemplate(&buf, r.pack.OutputTemplateFile.Name, r.pv); err != nil {
 		return "", fmt.Errorf("failed to render %s: %v", r.pack.OutputTemplateFile.Name, err)
 	}
 
 	return buf.String(), nil
 }
 
-// prepareFiles recurses the pack and its dependencies and returns a map
+// prepareFiles dispatches the request to prepare the Renderer's file configs
+// to the parser version specific implementation
+func (r *Renderer) prepareFiles(p *pack.Pack,
+	files map[string]toRender,
+	variables *parser.ParsedVariables,
+	renderAuxFiles bool,
+) hcl.Diagnostics {
+
+	if variables.IsV1() {
+		v1TplCtx, diags := variables.ConvertVariablesToMapInterface()
+		if diags.HasErrors() {
+			return diags
+		}
+		prepareFilesV1(p, files, v1TplCtx, renderAuxFiles)
+		return nil
+	}
+
+	v2TplCtx, diags := variables.ToPackTemplateContext(p)
+	if diags.HasErrors() {
+		return diags
+	}
+	prepareFilesV2(p, files, v2TplCtx, renderAuxFiles)
+	return nil
+}
+
+// prepareFilesV2 recurses the pack and its dependencies and returns a map
 // with the templates/auxiliary files to render along with the variables which
 // correspond.
-func prepareFiles(p *pack.Pack,
+func prepareFilesV2(p *pack.Pack,
+	files map[string]toRender,
+	tplCtx parser.PackTemplateContext,
+	renderAuxFiles bool,
+) {
+
+	// Iterate the dependencies and prepareTemplates for each.
+	for _, child := range p.Dependencies() {
+		prepareFilesV2(child, files, tplCtx[child.AliasOrName()].(PackTemplateContext), renderAuxFiles)
+	}
+
+	// Add each template within the pack with scoped variables.
+	for _, t := range p.TemplateFiles {
+		files[path.Join(p.VariablesPath().AsPath(), t.Name)] = toRender{content: string(t.Content), tplCtx: tplCtx}
+	}
+
+	if renderAuxFiles {
+		// Add each aux file within the pack with scoped variables.
+		for _, f := range p.AuxiliaryFiles {
+			files[path.Join(p.VariablesPath().AsPath(), f.Name)] = toRender{content: string(f.Content), tplCtx: tplCtx}
+		}
+	}
+}
+
+// prepareFilesV1 recurses the pack and its dependencies and returns a map
+// with the templates/auxiliary files to render along with the variables which
+// correspond. It is retained so that users can fall back to the original
+// template contexts as they migrate their packs to the newer syntax.
+func prepareFilesV1(p *pack.Pack,
 	files map[string]toRender,
 	variables map[string]any,
 	renderAuxFiles bool,
@@ -194,7 +275,7 @@ func prepareFiles(p *pack.Pack,
 	}
 	// Iterate the dependencies and prepareTemplates for each.
 	for _, child := range p.Dependencies() {
-		prepareFiles(child, files, newVars, renderAuxFiles)
+		prepareFilesV1(child, files, newVars, renderAuxFiles)
 	}
 
 	// Add each template within the pack with scoped variables.
@@ -214,8 +295,8 @@ func prepareFiles(p *pack.Pack,
 // pack. It splits them based on whether they belong to the parent or a
 // dependency.
 type Rendered struct {
-	parentRenders    map[string]string
-	dependentRenders map[string]string
+	parentRenders     map[string]string
+	dependencyRenders map[string]string
 }
 
 // ParentRenders returns a map of rendered templates belonging to the parent
@@ -229,8 +310,8 @@ func (r *Rendered) LenParentRenders() int { return len(r.parentRenders) }
 // DependentRenders returns a map of rendered templates belonging to the
 // dependent packs of the parent template. The map key represents the path and
 // file name of the template.
-func (r *Rendered) DependentRenders() map[string]string { return r.dependentRenders }
+func (r *Rendered) DependentRenders() map[string]string { return r.dependencyRenders }
 
 // LenDependentRenders returns the number of dependent rendered templates that
 // are stored.
-func (r *Rendered) LenDependentRenders() int { return len(r.dependentRenders) }
+func (r *Rendered) LenDependentRenders() int { return len(r.dependencyRenders) }

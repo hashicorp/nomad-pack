@@ -11,11 +11,12 @@ import (
 
 func TestMetadata_ConvertToMapInterface(t *testing.T) {
 	testCases := []struct {
+		name           string
 		inputMetadata  *Metadata
 		expectedOutput map[string]any
-		name           string
 	}{
 		{
+			name: "all metadata values populated",
 			inputMetadata: &Metadata{
 				App: &MetadataApp{
 					URL: "https://example.com",
@@ -28,35 +29,94 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 				Integration: &MetadataIntegration{
 					Name:       "Example",
 					Identifier: "nomad/hashicorp/example",
-					Flags: []string{
-						"foo",
-						"bar",
+					Flags:      []string{"foo", "bar"},
+				},
+			},
+			expectedOutput: map[string]any{
+				"app": map[string]any{
+					"url": "https://example.com",
+				},
+				"pack": map[string]any{
+					"name":        "Example",
+					"description": "The most basic, yet awesome, example",
+					"version":     "v0.0.1",
+				},
+				"integration": map[string]any{
+					"identifier": "nomad/hashicorp/example",
+					"flags":      []string{"foo", "bar"},
+					"name":       "Example",
+				},
+				"dependencies": []map[string]any{},
+			},
+		},
+		{
+			name: "all metadata values with deps",
+			inputMetadata: &Metadata{
+				App: &MetadataApp{
+					URL: "https://example.com",
+				},
+				Pack: &MetadataPack{
+					Name:        "Example",
+					Description: "The most basic, yet awesome, example",
+					Version:     "v0.0.1",
+				},
+				Integration: &MetadataIntegration{
+					Name:       "Example",
+					Identifier: "nomad/hashicorp/example",
+					Flags:      []string{"foo", "bar"},
+				},
+				Dependencies: []*Dependency{
+					{
+						Name:    "dep1",
+						Enabled: pointerOf(true),
+					},
+					{
+						Name:    "dep1",
+						Alias:   "dep2",
+						Enabled: pointerOf(true),
 					},
 				},
 			},
 			expectedOutput: map[string]any{
-				"nomad_pack": map[string]any{
-					"app": map[string]any{
-						"url": "https://example.com",
-					},
-					"pack": map[string]any{
-						"name":        "Example",
-						"description": "The most basic, yet awesome, example",
-						"version":     "v0.0.1",
-					},
-					"integration": map[string]any{
-						"identifier": "nomad/hashicorp/example",
-						"flags": []string{
-							"foo",
-							"bar",
+				"app": map[string]any{
+					"url": "https://example.com",
+				},
+				"pack": map[string]any{
+					"name":        "Example",
+					"description": "The most basic, yet awesome, example",
+					"version":     "v0.0.1",
+				},
+				"integration": map[string]any{
+					"identifier": "nomad/hashicorp/example",
+					"flags":      []string{"foo", "bar"},
+					"name":       "Example",
+				},
+				"dependencies": []map[string]any{
+					{
+						"dep1": map[string]any{
+							"name":    "dep1",
+							"alias":   "",
+							"id":      "dep1",
+							"source":  "",
+							"enabled": pointerOf(true),
 						},
-						"name": "Example",
+					},
+					{
+						"dep2": map[string]any{
+							"name":    "dep1",
+							"alias":   "dep2",
+							"id":      "dep2",
+							"source":  "",
+							"enabled": pointerOf(true),
+						},
 					},
 				},
 			},
-			name: "all metadata values populated",
 		},
 		{
+			// TODO test added to cover graceful failure while we're in the process of
+			// retiring "Author" and "URL" metadata fields. Can be removed in the future.
+			name: "author and url fields ignored gracefully",
 			inputMetadata: &Metadata{
 				App: &MetadataApp{
 					URL: "https://example.com",
@@ -69,25 +129,24 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 				Integration: &MetadataIntegration{},
 			},
 			expectedOutput: map[string]any{
-				"nomad_pack": map[string]any{
-					"app": map[string]any{
-						"url": "https://example.com",
-					},
-					"pack": map[string]any{
-						"name":        "Example",
-						"description": "",
-						"version":     "v0.0.1",
-					},
-					"integration": map[string]any{
-						"identifier": "",
-						"flags":      []string(nil),
-						"name":       "",
-					},
+				"app": map[string]any{
+					"url": "https://example.com",
 				},
+				"pack": map[string]any{
+					"name":        "Example",
+					"description": "",
+					"version":     "v0.0.1",
+				},
+				"integration": map[string]any{
+					"identifier": "",
+					"flags":      []string(nil),
+					"name":       "",
+				},
+				"dependencies": []map[string]any{},
 			},
-			name: "some metadata values populated",
 		},
 		{
+			name: "some metadata values populated",
 			inputMetadata: &Metadata{
 				App: &MetadataApp{
 					URL:    "https://example.com",
@@ -99,21 +158,20 @@ func TestMetadata_ConvertToMapInterface(t *testing.T) {
 				Integration: &MetadataIntegration{},
 			},
 			expectedOutput: map[string]any{
-				"nomad_pack": map[string]any{
-					"app":         map[string]any{"url": "https://example.com"},
-					"pack":        map[string]any{"name": "", "description": "", "version": ""},
-					"integration": map[string]any{"identifier": "", "flags": []string(nil), "name": ""},
-				},
+				"app":          map[string]any{"url": "https://example.com"},
+				"pack":         map[string]any{"name": "", "description": "", "version": ""},
+				"integration":  map[string]any{"identifier": "", "flags": []string(nil), "name": ""},
+				"dependencies": []map[string]any{},
 			},
-			// TODO test added to cover graceful failure while we're in the process of
-			// retiring "Author" and "URL" metadata fields. Can be removed in the future.
-			name: "author and url fields ignored gracefully",
 		},
 	}
 
 	for _, tc := range testCases {
-		actualOutput := tc.inputMetadata.ConvertToMapInterface()
-		must.Eq(t, tc.expectedOutput, actualOutput, must.Sprint(tc.name))
+		t.Run(tc.name, func(t *testing.T) {
+			tc := tc
+			actualOutput := tc.inputMetadata.ConvertToMapInterface()
+			must.Eq(t, tc.expectedOutput, actualOutput)
+		})
 	}
 }
 
@@ -145,11 +203,14 @@ func TestMetadata_Validate(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		err := tc.inputMetadata.Validate()
-		if tc.expectError {
-			must.NotNil(t, err, must.Sprint(tc.name))
-		} else {
-			must.Nil(t, err, must.Sprint(tc.name))
-		}
+		t.Run(tc.name, func(t *testing.T) {
+			tc := tc
+			err := tc.inputMetadata.Validate()
+			if tc.expectError {
+				must.NotNil(t, err, must.Sprint(tc.name))
+			} else {
+				must.Nil(t, err, must.Sprint(tc.name))
+			}
+		})
 	}
 }

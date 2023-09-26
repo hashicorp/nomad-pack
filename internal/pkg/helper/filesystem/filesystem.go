@@ -91,7 +91,7 @@ func CopyDir(sourceDir string, destinationDir string, overwrite bool, logger log
 	// Throw error if not a directory
 	// TODO: Might need to handle symlinks.
 	if !sourceDirInfo.IsDir() {
-		err = fmt.Errorf("source is not a directory")
+		err = errors.New("source is not a directory")
 		logger.Debug(err.Error())
 		return
 	}
@@ -106,7 +106,7 @@ func CopyDir(sourceDir string, destinationDir string, overwrite bool, logger log
 	if !overwrite {
 		// throw error if it does exist
 		if err == nil {
-			err = fmt.Errorf("destination already exists")
+			err = errors.New("destination already exists")
 			logger.Debug(err.Error())
 			return
 		}

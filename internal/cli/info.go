@@ -10,7 +10,9 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
 	"github.com/hashicorp/nomad-pack/internal/pkg/loader"
-	"github.com/hashicorp/nomad-pack/internal/pkg/variable"
+	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser"
+	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser/config"
+	"github.com/hashicorp/nomad-pack/sdk/pack"
 	"github.com/mitchellh/go-glint"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -47,15 +49,15 @@ func (c *InfoCommand) Run(args []string) int {
 
 	packPath := c.packConfig.Path
 
-	pack, err := loader.Load(packPath)
+	p, err := loader.Load(packPath)
 	if err != nil {
 		c.ui.ErrorWithContext(err, "failed to load pack from local directory", errorContext.GetAll()...)
 		return 1
 	}
 
-	variableParser, err := variable.NewParser(&variable.ParserConfig{
-		ParentName:        path.Base(packPath),
-		RootVariableFiles: pack.RootVariableFiles(),
+	variableParser, err := parser.NewParser(&config.ParserConfig{
+		ParentPackID:      pack.ID(path.Base(packPath)),
+		RootVariableFiles: p.RootVariableFiles(),
 		IgnoreMissingVars: c.baseCommand.ignoreMissingVars,
 	})
 	if err != nil {
@@ -73,20 +75,20 @@ func (c *InfoCommand) Run(args []string) int {
 
 	doc.Append(glint.Layout(
 		glint.Style(glint.Text("Pack Name          "), glint.Bold()),
-		glint.Text(pack.Metadata.Pack.Name),
+		glint.Text(p.Metadata.Pack.Name),
 	).Row())
 
 	doc.Append(glint.Layout(
 		glint.Style(glint.Text("Description        "), glint.Bold()),
-		glint.Text(pack.Metadata.Pack.Description),
+		glint.Text(p.Metadata.Pack.Description),
 	).Row())
 
 	doc.Append(glint.Layout(
 		glint.Style(glint.Text("Application URL    "), glint.Bold()),
-		glint.Text(pack.Metadata.App.URL),
+		glint.Text(p.Metadata.App.URL),
 	).Row())
 
-	for pName, variables := range parsedVars.Vars {
+	for pName, variables := range parsedVars.GetVars() {
 
 		doc.Append(glint.Layout(
 			glint.Style(glint.Text(fmt.Sprintf("Pack %q Variables:", pName)), glint.Bold()),

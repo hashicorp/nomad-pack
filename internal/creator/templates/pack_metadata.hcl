@@ -1,19 +1,15 @@
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
-
 app {
   url = ""
 }
 pack {
   name        = "{{.PackName}}"
   description = ""
-  url         = ""
   version     = ""
 }
 
 // Optional dependency information. This block can be repeated.
 
-// dependency {
-//   name   = "demo_dependency_pack_name"
+// dependency "demo_dep" {
+//   alias  = "demo_dep"
 //   source = "git://source.git/packs/demo_dependency_pack"
 // }

@@ -9,9 +9,11 @@ import (
 	"io/fs"
 	"os"
 	"path"
+	"slices"
 	"strings"
 
 	"github.com/posener/complete"
+	"golang.org/x/exp/maps"
 
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
@@ -147,7 +149,7 @@ func writeFile(c *RenderCommand, path string, content string) error {
 			return err
 		}
 		if !overwrite {
-			return fmt.Errorf("destination file exists and overwrite is unset")
+			return errors.New("destination file exists and overwrite is unset")
 		}
 	}
 
@@ -159,13 +161,88 @@ func writeFile(c *RenderCommand, path string, content string) error {
 	return nil
 }
 
-// formatRenderName trims the low-value elements from the rendered template
-// name.
-func formatRenderName(name string) string {
-	outName := strings.Replace(name, "/templates/", "/", 1)
-	outName = strings.TrimSuffix(outName, ".tpl")
+// rangeRenders populates a slice of `Render` (rendered templates) such that the
+// target slice is sorted by Pack ID, Filename.
+func rangeRenders(subj map[string]string, target *[]Render) {
 
-	return outName
+	// The problem: the keys don't trivially sort in pack order anymore because
+	// they have both "/template/" and a filename in them.
+
+	// Declare some types to make the map key types a bit more obvious.
+	type PackKey string  // pack key
+	type Filename string // filename
+	type Content string  // render
+
+	// The rendered templates are in a map[string]string, with the key being the
+	// pack-relative path to the template and the value being the rendered
+	// template's file content. Dependency packs will have more path components
+	// before the `/templates/` component.
+
+	// Build a map that contains the Template slices produced by the renderer. The
+	// key of the map is a pack-relative path to the template, with dependency
+	// packs being child elements of the pack that depends on them.
+	packKeySet := make(map[PackKey]map[Filename]Content)
+	for k, v := range subj {
+
+		// Using strings.Cut with `/templates/` provides the pack key in the
+		// `before` and the template filename in the `after`. This also trims
+		// `/templates/` out of the produced key as a side-effect since it's
+		// low value.
+		key, val, _ := strings.Cut(k, "/templates/")
+
+		var packKey = PackKey(key)
+
+		// Remove the .tpl from the rendered template filenames
+		var filename = Filename(strings.TrimSuffix(val, ".tpl"))
+
+		// If this is the first time we have encountered this pack's key,
+		// we need to build the map to hold the Filename and content.
+		if _, found := packKeySet[packKey]; !found {
+			packKeySet[packKey] = make(map[Filename]Content)
+		}
+
+		// Add the template content to the map
+		packKeySet[packKey][filename] = Content(v)
+	}
+
+	// At this point, we have a map[PackKey]map[Filename]Content. Sorting the
+	// outer map's keys, accessing that element, and then sorting the inner
+	// map's keys (Filename), enables us to rewrite the target []Render in
+	// Pack, Filename order should be able to to some sorting and traversing into
+	// an ordered slice.
+
+	// Grab a list of the pack keys and sort them. Note, they are full pack-
+	// relative paths, so they nicely sort in depth-sensitive way
+	packKeys := maps.Keys(packKeySet)
+	slices.Sort(packKeys)
+
+	// Range the sorted list of pack keys...
+	for _, packKey := range packKeys {
+
+		// Grab the map[Filename]Content
+		mFileContent := packKeySet[packKey]
+
+		// Extract the keys as a slice
+		filenames := maps.Keys(mFileContent)
+
+		// Sort the filenames alphabetically
+		slices.Sort(filenames)
+
+		// Range the sorted list of filenames...
+		for _, filename := range filenames {
+			// Grab the Content
+			content := mFileContent[filename]
+
+			// Create a `Render` from the currently referenced content; write it into
+			// the target slice.
+			*target = append(*target,
+				Render{
+					Name:    fmt.Sprintf("%v/%v", packKey, filename),
+					Content: string(content),
+				},
+			)
+		}
+	}
 }
 
 // Run satisfies the Run function of the cli.Command interface.
@@ -228,13 +305,8 @@ func (c *RenderCommand) Run(args []string) int {
 	// Iterate the rendered files and add these to the list of renders to
 	// output. This allows errors to surface and end things without emitting
 	// partial output and then erroring out.
-
-	for name, renderedFile := range renderOutput.DependentRenders() {
-		renders = append(renders, Render{Name: formatRenderName(name), Content: renderedFile})
-	}
-	for name, renderedFile := range renderOutput.ParentRenders() {
-		renders = append(renders, Render{Name: formatRenderName(name), Content: renderedFile})
-	}
+	rangeRenders(renderOutput.DependentRenders(), &renders)
+	rangeRenders(renderOutput.ParentRenders(), &renders)
 
 	// If the user wants to render and display the outputs template file then
 	// render this. In the event the render returns an error, print this but do
