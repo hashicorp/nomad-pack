@@ -194,33 +194,37 @@ func TestCLI_JobPlan_ConflictingNonPackJob(t *testing.T) {
 
 func TestCLI_PackPlan_OverrideExitCodes(t *testing.T) {
 	ct.HTTPTest(t, ct.WithDefaultConfig(), func(s *agent.TestAgent) {
-		// Plan against empty - should be makes-changes
-		result := runTestPackCmd(t, s, []string{
-			"plan",
-			"--exit-code-makes-changes=91",
-			"--exit-code-no-changes=90",
-			"--exit-code-error=92",
-			getTestPackPath(t, testPack),
-		})
-		must.Eq(t, "", result.cmdErr.String(), must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
-		must.StrContains(t, result.cmdOut.String(), "Plan succeeded\n")
-		must.Eq(t, 91, result.exitCode) // Should return exit-code-makes-changes
 
+		t.Run("plan_against_empty", func(t *testing.T) {
+			// Plan against empty - should be makes-changes
+			result := runTestPackCmd(t, s, []string{
+				"plan",
+				"--exit-code-makes-changes=91",
+				"--exit-code-no-changes=90",
+				"--exit-code-error=92",
+				getTestPackPath(t, testPack),
+			})
+			must.Eq(t, "", result.cmdErr.String(), must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
+			must.StrContains(t, result.cmdOut.String(), "Plan succeeded\n")
+			must.Eq(t, 91, result.exitCode) // Should return exit-code-makes-changes
+		})
 		// Register non pack job
 		err := ct.NomadRun(s, getTestNomadJobPath(t, testPack))
 		must.NoError(t, err)
 
-		// Now try to register the pack, should make error
-		result = runTestPackCmd(t, s, []string{
-			"plan",
-			"--exit-code-makes-changes=91",
-			"--exit-code-no-changes=90",
-			"--exit-code-error=92",
-			getTestPackPath(t, testPack),
+		t.Run("register_pack_expect_error", func(t *testing.T) {
+			// Now try to register the pack, should make error
+			result := runTestPackCmd(t, s, []string{
+				"plan",
+				"--exit-code-makes-changes=91",
+				"--exit-code-no-changes=90",
+				"--exit-code-error=92",
+				getTestPackPath(t, testPack),
+			})
+			must.Eq(t, "", result.cmdErr.String(), must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
+			must.StrContains(t, result.cmdOut.String(), job.ErrExistsNonPack{JobID: testPack}.Error())
+			must.Eq(t, 92, result.exitCode) // Should exit-code-error
 		})
-		must.Eq(t, "", result.cmdErr.String(), must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
-		must.StrContains(t, result.cmdOut.String(), job.ErrExistsNonPack{JobID: testPack}.Error())
-		must.Eq(t, 92, result.exitCode) // Should exit-code-error
 
 		err = ct.NomadPurge(s, testPack)
 		must.NoError(t, err)
@@ -238,7 +242,8 @@ func TestCLI_PackPlan_OverrideExitCodes(t *testing.T) {
 			wait.Gap(500*time.Millisecond),
 		), must.Sprint("test job failed to purge"))
 
-		result = runTestPackCmd(t, s, []string{"run", getTestPackPath(t, testPack)})
+		// Make a pack deployment so we can validate the "no-change" condition
+		result := runTestPackCmd(t, s, []string{"run", getTestPackPath(t, testPack)})
 		must.Eq(t, "", result.cmdErr.String(), must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
 		must.StrContains(t, result.cmdOut.String(), "")
 		must.Zero(t, result.exitCode) // Should return 0
@@ -255,17 +260,20 @@ func TestCLI_PackPlan_OverrideExitCodes(t *testing.T) {
 			wait.Gap(500*time.Millisecond),
 		), must.Sprint("test job failed to start"))
 
-		// Plan against deployed - should be no-changes
-		result = runTestPackCmd(t, s, []string{
-			"plan",
-			"--exit-code-makes-changes=91",
-			"--exit-code-no-changes=90",
-			"--exit-code-error=92",
-			getTestPackPath(t, testPack),
+		t.Run("pack_against_deployed", func(t *testing.T) {
+
+			// Plan against deployed - should be no-changes
+			result = runTestPackCmd(t, s, []string{
+				"plan",
+				"--exit-code-makes-changes=91",
+				"--exit-code-no-changes=90",
+				"--exit-code-error=92",
+				getTestPackPath(t, testPack),
+			})
+			must.Eq(t, "", result.cmdErr.String(), must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
+			must.StrContains(t, result.cmdOut.String(), "Plan succeeded\n")
+			must.Eq(t, 90, result.exitCode, must.Sprintf("stdout:\n%s\n\nstderr:\n%s\n", result.cmdOut.String(), result.cmdErr.String())) // Should return exit-code-no-changes
 		})
-		must.Eq(t, "", result.cmdErr.String(), must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
-		must.StrContains(t, result.cmdOut.String(), "Plan succeeded\n")
-		must.Eq(t, 90, result.exitCode, must.Sprintf("stdout:\n%s\n\nstderr:\n%s\n", result.cmdOut.String(), result.cmdErr.String())) // Should return exit-code-no-changes
 	})
 }
 
