@@ -1,3 +1,8 @@
+
+> [!IMPORTANT]
+> Nightly builds as of September 26, 2023 use a new Pack template syntax. To run packs that use the
+> previous syntax, add the `--parser-v1` flag to the `render`, `plan`, `run`, and `stop` commands 
+
 # Nomad Pack
 
 Nomad Pack is currently a Tech Preview.
