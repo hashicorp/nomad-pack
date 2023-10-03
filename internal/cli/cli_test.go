@@ -340,7 +340,7 @@ func TestCLI_PackStop_Conflicts(t *testing.T) {
 					must.NoError(t, err)
 				} else {
 					deploymentName := fmt.Sprintf("--name=%s", tC.deploymentName)
-					varJobName := fmt.Sprintf("--var=%s.job_name=%s", testPack, tC.jobName)
+					varJobName := fmt.Sprintf("--var=job_name=%s", tC.jobName)
 					if tC.namespace != "" {
 						namespaceFlag := fmt.Sprintf("--namespace=%s", tC.namespace)
 						expectGoodPackDeploy(t, runTestPackCmd(t, s, []string{"run", getTestPackPath(t, testPack), deploymentName, varJobName, namespaceFlag}))
@@ -392,16 +392,16 @@ func TestCLI_PackDestroy_WithOverrides(t *testing.T) {
 		jobNames := []string{"foo", "bar"}
 		for _, j := range jobNames {
 			expectGoodPackDeploy(t, runTestPackCmd(
-				t, s, []string{"run", testPack, "--var=" + testPack + ".job_name=" + j, "--registry=" + reg.Name}))
+				t, s, []string{"run", testPack, "--var=job_name=" + j, "--registry=" + reg.Name}))
 		}
 
 		// Stop nonexistent job
-		result := runTestPackCmd(t, s, []string{"destroy", testPack, "--var=" + testPack + ".job_name=baz", "--registry=" + reg.Name})
+		result := runTestPackCmd(t, s, []string{"destroy", testPack, "--var=job_name=baz", "--registry=" + reg.Name})
 		must.Eq(t, 1, result.exitCode, must.Sprintf(
 			"expected exitcode 1; got %v\ncmdOut:%v", result.exitCode, result.cmdOut.String()))
 
 		// Stop job with var override
-		result = runTestPackCmd(t, s, []string{"destroy", testPack, "--var=" + testPack + ".job_name=foo", "--registry=" + reg.Name})
+		result = runTestPackCmd(t, s, []string{"destroy", testPack, "--var=job_name=foo", "--registry=" + reg.Name})
 		must.Zero(t, result.exitCode, must.Sprintf(
 			"expected exitcode 0; got %v\ncmdOut:%v", result.exitCode, result.cmdOut.String()))
 
@@ -527,7 +527,7 @@ func TestCLI_CLIFlag_Namespace(t *testing.T) {
 		expect map[string]int
 	}{
 		{
-			desc: "flags vs unspecified",
+			desc: "client flag vs unspecified",
 			args: []string{
 				`--namespace=flag`,
 			},
@@ -541,7 +541,7 @@ func TestCLI_CLIFlag_Namespace(t *testing.T) {
 		{
 			desc: "flags vs job",
 			args: []string{
-				`--var=` + testPack + `.namespace=job`,
+				`--var=namespace=job`,
 				`--namespace=flag`,
 			},
 			env: make(map[string]string),
@@ -670,7 +670,7 @@ func TestCLI_EnvConfig_Namespace(t *testing.T) {
 		{
 			desc: "env vs job",
 			args: []string{
-				`--var=` + testPack + `.namespace=job`,
+				`--var=namespace=job`,
 			},
 			expect: map[string]int{
 				"job":  1,
@@ -693,7 +693,7 @@ func TestCLI_EnvConfig_Namespace(t *testing.T) {
 			desc: "env vs flag vs job",
 			args: []string{
 				`--namespace=flag`,
-				`--var=` + testPack + `.namespace=job`,
+				`--var=namespace=job`,
 			},
 			expect: map[string]int{
 				"job":  1,

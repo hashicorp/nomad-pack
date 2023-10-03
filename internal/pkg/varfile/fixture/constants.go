@@ -5,34 +5,34 @@ import (
 )
 
 const GoodConfigfileHCL = `# variable answers
-simple_raw_exec.child1.username="foo"
-simple_raw_exec.child1.password="bar"
-simple_raw_exec.rootuser="admin"
+child1.username="foo"
+child1.password="bar"
+rootuser="admin"
 `
 
 const GoodConfigfileJSON = `{
-	"simple_raw_exec.child1.username": "foo",
-	"simple_raw_exec.child1.password": "bar",
-	"simple_raw_exec.rootuser": "admin"
+	"child1.username": "foo",
+	"child1.password": "bar",
+	"rootuser": "admin"
 }`
 
-const BadMissingEqualOneLine = `mypack.foo "bar"`
-const BadMissingEqualSecondLine = `mypack.foo = "bar"
+const BadMissingEqualOneLine = `foo "bar"`
+const BadMissingEqualSecondLine = `foo = "bar"
 bad value`
-const BadMissingEqualInternalLine = `mypack.foo = "bar"
+const BadMissingEqualInternalLine = `foo = "bar"
 bad value
-mypack.bar = "baz"`
+bar = "baz"`
 
-const BadJSONMissingStartBrace = `"mypack.foo": "bar" }`
-const BadJSONMissingEndBrace = `{ "mypack.foo": "bar"`
-const BadJSONMissingComma = `{ "mypack.foo": "bar" "mypack.bar": "baz" }`
-const BadJSONMissingQuote = `{ "mypack.foo": "bar", mypack.bar": "baz" }`
-const BadJSONMissingColon = `{ "mypack.foo": "bar", mypack.bar" "baz" }`
+const BadJSONMissingStartBrace = `"foo": "bar" }`
+const BadJSONMissingEndBrace = `{ "foo": "bar"`
+const BadJSONMissingComma = `{ "foo": "bar" "bar": "baz" }`
+const BadJSONMissingQuote = `{ "foo": "bar", bar": "baz" }`
+const BadJSONMissingColon = `{ "foo": "bar", bar" "baz" }`
 const JSONEmpty = ""
 const JSONEmptyObject = "{}"
 
 var JSONFiles = map[pack.ID][]*pack.File{
-	"myPack": {
+	"mypack": {
 		{
 			Name:    "tc1.json",
 			Content: []byte(BadJSONMissingStartBrace),

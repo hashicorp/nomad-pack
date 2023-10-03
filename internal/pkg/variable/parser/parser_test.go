@@ -88,7 +88,7 @@ func (pm *testPackManager) ProcessVariables() *ParsedVariables {
 
 	pCfg := &config.ParserConfig{
 		Version:           config.V2,
-		ParentPackID:      pack.ID(parentName),
+		ParentPack:        loadedPack,
 		RootVariableFiles: loadedPack.RootVariableFiles(),
 		EnvOverrides:      pm.cfg.VariableEnvVars,
 		FileOverrides:     pm.cfg.VariableFiles,

@@ -6,6 +6,6 @@
 # ends immediately after the end-of-heredoc marker
 # https://github.com/hashicorp/nomad-pack/pull/191
 
-variable_test_pack.input = <<EOF
+input = <<EOF
 heredoc
 EOF

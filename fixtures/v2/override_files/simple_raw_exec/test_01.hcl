@@ -1,1 +1,1 @@
-simple_raw_exec.job_name = "sre"
+job_name = "sre"

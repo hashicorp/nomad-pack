@@ -23,8 +23,8 @@ type ParserConfig struct {
 	// ParentName is the name of the parent pack. Used for deprecated ParserV1.
 	ParentName string
 
-	// ParentPackID is the PackID of the parent pack. Used for ParserV2
-	ParentPackID pack.ID
+	// ParentPack is a pointer to the parent pack. Used for ParserV2
+	ParentPack *pack.Pack
 
 	// RootVariableFiles contains a map of root variable files, keyed by their
 	// absolute pack name. "«root pack name».«child pack».«grandchild pack»"

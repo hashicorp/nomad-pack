@@ -5,14 +5,12 @@ package cli
 
 import (
 	"fmt"
-	"path"
 
 	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
 	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
 	"github.com/hashicorp/nomad-pack/internal/pkg/loader"
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser"
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser/config"
-	"github.com/hashicorp/nomad-pack/sdk/pack"
 	"github.com/mitchellh/go-glint"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -56,7 +54,7 @@ func (c *InfoCommand) Run(args []string) int {
 	}
 
 	variableParser, err := parser.NewParser(&config.ParserConfig{
-		ParentPackID:      pack.ID(path.Base(packPath)),
+		ParentPack:        p,
 		RootVariableFiles: p.RootVariableFiles(),
 		IgnoreMissingVars: c.baseCommand.ignoreMissingVars,
 	})

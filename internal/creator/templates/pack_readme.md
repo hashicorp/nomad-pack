@@ -43,18 +43,18 @@ search for Consul services with the tags found in the default value of the
 
 <!-- Include information on the variables from your pack -->
 
-- `message` (string) - The message your application will respond with
-- `count` (number) - The number of app instances to deploy
+- `message` (string:"Hello World!") - The message your application will respond with
+- `count` (number:2) - The number of app instances to deploy
 - `job_name` (string) - The name to use as the job name which overrides using
   the pack name
-- `datacenters` (list of strings) - A list of datacenters in the region which
+- `datacenters` (list of strings:["dc1"]) - A list of datacenters in the region which
   are eligible for task placement
 - `region` (string) - The region where jobs will be deployed
-- `register_consul_service` (bool) - If you want to register a consul service
+- `register_consul_service` (bool: true) - If you want to register a Consul service
   for the job
-- `consul_service_tags` (list of string) - The consul service name for the
+- `consul_service_tags` (list of string) - The Consul service name for the
   {{.PackName}} application
-- `consul_service_name` (string) - The consul service name for the {{.PackName}}
+- `consul_service_name` (string) - The Consul service name for the {{.PackName}}
   application
 
 [pack-registry]: https://github.com/hashicorp/nomad-pack-community-registry
