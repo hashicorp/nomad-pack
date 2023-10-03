@@ -13,20 +13,6 @@ import (
 	"github.com/hashicorp/nomad-pack/sdk/pack/variables"
 )
 
-// TODO: this is only used in a test - remove?
-func DecodeVariableOverrides(root *pack.Pack, files []*pack.File) DecodeResult {
-	decodeResult := DecodeResult{}
-	for _, file := range files {
-		fileDecodeResult := DecodeResult{
-			Overrides: make(variables.Overrides),
-		}
-
-		fileDecodeResult.HCLFiles, fileDecodeResult.Diags = Decode(root, file.Name, file.Content, nil, &fileDecodeResult.Overrides)
-		decodeResult.Merge(fileDecodeResult)
-	}
-	return decodeResult
-}
-
 // DecodeResult is returned by the
 type DecodeResult struct {
 	Overrides variables.Overrides

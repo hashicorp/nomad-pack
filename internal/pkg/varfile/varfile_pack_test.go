@@ -44,7 +44,7 @@ func TestVarfile_ProcessPackVarfiles(t *testing.T) {
 
 func TestVarfile_DecodeVariableOverrides(t *testing.T) {
 	root := testpack("mypack")
-	dr := varfile.DecodeVariableOverrides(root, fixture.JSONFiles["mypack"])
+	dr := decodeVariableOverrides(root, fixture.JSONFiles["mypack"])
 	must.NotNil(t, dr.Diags)
 	must.Len(t, 4, dr.Diags)
 	var b bytes.Buffer
@@ -55,4 +55,17 @@ func TestVarfile_DecodeVariableOverrides(t *testing.T) {
 		b.Reset()
 	}
 	dw.WriteDiagnostics(dr.Diags)
+}
+
+func decodeVariableOverrides(root *pack.Pack, files []*pack.File) varfile.DecodeResult {
+	decodeResult := varfile.DecodeResult{}
+	for _, file := range files {
+		fileDecodeResult := varfile.DecodeResult{
+			Overrides: make(variables.Overrides),
+		}
+
+		fileDecodeResult.HCLFiles, fileDecodeResult.Diags = varfile.Decode(root, file.Name, file.Content, nil, &fileDecodeResult.Overrides)
+		decodeResult.Merge(fileDecodeResult)
+	}
+	return decodeResult
 }
