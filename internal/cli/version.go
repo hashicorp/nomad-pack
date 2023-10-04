@@ -10,6 +10,7 @@ import (
 )
 
 type VersionCommand struct {
+	Version *version.VersionInfo
 	*baseCommand
 }
 
@@ -24,7 +25,7 @@ func (c *VersionCommand) Run(args []string) int {
 		return 1
 	}
 
-	c.ui.Output("Nomad Pack %s\n", version.HumanVersion())
+	c.ui.Output(c.Version.FullVersionNumber(true))
 
 	// Exit zero since we have completed successfully.
 	return 0

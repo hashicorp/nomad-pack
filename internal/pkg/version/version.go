@@ -4,65 +4,110 @@
 package version
 
 import (
+	"bytes"
 	"fmt"
-	"strings"
+	"time"
 )
 
 var (
+	// BuildDate is the time of the git commit used to build the program,
+	// in RFC3339 format. It is filled in by the compiler via makefile.
+	BuildDate string
+
 	// GitCommit and GitDescribe are filled by the compiler using ldflags to
 	// provide useful Git information.
 	GitCommit   string
 	GitDescribe string
 
 	// Version is the semantic version number describing the current state of
-	// NOM.
+	// nomad-pack.
 	Version = "0.0.1"
 
 	// Prerelease designates whether the current version is within a prerelease
 	// phase. Typically, this will be "dev" to signify a development cycle or a
 	// release candidate phase such as alpha, beta.1, rc.1, or such.
-	Prerelease = "techpreview.4"
+	VersionPrerelease = "techpreview.4"
 
 	// Metadata allows us to provide additional metadata information to the
 	// version identifier. This is typically used to identify enterprise builds
 	// using the "ent" metadata string.
-	Metadata = ""
+	VersionMetadata = ""
 )
 
-// HumanVersion composes the parts of the version in a way that's suitable for
-// displaying to humans.
-func HumanVersion() string {
-	version := Version
-	release := Prerelease
+// VersionInfo
+type VersionInfo struct {
+	BuildDate         time.Time
+	Revision          string
+	Version           string
+	VersionPrerelease string
+	VersionMetadata   string
+}
 
+func (v *VersionInfo) Copy() *VersionInfo {
+	if v == nil {
+		return nil
+	}
+
+	nv := *v
+	return &nv
+}
+
+func GetVersion() *VersionInfo {
+	ver := Version
+	rel := VersionPrerelease
+	md := VersionMetadata
 	if GitDescribe != "" {
-		version = GitDescribe
-	} else {
-		if release == "" {
-			release = "dev"
-		}
-
-		if release != "" && !strings.HasSuffix(version, "-"+release) {
-			// if we tagged a prerelease version then the release is in the version
-			// already.
-			version += fmt.Sprintf("-%s", release)
-		}
-
-		if Metadata != "" {
-			version += fmt.Sprintf("+%s", Metadata)
-		}
+		ver = GitDescribe
+	}
+	if GitDescribe == "" && rel == "" && VersionPrerelease != "" {
+		rel = "dev"
 	}
 
-	// Add the commit hash at the very end of the version.
-	if GitCommit != "" {
-		version += fmt.Sprintf(" (%s)", GitCommit)
+	// on parse error, will be zero value time.Time{}
+	built, _ := time.Parse(time.RFC3339, BuildDate)
+
+	return &VersionInfo{
+		BuildDate:         built,
+		Revision:          GitCommit,
+		Version:           ver,
+		VersionPrerelease: rel,
+		VersionMetadata:   md,
+	}
+}
+
+func (c *VersionInfo) VersionNumber() string {
+	version := c.Version
+
+	if c.VersionPrerelease != "" {
+		version = fmt.Sprintf("%s-%s", version, c.VersionPrerelease)
 	}
 
-	// Add v as prefix if not present
-	if !strings.HasPrefix(version, "v") {
-		version = fmt.Sprintf("v%s", version)
+	if c.VersionMetadata != "" {
+		version = fmt.Sprintf("%s+%s", version, c.VersionMetadata)
 	}
 
-	// Strip off any single quotes added by the git information.
-	return strings.ReplaceAll(version, "'", "")
+	return version
+}
+
+func (c *VersionInfo) FullVersionNumber(rev bool) string {
+	var versionString bytes.Buffer
+
+	fmt.Fprintf(&versionString, "Nomad v%s", c.Version)
+	if c.VersionPrerelease != "" {
+		fmt.Fprintf(&versionString, "-%s", c.VersionPrerelease)
+	}
+
+	if c.VersionMetadata != "" {
+		fmt.Fprintf(&versionString, "+%s", c.VersionMetadata)
+	}
+
+	if !c.BuildDate.IsZero() {
+		fmt.Fprintf(&versionString, "\nBuildDate %s", c.BuildDate.Format(time.RFC3339))
+	}
+
+	if rev && c.Revision != "" {
+		fmt.Fprintf(&versionString, "\nRevision %s", c.Revision)
+	}
+
+	return versionString.String()
 }
