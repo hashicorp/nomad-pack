@@ -12,10 +12,12 @@ import (
 	"os"
 	"strings"
 	"text/tabwriter"
+	"unicode"
 
 	"github.com/bgentry/speakeasy"
 	"github.com/fatih/color"
 	"github.com/mattn/go-isatty"
+	"github.com/mitchellh/cli"
 	"github.com/mitchellh/go-glint"
 	"github.com/olekukonko/tablewriter"
 
@@ -360,15 +362,18 @@ func (ui *glintUI) ErrorWithContext(err error, sub string, ctx ...string) {
 	// Title the error output in red with the subject.
 	d.Append(glint.Layout(
 		glint.Style(
-			glint.Text(fmt.Sprintf("! %s\n", helper.Title(sub))),
+			glint.Text(fmt.Sprintf("! %s", helper.Title(sub))),
 			glint.Color("red"),
 		),
 	).Row())
 
-	// Add the error string as well as the error type to the output.
+	r := []rune(err.Error())
+	es := string(append([]rune{unicode.ToTitle(r[0])}, r[1:]...))
+
+	// Add the error string to the output.
 	d.Append(glint.Layout(
-		glint.Style(glint.Text("    Error:   "), glint.Bold()),
-		glint.Text(err.Error()),
+		glint.Style(glint.Text("    Message: "), glint.Bold()),
+		glint.Text(strings.TrimSpace(es)),
 	).Row())
 
 	// We only want this section once per error output, so we cannot perform
@@ -385,8 +390,22 @@ func (ui *glintUI) ErrorWithContext(err error, sub string, ctx ...string) {
 			glint.Style(glint.Text(fmt.Sprintf("        - %s", additionCTX))),
 		).Row())
 	}
-	// Add a new line
-	d.Append(glint.Layout(glint.Text("")).Row())
+}
+
+// ErrorWithUsageAndContext displays both an error and the usage. This should be
+// called when flag and argument parsing fail.
+func (ui *glintUI) ErrorWithUsageAndContext(err error, sub string, c cli.Command, ctx ...string) {
+	ui.ErrorWithContext(err, sub, ctx...)
+
+	var usageStr string
+	if uc, ok := c.(UsageCommander); ok {
+		usageStr = uc.HelpUsageMessage()
+	}
+
+	// If there's no additional usage information we can send, bail out.
+	if usageStr != "" {
+		ui.Output("\n    "+usageStr, WithWarningStyle())
+	}
 }
 
 // Header implements UI

@@ -15,9 +15,9 @@ import (
 	"text/tabwriter"
 
 	"github.com/fatih/color"
-	"github.com/olekukonko/tablewriter"
-
 	"github.com/hashicorp/nomad-pack/internal/pkg/helper"
+	"github.com/mitchellh/cli"
+	"github.com/olekukonko/tablewriter"
 )
 
 type nonInteractiveUI struct {
@@ -211,17 +211,36 @@ func (ui *nonInteractiveUI) Error(msg string) {
 // interface.
 func (ui *nonInteractiveUI) ErrorWithContext(err error, sub string, ctx ...string) {
 	ui.Error(helper.Title(sub))
-	ui.Error("  Error: " + err.Error())
-	ui.Error("  Context:")
-	max := 0
-	for _, entry := range ctx {
-		if loc := strings.Index(entry, ":") + 1; loc > max {
-			max = loc
+	ui.Error("    Message: " + err.Error())
+	if len(ctx) > 0 {
+		ui.Error("    Context:")
+		max := 0
+		for _, entry := range ctx {
+			if loc := strings.Index(entry, ":") + 1; loc > max {
+				max = loc
+			}
+		}
+		for _, entry := range ctx {
+			padding := max - strings.Index(entry, ":") + 1
+			ui.Error("    " + strings.Repeat("   ", padding) + entry)
 		}
 	}
-	for _, entry := range ctx {
-		padding := max - strings.Index(entry, ":") + 1
-		ui.Error("  " + strings.Repeat(" ", padding) + entry)
+}
+
+// ErrorWithUsageAndContext displays both an error and the usage. This should be
+// called when flag and argument parsing fail.
+func (ui *nonInteractiveUI) ErrorWithUsageAndContext(err error, sub string, c cli.Command, ctx ...string) {
+	ui.ErrorWithContext(err, sub, ctx...)
+
+	var usageStr string
+	if uc, ok := c.(UsageCommander); ok {
+		usageStr = uc.HelpUsageMessage()
+	}
+
+	// If there's no additional usage information we can send, bail out.
+	if usageStr != "" {
+		ui.Error("")
+		ui.Error("    " + usageStr)
 	}
 }
 
