@@ -698,6 +698,7 @@ func (p packtuple) String() string {
 // to discover and count the registries, refs, and packs in a
 // given cachePath
 func listAllTestPacks(t *testing.T, cachePath string) packtuples {
+	t.Helper()
 	acc := make([]packtuple, 0, 10)
 	dirFS := os.DirFS(cachePath)
 	fs.WalkDir(dirFS, ".", func(p string, d fs.DirEntry, err error) error {
