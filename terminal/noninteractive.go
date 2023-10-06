@@ -48,7 +48,7 @@ func (ui *nonInteractiveUI) Output(msg string, raw ...any) {
 	case DebugStyle:
 		msg = colorDebug.Sprintf("debug: %s\n" + msg)
 	case HeaderStyle:
-		msg = "\n» " + msg
+		msg = "\n==> " + msg
 	case ErrorStyle, ErrorBoldStyle:
 		lines := strings.Split(msg, "\n")
 		if len(lines) > 0 {
@@ -68,7 +68,7 @@ func (ui *nonInteractiveUI) Output(msg string, raw ...any) {
 	case InfoStyle:
 		lines := strings.Split(msg, "\n")
 		for i, line := range lines {
-			lines[i] = colorInfo.Sprintf("  %s", line)
+			lines[i] = colorInfo.Sprintf("    %s", line)
 		}
 
 		msg = strings.Join(lines, "\n")
@@ -85,7 +85,7 @@ func (ui *nonInteractiveUI) AppendToRow(msg string, raw ...any) {
 
 	switch style {
 	case HeaderStyle:
-		msg = "\n» " + msg
+		msg = "\n==> " + msg
 	case ErrorStyle, ErrorBoldStyle:
 		lines := strings.Split(msg, "\n")
 		if len(lines) > 0 {
@@ -222,7 +222,7 @@ func (ui *nonInteractiveUI) ErrorWithContext(err error, sub string, ctx ...strin
 		}
 		for _, entry := range ctx {
 			padding := max - strings.Index(entry, ":") + 1
-			ui.Error("    " + strings.Repeat("   ", padding) + entry)
+			ui.Error("    *" + strings.Repeat(" * ", padding) + entry)
 		}
 	}
 }
