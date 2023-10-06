@@ -14,10 +14,10 @@ import (
 	"text/tabwriter"
 
 	"github.com/fatih/color"
-	"github.com/olekukonko/tablewriter"
-
 	"github.com/hashicorp/nomad-pack/internal/pkg/helper"
 	"github.com/hashicorp/nomad-pack/terminal"
+	"github.com/mitchellh/cli"
+	"github.com/olekukonko/tablewriter"
 )
 
 type nonInteractiveTestUI struct {
@@ -217,6 +217,14 @@ func (ui *nonInteractiveTestUI) ErrorWithContext(err error, sub string, ctx ...s
 		padding := max - strings.Index(entry, ":") + 1
 		ui.Error("  " + strings.Repeat(" ", padding) + entry)
 	}
+}
+
+// ErrorWithUsageAndContext satisfies the ErrorWithUsageAndContext function on the UI
+// interface.
+func (ui *nonInteractiveTestUI) ErrorWithUsageAndContext(err error, sub string, c cli.Command, ctx ...string) {
+	ui.ErrorWithContext(err, sub, ctx...)
+	ui.Output("")
+	ui.Output(c.Help())
 }
 
 // Header implements UI
