@@ -4,18 +4,27 @@
 package terminal
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
+	"os"
 
+	"github.com/containerd/console"
 	"github.com/fatih/color"
-	"github.com/mitchellh/go-glint"
-
-	"github.com/hashicorp/nomad-pack/internal/pkg/helper"
+	"github.com/mattn/go-isatty"
+	"github.com/mitchellh/cli"
+	"golang.org/x/term"
 )
 
 // ErrNonInteractive is returned when Input is called on a non-Interactive UI.
 var ErrNonInteractive = errors.New("noninteractive UI doesn't support this operation")
+
+// UsageCommander is an interface for commands that supply a terse help messsage
+// that points to the specific command's --help flag.
+type UsageCommander interface {
+	HelpUsageMessage() string
+}
 
 // Passed to UI.NamedValues to provide a nicely formatted key: value output
 type NamedValue struct {
@@ -83,6 +92,10 @@ type UI interface {
 	// users can easily identify issues.
 	ErrorWithContext(err error, sub string, ctx ...string)
 
+	// ErrorWithUsageAndContext displays both an error and the usage. This should be
+	// called when flag and argument parsing fail.
+	ErrorWithUsageAndContext(err error, sub string, c cli.Command, ctx ...string)
+
 	// Header formats Output with the HeaderStyle
 	Header(string)
 
@@ -134,6 +147,29 @@ type Step interface {
 	// This is usually done in a defer so that any return before the Done() shows
 	// the Step didn't completely properly.
 	Abort()
+}
+
+// Returns a UI which will write to the current processes
+// stdout/stderr.
+func ConsoleUI(ctx context.Context) UI {
+	// We do both of these checks because some sneaky environments fool
+	// one or the other and we really only want the glint-based UI in
+	// truly interactive environments.
+	glint := isatty.IsTerminal(os.Stdout.Fd()) && term.IsTerminal(int(os.Stdout.Fd()))
+	if glint {
+		glint = false
+		if c, err := console.ConsoleFromFile(os.Stdout); err == nil {
+			if sz, err := c.Size(); err == nil {
+				glint = sz.Height > 0 && sz.Width > 0
+			}
+		}
+	}
+
+	if glint {
+		return GlintUI(ctx)
+	} else {
+		return NonInteractiveUI(ctx)
+	}
 }
 
 // Interpret decomposes the msg and arguments into the message, style, and writer

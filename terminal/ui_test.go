@@ -5,6 +5,7 @@ package terminal
 
 import (
 	"bytes"
+	"context"
 	"strings"
 	"testing"
 
@@ -13,7 +14,7 @@ import (
 
 func TestNamedValues(t *testing.T) {
 	var buf bytes.Buffer
-	var ui basicUI
+	ui := ConsoleUI(context.TODO())
 	ui.NamedValues([]NamedValue{
 		{"hello", "a"},
 		{"this", "is"},
@@ -38,7 +39,7 @@ func TestNamedValues(t *testing.T) {
 
 func TestNamedValues_server(t *testing.T) {
 	var buf bytes.Buffer
-	var ui basicUI
+	ui := ConsoleUI(context.TODO())
 	ui.Output("Server configuration:", WithHeaderStyle(), WithWriter(&buf))
 	ui.NamedValues([]NamedValue{
 		{"DB Path", "data.db"},
@@ -63,7 +64,7 @@ func TestNamedValues_server(t *testing.T) {
 
 func TestStatusStyle(t *testing.T) {
 	var buf bytes.Buffer
-	var ui basicUI
+	ui := ConsoleUI(context.TODO())
 	ui.Output(strings.TrimSpace(`
 one
 two
