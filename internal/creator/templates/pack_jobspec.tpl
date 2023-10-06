@@ -12,7 +12,7 @@ job [[ template "job_name" . ]] {
       }
     }
 
-    [[ if .register_consul_service ]]
+    [[ if var "register_consul_service" . ]]
     service {
       name = "[[ var "consul_service_name" . ]]"
       tags = [[ var "consul_service_tags" . | toStringList ]]
