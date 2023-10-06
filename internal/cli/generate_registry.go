@@ -28,7 +28,7 @@ func (c *GenerateRegistryCommand) Run(args []string) int {
 		WithNoConfig(),
 		WithClient(false),
 	); err != nil {
-		c.ui.ErrorWithContext(err, "error parsing args or flags")
+		c.ui.ErrorWithUsageAndContext(err, ErrParsingArgsOrFlags, c)
 		return 1
 	}
 

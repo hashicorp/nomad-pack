@@ -35,7 +35,7 @@ func (c *RegistryAddCommand) Run(args []string) int {
 		WithNoConfig(),
 		WithClient(false),
 	); err != nil {
-		c.ui.ErrorWithContext(err, "error parsing args or flags")
+		c.ui.ErrorWithUsageAndContext(err, ErrParsingArgsOrFlags, c)
 		return 1
 	}
 
@@ -152,19 +152,19 @@ func (c *RegistryAddCommand) Synopsis() string {
 
 func (c *RegistryAddCommand) Help() string {
 	c.Example = `
-	# Download latest ref of the pack registry to the global cache.
-	nomad-pack registry add community github.com/hashicorp/nomad-pack-community-registry
+  # Download latest ref of the pack registry to the global cache.
+  nomad-pack registry add community github.com/hashicorp/nomad-pack-community-registry
 
-	# Download latest ref of a specific pack from the registry to the global cache.
-	nomad-pack registry add community github.com/hashicorp/nomad-pack-community-registry --target=nomad_example
+  # Download latest ref of a specific pack from the registry to the global cache.
+  nomad-pack registry add community github.com/hashicorp/nomad-pack-community-registry --target=nomad_example
 
-	# Download packs from a registry at a specific tag/release/SHA.
-	nomad-pack registry add community github.com/hashicorp/nomad-pack-community-registry  --ref=v0.1.0
+  # Download packs from a registry at a specific tag/release/SHA.
+  nomad-pack registry add community github.com/hashicorp/nomad-pack-community-registry  --ref=v0.1.0
 	`
 	return formatHelp(`
-	Usage: nomad-pack registry add <name> <source> [options]
+  Usage: nomad-pack registry add <name> <source> [options]
 
-	Add nomad pack registries.
+  Add nomad pack registries.
 
 ` + c.GetExample() + c.Flags().Help())
 }

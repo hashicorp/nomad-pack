@@ -26,6 +26,11 @@ const (
 	EnvPlain = "NOMAD_PACK_PLAIN"
 )
 
+// Error messages for the CLI
+const (
+	msgBadArgs = "error parsing arguments or flags"
+)
+
 var (
 	// cliName is the name of this CLI.
 	cliName = "nomad-pack"

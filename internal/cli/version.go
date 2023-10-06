@@ -19,8 +19,7 @@ func (c *VersionCommand) Run(args []string) int {
 
 	// Initialize. If we fail, we just exit since Init handles the UI.
 	if err := c.Init(WithNoArgs(args), WithFlags(flagSet), WithNoConfig(), WithClient(false)); err != nil {
-		c.ui.ErrorWithContext(err, ErrParsingArgsOrFlags)
-		c.ui.Info(c.helpUsageMessage())
+		c.ui.ErrorWithUsageAndContext(err, ErrParsingArgsOrFlags, c)
 		return 1
 	}
 

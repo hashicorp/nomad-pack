@@ -21,10 +21,7 @@ func (c *DestroyCommand) Run(args []string) int {
 		WithFlags(c.Flags()),
 		WithNoConfig(),
 	); err != nil {
-
-		c.ui.ErrorWithContext(err, ErrParsingArgsOrFlags)
-		c.ui.Info(c.helpUsageMessage())
-
+		c.ui.ErrorWithUsageAndContext(err, ErrParsingArgsOrFlags, c)
 		return 1
 	} else {
 		// This needs to be in an else block so that it doesn't try to run while

@@ -291,7 +291,7 @@ func TestCLI_PackStop(t *testing.T) {
 func TestCLI_PackStop_Conflicts(t *testing.T) {
 	ct.HTTPTestParallel(t, ct.WithDefaultConfig(), func(s *agent.TestAgent) {
 
-		testCases := []struct {
+		testcases := []struct {
 			desc           string
 			nonPackJob     bool
 			packName       string
@@ -326,9 +326,10 @@ func TestCLI_PackStop_Conflicts(t *testing.T) {
 		}
 		client, err := ct.NewTestClient(s)
 		must.NoError(t, err)
-		for _, tC := range testCases {
+		for _, tC := range testcases {
 			t.Run(tC.desc, func(t *testing.T) {
-				defer ct.NomadCleanup(s)
+				tc := tC
+				t.Cleanup(func() { ct.NomadCleanup(s) })
 
 				if tC.namespace != "" {
 					ct.MakeTestNamespaces(t, client)
@@ -350,7 +351,7 @@ func TestCLI_PackStop_Conflicts(t *testing.T) {
 				}
 
 				// Try to stop job
-				result := runTestPackCmd(t, s, []string{"stop", tC.packName})
+				result := runTestPackCmd(t, s, []string{"stop", tc.packName})
 				must.Eq(t, 1, result.exitCode)
 			})
 		}
@@ -520,7 +521,7 @@ func TestCLI_PackRender_MyAlias(t *testing.T) {
 }
 
 func TestCLI_CLIFlag_Namespace(t *testing.T) {
-	testCases := []struct {
+	testcases := []struct {
 		desc   string
 		args   []string
 		env    map[string]string
@@ -565,8 +566,9 @@ func TestCLI_CLIFlag_Namespace(t *testing.T) {
 			},
 		},
 	}
-	for _, tC := range testCases {
-		t.Run(tC.desc, func(t *testing.T) {
+	for _, tc := range testcases {
+		t.Run(tc.desc, func(t *testing.T) {
+			tc := tc
 			ct.HTTPTestParallel(t, ct.WithDefaultConfig(), func(srv *agent.TestAgent) {
 				c, err := ct.NewTestClient(srv)
 				must.NoError(t, err)
@@ -577,13 +579,13 @@ func TestCLI_CLIFlag_Namespace(t *testing.T) {
 					"run",
 					getTestPackPath(t, testPack),
 				},
-					tC.args...),
+					tc.args...),
 				)
 				must.Eq(t, result.cmdErr.String(), "", must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
 				must.StrContains(t, result.cmdOut.String(), "Pack successfully deployed", must.Sprintf(
 					"Expected success message, received %q", result.cmdOut.String()))
 
-				for ns, count := range tC.expect {
+				for ns, count := range tc.expect {
 					tJobs, _, err := c.Jobs().List(&api.QueryOptions{Namespace: ns})
 					must.NoError(t, err)
 					must.Eq(t, count, len(tJobs), must.Sprintf("Expected %v job(s) in %q namespace; found %v", count, ns, len(tJobs)))
@@ -702,8 +704,9 @@ func TestCLI_EnvConfig_Namespace(t *testing.T) {
 			},
 		},
 	}
-	for _, tC := range testCases {
-		t.Run(tC.desc, func(t *testing.T) {
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			tc := tc
 			ct.HTTPTest(t, ct.WithDefaultConfig(), func(srv *agent.TestAgent) {
 				c, err := ct.NewTestClient(srv)
 				must.NoError(t, err)
@@ -716,14 +719,14 @@ func TestCLI_EnvConfig_Namespace(t *testing.T) {
 					"run",
 					getTestPackPath(t, testPack),
 				},
-					tC.args...),
+					tc.args...),
 				)
 				must.Eq(t, result.cmdErr.String(), "", must.Sprintf(
 					"cmdErr should be empty, but was %q", result.cmdErr.String()))
 				must.StrContains(t, result.cmdOut.String(), "Pack successfully deployed", must.Sprintf(
 					"Expected success message, received %q", result.cmdOut.String()))
 
-				for ns, count := range tC.expect {
+				for ns, count := range tc.expect {
 					tJobs, _, err := c.Jobs().List(&api.QueryOptions{Namespace: ns})
 					must.NoError(t, err)
 					must.Eq(t, count, len(tJobs), must.Sprintf(

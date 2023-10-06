@@ -392,7 +392,7 @@ func (c *baseCommand) flagSet(bit flagSetBit, f func(*flag.Sets)) *flag.Sets {
 
 // Returns minimal help usage message
 // Used on flag/arg parse error in c.Init method
-func (c *baseCommand) helpUsageMessage() string {
+func (c *baseCommand) HelpUsageMessage() string {
 	if c.cmdKey == "" {
 		return `See "nomad-pack --help"`
 	}

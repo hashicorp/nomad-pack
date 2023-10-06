@@ -33,9 +33,8 @@ func (c *PlanCommand) Run(args []string) int {
 		WithFlags(c.Flags()),
 		WithNoConfig(),
 	); err != nil {
-		c.ui.ErrorWithContext(err, ErrParsingArgsOrFlags)
-		c.ui.Info(c.helpUsageMessage())
-		return 255
+		c.ui.ErrorWithUsageAndContext(err, ErrParsingArgsOrFlags, c)
+		return c.exitCodeError
 	}
 
 	c.packConfig.Name = c.args[0]

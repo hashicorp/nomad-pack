@@ -27,6 +27,7 @@ func (c *ListCommand) Run(args []string) int {
 		WithNoConfig(),
 		WithClient(false),
 	); err != nil {
+		c.ui.ErrorWithUsageAndContext(err, ErrParsingArgsOrFlags, c)
 		return 1
 	}
 

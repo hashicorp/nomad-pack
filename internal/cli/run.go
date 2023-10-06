@@ -33,8 +33,7 @@ func (c *RunCommand) Run(args []string) int {
 		WithFlags(c.Flags()),
 		WithNoConfig(),
 	); err != nil {
-		c.ui.ErrorWithContext(err, ErrParsingArgsOrFlags)
-		c.ui.Info(c.helpUsageMessage())
+		c.ui.ErrorWithUsageAndContext(err, ErrParsingArgsOrFlags, c)
 		return 1
 	}
 	return c.run()
