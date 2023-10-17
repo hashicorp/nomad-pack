@@ -65,7 +65,7 @@ First, run the `registry list` command to see which packs are available to deplo
 nomad-pack registry list
 ```
 
-To deploy one of these packs, use the `run` command. This deploys each jobs defined in the pack to Nomad.
+To deploy one of these packs, use the `run` command. This deploys each job defined in the pack to Nomad.
 To deploy the `hello_world` pack, you would run the following command:
 
 ```
@@ -139,7 +139,7 @@ Packs are organized into "registries" which contain multiple packs and shared te
 
 The [Nomad Pack Community Registry](https://github.com/hashicorp/nomad-pack-community-registry) is
 a public registry for community-maintained packs. Nomad community members are encouraged to share
-their packs and collaborate with one another in this repo.
+their packs and collaborate with one another in this repository.
 
 Pull Requests and feedback on both repositories are welcome!
 
