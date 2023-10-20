@@ -163,7 +163,8 @@ func (c *Cache) cloneRemoteGitRegistry(opts *AddOpts) (string, error) {
 	if opts.PackName != "" {
 		clonePath = path.Join(clonePath, "packs", opts.PackName)
 	}
-	if err := gg.Get(clonePath, fmt.Sprintf("git::%s", url)); err != nil {
+	// Attempt to shallow clone the constructed url
+	if err := gg.Get(clonePath, fmt.Sprintf("git::%s?depth=1", url)); err != nil {
 		logger.ErrorWithContext(err, "could not install registry", c.ErrorContext.GetAll()...)
 		return "n/a", err
 	}
