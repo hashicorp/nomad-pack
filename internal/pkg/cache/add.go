@@ -154,6 +154,9 @@ func (c *Cache) cloneRemoteGitRegistry(opts *AddOpts) (string, error) {
 	// If ref is set, add query string variable
 	if !opts.IsLatest() {
 		url = fmt.Sprintf("%s?ref=%s", url, opts.Ref)
+	} else {
+		// Attempt to shallow clone the constructed url
+		url = fmt.Sprintf("%s?depth=1", url)
 	}
 
 	logger.Debug(fmt.Sprintf("go-getter URL is %s", url))
@@ -163,8 +166,7 @@ func (c *Cache) cloneRemoteGitRegistry(opts *AddOpts) (string, error) {
 	if opts.PackName != "" {
 		clonePath = path.Join(clonePath, "packs", opts.PackName)
 	}
-	// Attempt to shallow clone the constructed url
-	if err := gg.Get(clonePath, fmt.Sprintf("git::%s?depth=1", url)); err != nil {
+	if err := gg.Get(clonePath, fmt.Sprintf("git::%s", url)); err != nil {
 		logger.ErrorWithContext(err, "could not install registry", c.ErrorContext.GetAll()...)
 		return "n/a", err
 	}
