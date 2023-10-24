@@ -21,24 +21,6 @@ nomad-pack run {{.PackName}} --var message="Hola Mundo!"
 This tells Nomad Pack to tweak the `MESSAGE` environment variable that the
 service reads from.
 
-### Consul Service and Load Balancer Integration
-
-Optionally, it can configure a Consul service.
-
-If the `register_consul_service` is unset or set to true, the Consul service
-will be registered.
-
-Several load balancers in the [Nomad Pack Community Registry][pack-registry]
-are configured to connect to this service by default.
-
-The [NGINX][pack-nginx] and [HAProxy][pack-haproxy] packs are configured to
-balance the Consul service `{{.PackName}}-service`, which is the default value
-for the `consul_service_name` variable.
-
-The [Fabio][pack-fabio] and [Traefik][pack-traefik] packs are configured to
-search for Consul services with the tags found in the default value of the
-`consul_service_tags` variable.
-
 ## Variables
 
 <!-- Include information on the variables from your pack -->
@@ -47,18 +29,12 @@ search for Consul services with the tags found in the default value of the
 - `count` (number:2) - The number of app instances to deploy
 - `job_name` (string) - The name to use as the job name which overrides using
   the pack name
-- `datacenters` (list of strings:["dc1"]) - A list of datacenters in the region which
+- `datacenters` (list of strings:["*"]) - A list of datacenters in the region which
   are eligible for task placement
 - `region` (string) - The region where jobs will be deployed
-- `register_consul_service` (bool: true) - If you want to register a Consul service
+- `register_service` (bool: true) - If you want to register a Nomad service
   for the job
-- `consul_service_tags` (list of string) - The Consul service name for the
-  {{.PackName}} application
-- `consul_service_name` (string) - The Consul service name for the {{.PackName}}
-  application
+- `service_tags` (list of string) - The service tags for the {{.PackName}} application
+- `service_name` (string) - The service name for the {{.PackName}} application
 
 [pack-registry]: https://github.com/hashicorp/nomad-pack-community-registry
-[pack-nginx]: https://github.com/hashicorp/nomad-pack-community-registry/tree/main/packs/nginx/README.md
-[pack-haproxy]: https://github.com/hashicorp/nomad-pack-community-registry/tree/main/packs/haproxy/README.md
-[pack-fabio]: https://github.com/hashicorp/nomad-pack-community-registry/tree/main/packs/fabio/README.md
-[pack-traefik]: https://github.com/hashicorp/nomad-pack-community-registry/tree/main/packs/traefik/traefik/README.md

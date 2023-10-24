@@ -68,7 +68,7 @@ This helper creates Nomad constraint blocks from a value of type
 ```
   list(
     object(
-      service_name string, service_port_label string, service_tags list(string),
+      service_name string, service_port_label string, service_provider string, service_tags list(string),
       upstreams list(object(name string, port number))
       check_type string, check_path string, check_interval string, check_timeout string
     )
@@ -86,6 +86,7 @@ template.
         name = [[ $service.service_name | quote ]]
         port = [[ $service.service_port_label | quote ]]
         tags = [[ $service.service_tags | toStringList ]]
+        provider = [[ $service.service_provider | quote ]]
         [[- if $service.upstreams ]]
         connect {
           sidecar_service {
@@ -123,47 +124,6 @@ This helper formats maps as key and quoted value pairs.
         [[- range $idx, $var := . ]]
         [[ $var.key ]] = [[ $var.value | quote ]]
         [[- end ]]
-[[- end ]]
-
-[[- /*
-
-## `mounts` helper
-
-```
-  list(
-    object(
-      type string, target string, source string,
-      readonly bool,
-      bind_options map(string)
-    )
-  )
-```
-
-This helper is extremely similar to the `services` helper. It uses several
-alternative syntax choices and leverages the fact that range provides the
-current iteratee as the current template context inside of it's scope.
-
-Additional notes:
-  "", 0, false, nil, and empty slices all evaluate to false for `if`
-  "", 0, false, nil, and empty slices all evaluate to empty for `range`
-
-*/ -]]
-[[ define "mounts" -]]
-[[- range . ]]
-        mount {
-          type = [[ quote .type  ]]
-          target = [[ quote .target ]]
-          source = [[ quote .source ]]
-          readonly = [[ .readonly ]]
-          [[- if .bind_options ]]
-          bind_options {
-            [[- range .bind_options ]]
-            [[ .name ]] = [[ quote .value ]]
-            [[- end ]]
-          }
-          [[- end ]]
-        }
-[[- end ]]
 [[- end ]]
 
 [[- /*
