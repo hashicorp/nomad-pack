@@ -34,9 +34,9 @@ type packCreator struct {
 func CreatePack(c config.PackConfig) error {
 	ui := c.GetUI()
 
-	var outPath string
+	outPath := c.OutPath
 	var err error
-	if c.OutPath == "" {
+	if outPath == "" {
 		outPath, err = os.Getwd()
 		if err != nil {
 			newCreatePackError(err)
