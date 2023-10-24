@@ -491,7 +491,7 @@ func TestCLI_PackStatus_Fails(t *testing.T) {
 	})
 }
 
-func TestCLI_PackRender_MyAlias(t *testing.T) {
+func TestCLI_PackRender_RootVar(t *testing.T) {
 	t.Parallel()
 	// This test has to do some extra shenanigans because dependent pack template
 	// output is not guaranteed to be ordered. This requires that the test handle
@@ -508,6 +508,37 @@ func TestCLI_PackRender_MyAlias(t *testing.T) {
 		getTestPackPath(t, "my_alias_test"),
 	})
 	must.Eq(t, result.cmdErr.String(), "", must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
+
+	// Performing a little clever string manipulation on the render output to
+	// prepare it for splitting into a slice of string enables us to use
+	// require.ElementsMatch to validate goodness.
+	outStr := strings.TrimSpace(result.cmdOut.String())
+	outStr = strings.ReplaceAll(outStr, ":\n\n", "=")
+	elems := strings.Split(outStr, "\n")
+
+	must.SliceContainsAll(t, expected, elems)
+}
+
+func TestCLI_PackRender_SetDepVarWithFlag(t *testing.T) {
+	t.Parallel()
+	// This test has to do some extra shenanigans because dependent pack template
+	// output is not guaranteed to be ordered. This requires that the test handle
+	// either order.
+	expected := []string{
+		"deps_test/child1/child1.nomad=override",
+		"deps_test/child2/child2.nomad=child2",
+		"deps_test/deps_test.nomad=deps_test",
+	}
+
+	result := runPackCmd(t, []string{
+		"render",
+		"--no-format=true",
+		"--var", "child1.job_name=override",
+		getTestPackPath(t, "my_alias_test"),
+	})
+
+	must.Eq(t, result.cmdErr.String(), "", must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
+	must.Eq(t, 0, result.exitCode, must.Sprintf("incorrect exit code.\nstdout:\n%v\nstderr:%v\n", result.cmdOut.String(), result.cmdErr.String()))
 
 	// Performing a little clever string manipulation on the render output to
 	// prepare it for splitting into a slice of string enables us to use
