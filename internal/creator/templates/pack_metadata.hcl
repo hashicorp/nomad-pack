@@ -11,5 +11,5 @@ pack {
 
 // dependency "demo_dep" {
 //   alias  = "demo_dep"
-//   source = "git://source.git/packs/demo_dependency_pack"
+//   source = "git://source.git//packs/demo_dependency_pack"
 // }

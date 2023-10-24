@@ -20,6 +20,10 @@ type Dependency struct {
 	// variable values.
 	Alias string `hcl:"alias,optional"`
 
+	// Ref is the git reference of the pack at which to add. Ignored if not
+	// specifying a git source. Defaults to latest.
+	Ref string `hcl:"ref,optional"`
+
 	// Source is the remote source where the pack can be fetched. This string
 	// can follow any format as supported by go-getter or be a local path
 	// indicating the pack has already been downloaded.
@@ -43,6 +47,11 @@ func (d *Dependency) AliasOrName() string {
 // which implements the Stringer interface
 func (d *Dependency) ID() ID {
 	return ID(d.AliasOrName())
+}
+
+// IsLatest works out if the user requested the HEAD of the dependency
+func (d *Dependency) IsLatest() bool {
+	return d.Ref == "" || d.Ref == "latest"
 }
 
 // validate the Dependency object to ensure it meets requirements and doesn't
