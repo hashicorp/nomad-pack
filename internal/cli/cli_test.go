@@ -550,6 +550,40 @@ func TestCLI_PackRender_SetDepVarWithFlag(t *testing.T) {
 	must.SliceContainsAll(t, expected, elems)
 }
 
+func TestCLI_PackRender_VarsInOutputTemplate(t *testing.T) {
+	t.Parallel()
+	// This test has to do some extra shenanigans because dependent pack template
+	// output is not guaranteed to be ordered. This requires that the test handle
+	// either order.
+	expected := []string{
+		"deps_test/child1/child1.nomad=override",
+		"deps_test/child2/child2.nomad=child2",
+		"deps_test/deps_test.nomad=deps_test",
+		"outputs.tpl=deps_test,override,child2",
+	}
+
+	result := runPackCmd(t, []string{
+		"render",
+		"--no-format=true",
+		"--var", "child1.job_name=override",
+		"--render-output-template=true",
+		getTestPackPath(t, "my_alias_test"),
+	})
+
+	must.Eq(t, result.cmdErr.String(), "", must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
+	must.Eq(t, 0, result.exitCode, must.Sprintf("incorrect exit code.\ncmdOut:\n%v\ns", result.cmdOut.String()))
+	must.StrNotContains(t, result.cmdOut.String(), "Error")
+
+	// Performing a little clever string manipulation on the render output to
+	// prepare it for splitting into a slice of string enables us to use
+	// require.ElementsMatch to validate goodness.
+	outStr := strings.TrimSpace(result.cmdOut.String())
+	outStr = strings.ReplaceAll(outStr, ":\n\n", "=")
+	elems := strings.Split(outStr, "\n")
+
+	must.SliceContainsAll(t, expected, elems, must.Sprintf("unexpected returned value.\nexpected: %v\nelems: %v\nstdout:\n%v\n", expected, elems, result.cmdOut.String()))
+}
+
 func TestCLI_CLIFlag_Namespace(t *testing.T) {
 	testCases := []struct {
 		desc   string

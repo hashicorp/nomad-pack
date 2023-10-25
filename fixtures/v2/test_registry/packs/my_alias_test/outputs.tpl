@@ -1,0 +1,1 @@
+[[var "job_name" .]],[[var "job_name" .child1]],[[var "job_name" .child2]]
