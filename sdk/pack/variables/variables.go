@@ -78,7 +78,11 @@ func (v *Variable) Equal(ivp *Variable) bool {
 
 func (v *Variable) AsOverrideString(pID pack.ID) string {
 	var out strings.Builder
-	out.WriteString(fmt.Sprintf(`# variable "%s"`, v.Name))
+
+	fqvn := strings.Join([]string{pID.String(), v.Name.String()}, ".")
+	_, rvn, _ := strings.Cut(fqvn, ".")
+
+	out.WriteString(fmt.Sprintf(`# variable "%s"`, rvn))
 	out.WriteByte('\n')
 	if v.hasDescription {
 		tmp := "description: " + v.Description
@@ -100,9 +104,9 @@ func (v *Variable) AsOverrideString(pID pack.ID) string {
 	}
 
 	if v.Value.Equals(v.Default).True() {
-		out.WriteString(fmt.Sprintf("#\n# %s=%s\n\n", v.Name, printDefault(v.Default)))
+		out.WriteString(fmt.Sprintf("#\n# %s=%s\n\n", rvn, printDefault(v.Default)))
 	} else {
-		out.WriteString(fmt.Sprintf("#\n%s=%s\n\n", v.Name, printDefault(v.Value)))
+		out.WriteString(fmt.Sprintf("#\n%s=%s\n\n", rvn, printDefault(v.Value)))
 	}
 
 	out.WriteString("\n")

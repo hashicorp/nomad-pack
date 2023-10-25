@@ -14,7 +14,7 @@ variable "region" {
 variable "datacenters" {
   description = "A list of datacenters in the region which are eligible for task placement"
   type        = list(string)
-  default     = ["dc1"]
+  default     = ["*"]
 }
 
 variable "count" {
@@ -29,22 +29,22 @@ variable "message" {
   default     = "Hello World!"
 }
 
-variable "register_consul_service" {
-  description = "If you want to register a Consul service for the job"
+variable "register_service" {
+  description = "If you want to register a Nomad service for the job"
   type        = bool
   default     = true
 }
 
-variable "consul_service_name" {
-  description = "The Consul service name for the {{.PackName}} application"
+variable "service_name" {
+  description = "The service name for the {{.PackName}} application"
   type        = string
   default     = "webapp"
 }
 
-variable "consul_service_tags" {
-  description = "The Consul service name for the {{.PackName}} application"
+variable "service_tags" {
+  description = "The service tags for the {{.PackName}} application"
   type        = list(string)
-  # The default value is shaped to integrate with Fabio or Traefik
+  # The default value is shaped to integrate with Traefik
   # This routes at the root path "/", to route to this service from
   # another path, change "urlprefix-/" to "urlprefix-/<PATH>" and
   # "traefik.http.routers.http.rule=Path(∫/∫)" to

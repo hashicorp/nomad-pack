@@ -34,6 +34,7 @@
         name = [[ $service.service_name | quote ]]
         port = [[ $service.service_port_label | quote ]]
         tags = [[ $service.service_tags | toStringList ]]
+        provider = [[ $service.service_provider | quote ]]
         [[- if gt (len $service.upstreams) 0 ]]
         connect {
           sidecar_service {
@@ -66,26 +67,6 @@
         [[- range $idx, $var := . ]]
         [[ $var.key ]] = [[ $var.value | quote ]]
         [[- end ]]
-[[- end ]]
-
-
-// Generic mount template
-[[ define "mounts" -]]
-[[- range $idx, $mount := . ]]
-        mount {
-          type = [[ $mount.type | quote ]]
-          target = [[ $mount.target | quote ]]
-          source = [[ $mount.source | quote ]]
-          readonly = [[ $mount.readonly ]]
-          [[- if gt (len $mount.bind_options) 0 ]]
-          bind_options {
-            [[- range $idx, $opt := $mount.bind_options ]]
-            [[ $opt.name ]] = [[ $opt.value | quote ]]
-            [[- end ]]
-          }
-          [[- end ]]
-        }
-[[- end ]]
 [[- end ]]
 
 // Generic resources template

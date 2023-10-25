@@ -12,10 +12,11 @@ job [[ template "job_name" . ]] {
       }
     }
 
-    [[ if var "register_consul_service" . ]]
+    [[ if var "register_service" . ]]
     service {
-      name = "[[ var "consul_service_name" . ]]"
-      tags = [[ var "consul_service_tags" . | toStringList ]]
+      name = "[[ var "service_name" . ]]"
+      tags = [[ var "service_tags" . | toStringList ]]
+      provider = "nomad"
       port = "http"
       check {
         name     = "alive"

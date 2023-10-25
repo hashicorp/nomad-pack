@@ -154,6 +154,9 @@ func (c *Cache) cloneRemoteGitRegistry(opts *AddOpts) (string, error) {
 	// If ref is set, add query string variable
 	if !opts.IsLatest() {
 		url = fmt.Sprintf("%s?ref=%s", url, opts.Ref)
+	} else {
+		// Attempt to shallow clone the constructed url
+		url = fmt.Sprintf("%s?depth=1", url)
 	}
 
 	logger.Debug(fmt.Sprintf("go-getter URL is %s", url))
