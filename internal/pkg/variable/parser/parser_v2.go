@@ -285,7 +285,7 @@ func (p *ParserV2) parseVariableImpl(name, rawVal string, tgt variables.PackIDKe
 		// TODO: This is another part that needs to be smart about parsing into the
 		// names so we could potentially set a value inside of an object.
 		varPID = p.cfg.ParentPack.ID().Join(
-			pack.ID("." + strings.Join(splitName[0:len(splitName)-1], ".")),
+			pack.ID(strings.Join(splitName[0:len(splitName)-1], ".")),
 		)
 		varVID = variables.ID(splitName[len(splitName)-1])
 	} else {
