@@ -25,6 +25,7 @@ IMPROVEMENTS:
 * cli: `registry list` command now shows git refs to repositories present in the cache [[GH-318](https://github.com/hashicorp/nomad-pack/pull/318)]
 * cli: `registry list` command now shows only registries, and a new command `list` shows packs [[GH-337](https://github.com/hashicorp/nomad-pack/pull/337)], [[GH-373](https://github.com/hashicorp/nomad-pack/pull/373)]
 * cli: `deps vendor` command [[GH-367](https://github.com/hashicorp/nomad-pack/pull/367)]
+* cli: `deps vendor` command now allows dependencies to be pinned [[GH-447](https://github.com/hashicorp/nomad-pack/pull/447)]
 * cli: `generate pack` command now supports `--overwrite` flag [[GH-380](https://github.com/hashicorp/nomad-pack/pull/380)]
 * cli: `registry add` command now uses shallow cloning [[GH-444](https://github.com/hashicorp/nomad-pack/pull/444)]
 * deps: Update the Nomad OpenAPI dependency; require Go 1.18 as a build dependency [[GH-288](https://github.com/hashicorp/nomad-pack/pull/288)]

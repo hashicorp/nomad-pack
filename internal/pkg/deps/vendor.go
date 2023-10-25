@@ -32,10 +32,18 @@ func Vendor(ctx context.Context, ui terminal.UI, targetPath string) error {
 
 	for _, d := range metadata.Dependencies {
 		targetDir := path.Join(targetPath, "deps", d.Name)
+		url := d.Source
+
+		if !d.IsLatest() {
+			url = fmt.Sprintf("%s?ref=%s", url, d.Ref)
+		} else {
+			// Attempt to shallow clone the constructed url
+			url = fmt.Sprintf("%s?depth=1", url)
+		}
 
 		// download each dependency
 		ui.Info(fmt.Sprintf("downloading %v pack to %v...", d.Name, targetDir))
-		if err := gg.Get(targetDir, fmt.Sprintf(d.Source), gg.WithContext(ctx)); err != nil {
+		if err := gg.Get(targetDir, url, gg.WithContext(ctx)); err != nil {
 			return fmt.Errorf("error downloading dependency: %v", err)
 		}
 		ui.Success("...success!")
