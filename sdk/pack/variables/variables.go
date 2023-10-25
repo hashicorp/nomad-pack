@@ -80,9 +80,7 @@ func (v *Variable) AsOverrideString(pID pack.ID) string {
 	var out strings.Builder
 
 	fqvn := strings.Join([]string{pID.String(), v.Name.String()}, ".")
-	b := strings.Split(fqvn, ".")
-	b = b[1:]
-	rvn := strings.Join(b, ".")
+	_, rvn, _ := strings.Cut(fqvn, ".")
 
 	out.WriteString(fmt.Sprintf(`# variable "%s"`, rvn))
 	out.WriteByte('\n')
