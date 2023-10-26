@@ -155,6 +155,7 @@ func (c *generateVarFileCommand) Run(args []string) int {
 			c.ui.Error(err.Error())
 			return 1
 		}
+		c.ui.Success(fmt.Sprintf("Variable override file written to %s.", c.renderTo))
 	}
 	return 0
 }
