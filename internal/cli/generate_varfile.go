@@ -64,11 +64,18 @@ func (c *generateVarFileCommand) confirmOverwrite(path string) (bool, error) {
 	}
 }
 
-func (c *generateVarFileCommand) validateOutFile(path string) error {
-	if path == "" {
+// validateOutFile ensures that renderTo is rational and mutates it to add a
+// .hcl extension if not present
+func (c *generateVarFileCommand) validateOutFile() error {
+	if c.renderTo == "" {
 		return nil
 	}
-	info, err := os.Stat(path)
+
+	// Add .hcl as an extension automatically. Trim off existing .hcl if present
+	// to prevent a stutter.
+	c.renderTo = strings.TrimSuffix(c.renderTo, ".hcl") + ".hcl"
+
+	info, err := os.Stat(c.renderTo)
 
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
@@ -140,7 +147,7 @@ func (c *generateVarFileCommand) Run(args []string) int {
 
 	c.ui.Output(renderOutput.AsOverrideFile())
 	if c.renderTo != "" {
-		if err := c.validateOutFile(c.renderTo); err != nil {
+		if err := c.validateOutFile(); err != nil {
 			c.ui.Error(err.Error())
 			return 1
 		}
