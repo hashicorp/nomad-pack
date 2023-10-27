@@ -10,13 +10,16 @@ import (
 	"io"
 	"os"
 	"regexp"
+	"slices"
 	"strings"
 	"sync"
 	"text/tabwriter"
 
 	"github.com/fatih/color"
+	"github.com/mitchellh/go-wordwrap"
 	"github.com/olekukonko/tablewriter"
 
+	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/helper"
 )
 
@@ -212,6 +215,51 @@ func (ui *nonInteractiveUI) Error(msg string) {
 func (ui *nonInteractiveUI) ErrorWithContext(err error, sub string, ctx ...string) {
 	ui.Error(helper.Title(sub))
 	ui.Error("  Error: " + err.Error())
+
+	// Selectively promote Details and Suggestion from the context.
+	var extractItem = func(ctx []string, key string) ([]string, string, bool) {
+		for i, v := range ctx {
+			if strings.HasPrefix(v, key) {
+				outStr := v
+				outCtx := slices.Delete(ctx, i, i+1)
+				return outCtx, outStr, true
+			}
+		}
+		return ctx, "", false
+	}
+	var promote = func(key string) {
+		if oc, item, found := extractItem(ctx, key); found {
+			ctx = oc
+			if key == "" {
+				return
+			}
+
+			key, rest, found := strings.Cut(item, ": ")
+
+			if !found {
+				wrapped := wordwrap.WrapString(rest, 78)
+				lines := strings.Split(wrapped, "\n")
+				for _, l := range lines {
+					ui.Error("  " + l)
+				}
+				return
+			}
+			wrapped := wordwrap.WrapString(rest, uint(78-len(key)))
+			lines := strings.Split(wrapped, "\n")
+			for i, l := range lines {
+				if i == 0 {
+					ui.Error(fmt.Sprintf("  %s: %s", key, l))
+					continue
+				}
+
+				ui.Error(fmt.Sprintf("  %s  %s", strings.Repeat(" ", len(key)), l))
+			}
+		}
+	}
+
+	promote(errors.UIContextErrorDetail)
+	promote(errors.UIContextErrorSuggestion)
+
 	ui.Error("  Context:")
 	max := 0
 	for _, entry := range ctx {
