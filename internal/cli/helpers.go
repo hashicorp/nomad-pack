@@ -106,6 +106,17 @@ func registryPackRow(cachedRegistry *cache.Registry, cachedPack *cache.Pack) []t
 		// TODO: The app version
 	}
 }
+func registryName(cr *cache.Registry) string {
+	if cr.Ref == cr.LocalRef {
+		return fmt.Sprintf("%s@%s", cr.Name, formatSHA1Reference(cr.LocalRef))
+	}
+	// While it is completely unexpected to encounter a case where the Ref is a
+	// SHA1 hash and the LocalRef doesn't match, we can safely run the Ref through
+	// the formatSHA1Reference func since it will return non-SHA values unmodified
+	// and if somehow the mismatched SHA case does happen, the output will not
+	// become ridiculous.
+	return fmt.Sprintf("%s@%s (%s)", cr.Name, formatSHA1Reference(cr.Ref), formatSHA1Reference(cr.LocalRef))
+}
 
 func packRow(cachedRegistry *cache.Registry, cachedPack *cache.Pack) []terminal.TableEntry {
 	return []terminal.TableEntry{
