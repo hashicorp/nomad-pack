@@ -237,7 +237,7 @@ func (ui *nonInteractiveUI) ErrorWithContext(err error, sub string, ctx ...strin
 			key, rest, found := strings.Cut(item, ": ")
 
 			if !found {
-				wrapped := wordwrap.WrapString(rest, 78)
+				wrapped := wordwrap.WrapString(key, 78)
 				lines := strings.Split(wrapped, "\n")
 				for _, l := range lines {
 					ui.Error("  " + l)
