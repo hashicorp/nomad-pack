@@ -55,10 +55,10 @@ func ParseTemplateError(tplCtx parser.PackTemplateContext, err error) *PackTempl
 // display to the CLI
 func (p *PackTemplateError) ToWrappedUIContext() *WrappedUIContext {
 	errCtx := NewUIErrorContext()
-	errCtx.Add("Details: ", p.Details)
-	errCtx.Add("Filename: ", p.Filename)
-	errCtx.Add("Position: ", p.pos())
-	errCtx.Add("Suggestions: ", strings.Join(p.Suggestions, "; "))
+	errCtx.Add(UIContextErrorDetail, p.Details)
+	errCtx.Add(UIContextErrorFilename, p.Filename)
+	errCtx.Add(UIContextErrorPosition, p.pos())
+	errCtx.Add(UIContextErrorSuggestion, strings.Join(p.Suggestions, "; "))
 	return &WrappedUIContext{
 		Err:     p,
 		Subject: "error executing template",
