@@ -25,7 +25,7 @@ type generateVarFileCommand struct {
 	*baseCommand
 	packConfig *cache.PackConfig
 
-	// renderTo is the path to write rendered var override files to in
+	// renderTo is the path to write generated var override files to in
 	// addition to standard output.
 	renderTo string
 
@@ -64,11 +64,18 @@ func (c *generateVarFileCommand) confirmOverwrite(path string) (bool, error) {
 	}
 }
 
-func (c *generateVarFileCommand) validateOutFile(path string) error {
-	if path == "" {
+// validateOutFile ensures that renderTo is rational and mutates it to add a
+// .hcl extension if not present
+func (c *generateVarFileCommand) validateOutFile() error {
+	if c.renderTo == "" {
 		return nil
 	}
-	info, err := os.Stat(path)
+
+	// Add .hcl as an extension automatically. Trim off existing .hcl if present
+	// to prevent a stutter.
+	c.renderTo = strings.TrimSuffix(c.renderTo, ".hcl") + ".hcl"
+
+	info, err := os.Stat(c.renderTo)
 
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
@@ -138,7 +145,7 @@ func (c *generateVarFileCommand) Run(args []string) int {
 
 	c.ui.Output(renderOutput.AsOverrideFile())
 	if c.renderTo != "" {
-		if err := c.validateOutFile(c.renderTo); err != nil {
+		if err := c.validateOutFile(); err != nil {
 			c.ui.Error(err.Error())
 			return 1
 		}
@@ -146,6 +153,7 @@ func (c *generateVarFileCommand) Run(args []string) int {
 			c.ui.Error(err.Error())
 			return 1
 		}
+		c.ui.Success(fmt.Sprintf("Variable override file written to %s.", c.renderTo))
 	}
 	return 0
 }
@@ -160,7 +168,7 @@ func (c *generateVarFileCommand) Flags() *flag.Sets {
 			Name:    "registry",
 			Target:  &c.packConfig.Registry,
 			Default: "",
-			Usage: `Specific registry name containing the pack to be rendered.
+			Usage: `Specific registry name containing the target pack.
 					If not specified, the default registry will be used.`,
 		})
 
@@ -168,7 +176,7 @@ func (c *generateVarFileCommand) Flags() *flag.Sets {
 			Name:    "ref",
 			Target:  &c.packConfig.Ref,
 			Default: "",
-			Usage: `Specific git ref of the pack to be rendered.
+			Usage: `Specific git ref of the target pack.
 					Supports tags, SHA, and latest. If no ref is specified,
 					defaults to latest.
 
@@ -179,7 +187,7 @@ func (c *generateVarFileCommand) Flags() *flag.Sets {
 			StringVar: &flag.StringVar{
 				Name:   "to-file",
 				Target: &c.renderTo,
-				Usage: `Path to write rendered variable override file to in addition to
+				Usage: `Path to write generated variable override file to in addition to
 						standard output.`,
 			},
 			Shorthand: "o",
@@ -199,19 +207,19 @@ func (c *generateVarFileCommand) AutocompleteFlags() complete.Flags {
 func (c *generateVarFileCommand) Help() string {
 
 	c.Example = `
-	# Render a variables override file for the given pack to standard output.
+	# Generate a variables override file for the given pack to standard output.
 	nomad-pack generate var-file example
 
-	# Render a variable override for the example pack, outputting as a file in
+	# Generate a variable override for the example pack, outputting as a file in
 	# addition to the terminal.
 	nomad-pack generate var-file example --to-file ./overrides.hcl
 
-	# Render a variable override for the example pack, outputting as a file in
+	# Generate a variable override for the example pack, outputting as a file in
 	# addition to the terminal. Setting auto-approve allows the command to
 	# overwrite existing files.
 	nomad-pack generate var-file example --to-file ./overrides.hcl --auto-approve
 
-	# Render a variable override pack under development from the filesystem -
+	# Generate a variable override pack under development from the filesystem -
 	# supports current working directory or relative path
 	nomad-pack generate var-file .
 	`
@@ -219,12 +227,12 @@ func (c *generateVarFileCommand) Help() string {
 	return formatHelp(`
 	Usage: nomad-pack generate var-file <pack-name> [options]
 
-	Render a variables file for the specified Nomad Pack.
+	Generate a variables file for the specified Nomad Pack.
 
 ` + c.GetExample() + c.Flags().Help())
 }
 
 // Synopsis satisfies the Synopsis function of the cli.Command interface.
 func (c *generateVarFileCommand) Synopsis() string {
-	return "Render the templates within a pack"
+	return "Generate a variable override file for a pack"
 }
