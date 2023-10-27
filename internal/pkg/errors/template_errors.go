@@ -167,20 +167,20 @@ func (p *PackTemplateError) enhanceNPE() {
 			atPackName := parts[1]
 			rootPackName := p.tplctx.Name()
 
-			if atPackName == rootPackName {
+			if atPackName == rootPackName || atPackName == "my" {
 				atPackName = ""
 			}
 
 			p.Suggestions = []string{
+				// TODO: This error will need to be modified if parser-v1 becomes unsupported.
 				fmt.Sprintf(
-					"The legacy %q syntax should be updated to use `var %q .%s`.",
+					"The legacy %q syntax should be updated to use `var %q .%s`. You can run legacy packs unmodified by using the `--parser-v1` flag",
 					p.at,
 					parts[2],
 					atPackName,
 				),
 			}
 		}
-
 	}
 }
 
