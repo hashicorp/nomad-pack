@@ -55,10 +55,15 @@ func ParseTemplateError(tplCtx parser.PackTemplateContext, err error) *PackTempl
 // display to the CLI
 func (p *PackTemplateError) ToWrappedUIContext() *WrappedUIContext {
 	errCtx := NewUIErrorContext()
-	errCtx.Add(UIContextErrorDetail, p.Details)
+	if p.Details != "" {
+		errCtx.Add(UIContextErrorDetail, p.Details)
+	}
+
 	errCtx.Add(UIContextErrorFilename, p.Filename)
 	errCtx.Add(UIContextErrorPosition, p.pos())
-	errCtx.Add(UIContextErrorSuggestion, strings.Join(p.Suggestions, "; "))
+	if len(p.Suggestions) > 0 {
+		errCtx.Add(UIContextErrorSuggestion, strings.Join(p.Suggestions, "; "))
+	}
 	return &WrappedUIContext{
 		Err:     p,
 		Subject: "error executing template",
@@ -146,6 +151,9 @@ func (p *PackTemplateError) enhance() {
 	if p.isNPE() {
 		p.enhanceNPE()
 	}
+	if p.isV2Error() {
+		p.enhanceV2Error()
+	}
 }
 
 func (p *PackTemplateError) isNPE() bool {
@@ -182,6 +190,15 @@ func (p *PackTemplateError) enhanceNPE() {
 			}
 		}
 	}
+}
+
+func (p *PackTemplateError) isV2Error() bool {
+	return strings.HasSuffix(p.Err.Error(), "not implemented for nomad-pack's v1 syntax")
+}
+
+func (p *PackTemplateError) enhanceV2Error() {
+	p.Suggestions = []string{"Verify that the `--parser-v1` flag is not set when running this pack."}
+
 }
 
 func (p *PackTemplateError) fixupPackContextable() {
