@@ -145,6 +145,7 @@ func renderPack(
 		for i := range err {
 			err[i].Context.Append(errCtx)
 			ui.ErrorWithContext(err[i].Err, "failed to process pack", err[i].Context.GetAll()...)
+			ui.Warning("Note: if this pack was written prior to v0.1, use the --parser-v1 flag")
 		}
 		return nil, errors.New("failed to render")
 	}
