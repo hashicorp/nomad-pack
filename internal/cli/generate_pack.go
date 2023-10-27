@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/creator"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
+	"github.com/hashicorp/nomad-pack/sdk/pack"
 )
 
 // GeneratePackCommand adds a registry to the global cache.
@@ -34,11 +35,20 @@ func (c *GeneratePackCommand) Run(args []string) int {
 		return 1
 	}
 
+	errorContext := errors.NewUIErrorContext()
 	c.cfg.PackName = c.args[0]
 
-	// Generate our UI error context.
-	errorContext := errors.NewUIErrorContext()
+	if !pack.IsValidName(c.cfg.PackName) {
+		errorContext.Add(errors.UIContextErrorDetail,
+			"Pack names may only contain letters, numbers, and underscores.")
+		errorContext.Add(errors.UIContextErrorSuggestion,
+			"To write the generated pack somewhere other than the current working directory, use the `--to-dir` flag.")
+		c.ui.ErrorWithContext(errors.New("Invalid pack name"), ErrParsingArgsOrFlags, errorContext.GetAll()...)
+		c.ui.Info(c.helpUsageMessage())
+		return 1
+	}
 
+	// Generate the typical Pack UI error context.
 	errorContext.Add(errors.UIContextPrefixPackName, c.cfg.PackName)
 	errorContext.Add(errors.UIContextPrefixOutputPath, c.cfg.OutPath)
 

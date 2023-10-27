@@ -16,6 +16,8 @@ var ErrNoTemplatesRendered = newError("no templates were rendered by the rendere
 // UI errors outputs. If a prefix is used more than once, it should have a
 // const created.
 const (
+	UIContextErrorDetail          = "Detail: "
+	UIContextErrorSuggestion      = "Suggestion: "
 	UIContextPrefixGitRegistryURL = "Git Registry URL: "
 	UIContextPrefixPackName       = "Pack Name: "
 	UIContextPrefixPackPath       = "Pack Path: "
