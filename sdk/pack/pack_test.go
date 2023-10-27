@@ -135,3 +135,25 @@ func TestPack_RootVariableFiles(t *testing.T) {
 		})
 	}
 }
+
+func TestPack_IsValidName(t *testing.T) {
+	testCases := []struct {
+		name  string
+		input string
+		valid bool
+	}{
+		{name: "empty", input: "", valid: false},
+		{name: "slashes", input: "foo/bar", valid: false},
+		{name: "dashes", input: "foo-bar", valid: false},
+		{name: "dots", input: "foo.bar", valid: false},
+		{name: "underscore", input: "foo_bar", valid: true},
+		{name: "alphanum", input: "f00bar", valid: true},
+		{name: "hiragana", input: "チャーリー", valid: true},
+		{name: "emoji", input: "🗯️", valid: false},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			must.Eq(t, IsValidName(tc.input), tc.valid)
+		})
+	}
+}

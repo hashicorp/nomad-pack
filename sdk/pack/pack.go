@@ -5,8 +5,19 @@ package pack
 
 import (
 	"errors"
+	"regexp"
 	"strings"
 )
+
+func IsValidName(name string) bool {
+	// \p{L}  - Letters
+	// \p{M}  - Marks
+	// \p{N}  - Numbers
+	// \p{Pc} - Punctuation, connecting
+	var re = regexp.MustCompile(`(?m)^[\p{L}\p{M}\p{N}\p{Pc}]+$`)
+
+	return re.MatchString(name)
+}
 
 type ID string
 
