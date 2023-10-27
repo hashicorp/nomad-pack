@@ -143,79 +143,81 @@ func TestCLI_V1_JobPlan_ConflictingNonPackJob(t *testing.T) {
 
 func TestCLI_V1_PackPlan_OverrideExitCodes(t *testing.T) {
 	ct.HTTPTest(t, ct.WithDefaultConfig(), func(s *agent.TestAgent) {
-		// Plan against empty - should be makes-changes
-		result := runTestPackV1Cmd(t, s, []string{
-			"plan",
-			"--exit-code-makes-changes=91",
-			"--exit-code-no-changes=90",
-			"--exit-code-error=92",
-			getTestPackV1Path(t, testPack),
-		})
-		must.Eq(t, 91, result.exitCode) // Should return exit-code-makes-changes
-		expectNoStdErrOutput(t, result)
-		must.StrContains(t, result.cmdOut.String(), "Plan succeeded\n")
-
-		// Register non pack job
-		err := ct.NomadRun(s, getTestNomadJobPath(t, testPack))
-		must.NoError(t, err)
-
-		// Now try to register the pack, should make error
-		result = runTestPackV1Cmd(t, s, []string{
-			"plan",
-			"--exit-code-makes-changes=91",
-			"--exit-code-no-changes=90",
-			"--exit-code-error=92",
-			getTestPackV1Path(t, testPack),
-		})
-		must.Eq(t, 92, result.exitCode) // Should exit-code-error
-		expectNoStdErrOutput(t, result)
-		must.StrContains(t, result.cmdOut.String(), job.ErrExistsNonPack{JobID: testPack}.Error())
-
-		err = ct.NomadPurge(s, testPack)
-		must.NoError(t, err)
-
-		isGone := func() bool {
-			_, err = ct.NomadJobStatus(s, testPack)
-			if err != nil {
-				return err.Error() == "Unexpected response code: 404 (job not found)"
-			}
-			return false
+		testPlanCommand := func(t *testing.T) []string {
+			out := strings.Split(testPlanCmdString, " ")
+			out = append(out, getTestPackV1Path(t, testPack))
+			return out
 		}
-		must.Wait(t, wait.InitialSuccess(
-			wait.BoolFunc(isGone),
-			wait.Timeout(10*time.Second),
-			wait.Gap(500*time.Millisecond),
-		), must.Sprint("test job failed to purge"))
+		t.Run("plan_against_empty", func(t *testing.T) {
+			// Plan against empty - should be makes-changes
+			result := runTestPackV1Cmd(t, s, testPlanCommand(t))
+			must.Eq(t, "", result.cmdErr.String(), must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
+			must.StrContains(t, result.cmdOut.String(), "Plan succeeded\n")
+			must.Eq(t, exitcodeMakesChanges, result.exitCode) // Should return exit-code-makes-changes
+		})
 
-		result = runTestPackV1Cmd(t, s, []string{"run", getTestPackV1Path(t, testPack)})
-		must.Zero(t, result.exitCode) // Should return 0
-		expectNoStdErrOutput(t, result)
-		must.StrContains(t, result.cmdOut.String(), "")
+		t.Run("register non-pack-job", func(t *testing.T) {
+			// Register non pack job
+			err := ct.NomadRun(s, getTestNomadJobPath(t, testPack))
+			must.NoError(t, err)
+		})
 
-		isStarted := func() bool {
-			j, err := ct.NomadJobStatus(s, testPack)
-			if err != nil {
+		t.Run("register_pack_expect_error", func(t *testing.T) {
+			// Now try to register the pack, should make error
+			result := runTestPackV1Cmd(t, s, testPlanCommand(t))
+			must.Eq(t, "", result.cmdErr.String(), must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
+			must.StrContains(t, result.cmdOut.String(), job.ErrExistsNonPack{JobID: testPack}.Error())
+			must.Eq(t, exitcodeError, result.exitCode) // Should exit-code-error
+		})
+
+		t.Run("cleanup non-pack-job", func(t *testing.T) {
+			err := ct.NomadPurge(s, testPack)
+			must.NoError(t, err)
+
+			isGone := func() bool {
+				_, err = ct.NomadJobStatus(s, testPack)
+				if err != nil {
+					return err.Error() == "Unexpected response code: 404 (job not found)"
+				}
 				return false
 			}
-			return *j.Status == "running"
-		}
-		must.Wait(t, wait.InitialSuccess(
-			wait.BoolFunc(isStarted),
-			wait.Timeout(30*time.Second),
-			wait.Gap(500*time.Millisecond),
-		), must.Sprint("test job failed to start"))
-
-		// Plan against deployed - should be no-changes
-		result = runTestPackV1Cmd(t, s, []string{
-			"plan",
-			"--exit-code-makes-changes=91",
-			"--exit-code-no-changes=90",
-			"--exit-code-error=92",
-			getTestPackV1Path(t, testPack),
+			must.Wait(t, wait.InitialSuccess(
+				wait.BoolFunc(isGone),
+				wait.Timeout(10*time.Second),
+				wait.Gap(500*time.Millisecond),
+			), must.Sprint("test job failed to purge"))
 		})
-		must.Eq(t, 90, result.exitCode) // Should return exit-code-no-changes
-		expectNoStdErrOutput(t, result)
-		must.StrContains(t, result.cmdOut.String(), "Plan succeeded\n")
+
+		// Make a pack deployment so we can validate the "no-change" condition
+		t.Run("setup for pack_against_deployed", func(t *testing.T) {
+			// scoping this part because I reuse result in the last part
+			result := runTestPackV1Cmd(t, s, []string{"run", getTestPackV1Path(t, testPack)})
+			must.Eq(t, "", result.cmdErr.String(), must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
+			must.StrContains(t, result.cmdOut.String(), "")
+			must.Zero(t, result.exitCode) // Should return 0
+			isStarted := func() bool {
+				j, err := ct.NomadJobStatus(s, testPack)
+				if err != nil {
+					return false
+				}
+				return *j.Status == "running"
+			}
+			must.Wait(t, wait.InitialSuccess(
+				wait.BoolFunc(isStarted),
+				wait.Timeout(30*time.Second),
+				wait.Gap(500*time.Millisecond),
+			), must.Sprint("test job failed to start"))
+		})
+
+		t.Run("pack_against_deployed", func(t *testing.T) {
+
+			// Plan against deployed - should be no-changes
+			result := runTestPackV1Cmd(t, s, testPlanCommand(t))
+
+			must.Eq(t, "", result.cmdErr.String(), must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
+			must.StrContains(t, result.cmdOut.String(), "Plan succeeded\n")
+			must.Eq(t, exitcodeNoChanges, result.exitCode, must.Sprintf("stdout:\n%s\n\nstderr:\n%s\n", result.cmdOut.String(), result.cmdErr.String())) // Should return exit-code-no-changes
+		})
 	})
 }
 
