@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"slices"
 	"strings"
 	"sync"
 	"text/tabwriter"
@@ -16,6 +17,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/olekukonko/tablewriter"
 
+	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/helper"
 	"github.com/hashicorp/nomad-pack/terminal"
 )
@@ -206,6 +208,39 @@ func (ui *nonInteractiveTestUI) Error(msg string) {
 func (ui *nonInteractiveTestUI) ErrorWithContext(err error, sub string, ctx ...string) {
 	ui.Error(helper.Title(sub))
 	ui.Error("  Error: " + err.Error())
+
+	// Selectively promote Details and Suggestion from the context.
+	var extractItem = func(ctx []string, key string) ([]string, string, bool) {
+		for i, v := range ctx {
+			if strings.HasPrefix(v, key) {
+				outStr := v
+				outCtx := slices.Delete(ctx, i, i+1)
+				return outCtx, outStr, true
+			}
+		}
+		return ctx, "", false
+	}
+	var promote = func(key string) {
+		if oc, item, found := extractItem(ctx, key); found {
+			ctx = oc
+			splits := strings.Split(item, ": ")
+
+			switch len(splits) {
+			case 0:
+				// no-op
+			case 1:
+				// There is something odd going on if we don't get a 2 split
+				// if we get 1, print the whole thing out.
+				ui.Error("  " + splits[0])
+			default:
+				ui.Error("  " + splits[0] + ": " + strings.Join(splits[1:], ": "))
+			}
+		}
+	}
+
+	promote(errors.UIContextErrorDetail)
+	promote(errors.UIContextErrorSuggestion)
+
 	ui.Error("  Context:")
 	max := 0
 	for _, entry := range ctx {

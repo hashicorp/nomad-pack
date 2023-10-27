@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 	"strings"
 	"text/tabwriter"
 
@@ -19,6 +20,7 @@ import (
 	"github.com/mitchellh/go-glint"
 	"github.com/olekukonko/tablewriter"
 
+	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/helper"
 )
 
@@ -370,6 +372,42 @@ func (ui *glintUI) ErrorWithContext(err error, sub string, ctx ...string) {
 		glint.Style(glint.Text("    Error:   "), glint.Bold()),
 		glint.Text(err.Error()),
 	).Row())
+
+	// Selectively promote Details and Suggestion from the context.
+	var extractItem = func(ctx []string, key string) ([]string, string, bool) {
+		for i, v := range ctx {
+			if strings.HasPrefix(v, key) {
+				outStr := v
+				outCtx := slices.Delete(ctx, i, i+1)
+				return outCtx, outStr, true
+			}
+		}
+		return ctx, "", false
+	}
+	var promote = func(key string) {
+		if oc, item, found := extractItem(ctx, key); found {
+			ctx = oc
+			splits := strings.Split(item, ": ")
+
+			switch len(splits) {
+			case 0:
+				// no-op
+			case 1:
+				// There is something odd going on if we don't get a 2 split
+				// if we get 1, print the whole thing out.
+				d.Append(glint.Layout(
+					glint.Style(glint.Text("    " + splits[0])),
+				).Row())
+			default:
+				d.Append(glint.Layout(
+					glint.Style(glint.Text("    "+splits[0]+":   "), glint.Bold()),
+					glint.Text(strings.Join(splits[1:], ": "))).Row())
+			}
+		}
+	}
+
+	promote(errors.UIContextErrorDetail)
+	promote(errors.UIContextErrorSuggestion)
 
 	// We only want this section once per error output, so we cannot perform
 	// this within the ctx loop.
