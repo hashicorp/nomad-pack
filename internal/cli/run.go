@@ -23,12 +23,10 @@ type RunCommand struct {
 }
 
 func (c *RunCommand) Run(args []string) int {
-	var err error
-
 	c.cmdKey = "run" // Add cmdKey here to print out helpUsageMessage on Init error
 
 	// Initialize. If we fail, we just exit since Init handles the UI.
-	if err = c.Init(
+	if err := c.Init(
 		WithExactArgs(1, args),
 		WithFlags(c.Flags()),
 		WithNoConfig(),

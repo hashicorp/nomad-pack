@@ -18,12 +18,14 @@ type RegistryListCommand struct {
 
 func (c *RegistryListCommand) Run(args []string) int {
 	c.cmdKey = "registry list"
-	// Initialize. If we fail, we just exit since Init handles the UI.
+
 	if err := c.Init(
 		WithNoArgs(args),
 		WithNoConfig(),
 		WithClient(false),
 	); err != nil {
+		c.ui.ErrorWithContext(err, ErrParsingArgsOrFlags)
+		c.ui.Info(c.helpUsageMessage())
 		return 1
 	}
 

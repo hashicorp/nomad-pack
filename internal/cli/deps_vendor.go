@@ -31,7 +31,8 @@ func (d *depsVendorCommand) Run(args []string) int {
 		WithNoConfig(),
 		WithClient(false),
 	); err != nil {
-		d.ui.ErrorWithContext(err, "error parsing args or flags")
+		d.ui.ErrorWithContext(err, ErrParsingArgsOrFlags)
+		d.ui.Info(d.helpUsageMessage())
 		return 1
 	}
 
@@ -58,8 +59,8 @@ func (d *depsVendorCommand) Flags() *flag.Sets {
 			Name:    "path",
 			Target:  &d.targetPath,
 			Default: "",
-			Usage: `Full path to the pack which contains dependencies to be 
-				    vendored. All the dependencies will then be downloaded 
+			Usage: `Full path to the pack which contains dependencies to be
+				    vendored. All the dependencies will then be downloaded
 				    into a 'deps/' subdirectory of that path. `,
 		})
 

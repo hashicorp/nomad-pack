@@ -116,10 +116,8 @@ func (c *generateVarFileCommand) Run(args []string) int {
 		WithExactArgs(1, args),
 		WithFlags(c.Flags()),
 		WithNoConfig()); err != nil {
-
 		c.ui.ErrorWithContext(err, ErrParsingArgsOrFlags)
 		c.ui.Info(c.helpUsageMessage())
-
 		return 1
 	}
 
