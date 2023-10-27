@@ -130,7 +130,7 @@ func packRow(cachedRegistry *cache.Registry, cachedPack *cache.Pack) []terminal.
 		},
 		// CachedRegistry name  user defined alias or registry URL slug
 		{
-			Value: fmt.Sprintf("%s@%s", cachedRegistry.Name, cachedRegistry.LocalRef),
+			Value: registryName(cachedRegistry),
 		},
 		// TODO: The app version
 	}
