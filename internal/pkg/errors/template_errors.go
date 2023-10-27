@@ -55,10 +55,15 @@ func ParseTemplateError(tplCtx parser.PackTemplateContext, err error) *PackTempl
 // display to the CLI
 func (p *PackTemplateError) ToWrappedUIContext() *WrappedUIContext {
 	errCtx := NewUIErrorContext()
-	errCtx.Add("Details: ", p.Details)
-	errCtx.Add("Filename: ", p.Filename)
-	errCtx.Add("Position: ", p.pos())
-	errCtx.Add("Suggestions: ", strings.Join(p.Suggestions, "; "))
+	if p.Details != "" {
+		errCtx.Add(UIContextErrorDetail, p.Details)
+	}
+
+	errCtx.Add(UIContextErrorFilename, p.Filename)
+	errCtx.Add(UIContextErrorPosition, p.pos())
+	if len(p.Suggestions) > 0 {
+		errCtx.Add(UIContextErrorSuggestion, strings.Join(p.Suggestions, "; "))
+	}
 	return &WrappedUIContext{
 		Err:     p,
 		Subject: "error executing template",
@@ -102,8 +107,8 @@ func (p *PackTemplateError) parseExecError(execErr template.ExecError) {
 	// after here we'll return this since it's "good enough"
 	p.Err = errors.New(p.Extra[len(p.Extra)-1])
 
-	// Maybe we can do better on the "variable.PackContextable" bit if it shows up
-	if strings.Contains(p.Err.Error(), "variable.PackContextable") {
+	// Maybe we can do better on the "parser.PackContextable" bit if it shows up
+	if strings.Contains(p.Err.Error(), "parser.PackContextable") {
 		p.fixupPackContextable()
 	}
 
@@ -146,6 +151,9 @@ func (p *PackTemplateError) enhance() {
 	if p.isNPE() {
 		p.enhanceNPE()
 	}
+	if p.isV2Error() {
+		p.enhanceV2Error()
+	}
 }
 
 func (p *PackTemplateError) isNPE() bool {
@@ -167,32 +175,41 @@ func (p *PackTemplateError) enhanceNPE() {
 			atPackName := parts[1]
 			rootPackName := p.tplctx.Name()
 
-			if atPackName == rootPackName {
+			if atPackName == rootPackName || atPackName == "my" {
 				atPackName = ""
 			}
 
 			p.Suggestions = []string{
+				// TODO: This error will need to be modified if parser-v1 becomes unsupported.
 				fmt.Sprintf(
-					"The legacy %q syntax should be updated to use `var %q .%s`.",
+					"The legacy %q syntax should be updated to use `var %q .%s`. You can run legacy packs unmodified by using the `--parser-v1` flag",
 					p.at,
 					parts[2],
 					atPackName,
 				),
 			}
 		}
-
 	}
 }
 
+func (p *PackTemplateError) isV2Error() bool {
+	return strings.HasSuffix(p.Err.Error(), "not implemented for nomad-pack's v1 syntax")
+}
+
+func (p *PackTemplateError) enhanceV2Error() {
+	p.Suggestions = []string{"Verify that the `--parser-v1` flag is not set when running this pack."}
+
+}
+
 func (p *PackTemplateError) fixupPackContextable() {
-	const typeConst = "variable.PackContextable"
+	const typeConst = "parser.PackContextable"
 	errStr := p.Err.Error()
 
-	// attempt to extract the "variable.PackContextable.blah" part.
+	// attempt to extract the "parser.PackContextable.blah" part.
 	varRefStr := ""
 
 	// Since there's no variable component to the regex, we can use MustCompile
-	pRE := regexp.MustCompile(`(?m)^.*(variable\.PackContextable\.[\w]+)(?:[[:space:]]|$)`)
+	pRE := regexp.MustCompile(`(?m)^.*(parser\.PackContextable\.[\w]+)(?:[[:space:]]|$)`)
 
 	// If there's a match, FindStringSubmatch will return 2 matches: one for the
 	// whole string and one for the capture group
