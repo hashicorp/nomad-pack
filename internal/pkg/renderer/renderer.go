@@ -130,7 +130,7 @@ func (r *Renderer) Render(p *pack.Pack, variables *parser.ParsedVariables) (*Ren
 
 		dot := src.getDot()
 		if err := tpl.ExecuteTemplate(&buf, name, dot); err != nil {
-			return nil, fmt.Errorf("failed to render %s: %v", name, err)
+			return nil, fmt.Errorf("failed to render %s: %w", name, err)
 		}
 
 		// Even when using "missingkey=zero", missing values will be rendered

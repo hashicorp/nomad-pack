@@ -102,8 +102,8 @@ func (p *PackTemplateError) parseExecError(execErr template.ExecError) {
 	// after here we'll return this since it's "good enough"
 	p.Err = errors.New(p.Extra[len(p.Extra)-1])
 
-	// Maybe we can do better on the "variable.PackContextable" bit if it shows up
-	if strings.Contains(p.Err.Error(), "variable.PackContextable") {
+	// Maybe we can do better on the "parser.PackContextable" bit if it shows up
+	if strings.Contains(p.Err.Error(), "parser.PackContextable") {
 		p.fixupPackContextable()
 	}
 
@@ -185,14 +185,14 @@ func (p *PackTemplateError) enhanceNPE() {
 }
 
 func (p *PackTemplateError) fixupPackContextable() {
-	const typeConst = "variable.PackContextable"
+	const typeConst = "parser.PackContextable"
 	errStr := p.Err.Error()
 
-	// attempt to extract the "variable.PackContextable.blah" part.
+	// attempt to extract the "parser.PackContextable.blah" part.
 	varRefStr := ""
 
 	// Since there's no variable component to the regex, we can use MustCompile
-	pRE := regexp.MustCompile(`(?m)^.*(variable\.PackContextable\.[\w]+)(?:[[:space:]]|$)`)
+	pRE := regexp.MustCompile(`(?m)^.*(parser\.PackContextable\.[\w]+)(?:[[:space:]]|$)`)
 
 	// If there's a match, FindStringSubmatch will return 2 matches: one for the
 	// whole string and one for the capture group
