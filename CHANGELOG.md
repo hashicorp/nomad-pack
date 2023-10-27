@@ -17,6 +17,7 @@ into a `deps/` subdirectory.
 
 BUG FIXES:
 * cli: `generate registry` command creates registry in properly named folder [[GH-445](https://github.com/hashicorp/nomad-pack/pull/445)]
+* cli: `generate pack` validates name argument [[GH-460](https://github.com/hashicorp/nomad-pack/pull/460)]
 
 IMPROVEMENTS:
 
