@@ -16,12 +16,12 @@ var (
 
 	// Version is the semantic version number describing the current state of
 	// NOM.
-	Version = "0.0.1"
+	Version = "0.1.0"
 
 	// Prerelease designates whether the current version is within a prerelease
 	// phase. Typically, this will be "dev" to signify a development cycle or a
 	// release candidate phase such as alpha, beta.1, rc.1, or such.
-	Prerelease = "techpreview.4"
+	Prerelease = ""
 
 	// Metadata allows us to provide additional metadata information to the
 	// version identifier. This is typically used to identify enterprise builds
