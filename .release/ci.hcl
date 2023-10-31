@@ -4,24 +4,34 @@
 schema = "1"
 
 project "nomad-pack" {
-  // the team key is not used by CRT currently
   team = "nomad-pack"
+
   slack {
     notification_channel = "C03B5EWFW01"
   }
+
   github {
     organization = "hashicorp"
     repository   = "nomad-pack"
+
     release_branches = [
       "main",
+      "release/**",
     ]
   }
 }
 
-event "build" {}
+event "build" {
+  action "build" {
+    organization = "hashicorp"
+    repository   = "nomad-pack"
+    workflow     = "build"
+  }
+}
 
 event "prepare" {
   depends = ["build"]
+
   action "prepare" {
     organization = "hashicorp"
     repository   = "crt-workflows-common"
@@ -30,12 +40,12 @@ event "prepare" {
   }
 
   notification {
-    on = "fail"
+    on = "always"
   }
 }
 
 ## These are promotion and post-publish events
-## they should be added to the end of the file after the verify event stanza.
+## they should be added to the end of the file after the prepare event stanza.
 
 event "trigger-staging" {
   // This event is dispatched by the bob trigger-promotion command
@@ -44,10 +54,12 @@ event "trigger-staging" {
 
 event "promote-staging" {
   depends = ["trigger-staging"]
+
   action "promote-staging" {
     organization = "hashicorp"
     repository   = "crt-workflows-common"
     workflow     = "promote-staging"
+    config       = "release-metadata.hcl"
   }
 
   notification {
@@ -57,6 +69,7 @@ event "promote-staging" {
 
 event "promote-staging-docker" {
   depends = ["promote-staging"]
+
   action "promote-staging-docker" {
     organization = "hashicorp"
     repository   = "crt-workflows-common"
@@ -75,6 +88,7 @@ event "trigger-production" {
 
 event "promote-production" {
   depends = ["trigger-production"]
+
   action "promote-production" {
     organization = "hashicorp"
     repository   = "crt-workflows-common"
@@ -88,6 +102,7 @@ event "promote-production" {
 
 event "promote-production-docker" {
   depends = ["promote-production"]
+
   action "promote-production-docker" {
     organization = "hashicorp"
     repository   = "crt-workflows-common"
@@ -101,6 +116,7 @@ event "promote-production-docker" {
 
 event "promote-production-packaging" {
   depends = ["promote-production-docker"]
+
   action "promote-production-packaging" {
     organization = "hashicorp"
     repository   = "crt-workflows-common"
