@@ -14,6 +14,11 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser"
 )
 
+var (
+	pRE  = regexp.MustCompile(`(?m)^.*(parser\.PackContextable\.[\w]+)(?:[[:space:]]|$)`)
+	atRE = regexp.MustCompile(`^executing .* at <(.+)>$`)
+)
+
 // PackTemplateErrors are designed to progressively enhance the errors returned
 // from go template rendering. Implements `error`
 type PackTemplateError struct {
@@ -208,9 +213,6 @@ func (p *PackTemplateError) fixupPackContextable() {
 	// attempt to extract the "parser.PackContextable.blah" part.
 	varRefStr := ""
 
-	// Since there's no variable component to the regex, we can use MustCompile
-	pRE := regexp.MustCompile(`(?m)^.*(parser\.PackContextable\.[\w]+)(?:[[:space:]]|$)`)
-
 	// If there's a match, FindStringSubmatch will return 2 matches: one for the
 	// whole string and one for the capture group
 	if matches := pRE.FindStringSubmatch(errStr); len(matches) == 2 {
@@ -219,8 +221,6 @@ func (p *PackTemplateError) fixupPackContextable() {
 		// If we can't extract the variable reference from the error, then bail out
 		return
 	}
-
-	atRE := regexp.MustCompile(`^executing .* at <(.+)>$`)
 
 	for _, e := range p.Extra {
 		// if it matches, there should be 2 items in the matches slice
