@@ -220,11 +220,7 @@ func (p *PackTemplateError) fixupPackContextable() {
 		return
 	}
 
-	atRE, err := regexp.Compile(`^.*"` + p.Filename + `" at <(.+)>$`)
-	if err != nil {
-		// there's a janky filename that's breaking the regex.
-		return
-	}
+	atRE := regexp.MustCompile(`^executing .* at <(.+)>$`)
 
 	for _, e := range p.Extra {
 		// if it matches, there should be 2 items in the matches slice

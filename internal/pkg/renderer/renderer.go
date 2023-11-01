@@ -185,7 +185,7 @@ func (r *Renderer) RenderOutput() (string, error) {
 	ptc, _ := r.pv.ToPackTemplateContext(r.pack)
 	var buf strings.Builder
 	if err := r.tpl.ExecuteTemplate(&buf, r.pack.OutputTemplateFile.Name, ptc); err != nil {
-		return "", fmt.Errorf("failed to render %s: %v", r.pack.OutputTemplateFile.Name, err)
+		return "", fmt.Errorf("failed to render %s: %w", r.pack.OutputTemplateFile.Name, err)
 	}
 
 	return buf.String(), nil
