@@ -4,7 +4,7 @@
 schema = "1"
 
 project "nomad-pack" {
-  team = "nomad-pack"
+  team = "nomad"
 
   slack {
     notification_channel = "C03B5EWFW01"
