@@ -75,7 +75,7 @@ func Main(args []string) int {
 		return &cli.CLI{
 			Name:                       args[0],
 			Args:                       args[1:],
-			Version:                    fmt.Sprintf("Nomad Pack %s", version.HumanVersion()),
+			Version:                    version.GetVersion().FullVersionNumber(true),
 			Commands:                   commands,
 			Autocomplete:               true,
 			AutocompleteNoDefaultFlags: true,
@@ -131,6 +131,7 @@ func Commands(
 		},
 		"version": func() (cli.Command, error) {
 			return &VersionCommand{
+				Version:     version.GetVersion(),
 				baseCommand: baseCommand,
 			}, nil
 		},
@@ -269,7 +270,7 @@ func GroupedHelpFunc(f cli.HelpFunc) cli.HelpFunc {
 				glint.Color("green"),
 			),
 			glint.Text(" "),
-			glint.Text(version.HumanVersion()),
+			glint.Text("v"+version.GetVersion().VersionNumber()),
 		).Row())
 		d.Append(glint.Text(""))
 

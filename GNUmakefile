@@ -2,16 +2,23 @@ SHELL = bash
 default: check lint test dev
 
 GIT := $(strip $(shell command -v git 2> /dev/null))
-GO := $(strip $(shell command -v go 2> /dev/null))
+GO  := $(strip $(shell command -v go 2> /dev/null))
 
 REPO_NAME    ?= $(shell basename "$(CURDIR)")
 PRODUCT_NAME ?= $(REPO_NAME)
 BIN_NAME     ?= $(PRODUCT_NAME)
 
 GIT_IMPORT    = "github.com/hashicorp/nomad-pack/internal/pkg/version"
-GIT_COMMIT = $$(git rev-parse --short HEAD)
-GIT_DIRTY  = $$(test -n "`git status --porcelain`" && echo "+CHANGES" || true)
-GO_LDFLAGS := "$(GO_LDFLAGS) -X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY)"
+GIT_COMMIT   := $(shell git rev-parse HEAD)
+GIT_DIRTY    := $(if $(shell git status --porcelain),+CHANGES)
+
+# build date is based on most recent commit, in RFC3339 format
+BUILD_DATE   ?= $(shell TZ=UTC0 git show -s --format=%cd --date=format-local:'%Y-%m-%dT%H:%M:%SZ' HEAD)
+
+BUILD_DATE_FLAG = $(GIT_IMPORT).BuildDate=$(BUILD_DATE)
+GIT_COMMIT_FLAG = $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY)
+
+GO_LDFLAGS := "$(GO_LDFLAGS) -X $(GIT_COMMIT_FLAG) -X $(BUILD_DATE_FLAG)"
 
 OS   = $(strip $(shell echo -n $${GOOS:-$$(uname | tr [[:upper:]] [[:lower:]])}))
 ARCH = $(strip $(shell echo -n $${GOARCH:-$$(A=$$(uname -m); [ $$A = x86_64 ] && A=amd64 || [ $$A = aarch64 ] && A=arm64 ; echo $$A)}))
