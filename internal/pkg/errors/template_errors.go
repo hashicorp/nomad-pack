@@ -154,6 +154,22 @@ func (p *PackTemplateError) enhance() {
 	if p.isV2Error() {
 		p.enhanceV2Error()
 	}
+	if ok, ce := p.hasCallingError(); ok {
+		// In this case, the calling error makes more sense as the given error
+		// and the template runtime error is more of a detail--switch them around.
+		p.Details = p.Error()
+		p.Err = fmt.Errorf("%v", ce)
+	}
+}
+
+func (p *PackTemplateError) hasCallingError() (bool, string) {
+	const errorCallingPrefix = "error calling "
+	for _, e := range p.Extra {
+		if strings.HasPrefix(e, errorCallingPrefix) {
+			return true, e
+		}
+	}
+	return false, ""
 }
 
 func (p *PackTemplateError) isNPE() bool {
