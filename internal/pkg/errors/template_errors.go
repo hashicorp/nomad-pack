@@ -76,10 +76,12 @@ func (p *PackTemplateError) pos() string {
 	if p.Line == 0 {
 		return ""
 	}
-	out = fmt.Sprint(p.Line)
-	if p.StartChar != 0 {
-		out += fmt.Sprintf(",%d", p.StartChar)
+	out = fmt.Sprintf("Ln %v", p.Line)
+	start := p.StartChar
+	if p.StartChar == 0 {
+		p.StartChar = 1
 	}
+	out += fmt.Sprintf(", Col %d", start)
 	return out
 }
 
@@ -116,11 +118,13 @@ func (p *PackTemplateError) parseExecError(execErr template.ExecError) {
 }
 
 func (p *PackTemplateError) extractSource() {
-	hasElement := true
-	in := p.Err.Error()
+	var a, b string
+	found := true
 
-	for hasElement {
-		if b, a, found := strings.Cut(in, ": "); found {
+	in := p.Err.Error() // in is mutated to over time
+
+	for found {
+		if b, a, found = strings.Cut(in, ": "); found {
 			// the first element is "template"
 			if b == "template" {
 				in = a
@@ -142,7 +146,6 @@ func (p *PackTemplateError) extractSource() {
 				in = a
 				continue
 			}
-			hasElement = false
 		}
 	}
 }
@@ -166,7 +169,12 @@ func (p *PackTemplateError) hasCallingError() (bool, string) {
 	const errorCallingPrefix = "error calling "
 	for _, e := range p.Extra {
 		if strings.HasPrefix(e, errorCallingPrefix) {
-			return true, e
+			return true,
+				fmt.Sprintf(
+					"%s`%s`",
+					errorCallingPrefix,
+					strings.TrimPrefix(e, errorCallingPrefix),
+				)
 		}
 	}
 	return false, ""
