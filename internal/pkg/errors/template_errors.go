@@ -145,6 +145,8 @@ func (p *PackTemplateError) extractSource() {
 				p.Filename = parts[0]
 				in = a
 				continue
+			} else {
+				found = false
 			}
 		}
 	}
