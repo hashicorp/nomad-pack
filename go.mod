@@ -16,7 +16,7 @@ require (
 	github.com/hashicorp/go-getter v1.7.2
 	github.com/hashicorp/go-hclog v1.5.0
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/hashicorp/hcl/v2 v2.17.1-0.20230725002108-58caf00be5aa
+	github.com/hashicorp/hcl/v2 v2.17.1-0.20231116194221-209c5b59503a
 	github.com/hashicorp/nomad v1.5.0-beta.1.0.20230804093607-388198abef93
 	github.com/hashicorp/nomad/api v0.0.0-20231219145541-859606a54ade
 	github.com/kr/text v0.2.0
@@ -33,7 +33,7 @@ require (
 	github.com/spf13/afero v1.9.5
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.4
-	github.com/zclconf/go-cty v1.14.0
+	github.com/zclconf/go-cty v1.14.1
 	golang.org/x/exp v0.0.0-20231219180239-dc181d75b848
 	golang.org/x/term v0.15.0
 	golang.org/x/text v0.14.0
@@ -67,7 +67,7 @@ require (
 	github.com/ProtonMail/go-crypto v0.0.0-20230717121422-5aa5874ade95 // indirect
 	github.com/VividCortex/ewma v1.1.1 // indirect
 	github.com/acomagu/bufpipe v1.0.4 // indirect
-	github.com/agext/levenshtein v1.2.1 // indirect
+	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/apparentlymart/go-cidr v1.0.1 // indirect
 	github.com/apparentlymart/go-textseg/v13 v13.0.0 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect

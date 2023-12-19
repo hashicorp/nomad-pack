@@ -1,6 +1,8 @@
 ## UNRELEASED
 
 BUG FIXES:
+
+* runner: Update HCL2 dep fixes compact constraint representation [[GH-471](https://github.com/hashicorp/nomad-pack/pull/471)]
 * runner: updated to hashicorp/nomad@1.7.2 to support `action` blocks [[GH-476](https://github.com/hashicorp/nomad-pack/pull/476)]
 
 ## 0.1.0 (October 31, 2023)
