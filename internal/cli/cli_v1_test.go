@@ -46,7 +46,7 @@ func TestCLI_V1_JobRunConflictingDeployment(t *testing.T) {
 		result := runTestPackV1Cmd(t, s, []string{"run", getTestPackV1Path(t, testPack), "--name=with-name"})
 		must.Eq(t, 1, result.exitCode)
 		expectNoStdErrOutput(t, result)
-		must.StrContains(t, result.cmdOut.String(), job.ErrExistsInDeployment{JobID: testPack, Deployment: testPack}.Error())
+		must.StrContains(t, result.cmdOut.String(), helper.FirstRuneToUpper(job.ErrExistsInDeployment{JobID: testPack, Deployment: testPack}.Error()))
 
 		// Confirm that it's still possible to update the existing pack
 		expectGoodPackDeploy(t, runTestPackV1Cmd(t, s, []string{"run", getTestPackV1Path(t, testPack)}))
@@ -65,7 +65,7 @@ func TestCLI_V1_JobRunConflictingNonPackJob(t *testing.T) {
 
 		must.Eq(t, 1, result.exitCode)
 		expectNoStdErrOutput(t, result)
-		must.StrContains(t, result.cmdOut.String(), job.ErrExistsNonPack{JobID: testPack}.Error())
+		must.StrContains(t, result.cmdOut.String(), helper.FirstRuneToUpper(job.ErrExistsNonPack{JobID: testPack}.Error()))
 	})
 }
 
@@ -80,7 +80,7 @@ func TestCLI_V1_JobRunConflictingJobWithMeta(t *testing.T) {
 		result := runTestPackV1Cmd(t, s, []string{"run", getTestPackV1Path(t, testPack)})
 		must.Eq(t, 1, result.exitCode)
 		expectNoStdErrOutput(t, result)
-		must.StrContains(t, result.cmdOut.String(), job.ErrExistsNonPack{JobID: testPack}.Error())
+		must.StrContains(t, result.cmdOut.String(), helper.FirstRuneToUpper(job.ErrExistsNonPack{JobID: testPack}.Error()))
 	})
 }
 
@@ -91,7 +91,7 @@ func TestCLI_V1_JobRunFails(t *testing.T) {
 
 	must.Eq(t, 1, result.exitCode)
 	expectNoStdErrOutput(t, result)
-	must.StrContains(t, result.cmdOut.String(), "Failed To Find Pack")
+	must.StrContains(t, result.cmdOut.String(), strFailedToFindPack)
 }
 
 func TestCLI_V1_JobPlan(t *testing.T) {
@@ -106,7 +106,7 @@ func TestCLI_V1_JobPlan_BadJob(t *testing.T) {
 
 		must.Eq(t, 255, result.exitCode) // Should return 255 indicating an error
 		must.Eq(t, "", result.cmdErr.String(), must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
-		must.StrContains(t, result.cmdOut.String(), "Failed To Find Pack")
+		must.StrContains(t, result.cmdOut.String(), strFailedToFindPack)
 	})
 }
 
@@ -122,7 +122,7 @@ func TestCLI_V1_JobPlan_ConflictingDeployment(t *testing.T) {
 		result := runTestPackV1Cmd(t, s, []string{"run", testPack, testRegFlag, testRefFlag})
 		must.Eq(t, 1, result.exitCode)
 		expectNoStdErrOutput(t, result)
-		must.StrContains(t, result.cmdOut.String(), job.ErrExistsInDeployment{JobID: testPack, Deployment: testPack + "@latest"}.Error())
+		must.StrContains(t, result.cmdOut.String(), helper.FirstRuneToUpper(job.ErrExistsInDeployment{JobID: testPack, Deployment: testPack + "@latest"}.Error()))
 	})
 }
 
@@ -137,7 +137,7 @@ func TestCLI_V1_JobPlan_ConflictingNonPackJob(t *testing.T) {
 		result := runTestPackV1Cmd(t, s, []string{"plan", getTestPackV1Path(t, testPack)})
 		must.Eq(t, 255, result.exitCode) // Should return 255 indicating an error
 		expectNoStdErrOutput(t, result)
-		must.StrContains(t, result.cmdOut.String(), job.ErrExistsNonPack{JobID: testPack}.Error())
+		must.StrContains(t, result.cmdOut.String(), helper.FirstRuneToUpper(job.ErrExistsNonPack{JobID: testPack}.Error()))
 	})
 }
 
@@ -166,7 +166,7 @@ func TestCLI_V1_PackPlan_OverrideExitCodes(t *testing.T) {
 			// Now try to register the pack, should make error
 			result := runTestPackV1Cmd(t, s, testPlanCommand(t))
 			must.Eq(t, "", result.cmdErr.String(), must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
-			must.StrContains(t, result.cmdOut.String(), job.ErrExistsNonPack{JobID: testPack}.Error())
+			must.StrContains(t, result.cmdOut.String(), helper.FirstRuneToUpper(job.ErrExistsNonPack{JobID: testPack}.Error()))
 			must.Eq(t, exitcodeError, result.exitCode) // Should exit-code-error
 		})
 

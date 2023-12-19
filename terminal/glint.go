@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"slices"
 	"strings"
 	"text/tabwriter"
@@ -23,6 +24,8 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/helper"
 )
+
+var rePlaceholder = regexp.MustCompile("^<<.+>>$")
 
 type glintUI struct {
 	ctx context.Context
@@ -362,15 +365,15 @@ func (ui *glintUI) ErrorWithContext(err error, sub string, ctx ...string) {
 	// Title the error output in red with the subject.
 	d.Append(glint.Layout(
 		glint.Style(
-			glint.Text(fmt.Sprintf("! %s\n", helper.Title(sub))),
-			glint.Color("red"),
+			glint.Text(fmt.Sprintf("! %s\n", helper.FirstRuneToUpper(sub))),
+			glint.Bold(), glint.Color("red"),
 		),
 	).Row())
 
 	// Add the error string as well as the error type to the output.
 	d.Append(glint.Layout(
 		glint.Style(glint.Text("    Error:   "), glint.Bold()),
-		glint.Text(err.Error()),
+		glint.Text(helper.FirstRuneToUpper(err.Error())),
 	).Row())
 
 	// Selectively promote Details and Suggestion from the context.
@@ -396,12 +399,12 @@ func (ui *glintUI) ErrorWithContext(err error, sub string, ctx ...string) {
 				// There is something odd going on if we don't get a 2 split
 				// if we get 1, print the whole thing out.
 				d.Append(glint.Layout(
-					glint.Style(glint.Text("    " + splits[0])),
+					glint.Style(glint.Text("    " + helper.FirstRuneToUpper(splits[0]))),
 				).Row())
 			default:
 				d.Append(glint.Layout(
 					glint.Style(glint.Text("    "+splits[0]+":   "), glint.Bold()),
-					glint.Text(strings.Join(splits[1:], ": "))).Row())
+					glint.Text(helper.FirstRuneToUpper(strings.Join(splits[1:], ": ")))).Row())
 			}
 		}
 	}
@@ -419,12 +422,26 @@ func (ui *glintUI) ErrorWithContext(err error, sub string, ctx ...string) {
 
 	// Iterate the addition context items and append these to the output.
 	for _, additionCTX := range ctx {
+		k, v, _ := strings.Cut(additionCTX, ": ")
 		d.Append(glint.Layout(
-			glint.Style(glint.Text(fmt.Sprintf("        - %s", additionCTX))),
+			glint.Text("        • "),
+			glint.Style(
+				glint.Text(fmt.Sprintf("%s: ", k)),
+				glint.Color("lightYellow"),
+			),
+			formatPlaceholder(v),
 		).Row())
 	}
 	// Add a new line
 	d.Append(glint.Layout(glint.Text("")).Row())
+}
+
+func formatPlaceholder(v string) glint.Component {
+	if rePlaceholder.MatchString(v) {
+		v = strings.ReplaceAll(strings.ReplaceAll(v, "<<", "«"), ">>", "»")
+		return glint.Style(glint.Text(v), glint.Italic())
+	}
+	return glint.Text(v)
 }
 
 // Header implements UI

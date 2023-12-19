@@ -213,8 +213,8 @@ func (ui *nonInteractiveUI) Error(msg string) {
 // ErrorWithContext satisfies the ErrorWithContext function on the UI
 // interface.
 func (ui *nonInteractiveUI) ErrorWithContext(err error, sub string, ctx ...string) {
-	ui.Error(helper.Title(sub))
-	ui.Error("  Error: " + err.Error())
+	ui.Error(helper.FirstRuneToUpper(sub))
+	ui.Error("  Error: " + helper.FirstRuneToUpper(err.Error()))
 
 	// Selectively promote Details and Suggestion from the context.
 	var extractItem = func(ctx []string, key string) ([]string, string, bool) {
@@ -240,7 +240,7 @@ func (ui *nonInteractiveUI) ErrorWithContext(err error, sub string, ctx ...strin
 				wrapped := wordwrap.WrapString(key, 78)
 				lines := strings.Split(wrapped, "\n")
 				for _, l := range lines {
-					ui.Error("  " + l)
+					ui.Error("  " + helper.FirstRuneToUpper(l))
 				}
 				return
 			}
@@ -248,7 +248,7 @@ func (ui *nonInteractiveUI) ErrorWithContext(err error, sub string, ctx ...strin
 			lines := strings.Split(wrapped, "\n")
 			for i, l := range lines {
 				if i == 0 {
-					ui.Error(fmt.Sprintf("  %s: %s", key, l))
+					ui.Error(fmt.Sprintf("  %s: %s", key, helper.FirstRuneToUpper(l)))
 					continue
 				}
 

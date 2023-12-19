@@ -206,8 +206,8 @@ func (ui *nonInteractiveTestUI) Error(msg string) {
 // ErrorWithContext satisfies the ErrorWithContext function on the UI
 // interface.
 func (ui *nonInteractiveTestUI) ErrorWithContext(err error, sub string, ctx ...string) {
-	ui.Error(helper.Title(sub))
-	ui.Error("  Error: " + err.Error())
+	ui.Error(helper.FirstRuneToUpper(sub))
+	ui.Error("  Error: " + helper.FirstRuneToUpper(err.Error()))
 
 	// Selectively promote Details and Suggestion from the context.
 	var extractItem = func(ctx []string, key string) ([]string, string, bool) {
@@ -231,9 +231,9 @@ func (ui *nonInteractiveTestUI) ErrorWithContext(err error, sub string, ctx ...s
 			case 1:
 				// There is something odd going on if we don't get a 2 split
 				// if we get 1, print the whole thing out.
-				ui.Error("  " + splits[0])
+				ui.Error("  " + helper.FirstRuneToUpper(splits[0]))
 			default:
-				ui.Error("  " + splits[0] + ": " + strings.Join(splits[1:], ": "))
+				ui.Error("  " + splits[0] + ": " + helper.FirstRuneToUpper(strings.Join(splits[1:], ": ")))
 			}
 		}
 	}
