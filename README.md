@@ -58,37 +58,42 @@ environment variable.
 
 ### Basic Use
 
+First, run the `list` command to see which packs are available to deploy.
 
-First, run the `registry list` command to see which packs are available to deploy.
-
+```shell
+nomad-pack list
 ```
-nomad-pack registry list
+
+If you don't see the default registry (`nomad registry list`), it can be added with the `registry add` command.
+
+```shell
+nomad-pack registry add default github.com/hashicorp/nomad-pack-community-registry
 ```
 
 To deploy one of these packs, use the `run` command. This deploys each jobs defined in the pack to Nomad.
 To deploy the `hello_world` pack, you would run the following command:
 
-```
+```shell
 nomad-pack run hello_world
 ```
 
 Each pack defines a set of variables that can be provided by the user. To get information on the pack
 and to see which variables can be passed in, run the `info` command.
 
-```
+```shell
 nomad-pack info hello_world
 ```
 
 Values for these variables are provided using the `--var` flag.
 
-```
+```shell
 nomad-pack run hello_world --var message=hola
 ```
 
 Values can also be provided by passing in a variables file. See the variables section of the
 [Detailed usage guide](/docs/detailed-usage.md) for details.
 
-```
+```shell
 tee -a ./my-variables.hcl << END
 message="bonjour"
 END
@@ -99,7 +104,7 @@ nomad-pack run hello_world -f ./my-variables.hcl
 If you want to remove all of the resources deployed by a pack, run the `destroy` command with the
 pack name.
 
-```
+```shell
 nomad-pack destroy hello_world
 ```
 
@@ -113,13 +118,13 @@ You can add additional registries by using the `registry add` command. For insta
 to add [an example Gitlab registry](https://gitlab.com/mikenomitch/pack-registry),
 you would run the following command to download the registry.
 
-```
+```shell
 nomad-pack registry add example gitlab.com/mikenomitch/pack-registry
 ```
 
 To view the packs you can now deploy, run the `registry list` command.
 
-```
+```shell
 nomad-pack registry list
 ```
 
