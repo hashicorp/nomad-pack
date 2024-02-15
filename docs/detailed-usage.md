@@ -32,10 +32,10 @@ commands.
 
 ## List
 
-The `registry list` command lists the packs available to deploy.
+The `list` command lists the packs available to deploy.
 
 ```
-nomad-pack registry list
+nomad-pack list
 ```
 
 This command reads from the `.nomad/packs` directory explained above.
