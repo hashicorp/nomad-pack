@@ -85,12 +85,12 @@ func (c *RegistryListCommand) AutocompleteFlags() complete.Flags {
 }
 
 func (c *RegistryListCommand) Synopsis() string {
-	return "List registries and packs available in the local environment."
+	return "List registries configured in the local environment."
 }
 
 func (c *RegistryListCommand) Help() string {
 	c.Example = `
-	# List all available registries and their packs
+	# List all configured registries
 	nomad-pack registry list
 	`
 	return formatHelp(`
