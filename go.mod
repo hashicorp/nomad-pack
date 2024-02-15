@@ -86,7 +86,7 @@ require (
 	github.com/cilium/ebpf v0.9.1 // indirect
 	github.com/circonus-labs/circonus-gometrics v2.3.1+incompatible // indirect
 	github.com/circonus-labs/circonusllhist v0.1.3 // indirect
-	github.com/cloudflare/circl v1.3.3 // indirect
+	github.com/cloudflare/circl v1.3.7 // indirect
 	github.com/container-storage-interface/spec v1.7.0 // indirect
 	github.com/containerd/containerd v1.6.26 // indirect
 	github.com/containerd/go-cni v1.1.9 // indirect
