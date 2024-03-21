@@ -9,12 +9,12 @@ in the repository or the [Writing Custom Packs tutorial][writing-packs-tut] at d
 
 ## Initialization
 
-The first time you run registry list, Nomad Pack will add a `nomad/packs`
+The first time you run `registry list` command, Nomad Pack will add a `nomad/packs`
 directory to your desktop user's cache directory—`$XDG_CACHE_DIR` on Linux,
 `~/Library/Caches` on macOS, `%AppData%` on Windows, etc. This folder stores
 information about cloned registries and their available packs.
 
-During initializing, Nomad Pack downloads a default registry of packs from the
+During initialization, Nomad Pack downloads a default registry of packs from the
 [Nomad Pack community registry][].
 
 The directory structure is as follows:
@@ -111,9 +111,9 @@ nomad-pack run hello-world
 ```
 
 <!-- TODO: awkward -->
-By passing a `--name` value into `run`, Nomad Pack deploys each resource in the
-pack with a metadata value for "pack name". If no name is given, the pack name
-is used by default.
+You can pass the `--name` flag with a value to the `run` command to override the
+default pack name. Nomad Pack deploys each resource in the pack with a metadata
+value for "pack name".
 
 This allows Nomad Pack to manage multiple deployments of the same pack.
 
@@ -169,7 +169,7 @@ nomad-pack info hello-world
 
 If you do not want to immediately deploy the pack, but instead want details on how it will be deployed, run the `plan` command.
 
-This invokes Nomad in a dry-run mode using the Nomad's [Create Job Plan][nomad-plan] API endpoint.
+This invokes Nomad in a dry-run mode using the [Create Job Plan][nomad-plan] API endpoint.
 
 ```shell
 nomad-pack plan hello-world
@@ -207,7 +207,7 @@ nomad-pack status hello-world
 
 ## Stop a running pack
 
-To stop the jobs without completely removing them from Nomad completely, use the `stop` command:
+To stop the jobs without completely removing them from Nomad, use the `stop` command.
 
 ```shell
 nomad-pack stop hola-mundo
@@ -271,7 +271,7 @@ If you want to purge the resources deployed by a pack, run the `destroy` command
 nomad-pack destroy hello-world
 ```
 
-If you deployed the pack with a `--name` value, pass in the name you gave the pack. For instance, if you deployed with the command:
+If you deployed the pack with a `--name` value, pass in the name you gave the pack. For instance, if you deployed it with the following command.
 
 ```shell
 nomad-pack run hello-world --name hola-mundo
