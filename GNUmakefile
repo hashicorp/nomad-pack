@@ -13,8 +13,22 @@ GIT_COMMIT = $$(git rev-parse --short HEAD)
 GIT_DIRTY  = $$(test -n "`git status --porcelain`" && echo "+CHANGES" || true)
 GO_LDFLAGS := "$(GO_LDFLAGS) -X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY)"
 
-OS   = $(strip $(shell echo -n $${GOOS:-$$(uname | tr [[:upper:]] [[:lower:]])}))
-ARCH = $(strip $(shell echo -n $${GOARCH:-$$(A=$$(uname -m); [ $$A = x86_64 ] && A=amd64 || [ $$A = aarch64 ] && A=arm64 ; echo $$A)}))
+ifdef GOOS
+	OS = $(GOOS)
+else
+	OS = $(shell uname | tr [[:upper:]] [[:lower:]])
+endif
+
+MACHINE = $(shell uname -m)
+ifdef GOARCH
+	ARCH = $(GOARCH)
+else ifeq ($(MACHINE),aarch64)
+	ARCH = arm64
+else ifeq ($(MACHINE),x86_64)
+	ARCH = amd64
+else
+	ARCH = $(MACHINE)
+endif
 
 PLATFORM ?= $(OS)/$(ARCH)
 DIST      = dist/$(PLATFORM)
