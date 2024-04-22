@@ -14,7 +14,7 @@ GIT_DIRTY  = $$(test -n "`git status --porcelain`" && echo "+CHANGES" || true)
 GO_LDFLAGS := "$(GO_LDFLAGS) -X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY)"
 
 OS   = $(strip $(shell echo -n $${GOOS:-$$(uname | tr [[:upper:]] [[:lower:]])}))
-ARCH = $(strip $(shell echo -n $${GOARCH:-$$(A=$$(uname -m); [ $$A = x86_64 ] && A=amd64 || [ $$A = aarch64 ] && A=arm64 ; echo $$A)}))
+ARCH = $(strip $(shell echo -n $${GOARCH:-$$(A=$$(uname -m); if [ $$A = x86_64 ]; then A=amd64; elif [ $$A = aarch64 ]; then A=arm64; fi; echo $$A)}))
 
 PLATFORM ?= $(OS)/$(ARCH)
 DIST      = dist/$(PLATFORM)
