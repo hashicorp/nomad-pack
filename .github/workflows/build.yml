@@ -103,6 +103,12 @@ jobs:
         with:
           name: ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
           path: ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
+      - name: Copy license file
+        env:
+          LICENSE_DIR: ".release/linux/package/usr/share/doc/${{ env.PKG_NAME }}"
+        run: |
+          mkdir -p "$LICENSE_DIR"
+          cp LICENSE "$LICENSE_DIR/LICENSE.txt"
       - name: Package
         uses: hashicorp/actions-packaging-linux@v1
         with:
@@ -116,6 +122,7 @@ jobs:
           binary: pkg/${{ matrix.goos }}_${{ matrix.goarch }}/${{ env.PKG_NAME }}
           deb_depends: "openssl,git"
           rpm_depends: "openssl,git"
+          config_dir: ".release/linux/package/"
       - name: Set Package Names
         if: ${{ !env.ACT }}
         run: |
