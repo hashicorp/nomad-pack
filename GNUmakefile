@@ -92,6 +92,7 @@ pkg/%/nomad-pack: ## Build Nomad Pack for GOOS_GOARCH, e.g. pkg/linux_amd64/noma
 .PRECIOUS: pkg/%/nomad-pack
 pkg/%.zip: pkg/%/nomad-pack ## Build and zip Nomad Pack for GOOS_GOARCH, e.g. pkg/linux_amd64.zip
 	@echo "==> Packaging for $@..."
+	@cp LICENSE $(dir $<)LICENSE.txt
 	zip -j $@ $(dir $<)*
 
 mtlsCerts = fixtures/mtls/global-client-nomad-0-key.pem fixtures/mtls/global-client-nomad-0.pem fixtures/mtls/global-server-nomad-0-key.pem fixtures/mtls/global-server-nomad-0.pem fixtures/mtls/nomad-agent-ca-key.pem fixtures/mtls/nomad-agent-ca.pem
