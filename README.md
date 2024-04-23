@@ -5,7 +5,7 @@
 
 # Nomad Pack
 
-Nomad Pack is currently a Tech Preview.
+Nomad Pack is currently Generally Available (GA) as of `nomad-pack` v0.1.0.
 
 Nomad Pack is a templating and packaging tool used with [HashiCorp Nomad](https://www.nomadproject.io).
 
