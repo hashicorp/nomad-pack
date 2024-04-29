@@ -1,4 +1,4 @@
-## UNRELEASEED
+## UNRELEASED
 
 ## 0.1.1 (April 26,2024)
 
