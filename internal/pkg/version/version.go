@@ -16,7 +16,7 @@ var (
 
 	// Version is the semantic version number describing the current state of
 	// NOM.
-	Version = "0.1.1"
+	Version = "0.1.2"
 
 	// Prerelease designates whether the current version is within a prerelease
 	// phase. Typically, this will be "dev" to signify a development cycle or a
