@@ -1,13 +1,7 @@
 
-> [!IMPORTANT]
-> Nightly builds as of September 26, 2023 use a new Pack template syntax. To run packs that use the
-> previous syntax, add the `--parser-v1` flag to the `render`, `plan`, `run`, and `stop` commands 
-
 # Nomad Pack
 
-Nomad Pack is currently Generally Available (GA) as of `nomad-pack` v0.1.0.
-
-Nomad Pack is a templating and packaging tool used with [HashiCorp Nomad](https://www.nomadproject.io).
+Nomad Pack is a templating and packaging tool used with [HashiCorp Nomad](https://www.nomadproject.io). Nomad Pack is currently Generally Available (GA) as of `nomad-pack` v0.1.0. 
 
 Nomad Pack is used to:
 
