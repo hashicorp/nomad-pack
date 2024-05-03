@@ -13,6 +13,17 @@ import (
 	"github.com/hashicorp/nomad-pack/terminal"
 )
 
+const (
+	jobModifyIndexHelp = `To submit the job with version verification run:
+
+nomad-pack run %s --check-index=%d [options]
+
+When running the job with the check-index flag, the job will only be run if the
+job modify index given matches the server-side version. If the index has
+changed, another user has modified the job and the plan's results are
+potentially invalid.`
+)
+
 // PlanDeployment satisfies the PlanDeployment function of the runner.Runner
 // interface.
 func (r *Runner) PlanDeployment(ui terminal.UI, errCtx *errors.UIErrorContext) (int, []*errors.WrappedUIContext) {
@@ -58,6 +69,7 @@ func (r *Runner) PlanDeployment(ui terminal.UI, errCtx *errors.UIErrorContext) (
 		}
 
 		exitCode = runner.HigherPlanCode(exitCode, r.outputPlannedJob(ui, parsedJob.Job(), planResponse))
+		r.formatJobModifyIndex(planResponse.JobModifyIndex, ui)
 	}
 
 	if outputErrors != nil || len(outputErrors) > 0 {
@@ -136,6 +148,12 @@ func (r *Runner) outputPlannedJob(ui terminal.UI, job *api.Job, resp *api.JobPla
 	}
 
 	return getExitCode(resp)
+}
+
+// formatJobModifyIndex produces a help string that displays the job modify
+// index and how to submit a job with it.
+func (r *Runner) formatJobModifyIndex(jobModifyIndex uint64, ui terminal.UI) {
+	ui.AppendToRow(jobModifyIndexHelp, r.runnerCfg.PackName, jobModifyIndex, terminal.WithStyle(terminal.BoldStyle))
 }
 
 func getExitCode(resp *api.JobPlanResponse) int {
