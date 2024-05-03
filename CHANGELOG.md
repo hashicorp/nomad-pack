@@ -1,5 +1,11 @@
 ## UNRELEASED
 
+IMPROVEMENTS:
+* cli: Emit the modify index in the output of `nomad-pack plan` [[GH-507](https://github.com/hashicorp/nomad-pack/pull/507)]
+
+BUG FIXES:
+* cli: Fix non-interactive UI debug print output [[GH-508](https://github.com/hashicorp/nomad-pack/pull/508)]
+
 ## 0.1.1 (April 26,2024)
 
 IMPROVEMENTS:
@@ -27,10 +33,6 @@ DEPENDENCY CHANGES:
 * deps: Bump github.com/go-git/go-git/v5 from 5.8.1 to 5.11.0 [[GH-481](https://github.com/hashicorp/nomad-pack/pull/481)]
 * deps: Bump golang.org/x/crypto from 0.16.0 to 0.17.0 [[GH-477](https://github.com/hashicorp/nomad-pack/pull/477)]
 * deps: Bump github.com/go-jose/go-jose/v3 from 3.0.0 to 3.0.1 [[GH-474](https://github.com/hashicorp/nomad-pack/pull/474)]
-
-IMPROVEMENTS:
-
-* cli: output the modify index after planning [[GH-507](https://github.com/hashicorp/nomad-pack/pull/507)]
 
 ## 0.1.0 (October 31, 2023)
 
