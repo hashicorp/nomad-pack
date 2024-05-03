@@ -6,6 +6,9 @@ IMPROVEMENTS:
 BUG FIXES:
 * cli: Fix non-interactive UI debug print output [[GH-508](https://github.com/hashicorp/nomad-pack/pull/508)]
 
+DEPENDENCY CHANGES:
+* build: Update Go version to 1.22 [[GH-509](https://github.com/hashicorp/nomad-pack/pull/509)]
+
 ## 0.1.1 (April 26,2024)
 
 IMPROVEMENTS:

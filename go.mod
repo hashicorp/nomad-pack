@@ -1,6 +1,6 @@
 module github.com/hashicorp/nomad-pack
 
-go 1.21
+go 1.22
 
 // This replace is required by Nomad or the dependency won't build correctly.
 replace github.com/hashicorp/hcl => github.com/hashicorp/hcl v1.0.1-0.20201016140508-a07e7d50bbee
