@@ -28,6 +28,10 @@ DEPENDENCY CHANGES:
 * deps: Bump golang.org/x/crypto from 0.16.0 to 0.17.0 [[GH-477](https://github.com/hashicorp/nomad-pack/pull/477)]
 * deps: Bump github.com/go-jose/go-jose/v3 from 3.0.0 to 3.0.1 [[GH-474](https://github.com/hashicorp/nomad-pack/pull/474)]
 
+IMPROVEMENTS:
+
+* cli: output the modify index after planning [[GH-507](https://github.com/hashicorp/nomad-pack/pull/507)]
+
 ## 0.1.0 (October 31, 2023)
 
 * **Generate Variable Override Files for Packs** - With
