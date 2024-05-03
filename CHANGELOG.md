@@ -3,6 +3,10 @@
 BUG FIXES:
 * runner: updated to hashicorp/nomad@1.7.2 to support `action` blocks [[GH-476](https://github.com/hashicorp/nomad-pack/pull/476)]
 
+IMPROVEMENTS:
+
+* cli: output the modify index after planning [[GH-507](https://github.com/hashicorp/nomad-pack/pull/507)]
+
 ## 0.1.0 (October 31, 2023)
 
 * **Generate Variable Override Files for Packs** - With
