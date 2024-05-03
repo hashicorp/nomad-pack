@@ -56,12 +56,18 @@ jobs:
           path: ${{ steps.generate-metadata-file.outputs.filepath }}
 
   generate-ldflags:
-    needs: get-product-version
+    needs:
+      - get-go-version
+      - get-product-version
     runs-on: ubuntu-20.04
     outputs:
       ldflags: ${{ steps.generate-ldflags.outputs.ldflags }}
     steps:
       - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - name: Setup go
+        uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+        with:
+          go-version: ${{ needs.get-go-version.outputs.go-version }}
       - name: Generate ld flags
         id: generate-ldflags
         run: |
