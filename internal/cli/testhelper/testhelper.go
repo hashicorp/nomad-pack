@@ -155,7 +155,7 @@ func join(nodes ...*agent.TestAgent) {
 		member := node.Agent.Server().LocalMember()
 		addrs[i] = fmt.Sprintf("%s:%d", member.Addr, member.Port)
 	}
-	count, err := first.Client().Agent().Join(addrs...)
+	count, err := first.APIClient().Agent().Join(addrs...)
 	must.NoError(first.T, err)
 	must.Eq(first.T, len(nodes)-1, count)
 }
