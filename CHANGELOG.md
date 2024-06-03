@@ -2,9 +2,13 @@
 
 IMPROVEMENTS:
 * cli: Emit the modify index in the output of `nomad-pack plan` [[GH-507](https://github.com/hashicorp/nomad-pack/pull/507)]
-
+ 
 BUG FIXES:
 * cli: Fix non-interactive UI debug print output [[GH-508](https://github.com/hashicorp/nomad-pack/pull/508)]
+
+DEPENDENCY CHANGES:
+* deps: Bump hashicorp/nomad/api from v0.0.0-20240422165847-3ac3bc1cfede(1.8.0-beta.1) to v0.0.0-20240528173817-28b82e4b2259(v1.8.0) [[GH-514](https://github.com/hashicorp/nomad-pack/pull/514)]
+* deps: Bump hashicorp/nomad from v1.5.17 to v1.8.0 [[GH-514](https://github.com/hashicorp/nomad-pack/pull/514)]
 
 ## 0.1.1 (April 26,2024)
 
@@ -16,20 +20,22 @@ IMPROVEMENTS:
 
 BUG FIXES:
 * cli: Update help text for `registry list` [[GH-486](https://github.com/hashicorp/nomad-pack/pull/486)]
-* runner: Update nomad/api to fix parsing of consul.service.cluster field [[GH-479](https://github.com/hashicorp/nomad-pack/pull/479)]
-* runner: updated to hashicorp/nomad@1.7.2 to support `action` blocks [[GH-476](https://github.com/hashicorp/nomad-pack/pull/476)]
+* runner: Update hashicorp/nomad/api to fix parsing of `consul.service.cluster` field [[GH-479](https://github.com/hashicorp/nomad-pack/pull/479)]
+* runner: update hashicorp/nomad/api to support `action` blocks [[GH-476](https://github.com/hashicorp/nomad-pack/pull/476)]
 * docs: Update README.md to reflect GA status [[GH-501](https://github.com/hashicorp/nomad-pack/pull/501)]
 * docs: Update usage documentation [[GH-484](https://github.com/hashicorp/nomad-pack/pull/484)]
 
 DEPENDENCY CHANGES:
 * deps: Bump github.com/docker/docker from 25.0.2+incompatible to 25.0.5+incompatible [[GH-502](https://github.com/hashicorp/nomad-pack/pull/502)]
-* deps: Bump hashicorp/nomad/api from v0.0.0-20231219145541-859606a54ade to v0.0.0-20240422165847-3ac3bc1cfede [[GH-500](https://github.com/hashicorp/nomad-pack/pull/500)]
+* deps: Bump hashicorp/nomad/api from v0.0.0-20231219145541-859606a54ade(1.8.0-beta.1) to v0.0.0-20240422165847-3ac3bc1cfede(1.8.0-beta.1) [[GH-500](https://github.com/hashicorp/nomad-pack/pull/500)]
 * deps: Bump github.com/go-jose/go-jose/v3 from 3.0.1 to 3.0.3 [[GH-491](https://github.com/hashicorp/nomad-pack/pull/491)]
 * deps: Bump golang.org/x/net from 0.19.0 to 0.23.0 [[GH-497](https://github.com/hashicorp/nomad-pack/pull/497)]
 * deps: Bump github.com/docker/docker [[GH-485](https://github.com/hashicorp/nomad-pack/pull/485)]
 * deps: Bump github.com/opencontainers/runc from 1.1.8 to 1.1.12 [[GH-483](https://github.com/hashicorp/nomad-pack/pull/483)]
 * deps: Bump github.com/cloudflare/circl from 1.3.3 to 1.3.7 [[GH-482](https://github.com/hashicorp/nomad-pack/pull/482)]
 * deps: Bump github.com/containerd/containerd from 1.6.18 to 1.6.26 [[GH-480](https://github.com/hashicorp/nomad-pack/pull/480)]
+* deps: Bump hashicorp/nomad/api from v0.0.0-20231213195942-64e3dca9274b(v1.7.2) to v0.0.0-20231219145541-859606a54ade(1.8.0-beta.1) [[GH-479](https://github.com/hashicorp/nomad-pack/pull/479)]
+* deps: Bump hashicorp/nomad/api from v0.0.0-20230804093607-388198abef93(1.7.0-beta.1) to v0.0.0-20231213195942-64e3dca9274b(v1.7.2) [[GH-476](https://github.com/hashicorp/nomad-pack/pull/476)]
 * deps: Bump github.com/go-git/go-git/v5 from 5.8.1 to 5.11.0 [[GH-481](https://github.com/hashicorp/nomad-pack/pull/481)]
 * deps: Bump golang.org/x/crypto from 0.16.0 to 0.17.0 [[GH-477](https://github.com/hashicorp/nomad-pack/pull/477)]
 * deps: Bump github.com/go-jose/go-jose/v3 from 3.0.0 to 3.0.1 [[GH-474](https://github.com/hashicorp/nomad-pack/pull/474)]
