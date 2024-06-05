@@ -7,6 +7,7 @@ BUG FIXES:
 * cli: Fix non-interactive UI debug print output [[GH-508](https://github.com/hashicorp/nomad-pack/pull/508)]
 
 DEPENDENCY CHANGES:
+* build: Bump go version to 1.22.4 [[GH-517](https://github.com/hashicorp/nomad-pack/pull/517)]
 * deps: Bump hashicorp/nomad/api from v0.0.0-20240422165847-3ac3bc1cfede(1.8.0-beta.1) to v0.0.0-20240528173817-28b82e4b2259(v1.8.0) [[GH-514](https://github.com/hashicorp/nomad-pack/pull/514)]
 * deps: Bump hashicorp/nomad from v1.5.17 to v1.8.0 [[GH-514](https://github.com/hashicorp/nomad-pack/pull/514)]
 

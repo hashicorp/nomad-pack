@@ -1,6 +1,6 @@
 module github.com/hashicorp/nomad-pack
 
-go 1.21
+go 1.22.4
 
 replace (
 	// Fix error tidying due to Nomad downstream dependencies and the recent
