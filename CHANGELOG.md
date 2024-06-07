@@ -1,4 +1,4 @@
-## UNRELEASED
+## 0.1.2 (June 7, 2024) 
 
 IMPROVEMENTS:
 * cli: Emit the modify index in the output of `nomad-pack plan` [[GH-507](https://github.com/hashicorp/nomad-pack/pull/507)]
