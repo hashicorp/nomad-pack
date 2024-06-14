@@ -110,7 +110,7 @@ jobs:
           mkdir -p "$LICENSE_DIR"
           cp LICENSE "$LICENSE_DIR/LICENSE.txt"
       - name: Package
-        uses: hashicorp/actions-packaging-linux@v1
+        uses: hashicorp/actions-packaging-linux@0596d94121d44bd00463ac9d245efea64ee282d0 # v1.7.0
         with:
           name: "nomad-pack"
           description: "Nomad Pack is a templating and packaging tool used with HashiCorp Nomad."
