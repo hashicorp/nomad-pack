@@ -23,7 +23,7 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/fatih/color v1.16.0
 	github.com/go-git/go-git/v5 v5.11.0
-	github.com/hashicorp/go-getter v1.7.4
+	github.com/hashicorp/go-getter v1.7.5
 	github.com/hashicorp/go-hclog v1.6.3
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/hcl/v2 v2.17.1-0.20230725002108-58caf00be5aa
