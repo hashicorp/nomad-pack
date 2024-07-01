@@ -67,7 +67,7 @@ func (c *GenerateRegistryCommand) Flags() *flag.Sets {
 			BoolVar: &flag.BoolVar{
 				Name:    "with-sample-pack",
 				Target:  &c.cfg.CreateSamplePack,
-				Usage:   `Generate a sample "hello-world" pack in the registry.`,
+				Usage:   `Generate a sample "hello_world" pack in the registry.`,
 				Default: false,
 			},
 		})

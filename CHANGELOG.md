@@ -1,5 +1,8 @@
 ## UNRELEASED
 
+BUG FIXES:
+* cli: Update references to `hello-world` pack in command help text to `hello_world` [[GH-523](https://github.com/hashicorp/nomad-pack/pull/523)]
+
 ## 0.1.2 (June 7, 2024) 
 
 IMPROVEMENTS:

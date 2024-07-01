@@ -87,7 +87,7 @@ The `--to-dir` flag determines the directory where the rendered templates will b
 The `--render-output-template` can be passed to additionally render the output template. Some output templates rely on a deployment for information. In these cases, the output template may not be rendered with all necessary information.
 
 ```
-nomad-pack render hello-world --to-dir ./tmp --var greeting=hola --render-output-template
+nomad-pack render hello_world --to-dir ./tmp --var greeting=hola --render-output-template
 ```
 
 ## Run
@@ -95,7 +95,7 @@ nomad-pack render hello-world --to-dir ./tmp --var greeting=hola --render-output
 To deploy the resources in a pack to Nomad, use the `run` command.
 
 ```
-nomad-pack run hello-world
+nomad-pack run hello_world
 ```
 
 By passing a `--name` value into `run`, Nomad Pack deploys each resource in the
@@ -105,7 +105,7 @@ is used by default.
 This allows Nomad Pack to manage multiple deployments of the same pack.
 
 ```
-nomad-pack run hello-world --name hola-mundo
+nomad-pack run hello_world --name hola-mundo
 ```
 
 It is also possible to run a local pack directly from the pack directory by passing in the directory instead of the pack name.
@@ -119,19 +119,19 @@ nomad pack run .
 Each pack defines a set of variables that can be provided by the user. Values for variables can be passed into the `run` command using the `--var` flag.
 
 ```
-nomad-pack run hello-world --var greeting=hola
+nomad-pack run hello_world --var greeting=hola
 ```
 
 Values can also be provided by passing in a variables file.
 
 ```
-nomad-pack run hello-world -f ./my-variables.hcl
+nomad-pack run hello_world -f ./my-variables.hcl
 ```
 
 These files can define overrides to the variables defined in the pack.
 
 ```
-docker_image = "hashicorp/hello-world"
+docker_image = "hashicorp/hello_world"
 
 app_count = 3
 
@@ -149,7 +149,7 @@ app_resources = {
 To see the type and description of each variable, run the `info` command.
 
 ```
-nomad-pack info hello-world
+nomad-pack info hello_world
 ```
 
 ## Plan
@@ -159,23 +159,23 @@ If you do not want to immediately deploy the pack, but instead want details on h
 This invokes Nomad in a dry-run mode using the [Nomad Plan](https://www.nomadproject.io/api-docs/jobs#create-job-plan) API endpoint.
 
 ```
-nomad-pack plan hello-world
+nomad-pack plan hello_world
 ```
 
 By passing a `--name` value into plan, Nomad Pack will look for packs deployed with that name. If no name is provided, Nomad Pack uses the pack name by default.
 
 ```
-nomad-pack plan hello-world --name hola-mundo
+nomad-pack plan hello_world --name hola-mundo
 ```
 
 The `plan` command takes the `--var` and `-f` flags like the `run` command.
 
 ```
-nomad-pack plan hello-world --var greeting=hallo
+nomad-pack plan hello_world --var greeting=hallo
 ```
 
 ```
-nomad-pack plan hello-world -f ./my-variables.hcl
+nomad-pack plan hello_world -f ./my-variables.hcl
 ```
 
 ## Status
@@ -188,7 +188,7 @@ nomad-pack status
 To see the status of jobs running in a specific pack, use the `status` command with the pack name.
 
 ```
-nomad-pack status hello-world
+nomad-pack status hello_world
 ```
 
 ## Destroy
@@ -196,32 +196,32 @@ nomad-pack status hello-world
 If you want to remove the resources deployed by a pack, run the `destroy` command with the pack name.
 
 ```
-nomad-pack destroy hello-world
+nomad-pack destroy hello_world
 ```
 
 If you deployed the pack with a `--name` value, pass in the name you gave the pack. For instance, if you deployed with the command:
 
 ```
-nomad-pack run hello-world --name hola-mundo
+nomad-pack run hello_world --name hola-mundo
 ```
 
 You would destroy the contents of that pack with the command;
 
 ```
-nomad-pack destroy hello-world --name hola-mundo
+nomad-pack destroy hello_world --name hola-mundo
 ```
 
 If you deployed the pack with variable overrides that override the job name in a pack, pass in those same overrides. For example,
 if you deployed with the command:
 
 ```
-nomad-pack run hello-world --name hola-mundo --var job_name=spanish
+nomad-pack run hello_world --name hola-mundo --var job_name=spanish
 ```
 
 You would destroy the contents of that pack with the command:
 
 ```
-nomad-pack destroy hello-world --name hola-mundo --var job_name=spanish
+nomad-pack destroy hello_world --name hola-mundo --var job_name=spanish
 ```
 
 It's possible to deploy multiple instances of a pack using the same `--name` value but with different job names using variable
@@ -229,21 +229,21 @@ overrides. For example, you can run the following commands, which will create tw
 one named "spanish" and one named "hola":
 
 ```
-nomad-pack run hello-world --name hola-mundo --var job_name=spanish
-nomad-pack run hello-world --name hola-mundo --var job_name=hola
+nomad-pack run hello_world --name hola-mundo --var job_name=spanish
+nomad-pack run hello_world --name hola-mundo --var job_name=hola
 ```
 
 If you run the destroy command without including the variable overrides, the command will destroy both jobs, since by default
 nomad pack will target all jobs belonging to the specified pack and deployment name.
 ```
 # This destroys both jobs: "spanish" and "hola"
-nomad-pack destroy hello-world --name hola-mundo
+nomad-pack destroy hello_world --name hola-mundo
 ```
 
 If you only want to destroy one of the jobs, you need to include the variable overrides so nomad pack knows which job to target:
 ```
 # This destroys the job named "spanish"
-nomad-pack destroy hello-world --name hola-mundo --var job_name=spanish
+nomad-pack destroy hello_world --name hola-mundo --var job_name=spanish
 ```
 
 ## Stop

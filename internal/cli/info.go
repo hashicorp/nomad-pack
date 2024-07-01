@@ -138,8 +138,8 @@ func (c *InfoCommand) Flags() *flag.Sets {
 
 func (c *InfoCommand) Help() string {
 	c.Example = `
-	# Get information on the "hello-world" pack
-	nomad-pack info hello-world
+	# Get information on the "hello_world" pack
+	nomad-pack info hello_world
 	`
 
 	return formatHelp(`

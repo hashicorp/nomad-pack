@@ -160,7 +160,7 @@ job "hello_world" {
     task "server" {
       driver = "docker"
       config {
-        image = "mikenomitch/hello-world"
+        image = "mikenomitch/hello_world"
         network_mode = "host"
         ports = ["http"]
       }
