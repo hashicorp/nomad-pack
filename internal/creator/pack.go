@@ -29,7 +29,7 @@ type packCreator struct {
 //   deployed.
 // - A templates subdirectory containing the HCL templates used to render the
 //   jobspec.
-// - A jobspec template for the hello-world-service container.
+// - A jobspec template for the hello_world-service container.
 
 func CreatePack(c config.PackConfig) error {
 	ui := c.GetUI()

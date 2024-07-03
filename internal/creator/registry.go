@@ -59,7 +59,7 @@ func CreateRegistry(c config.PackConfig) error {
 	}
 
 	if rc.createSamplePack {
-		c.PackName = "hello-world"
+		c.PackName = "hello_world"
 		c.OutPath = rc.packsPath
 		err = CreatePack(c)
 		if err != nil {
