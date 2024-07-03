@@ -24,7 +24,7 @@ RUN go build -o nomad-pack .
 # -----------------------------------
 FROM alpine:3.20.0 AS dev
 
-RUN apk add --no-cache git libc6-compat
+RUN apk add --no-cache git libc6-compat tzdata
 COPY --from=devbuild /build/nomad-pack /bin/
 COPY ./scripts/docker-entrypoint.sh /
 
@@ -59,7 +59,7 @@ LABEL maintainer="Nomad Team <nomad@hashicorp.com>" \
 RUN mkdir -p /usr/share/doc/nomad-pack
 COPY LICENSE /usr/share/doc/nomad-pack/LICENSE.txt
 
-RUN apk add --no-cache git libc6-compat
+RUN apk add --no-cache git libc6-compat tzdata
 
 COPY dist/$TARGETOS/$TARGETARCH/nomad-pack /bin/
 COPY ./scripts/docker-entrypoint.sh /
