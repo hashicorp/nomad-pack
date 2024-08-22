@@ -189,7 +189,8 @@ Custom Nomad-specific and debugging functions are also provided:
 - `nomadNamespace` takes a single string parameter of a namespace ID which will be read via `/v1/namespace/:namespace`.
 - `spewDump` dumps the entirety of the passed object as a string. The output includes the content types and values. This uses the `spew.SDump` function.
 - `spewPrintf` dumps the supplied arguments into a string according to the supplied format. This utilises the `spew.Printf` function.
-- `fileContents` takes an argument to a file of the local host, reads its contents and provides this as a string.
+- `fileContents` takes an argument to a file on the local host relative to the directory `nomad-pack` is invoked in, reads its contents and provides the output as a string.
+- `packPath` returns the path to the pack being invoked.
 
 A custom function within a template is called like any other:
 
