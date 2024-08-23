@@ -11,7 +11,7 @@ Nomad Pack is used to:
 
 ## Installation
 
-To simplify the getting started experience, you can download a [precompiled binary][hashicorp_releases]
+To simplify the getting started experience, you can download a [precompiled binary][https://releases.hashicorp.com/nomad-pack/]
 and run it on your machine locally. After downloading Nomad Pack, unzip the package. Make sure that
 the nomad binary is available on your PATH. You can inspect the locations available on your path by
 running this command:
@@ -23,7 +23,7 @@ $ echo $PATH
 The output is a list of locations separated by colons. You can make Nomad Pack available by moving
 the binary to one of the listed locations, or by adding Nomad Pack's location to your PATH.
 
-Nomad Pack is also available as a [Docker image][docker_hub]. With Docker installed on your local
+Nomad Pack is also available as a [Docker image][https://hub.docker.com/r/hashicorp/nomad-pack/tags]. With Docker installed on your local
 machine, you can pull the latest image by running the following command:
 ```
 $ docker pull hashicorp/nomad-pack:0.0.1-techpreview1
