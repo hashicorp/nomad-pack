@@ -3,6 +3,7 @@
 BUG FIXES:
 * cli: Update references to `hello-world` pack in command help text to `hello_world` [[GH-523](https://github.com/hashicorp/nomad-pack/pull/523)]
 * docker: Added tzdata to container to fix panics running packs containing periodic jobs with timezones [[GH-564](https://github.com/hashicorp/nomad-pack/pull/564)]
+* cli: Replace path separators to slash on windows for local packs [[GH-578](https://github.com/hashicorp/nomad-pack/pull/578)]
 
 ## 0.1.2 (June 7, 2024) 
 
