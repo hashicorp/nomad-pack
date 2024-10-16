@@ -49,7 +49,7 @@ func (cfg *PackConfig) initFromDirectory(packPath string) {
 	// Keep the original user argument so that we can explain how to manage in output
 	cfg.SourcePath = cfg.Name
 	if runtime.GOOS == "windows" {
-		cfg.Path = strings.Replace(packPath, "\\", "/", -1)
+		cfg.Path = strings.ReplaceAll(packPath, "\\", "/")
 	} else {
 		cfg.Path = packPath
 	}
