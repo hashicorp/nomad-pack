@@ -115,7 +115,6 @@ func TestDecoder_DecodeVariableBlock(t *testing.T) {
 		},
 	}
 	for _, tc := range testCases {
-		tc := tc // capture range variable
 		t.Run(tc.name, func(t *testing.T) {
 			ci.Parallel(t)
 			out, diags := DecodeVariableBlock(tc.input)
