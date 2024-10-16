@@ -1,5 +1,8 @@
 ## UNRELEASED
 
+IMPROVEMENTS:
+* build: Update Go version to 1.23.2 [[GH-580](https://github.com/hashicorp/nomad-pack/pull/580)]
+
 BUG FIXES:
 * cli: Update references to `hello-world` pack in command help text to `hello_world` [[GH-523](https://github.com/hashicorp/nomad-pack/pull/523)]
 * docker: Added tzdata to container to fix panics running packs containing periodic jobs with timezones [[GH-564](https://github.com/hashicorp/nomad-pack/pull/564)]

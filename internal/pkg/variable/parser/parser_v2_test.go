@@ -326,7 +326,7 @@ func TestParserV2_parseEnvVariable(t *testing.T) {
 			actualErr := tc.inputParser.parseEnvVariable(getEnvKey(tc), tV)
 
 			if tc.expectedError {
-				t.Logf(actualErr.Error())
+				t.Log(actualErr.Error())
 				must.NotNil(t, actualErr)
 				return
 			}

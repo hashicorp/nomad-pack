@@ -112,7 +112,6 @@ func TestVarfile_DecodeHCL(t *testing.T) {
 		},
 	}
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			root := testpack("mypack")
 			om := make(variables.Overrides)

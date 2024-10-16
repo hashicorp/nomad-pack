@@ -28,7 +28,6 @@ func TestConvertCtyToInterface(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc // capture range variable
 		t.Run(tc.name, func(t *testing.T) {
 			ci.Parallel(t) // Parallel has to be set on the subtest also
 			res, err := ConvertCtyToInterface(tc.val)

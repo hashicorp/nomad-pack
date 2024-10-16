@@ -30,7 +30,6 @@ func TestPack_Name(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc // capture range variable
 		t.Run(tc.name, func(t *testing.T) {
 			ci.Parallel(t) // Parallel has to be called in the subtest too
 			must.Eq(t, tc.expectedOutput, tc.inputPack.Name())
@@ -128,7 +127,6 @@ func TestPack_RootVariableFiles(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc // capture range variable
 		t.Run(tc.name, func(t *testing.T) {
 			ci.Parallel(t) // Parallel has to be called in the subtest too
 			must.Eq(t, tc.expectedOutput, tc.inputPack.RootVariableFiles())
