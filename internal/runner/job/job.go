@@ -107,17 +107,10 @@ func (r *Runner) Deploy(ui terminal.UI, errorContext *errors.UIErrorContext) *er
 		tplErrorContext := errorContext.Copy()
 		tplErrorContext.Add(errors.UIContextPrefixTemplateName, tplName)
 
-		templateFormat := func() string {
-			if r.cfg.RunConfig.HCL1 {
-				return "hcl1"
-			}
-			return "hcl2"
-		}()
-
 		// submit the source of the job to Nomad, too
 		submission := &api.JobSubmission{
 			Source: r.rawTemplates[tplName],
-			Format: templateFormat,
+			Format: "hcl2",
 		}
 
 		registerOpts := api.RegisterOptions{
@@ -260,7 +253,6 @@ func (r *Runner) ParseTemplates() []*errors.WrappedUIContext {
 
 		ncJob, err := r.client.Jobs().ParseHCLOpts(&api.JobsParseRequest{
 			JobHCL:       tpl,
-			HCLv1:        r.cfg.RunConfig.HCL1,
 			Canonicalize: false,
 		})
 		if err != nil {
@@ -273,7 +265,6 @@ func (r *Runner) ParseTemplates() []*errors.WrappedUIContext {
 
 		job, err := r.client.Jobs().ParseHCLOpts(&api.JobsParseRequest{
 			JobHCL:       tpl,
-			HCLv1:        r.cfg.RunConfig.HCL1,
 			Canonicalize: true,
 		})
 		if err != nil {

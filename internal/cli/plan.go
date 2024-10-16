@@ -189,13 +189,6 @@ func (c *PlanCommand) Flags() *flag.Sets {
 					Sentinel policies.`,
 		})
 
-		f.BoolVar(&flag.BoolVar{
-			Name:    "hcl1",
-			Target:  &c.jobConfig.PlanConfig.HCL1,
-			Default: false,
-			Usage:   `If set, HCL1 parser is used for parsing the job spec.`,
-		})
-
 		f.BoolVarP(&flag.BoolVarP{
 			BoolVar: &flag.BoolVar{
 				Name:    "verbose",
