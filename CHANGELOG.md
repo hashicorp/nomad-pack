@@ -1,4 +1,4 @@
-## UNRELEASED
+## 0.2.0 (October 16, 2024)
 
 BREAKING CHANGES:
 * template: HCL1 parsing has been removed and is no longer available [[GH-581](https://github.com/hashicorp/nomad-pack/pull/581)]
