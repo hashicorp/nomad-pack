@@ -270,7 +270,6 @@ func NomadRun(s *agent.TestAgent, path string) error {
 	// Parse into JSON Jobspec
 	j, err := c.Jobs().ParseHCLOpts(&api.JobsParseRequest{
 		JobHCL:       string(jB),
-		HCLv1:        false,
 		Canonicalize: true,
 	})
 	if err != nil {

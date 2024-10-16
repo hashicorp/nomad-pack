@@ -192,7 +192,7 @@ func renderVariableOverrideFile(
 // between layers.
 // Uses open api client to parse rendered hcl templates to
 // open api jobs to send to nomad
-func parseJob(cmd *baseCommand, hcl string, hclV1 bool, errCtx *errors.UIErrorContext) (*api.Job, error) {
+func parseJob(cmd *baseCommand, hcl string, errCtx *errors.UIErrorContext) (*api.Job, error) {
 	// instantiate client to parse hcl
 	c, err := cmd.getAPIClient()
 	if err != nil {
@@ -202,7 +202,6 @@ func parseJob(cmd *baseCommand, hcl string, hclV1 bool, errCtx *errors.UIErrorCo
 
 	parsedJob, err := c.Jobs().ParseHCLOpts(&api.JobsParseRequest{
 		JobHCL:       hcl,
-		HCLv1:        hclV1,
 		Canonicalize: true,
 	})
 	if err != nil {

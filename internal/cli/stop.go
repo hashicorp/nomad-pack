@@ -113,9 +113,8 @@ func (c *StopCommand) Run(args []string) int {
 			tplErrorContext.Add(errors.UIContextPrefixTemplateName, tplName)
 
 			// get job struct from template
-			// TODO: Should we add an hcl1 flag?
 			var job *api.Job
-			job, err = parseJob(c.baseCommand, tpl, false, tplErrorContext)
+			job, err = parseJob(c.baseCommand, tpl, tplErrorContext)
 			if err != nil {
 				// err output is handled by parseJob
 				return 1
