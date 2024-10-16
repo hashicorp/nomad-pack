@@ -7,6 +7,8 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
+	"strings"
 
 	"github.com/hashicorp/nomad-pack/sdk/pack"
 )
@@ -46,7 +48,11 @@ func (cfg *PackConfig) Init() {
 func (cfg *PackConfig) initFromDirectory(packPath string) {
 	// Keep the original user argument so that we can explain how to manage in output
 	cfg.SourcePath = cfg.Name
-	cfg.Path = packPath
+	if runtime.GOOS == "windows" {
+		cfg.Path = strings.ReplaceAll(packPath, "\\", "/")
+	} else {
+		cfg.Path = packPath
+	}
 	cfg.Name = path.Base(cfg.Path)
 	cfg.Registry = DevRegistryName
 	cfg.Ref = DevRef
