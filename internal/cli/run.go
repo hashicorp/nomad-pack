@@ -263,14 +263,6 @@ func (c *RunCommand) Flags() *flag.Sets {
 		})
 
 		f.BoolVar(&flag.BoolVar{
-			Name:    "hcl1",
-			Target:  &c.jobConfig.RunConfig.HCL1,
-			Default: false,
-			Usage: `If set, the hcl V1 parser will be used to parse the job
-					file.`,
-		})
-
-		f.BoolVar(&flag.BoolVar{
 			Name:    "rollback",
 			Hidden:  true,
 			Target:  &c.jobConfig.RunConfig.EnableRollback,

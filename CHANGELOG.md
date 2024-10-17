@@ -3,9 +3,19 @@
 IMPROVEMENTS:
 * template: Add template function for returning the path to the pack's directory [[GH-574](https://github.com/hashicorp/nomad-pack/pull/574)]
 
+## 0.2.0 (October 16, 2024)
+
+BREAKING CHANGES:
+* template: HCL1 parsing has been removed and is no longer available [[GH-581](https://github.com/hashicorp/nomad-pack/pull/581)]
+
+IMPROVEMENTS:
+* build: Update Go version to 1.23.2 [[GH-580](https://github.com/hashicorp/nomad-pack/pull/580)]
+* deps: Update Nomad version to 1.9.0 [[GH-581](https://github.com/hashicorp/nomad-pack/pull/581)]
+
 BUG FIXES:
 * cli: Update references to `hello-world` pack in command help text to `hello_world` [[GH-523](https://github.com/hashicorp/nomad-pack/pull/523)]
 * docker: Added tzdata to container to fix panics running packs containing periodic jobs with timezones [[GH-564](https://github.com/hashicorp/nomad-pack/pull/564)]
+* cli: Replace path separators to slash on windows for local packs [[GH-578](https://github.com/hashicorp/nomad-pack/pull/578)]
 
 ## 0.1.2 (June 7, 2024) 
 

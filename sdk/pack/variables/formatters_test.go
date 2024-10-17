@@ -107,7 +107,6 @@ func TestFormatters_printType(t *testing.T) {
 		},
 	}
 	for _, tc := range testCases {
-		tc := tc // capture range variable
 		t.Run(tc.name, func(t *testing.T) {
 			ci.Parallel(t)
 			out := printType(tc.input)
@@ -295,12 +294,10 @@ func TestFormatters_printDefault(t *testing.T) {
 		},
 	}
 	for _, tc := range testCases {
-		tc := tc // capture range variable
 		t.Run(tc.name, func(t *testing.T) {
 			ci.Parallel(t)
 			out := printDefault(tc.input)
 			must.Eq(t, tc.expect, out, must.Sprint(tc.input.GoString()))
 		})
 	}
-
 }
