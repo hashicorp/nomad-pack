@@ -1,0 +1,23 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: BUSL-1.1
+
+version: 2
+updates:
+  - package-ecosystem: "gomod"
+    directories:
+      - "/"
+    schedule:
+      interval: "weekly"
+      day: "sunday"
+      time: "09:00"
+    labels:
+      - "theme/dependencies"
+  - package-ecosystem: "github-actions"
+    directory: /
+    labels:
+      - "theme/dependencies"
+      - "theme/ci"
+    schedule:
+      interval: "weekly"
+      day: "sunday"
+      time: "09:00"
