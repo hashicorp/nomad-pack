@@ -286,7 +286,7 @@ func (c *Cache) logLatest(opts *AddOpts) (err error) {
 	}
 
 	// Open the log for appending, and create it if it doesn't exist
-	logFile, err := os.OpenFile(path.Join(opts.PackPath(), "latest.log"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0755)
+	logFile, err := os.OpenFile(path.Join(opts.PackPath(), "latest.log"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		logger.ErrorWithContext(err, "error open latest log file", c.ErrorContext.GetAll()...)
 		return
