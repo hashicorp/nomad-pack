@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 run:
-  deadline: 10m
+  timeout: 10m
   tests: true
 
 # Output configuration options.
@@ -16,7 +16,7 @@ linters-settings:
   errcheck:
     check-type-assertions: true
   govet:
-    check-shadowing: true
+    shadow: true
   gofmt:
     simplify: true
   staticcheck:
