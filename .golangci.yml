@@ -16,7 +16,7 @@ linters-settings:
   errcheck:
     check-type-assertions: true
   govet:
-    check-shadowing: true
+    shadow: true
   gofmt:
     simplify: true
   staticcheck:
