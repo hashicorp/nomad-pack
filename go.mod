@@ -17,7 +17,7 @@ replace (
 
 require (
 	github.com/Masterminds/sprig/v3 v3.2.3
-	github.com/bgentry/speakeasy v0.1.0
+	github.com/bgentry/speakeasy v0.2.0
 	github.com/briandowns/spinner v1.23.0
 	github.com/containerd/console v1.0.4
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
