@@ -27,6 +27,9 @@ type Renderer struct {
 	// set to true error will be used, otherwise zero is used.
 	Strict bool
 
+	// PackPath is the path to the pack being rendered.
+	PackPath string
+
 	// Client is the Nomad API client used when running the Nomad template
 	// functions. It can potentially be nil, therefore care should be taken
 	// when accessing it.
