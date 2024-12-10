@@ -43,7 +43,7 @@ require (
 	github.com/spf13/afero v1.9.5
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.9.0
-	github.com/zclconf/go-cty v1.14.0
+	github.com/zclconf/go-cty v1.15.1
 	golang.org/x/exp v0.0.0-20240613232115-7f521ea00fb8
 	golang.org/x/term v0.24.0
 	golang.org/x/text v0.18.0
