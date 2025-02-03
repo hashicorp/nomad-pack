@@ -39,7 +39,7 @@ require (
 	github.com/ryanuber/columnize v2.1.2+incompatible
 	github.com/shoenig/test v1.12.0
 	github.com/spf13/afero v1.12.0
-	github.com/spf13/pflag v1.0.5
+	github.com/spf13/pflag v1.0.6
 	github.com/stretchr/testify v1.10.0
 	github.com/zclconf/go-cty v1.16.2
 	golang.org/x/exp v0.0.0-20241204233417-43b7b7cde48d
