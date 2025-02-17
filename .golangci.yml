@@ -7,7 +7,9 @@ run:
 
 # Output configuration options.
 output:
-  formats: colored-line-number
+  formats:
+    - format: colored-line-number
+      path: stdout
   print-issued-lines: true
   print-linter-name: true
 
@@ -16,7 +18,7 @@ linters-settings:
   errcheck:
     check-type-assertions: true
   govet:
-    shadow: true
+    check-shadowing: true
   gofmt:
     simplify: true
   staticcheck:
