@@ -16,13 +16,27 @@ output:
 # All available settings of specific linters.
 linters-settings:
   errcheck:
-    check-type-assertions: true
+    # report about not checking of errors in type assetions: `a := b.(MyStruct)`;
+    # default is false: such cases aren't reported by default.
+    check-type-assertions: false
+
+    exclude-functions:
+      - io.*
+      - fmt.*
+
+    # path to a file containing a list of functions to exclude from checking
+    # see https://github.com/kisielk/errcheck#excluding-functions for details
+    # exclude: /path/to/file.txt
   govet:
-    check-shadowing: true
+    # report about shadowed variables
+    check-shadowing: false
   gofmt:
+    # simplify code: gofmt with `-s` option, true by default
     simplify: true
-  staticcheck:
-    checks: [ "all","-ST1000" ]
+  gocritic:
+    disabled-checks:
+      - commentFormatting
+      - deprecatedComment
 
 linters:
   disable-all: true
