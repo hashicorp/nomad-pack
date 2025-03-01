@@ -1,5 +1,8 @@
 ## UNRELEASED
 
+IMPROVEMENTS:
+* template: Add template function for returning the path to the pack's directory [[GH-574](https://github.com/hashicorp/nomad-pack/pull/574)]
+
 ## 0.2.0 (October 16, 2024)
 
 BREAKING CHANGES:
