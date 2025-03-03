@@ -6,8 +6,8 @@ BREAKING CHANGES:
 * template: HCL1 parsing has been removed and is no longer available [[GH-581](https://github.com/hashicorp/nomad-pack/pull/581)]
 
 IMPROVEMENTS:
-* build: Update Go version to 1.23.2 [[GH-580](https://github.com/hashicorp/nomad-pack/pull/580)]
-* deps: Update Nomad version to 1.9.0 [[GH-581](https://github.com/hashicorp/nomad-pack/pull/581)]
+* build: Update Go version to 1.24.0 [[GH-643](https://github.com/hashicorp/nomad-pack/pull/643)]
+* deps: Update Nomad version to 1.9.6 [[GH-643](https://github.com/hashicorp/nomad-pack/pull/643)]
 
 BUG FIXES:
 * cli: Update references to `hello-world` pack in command help text to `hello_world` [[GH-523](https://github.com/hashicorp/nomad-pack/pull/523)]
