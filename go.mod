@@ -1,6 +1,9 @@
 module github.com/hashicorp/nomad-pack
 
-go 1.23
+go 1.23.0
+
+toolchain go1.24.0
+
 replace (
 	// Use the same version of go-metrics as Nomad.
 	github.com/armon/go-metrics => github.com/armon/go-metrics v0.0.0-20230509193637-d9ca9af9f1f9
