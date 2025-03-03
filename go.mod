@@ -26,7 +26,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/hcl/v2 v2.20.2-0.20240517235513-55d9c02d147d
 	github.com/hashicorp/nomad v1.9.6
-	github.com/hashicorp/nomad/api v0.0.0-20230103221135-ce00d683f9be
+	github.com/hashicorp/nomad/api v0.0.0-20241209202624-6a41dc7b2f1f
 	github.com/kr/text v0.2.0
 	github.com/lab47/vterm v0.0.0-20211107042118-80c3d2849f9c
 	github.com/mattn/go-isatty v0.0.20
