@@ -7,6 +7,7 @@ BREAKING CHANGES:
 
 IMPROVEMENTS:
 * build: Update Go version to 1.24.0 [[GH-643](https://github.com/hashicorp/nomad-pack/pull/643)]
+* build: Update Alpine image for Docker continer build to v3.21.3 [[GH-652](https://github.com/hashicorp/nomad-pack/pull/652)]
 * deps: Update Nomad version to 1.9.6 [[GH-643](https://github.com/hashicorp/nomad-pack/pull/643)]
 
 BUG FIXES:
