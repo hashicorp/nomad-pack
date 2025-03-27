@@ -367,7 +367,6 @@ func TestDeletePackByRef(t *testing.T) {
 
 func TestParsePackURL(t *testing.T) {
 	ci.Parallel(t)
-	reg := &Registry{}
 
 	testCases := []struct {
 		name           string
@@ -404,6 +403,7 @@ func TestParsePackURL(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			ci.Parallel(t)
+			reg := &Registry{}
 			ok := reg.parsePackURL(tc.path)
 			t.Logf("  path: %s\nsource: %s\n    ok: %v\n\n", tc.path, reg.Source, ok)
 			if tc.expectOk {
