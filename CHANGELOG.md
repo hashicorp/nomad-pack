@@ -1,4 +1,10 @@
-## UNRELEASED
+## 0.3.0 (UNRELEASED)
+
+BREAKING CHANGES:
+* cli: Remove deprecated Consul and Vault token configuration [[GH-659](https://github.com/hashicorp/nomad-pack/pull/659)]
+
+IMPROVEMENTS:
+* build: Update Nomad verison to 1.10.0 [[GH-659](https://github.com/hashicorp/nomad-pack/pull/659)]
 
 ## 0.2.0 (October 16, 2024)
 
@@ -15,11 +21,11 @@ BUG FIXES:
 * docker: Added tzdata to container to fix panics running packs containing periodic jobs with timezones [[GH-564](https://github.com/hashicorp/nomad-pack/pull/564)]
 * cli: Replace path separators to slash on windows for local packs [[GH-578](https://github.com/hashicorp/nomad-pack/pull/578)]
 
-## 0.1.2 (June 7, 2024) 
+## 0.1.2 (June 7, 2024)
 
 IMPROVEMENTS:
 * cli: Emit the modify index in the output of `nomad-pack plan` [[GH-507](https://github.com/hashicorp/nomad-pack/pull/507)]
- 
+
 BUG FIXES:
 * cli: Fix non-interactive UI debug print output [[GH-508](https://github.com/hashicorp/nomad-pack/pull/508)]
 
@@ -32,7 +38,7 @@ DEPENDENCY CHANGES:
 
 IMPROVEMENTS:
 * build: Improve OS/Architecture detection [[GH-499](https://github.com/hashicorp/nomad-pack/pull/499)]
-* build: Update Go version to 1.21.5 [[GH-478](https://github.com/hashicorp/nomad-pack/pull/478)] 
+* build: Update Go version to 1.21.5 [[GH-478](https://github.com/hashicorp/nomad-pack/pull/478)]
 * build: Update Docker build dependencies [[GH-421](https://github.com/hashicorp/nomad-pack/pull/421)]
 * release: Add license (MPL) to release artifacts [[GH-498](https://github.com/hashicorp/nomad-pack/pull/498)]
 

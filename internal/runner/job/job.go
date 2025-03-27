@@ -5,14 +5,12 @@ package job
 
 import (
 	"fmt"
-	"os"
 	"regexp"
 	"time"
 
 	"github.com/hashicorp/nomad/api"
 
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
-	"github.com/hashicorp/nomad-pack/internal/pkg/helper/pointer"
 	"github.com/hashicorp/nomad-pack/internal/runner"
 	"github.com/hashicorp/nomad-pack/terminal"
 )
@@ -83,7 +81,6 @@ func (r *Runner) CanonicalizeTemplates() []*errors.WrappedUIContext {
 	}
 
 	for _, jobSpec := range r.parsedTemplates {
-		r.handleConsulAndVault(jobSpec.Job())
 		r.setJobMeta(jobSpec.Job())
 	}
 
@@ -178,39 +175,6 @@ func (r *Runner) SetRunnerConfig(cfg *runner.Config) { r.runnerCfg = cfg }
 // interface.
 func (r *Runner) SetTemplates(templates map[string]string) {
 	r.rawTemplates = templates
-}
-
-// handles resolving Consul and Vault options overrides with environment
-// variables, if present, and then set the values on the job instance.
-func (r *Runner) handleConsulAndVault(job *api.Job) {
-
-	// If the user didn't set a Consul token, check the environment to see if
-	// there is one.
-	if r.cfg.RunConfig.ConsulToken == "" {
-		r.cfg.RunConfig.ConsulToken = os.Getenv("CONSUL_HTTP_TOKEN")
-	}
-
-	if r.cfg.RunConfig.ConsulToken != "" {
-		job.ConsulToken = pointer.Of(r.cfg.RunConfig.ConsulToken)
-	}
-
-	if r.cfg.RunConfig.ConsulNamespace != "" {
-		job.ConsulNamespace = pointer.Of(r.cfg.RunConfig.ConsulNamespace)
-	}
-
-	// If the user didn't set a Vault token, check the environment to see if
-	// there is one.
-	if r.cfg.RunConfig.VaultToken == "" {
-		r.cfg.RunConfig.VaultToken = os.Getenv("VAULT_TOKEN")
-	}
-
-	if r.cfg.RunConfig.VaultToken != "" {
-		job.VaultToken = pointer.Of(r.cfg.RunConfig.VaultToken)
-	}
-
-	if r.cfg.RunConfig.VaultNamespace != "" {
-		job.VaultNamespace = pointer.Of(r.cfg.RunConfig.VaultNamespace)
-	}
 }
 
 // determines next launch time and outputs to terminal
