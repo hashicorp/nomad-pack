@@ -138,7 +138,7 @@ func (c *generateVarFileCommand) Run(args []string) int {
 	}
 
 	packManager := generatePackManager(c.baseCommand, nil, c.packConfig)
-	renderOutput, err := renderVariableOverrideFile(packManager, c.baseCommand.ui, errorContext)
+	renderOutput, err := renderVariableOverrideFile(packManager, c.ui, errorContext)
 	if err != nil {
 		return 1
 	}

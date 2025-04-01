@@ -54,7 +54,7 @@ func (c *InfoCommand) Run(args []string) int {
 	variableParser, err := parser.NewParser(&config.ParserConfig{
 		ParentPack:        p,
 		RootVariableFiles: p.RootVariableFiles(),
-		IgnoreMissingVars: c.baseCommand.ignoreMissingVars,
+		IgnoreMissingVars: c.ignoreMissingVars,
 	})
 	if err != nil {
 		return 1

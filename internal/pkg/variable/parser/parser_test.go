@@ -47,7 +47,7 @@ func (pm *testPackManager) ProcessVariables() *ParsedVariables {
 	// itself within the test. This has to be all CHONKY because manager depends
 	// on variables, so we can't create a real pack manager to handle the pack
 	// state.
-	var loadAndValidatePacks func() (*pack.Pack, error) = func() (*pack.Pack, error) {
+	var loadAndValidatePacks = func() (*pack.Pack, error) {
 
 		parentPack, err := loader.Load(pm.cfg.Path)
 		must.NoError(t, err)
