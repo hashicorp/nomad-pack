@@ -94,7 +94,7 @@ func (c *DocGenerateCommand) Run(args []string) int {
 	defer contentMap.Close()
 
 	var sb strings.Builder
-	var offset int = 0
+	var offset = int(0)
 	sb.WriteString("[")
 	for i, k := range keys {
 		if k == "gen-cli-docs" {

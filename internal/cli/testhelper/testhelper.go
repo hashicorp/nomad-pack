@@ -39,7 +39,7 @@ func makeACLEnabledHTTPServer(t testing.TB, cb func(c *agent.Config)) *agent.Tes
 		ACLEnabled()(c)
 	}
 	srv := agent.NewTestAgent(t, t.Name(), aclCB)
-	testutil.WaitForLeader(t, srv.Agent.RPC)
+	testutil.WaitForLeader(t, srv.RPC)
 	c, err := NewTestClient(srv)
 	must.NoError(t, err)
 	tResp, _, err := c.ACLTokens().Bootstrap(&api.WriteOptions{})
@@ -99,7 +99,7 @@ func httpTest(t *testing.T, cb func(c *agent.Config), f func(srv *agent.TestAgen
 	}
 	s := makeHTTPServer(t, cb)
 	defer s.Shutdown()
-	testutil.WaitForLeader(t, s.Agent.RPC)
+	testutil.WaitForLeader(t, s.RPC)
 	f(s)
 }
 
@@ -128,8 +128,8 @@ func httpTestMultiRegionClusters(t *testing.T, cb1, cb2 func(c *agent.Config), f
 		s2.Shutdown()
 	}(s1, s2)
 
-	testutil.WaitForLeader(t, s1.Agent.RPC)
-	testutil.WaitForLeader(t, s2.Agent.RPC)
+	testutil.WaitForLeader(t, s1.RPC)
+	testutil.WaitForLeader(t, s2.RPC)
 
 	f(s1, s2)
 }

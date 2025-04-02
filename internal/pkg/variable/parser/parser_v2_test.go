@@ -215,8 +215,8 @@ func TestParserV2_parseEnvVariable(t *testing.T) {
 
 	setTestEnvKeyForVar := func(t *testing.T, tc testCase) string {
 		t.Helper()
-		var k string = getEnvKey(tc)
-		var v string = getEnvValue(tc)
+		var k = getEnvKey(tc)
+		var v = getEnvValue(tc)
 		t.Logf("setting %s to %s", k, v)
 		t.Setenv(k, v)
 		return strings.TrimPrefix(k, envloader.DefaultPrefix)

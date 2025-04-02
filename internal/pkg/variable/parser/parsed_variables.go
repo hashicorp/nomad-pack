@@ -34,7 +34,7 @@ func (pv *ParsedVariables) IsV1() bool {
 }
 
 func (pv *ParsedVariables) isLoaded() bool {
-	return !(pv.version == nil)
+	return pv.version != nil
 }
 
 // LoadV1Result populates this ParsedVariables with the result from

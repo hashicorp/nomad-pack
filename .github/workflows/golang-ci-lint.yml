@@ -19,8 +19,8 @@ jobs:
       - name: Setup Go
         uses: hashicorp/setup-golang@36878950ae8f21c1bc25accaf67a4df88c29b01d # v3.0.0
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@55c2c1448f86e01eaae002a5a3a9624417608d84 # v6.5.2
+        uses: golangci/golangci-lint-action@v7
         with:
-          version: v1.64.2
+          version: v2.0.2
           skip-cache: true
           args: --config .golangci.yml

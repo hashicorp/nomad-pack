@@ -282,10 +282,10 @@ func (c *RenderCommand) Run(args []string) int {
 
 	renderOutput, err := renderPack(
 		packManager,
-		c.baseCommand.ui,
+		c.ui,
 		!c.noRenderAuxFiles,
 		!c.noFormat,
-		c.baseCommand.ignoreMissingVars,
+		c.ignoreMissingVars,
 		errorContext,
 	)
 	if err != nil {

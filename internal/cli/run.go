@@ -70,10 +70,10 @@ func (c *RunCommand) run() int {
 	// we won't make it to the deployer.
 	r, err := renderPack(
 		packManager,
-		c.baseCommand.ui,
+		c.ui,
 		false,
 		false,
-		c.baseCommand.ignoreMissingVars,
+		c.ignoreMissingVars,
 		errorContext,
 	)
 	if err != nil {
