@@ -1,6 +1,6 @@
 module github.com/hashicorp/nomad-pack
 
-go 1.24.0
+go 1.24.2
 
 replace (
 	// Use the same version of go-metrics as Nomad.
