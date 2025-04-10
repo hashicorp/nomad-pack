@@ -7,6 +7,9 @@ IMPROVEMENTS:
 * build: Update Nomad verison to 1.10.0 [[GH-659](https://github.com/hashicorp/nomad-pack/pull/659)]
 * build: Update Go version to 1.24.2 [[GH-668](https://github.com/hashicorp/nomad-pack/pull/668)]
 
+IMPROVEMENTS:
+* template: Add template function for returning the path to the pack's directory [[GH-574](https://github.com/hashicorp/nomad-pack/pull/574)]
+
 ## 0.2.0 (October 16, 2024)
 
 BREAKING CHANGES:
