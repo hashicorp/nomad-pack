@@ -1,4 +1,6 @@
-## 0.3.0 (UNRELEASED)
+## UNRELEASED
+
+## 0.3.0 (April 15, 2025)
 
 BREAKING CHANGES:
 * cli: Remove deprecated Consul and Vault token configuration [[GH-659](https://github.com/hashicorp/nomad-pack/pull/659)]
