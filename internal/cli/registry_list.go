@@ -58,7 +58,7 @@ func (c *RegistryListCommand) Run(args []string) int {
 
 		// TODO: This message is to make upgrading from tech preview versions
 		// to 0.1 easier. Remove it at 0.2 release.
-		if table.Rows[0][2].Value == "" {
+		if table.Rows[0][2] == "" {
 			c.ui.Warning("It appears that you have a cache created before Nomad-Pack 0.1 (hence the\n" +
 				"missing values in LOCAL REF and REGISTRY URL columns). We recommend deleting\n" +
 				"your current cache with `nomad-pack registry delete <name>` and re-adding your\n" +

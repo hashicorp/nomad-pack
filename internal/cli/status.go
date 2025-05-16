@@ -6,6 +6,7 @@ package cli
 import (
 	"fmt"
 
+	"github.com/fatih/color"
 	"github.com/hashicorp/nomad/api"
 	"github.com/posener/complete"
 
@@ -185,9 +186,9 @@ func formatDeployedPacks(packRegistryMap map[string]map[string]struct{}) *termin
 	tbl := terminal.NewTable("Pack Name", "Registry Name")
 	for packName, registryMap := range packRegistryMap {
 		for registryName := range registryMap {
-			row := []terminal.TableEntry{}
-			row = append(row, terminal.TableEntry{Value: packName})
-			row = append(row, terminal.TableEntry{Value: registryName})
+			row := []string{}
+			row = append(row, packName)
+			row = append(row, registryName)
 			tbl.Rows = append(tbl.Rows, row)
 		}
 	}
@@ -197,12 +198,12 @@ func formatDeployedPacks(packRegistryMap map[string]map[string]struct{}) *termin
 func formatDeployedPackJobs(packJobs []JobStatusInfo) *terminal.Table {
 	tbl := terminal.NewTable("Pack Name", "Registry Name", "Deployment Name", "Job Name", "Status")
 	for _, jobInfo := range packJobs {
-		row := []terminal.TableEntry{}
-		row = append(row, terminal.TableEntry{Value: jobInfo.packName})
-		row = append(row, terminal.TableEntry{Value: jobInfo.registryName})
-		row = append(row, terminal.TableEntry{Value: jobInfo.deploymentName})
-		row = append(row, terminal.TableEntry{Value: jobInfo.jobID})
-		row = append(row, terminal.TableEntry{Value: jobInfo.status})
+		row := []string{}
+		row = append(row, jobInfo.packName)
+		row = append(row, jobInfo.registryName)
+		row = append(row, jobInfo.deploymentName)
+		row = append(row, jobInfo.jobID)
+		row = append(row, jobInfo.status)
 		tbl.Rows = append(tbl.Rows, row)
 	}
 	return tbl
@@ -211,9 +212,9 @@ func formatDeployedPackJobs(packJobs []JobStatusInfo) *terminal.Table {
 func formatDeployedPackErrs(packErrs []JobStatusError) *terminal.Table {
 	tbl := terminal.NewTable("Job Name", "Error")
 	for _, jobInfo := range packErrs {
-		row := []terminal.TableEntry{}
-		row = append(row, terminal.TableEntry{Value: jobInfo.jobID})
-		row = append(row, terminal.TableEntry{Value: jobInfo.jobError.Error(), Color: terminal.Red})
+		row := []string{}
+		row = append(row, jobInfo.jobID)
+		row = append(row, color.RedString(jobInfo.jobError.Error()))
 		tbl.Rows = append(tbl.Rows, row)
 	}
 	return tbl

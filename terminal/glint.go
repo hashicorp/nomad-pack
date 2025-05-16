@@ -18,7 +18,6 @@ import (
 	"github.com/fatih/color"
 	"github.com/mattn/go-isatty"
 	"github.com/mitchellh/go-glint"
-	"github.com/olekukonko/tablewriter"
 
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/helper"
@@ -315,29 +314,9 @@ func (ui *glintUI) StepGroup() StepGroup {
 // Table implements UI
 func (ui *glintUI) Table(tbl *Table, opts ...Option) {
 	var buf bytes.Buffer
-	table := tablewriter.NewWriter(&buf)
-	table.SetHeader(tbl.Headers)
-	table.SetBorder(false)
-	table.SetAutoWrapText(false)
-
-	for _, row := range tbl.Rows {
-		colors := make([]tablewriter.Colors, len(row))
-		entries := make([]string, len(row))
-
-		for i, ent := range row {
-			entries[i] = ent.Value
-
-			color, ok := colorMapping[ent.Color]
-			if ok {
-				colors[i] = tablewriter.Colors{color}
-			}
-		}
-
-		table.Rich(entries, colors)
-	}
-
+	table := TableWithSettings(&buf, tbl.Headers)
+	table.Bulk(tbl.Rows)
 	table.Render()
-
 	ui.d.Append(glint.Finalize(glint.Text(buf.String())))
 }
 

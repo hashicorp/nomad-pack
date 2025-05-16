@@ -60,49 +60,35 @@ func packTable() *terminal.Table {
 	return terminal.NewTable("PACK NAME", "METADATA VERSION", "REGISTRY NAME")
 }
 
-func registryTableRow(cachedRegistry *cache.Registry) []terminal.TableEntry {
-	return []terminal.TableEntry{
-		{
-			Value: cachedRegistry.Name,
-		},
-		{
-			Value: formatSHA1Reference(cachedRegistry.Ref),
-		},
-		{
-			Value: formatSHA1Reference(cachedRegistry.LocalRef),
-		},
-		{
-			Value: cachedRegistry.Source,
-		},
+func registryTableRow(cachedRegistry *cache.Registry) []string {
+	return []string{
+		cachedRegistry.Name,
+		formatSHA1Reference(cachedRegistry.Ref),
+		formatSHA1Reference(cachedRegistry.LocalRef),
+		cachedRegistry.Source,
 	}
 }
 
-func registryPackRow(cachedRegistry *cache.Registry, cachedPack *cache.Pack) []terminal.TableEntry {
-	return []terminal.TableEntry{
+func registryPackRow(cachedRegistry *cache.Registry, cachedPack *cache.Pack) []string {
+	return []string{
 		// The Name of the registryPack
-		{
-			Value: cachedPack.Name(),
-		},
+		cachedPack.Name(),
+
 		// The revision from where the registryPack was cloned
-		{
-			Value: formatSHA1Reference(cachedPack.Ref),
-		},
+		formatSHA1Reference(cachedPack.Ref),
+
 		// The canonical revision from where the registryPack was cloned
-		{
-			Value: formatSHA1Reference(cachedRegistry.LocalRef),
-		},
+		formatSHA1Reference(cachedRegistry.LocalRef),
+
 		// The metadata version
-		{
-			Value: cachedPack.Metadata.Pack.Version,
-		},
+		cachedPack.Metadata.Pack.Version,
+
 		// CachedRegistry name  user defined alias or registry URL slug
-		{
-			Value: cachedRegistry.Name,
-		},
+		cachedRegistry.Name,
+
 		// The cachedRegistry URL from where the registryPack was cloned
-		{
-			Value: cachedRegistry.Source,
-		},
+		cachedRegistry.Source,
+
 		// TODO: The app version
 	}
 }
@@ -118,20 +104,17 @@ func registryName(cr *cache.Registry) string {
 	return fmt.Sprintf("%s@%s (%s)", cr.Name, formatSHA1Reference(cr.Ref), formatSHA1Reference(cr.LocalRef))
 }
 
-func packRow(cachedRegistry *cache.Registry, cachedPack *cache.Pack) []terminal.TableEntry {
-	return []terminal.TableEntry{
+func packRow(cachedRegistry *cache.Registry, cachedPack *cache.Pack) []string {
+	return []string{
 		// The Name of the registryPack
-		{
-			Value: cachedPack.Name(),
-		},
+		cachedPack.Name(),
+
 		// The metadata version
-		{
-			Value: cachedPack.Metadata.Pack.Version,
-		},
+		cachedPack.Metadata.Pack.Version,
+
 		// CachedRegistry name  user defined alias or registry URL slug
-		{
-			Value: registryName(cachedRegistry),
-		},
+		registryName(cachedRegistry),
+
 		// TODO: The app version
 	}
 }

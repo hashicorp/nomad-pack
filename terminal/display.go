@@ -80,17 +80,6 @@ func (d *Display) Close() error {
 	return nil
 }
 
-func (d *Display) flushAll() {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
-	for range d.Entries {
-		fmt.Fprintln(d.w, "")
-	}
-
-	d.line = uint(len(d.Entries))
-}
-
 func (d *Display) renderEntry(ent *DisplayEntry, spin int) {
 	b := aec.EmptyBuilder
 
