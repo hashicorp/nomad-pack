@@ -6,8 +6,8 @@ package terminal
 import (
 	"io"
 
-	"github.com/fatih/color"
 	"github.com/olekukonko/tablewriter"
+	"github.com/olekukonko/tablewriter/renderer"
 	"github.com/olekukonko/tablewriter/tw"
 )
 
@@ -26,24 +26,13 @@ func NewTable(headers ...string) *Table {
 
 func TableWithSettings(writer io.Writer, headers []string) *tablewriter.Table {
 	table := tablewriter.NewTable(writer,
-		tablewriter.WithBorders(tw.BorderNone),
-		tablewriter.WithConfig(
-			tablewriter.Config{
-				Row: tw.CellConfig{Formatting: tw.CellFormatting{AutoWrap: tw.WrapNone}},
-			}))
+		tablewriter.WithRenderer(renderer.NewBlueprint(tw.Rendition{
+			Borders: tw.BorderNone,
+		})),
+	)
+	table.Configure(func(config *tablewriter.Config) {
+		config.Row.Formatting.AutoWrap = tw.WrapNone
+	})
 	table.Header(headers)
 	return table
-}
-
-// Table implements UI
-func (u *basicUI) Table(tbl *Table, opts ...Option) {
-	// Build our config and set our options
-	cfg := &config{Writer: color.Output}
-	for _, opt := range opts {
-		opt(cfg)
-	}
-
-	table := TableWithSettings(cfg.Writer, tbl.Headers)
-	table.Bulk(tbl.Rows)
-	table.Render()
 }
