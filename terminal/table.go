@@ -28,6 +28,7 @@ func TableWithSettings(writer io.Writer, headers []string) *tablewriter.Table {
 	table := tablewriter.NewTable(writer,
 		tablewriter.WithRenderer(renderer.NewBlueprint(tw.Rendition{
 			Borders: tw.BorderNone,
+			Symbols: tw.NewSymbols(tw.StyleASCII),
 		})),
 	)
 	table.Configure(func(config *tablewriter.Config) {
