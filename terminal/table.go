@@ -51,7 +51,7 @@ func (u *basicUI) Table(tbl *Table, opts ...Option) {
 	}
 
 	table := tablewriter.NewWriter(cfg.Writer)
-	table.SetHeader(tbl.Headers)
+	table.Header(tbl.Headers)
 	table.SetBorder(false)
 	table.SetAutoWrapText(false)
 
