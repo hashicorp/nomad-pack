@@ -50,6 +50,8 @@ type Variable struct {
 	// value into a Go type value.
 	Value cty.Value
 
+	Required bool
+
 	// DeclRange is the position marker of the variable within the file it was
 	// read from. This is used for diagnostics.
 	DeclRange hcl.Range

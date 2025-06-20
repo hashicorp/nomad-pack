@@ -9,6 +9,7 @@ const (
 	VariableAttributeType        = "type"
 	VariableAttributeDefault     = "default"
 	VariableAttributeDescription = "description"
+	VaraibleAttributeRequired    = "required"
 )
 
 // VariableFileSchema defines the hcl.BlockHeaderSchema for each root variable
@@ -29,5 +30,6 @@ var VariableBlockSchema = &hcl.BodySchema{
 		{Name: VariableAttributeDescription},
 		{Name: VariableAttributeDefault},
 		{Name: VariableAttributeType},
+		{Name: VaraibleAttributeRequired},
 	},
 }
