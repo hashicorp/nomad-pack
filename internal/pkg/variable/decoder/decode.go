@@ -88,14 +88,6 @@ func DecodeVariableBlock(block *hcl.Block) (*variables.Variable, hcl.Diagnostics
 		v.Value = val
 	}
 
-	// A variable may be explicitly required. If it is, and is not set,
-	// it should produce an error.
-	if attr, exists := content.Attributes[schema.VaraibleAttributeRequired]; exists {
-		val, valDiags := attr.Expr.Value(nil)
-		diags = packdiags.SafeDiagnosticsExtend(diags, valDiags)
-		v.Required = val.True()
-	}
-
 	if diags.HasErrors() {
 		return nil, diags
 	}

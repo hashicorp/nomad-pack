@@ -63,6 +63,10 @@ type baseCommand struct {
 	// to variables defined in the pack should be ignored or produce an error
 	ignoreMissingVars bool
 
+	// allowUnsetVars suppresses errors from variables with nil values,
+	// i.e. those that are not set and have no default
+	allowUnsetVars bool
+
 	// autoApproved is true when the user supplies the --auto-approve or -y flag
 	autoApproved bool
 
@@ -242,6 +246,13 @@ func (c *baseCommand) flagSet(bit flagSetBit, f func(*flag.Sets)) *flag.Sets {
 				Completion: complete.PredictOr(complete.PredictFiles("*.var"), complete.PredictFiles("*.hcl")),
 			},
 			Shorthand: "f",
+		})
+
+		f.BoolVar(&flag.BoolVar{
+			Name:    "allow-unset-vars",
+			Target:  &c.allowUnsetVars,
+			Default: false,
+			Usage:   `Suppress errors from unset variables without default values.`,
 		})
 
 		f.BoolVar(&flag.BoolVar{
