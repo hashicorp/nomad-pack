@@ -90,17 +90,33 @@ func (c *InfoCommand) Run(args []string) int {
 			glint.Style(glint.Text(fmt.Sprintf("Pack %q Variables:", pName)), glint.Bold()),
 		).Row())
 
+		// to output required variables first
+		var required []string
+		var optional []string
+
 		for _, v := range variables {
 
 			varType := "unknown"
 			if !v.Type.Equals(cty.NilType) {
+				// check the explicit "type" parameter
 				varType = v.Type.FriendlyName()
+			} else if !v.Default.IsNull() {
+				// or infer from the default
+				varType = v.Default.Type().FriendlyName()
 			}
 
-			doc.Append(glint.Layout(
-				glint.Style(glint.Text(fmt.Sprintf("\t- %q (%s) - %s",
-					v.Name, varType, v.Description))),
-			).Row())
+			if v.Default.IsNull() {
+				required = append(required, fmt.Sprintf("\t- %q (%s: required) - %s", v.Name, varType, v.Description))
+			} else {
+				optional = append(optional, fmt.Sprintf("\t- %q (%s: optional) - %s", v.Name, varType, v.Description))
+			}
+
+		}
+
+		for _, row := range append(required, optional...) {
+			doc.Append(glint.Layout(glint.Style(
+				glint.Text(row),
+			)).Row())
 		}
 		glint.Text("\n")
 	}
