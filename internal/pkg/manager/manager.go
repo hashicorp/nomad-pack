@@ -94,7 +94,7 @@ func (pm *PackManager) ProcessVariableFiles() (*parser.ParsedVariables, []*error
 		return nil, errors.HCLDiagsToWrappedUIContext(diags)
 	}
 
-	// Ensure required variables are set.
+	// Ensure required variables are set, unless --allow-unset-vars
 	if !pm.cfg.AllowUnsetVars {
 		for _, vars := range parsedVars.GetVars() {
 			for _, v := range vars {
