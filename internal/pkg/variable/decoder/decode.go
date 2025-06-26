@@ -77,9 +77,9 @@ func DecodeVariableBlock(block *hcl.Block) (*variables.Variable, hcl.Diagnostics
 		val, valDiags := attr.Expr.Value(nil)
 		diags = packdiags.SafeDiagnosticsExtend(diags, valDiags)
 
-		// If the found type isn't cty.NilType, then attempt to covert the
-		// default variable, so we know they are compatible.
-		if v.Type != cty.NilType {
+		// Attempt to convert the default to the variable's declared type
+		// to produce an informative error if they are not compatible.
+		if shouldCompareDefaultType(v.Type, val.Type()) {
 			var err *hcl.Diagnostic
 			val, err = hclhelp.ConvertValUsingType(val, v.Type, attr.Expr.Range().Ptr())
 			diags = packdiags.SafeDiagnosticsAppend(diags, err)
@@ -93,4 +93,23 @@ func DecodeVariableBlock(block *hcl.Block) (*variables.Variable, hcl.Diagnostics
 	}
 
 	return v, diags
+}
+
+func shouldCompareDefaultType(varType, defaultType cty.Type) bool {
+	// if there is no declared type, there's nothing to check against.
+	if varType == cty.NilType {
+		return false
+	}
+	// different type names will certainly produce some kind of error,
+	// hopefully an informative one.
+	if varType.FriendlyName() != defaultType.FriendlyName() {
+		return true
+	}
+	// if they're both objects, and the default has any attribute set,
+	// we want to make sure those attributes match the declared type.
+	if varType.IsObjectType() &&
+		defaultType.IsObjectType() && len(defaultType.AttributeTypes()) > 0 {
+		return true
+	}
+	return false
 }

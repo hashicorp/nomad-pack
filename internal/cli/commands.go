@@ -8,7 +8,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"runtime"
+	"strconv"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/nomad/api"
@@ -18,6 +20,11 @@ import (
 	flag "github.com/hashicorp/nomad-pack/internal/pkg/flag"
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable/envloader"
 	"github.com/hashicorp/nomad-pack/terminal"
+)
+
+const (
+	// EnvAllowUnsetVars is the env var that prevents errors from unset variables.
+	EnvAllowUnsetVars = "NOMAD_PACK_ALLOW_UNSET_VARS"
 )
 
 // baseCommand is embedded in all commands to provide common logic and data.
@@ -58,6 +65,10 @@ type baseCommand struct {
 	// varFiles is an HCL file(s) setting one or more values
 	// for defined input variables
 	varFiles []string
+
+	// allowUnsetVars suppresses errors from variables with nil values,
+	// i.e. those that are not set and have no default
+	allowUnsetVars bool
 
 	// ignoreMissingVars determines whether variable overrides that do not correspond
 	// to variables defined in the pack should be ignored or produce an error
@@ -190,6 +201,11 @@ func (c *baseCommand) Init(opts ...Option) error {
 
 	c.envVars = envloader.New().GetVarsFromEnv()
 
+	// if no flag, check env vars
+	if !c.allowUnsetVars {
+		c.allowUnsetVars, _ = strconv.ParseBool(os.Getenv(EnvAllowUnsetVars))
+	}
+
 	// Do any validation after parsing
 	if baseCfg.Validation != nil {
 		err := baseCfg.Validation(c, c.args)
@@ -242,6 +258,15 @@ func (c *baseCommand) flagSet(bit flagSetBit, f func(*flag.Sets)) *flag.Sets {
 				Completion: complete.PredictOr(complete.PredictFiles("*.var"), complete.PredictFiles("*.hcl")),
 			},
 			Shorthand: "f",
+		})
+
+		f.BoolVar(&flag.BoolVar{
+			Name:    "allow-unset-vars",
+			Target:  &c.allowUnsetVars,
+			Default: false,
+			Usage: fmt.Sprintf(`Suppress errors from unset variables without default values.
+					Equivalent of setting the %s environment variable to "1" or "true".`,
+				EnvAllowUnsetVars),
 		})
 
 		f.BoolVar(&flag.BoolVar{

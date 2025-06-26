@@ -9,6 +9,7 @@ variable "job_name" {
 
 variable "complex" {
   description = "complex object for rendering"
+  default     = {}
   type = object({
     name    = string
     address = string

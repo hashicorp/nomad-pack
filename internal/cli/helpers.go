@@ -43,6 +43,7 @@ func generatePackManager(c *baseCommand, client *api.Client, packCfg *cache.Pack
 		VariableFiles:   c.varFiles,
 		VariableCLIArgs: c.vars,
 		VariableEnvVars: c.envVars,
+		AllowUnsetVars:  c.allowUnsetVars,
 		UseParserV1:     c.useParserV1,
 	}
 	return manager.NewPackManager(&cfg, client)

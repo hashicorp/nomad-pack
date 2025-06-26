@@ -69,6 +69,114 @@ func TestDecoder_DecodeVariableBlock(t *testing.T) {
 			expectDiags: hcl.Diagnostics{},
 		},
 		{
+			name: "passes/on default empty list",
+			input: testGetHCLBlock(t, testLoadPackFile(t, []byte(`
+variable "list" {
+	type    = list(string)
+	default = []
+}`))),
+			expectOut: func() *variables.Variable {
+				out := variables.Variable{
+					Name: "list",
+					DeclRange: hcl.Range{
+						Filename: "/fake/test/path",
+						Start:    hcl.Pos{Line: 2, Column: 1, Byte: 1},
+						End:      hcl.Pos{Line: 2, Column: 16, Byte: 16},
+					},
+				}
+				out.SetType(cty.List(cty.String))
+				val := cty.ListValEmpty(cty.String)
+				out.SetDefault(val)
+				out.Value = val
+				return &out
+			}(),
+			expectDiags: hcl.Diagnostics{},
+		},
+		{
+			name: "passes/on default empty map",
+			input: testGetHCLBlock(t, testLoadPackFile(t, []byte(`
+variable "map" {
+	type    = map(string)
+	default = {}
+}`))),
+			expectOut: func() *variables.Variable {
+				out := variables.Variable{
+					Name: "map",
+					DeclRange: hcl.Range{
+						Filename: "/fake/test/path",
+						Start:    hcl.Pos{Line: 2, Column: 1, Byte: 1},
+						End:      hcl.Pos{Line: 2, Column: 15, Byte: 15},
+					},
+				}
+				out.SetType(cty.Map(cty.String))
+				val := cty.MapValEmpty(cty.String)
+				out.SetDefault(val)
+				out.Value = val
+				return &out
+			}(),
+			expectDiags: hcl.Diagnostics{},
+		},
+		{
+			name: "passes/on default empty object",
+			input: testGetHCLBlock(t, testLoadPackFile(t, []byte(`
+variable "object" {
+	type = object({
+        foo: string
+    })
+	default = {}
+}`))),
+			expectOut: func() *variables.Variable {
+				out := variables.Variable{
+					Name: "object",
+					DeclRange: hcl.Range{
+						Filename: "/fake/test/path",
+						Start:    hcl.Pos{Line: 2, Column: 1, Byte: 1},
+						End:      hcl.Pos{Line: 2, Column: 18, Byte: 18},
+					},
+				}
+				out.SetType(cty.Object(map[string]cty.Type{
+					"foo": cty.String,
+				}))
+				val := cty.EmptyObjectVal
+				out.SetDefault(val)
+				out.Value = val
+				return &out
+			}(),
+			expectDiags: hcl.Diagnostics{},
+		},
+		{
+			name: "passes/on default specified object",
+			input: testGetHCLBlock(t, testLoadPackFile(t, []byte(`
+variable "object" {
+	type = object({
+        foo: string
+    })
+	default = {
+        foo = "cool default"
+    }
+}`))),
+			expectOut: func() *variables.Variable {
+				out := variables.Variable{
+					Name: "object",
+					DeclRange: hcl.Range{
+						Filename: "/fake/test/path",
+						Start:    hcl.Pos{Line: 2, Column: 1, Byte: 1},
+						End:      hcl.Pos{Line: 2, Column: 18, Byte: 18},
+					},
+				}
+				out.SetType(cty.Object(map[string]cty.Type{
+					"foo": cty.String,
+				}))
+				val := cty.ObjectVal(map[string]cty.Value{
+					"foo": cty.StringVal("cool default"),
+				})
+				out.SetDefault(val)
+				out.Value = val
+				return &out
+			}(),
+			expectDiags: hcl.Diagnostics{},
+		},
+		{
 			name:      "fails/on bad content",
 			input:     testGetHCLBlock(t, testLoadPackFile(t, []byte(badContent))),
 			expectOut: nil,
@@ -110,6 +218,86 @@ func TestDecoder_DecodeVariableBlock(t *testing.T) {
 					Filename: "/fake/test/path",
 					Start:    hcl.Pos{Line: 2, Column: 2, Byte: 18},
 					End:      hcl.Pos{Line: 2, Column: 20, Byte: 36},
+				},
+			}},
+		},
+		{
+			name: "fails/on bad number default",
+			input: testGetHCLBlock(t, testLoadPackFile(t, []byte(`
+variable "bad_number" {
+	type    = number
+	default = "not-a-number"
+}`))),
+			expectOut: nil,
+			expectDiags: hcl.Diagnostics{&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid value for variable",
+				Detail:   "This variable value is not compatible with the variable's type constraint: a number is required.",
+				Subject: &hcl.Range{
+					Filename: "/fake/test/path",
+					Start:    hcl.Pos{Line: 4, Column: 12, Byte: 54},
+					End:      hcl.Pos{Line: 4, Column: 26, Byte: 68},
+				},
+			}},
+		},
+		{
+			name: "fails/on bad list default",
+			input: testGetHCLBlock(t, testLoadPackFile(t, []byte(`
+variable "bad_list" {
+	type    = list(string)
+	default = {}
+}`))),
+			expectOut: nil,
+			expectDiags: hcl.Diagnostics{&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid value for variable",
+				Detail:   "This variable value is not compatible with the variable's type constraint: list of string required.",
+				Subject: &hcl.Range{
+					Filename: "/fake/test/path",
+					Start:    hcl.Pos{Line: 4, Column: 12, Byte: 58},
+					End:      hcl.Pos{Line: 4, Column: 14, Byte: 60},
+				},
+			}},
+		},
+		{
+			name: "fails/on bad map default",
+			input: testGetHCLBlock(t, testLoadPackFile(t, []byte(`
+variable "bad_map" {
+	type    = map(string)
+	default = []
+}`))),
+			expectOut: nil,
+			expectDiags: hcl.Diagnostics{&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid value for variable",
+				Detail:   "This variable value is not compatible with the variable's type constraint: map of string required.",
+				Subject: &hcl.Range{
+					Filename: "/fake/test/path",
+					Start:    hcl.Pos{Line: 4, Column: 12, Byte: 56},
+					End:      hcl.Pos{Line: 4, Column: 14, Byte: 58},
+				},
+			}},
+		},
+		{
+			name: "fails/on bad object default",
+			input: testGetHCLBlock(t, testLoadPackFile(t, []byte(`
+variable "bad_object" {
+	type = object({
+        foo: string
+    })
+	default = {
+        nope = "wrong object key"
+    }
+}`))),
+			expectOut: nil,
+			expectDiags: hcl.Diagnostics{&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid value for variable",
+				Detail:   "This variable value is not compatible with the variable's type constraint: attribute \"foo\" is required.",
+				Subject: &hcl.Range{
+					Filename: "/fake/test/path",
+					Start:    hcl.Pos{Line: 6, Column: 12, Byte: 80},
+					End:      hcl.Pos{Line: 8, Column: 6, Byte: 121},
 				},
 			}},
 		},

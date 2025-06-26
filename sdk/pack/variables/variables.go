@@ -101,12 +101,9 @@ func (v *Variable) AsOverrideString(pID pack.ID) string {
 
 	if v.hasDefault {
 		out.WriteString(fmt.Sprintf("#   default: %s\n", printDefault(v.Default)))
-	}
-
-	if v.Value.Equals(v.Default).True() {
 		out.WriteString(fmt.Sprintf("#\n# %s=%s\n\n", rvn, printDefault(v.Default)))
 	} else {
-		out.WriteString(fmt.Sprintf("#\n%s=%s\n\n", rvn, printDefault(v.Value)))
+		out.WriteString(fmt.Sprintf("#\n# %s=«required»\n\n", rvn))
 	}
 
 	out.WriteString("\n")
