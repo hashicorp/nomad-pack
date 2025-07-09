@@ -1,9 +1,11 @@
 ## UNRELEASED
 
+## 0.4.0 (July 9, 2025)
+
 BREAKING CHANGES:
 * variables: Pack variables without `default` values now cause an error when not provided,
   unless the `--allow-unset-vars` flag or `NOMAD_PACK_ALLOW_UNSET_VARS` env var are set.
-  [[GH-697](https://github.com/hashicorp/nomad-pack/pull/697)
+  [[GH-697]](https://github.com/hashicorp/nomad-pack/pull/697)
 
 ## 0.3.0 (April 15, 2025)
 
