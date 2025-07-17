@@ -1285,8 +1285,8 @@ github.com/hashicorp/golang-lru v1.0.2 h1:dV3g9Z/unq5DpblPpw+Oqcv4dU/1omnb4Ok8iP
 github.com/hashicorp/golang-lru v1.0.2/go.mod h1:iADmTwqILo4mZ8BN3D2Q6+9jd8WM5uGBxy+E8yxSoD4=
 github.com/hashicorp/golang-lru/v2 v2.0.7 h1:a+bsQ5rvGLjzHuww6tVxozPZFVghXaHOwFs4luLUK2k=
 github.com/hashicorp/golang-lru/v2 v2.0.7/go.mod h1:QeFd9opnmA6QUJc5vARoKUSoFhyfM2/ZepoAG6RGpeM=
-github.com/hashicorp/hcl v1.0.1-0.20201016140508-a07e7d50bbee h1:8B4HqvMUtYSjsGkYjiQGStc9pXffY2J+Z2SPQAj+wMY=
-github.com/hashicorp/hcl v1.0.1-0.20201016140508-a07e7d50bbee/go.mod h1:gwlu9+/P9MmKtYrMsHeFRZPXj2CTPm11TDnMeaRHS7g=
+github.com/hashicorp/hcl v1.0.1-nomad-1 h1:0hOV+/m12cRBAfvHpVOgGdM68XU7uTxGafEuUB2UES8=
+github.com/hashicorp/hcl v1.0.1-nomad-1/go.mod h1:gwlu9+/P9MmKtYrMsHeFRZPXj2CTPm11TDnMeaRHS7g=
 github.com/hashicorp/hcl/v2 v2.20.2-0.20240517235513-55d9c02d147d h1:7abftkc86B+tlA/0cDy5f6C4LgWfFOCpsGg3RJZsfbw=
 github.com/hashicorp/hcl/v2 v2.20.2-0.20240517235513-55d9c02d147d/go.mod h1:62ZYHrXgPoX8xBnzl8QzbWq4dyDsDtfCRgIq1rbJEvA=
 github.com/hashicorp/hil v0.0.0-20250319121018-5da016f8aba6 h1:tehNQGZYXYKSs9KU8gWKwUDWXtirayD1ITTYfb6TCUA=
@@ -1301,6 +1301,8 @@ github.com/hashicorp/nomad v1.10.3 h1:I5EqLI+Jqw/nO0pzlRDUO+6WNH5Y98scgEtAdkSi1x
 github.com/hashicorp/nomad v1.10.3/go.mod h1:rKbVqi9bUs1oINA0ObJhvAtXvZY0m/Aj6Krh0nn44pg=
 github.com/hashicorp/nomad/api v0.0.0-20250617071336-d3e077a78e62 h1:GNXoOG5rCmTnEaWYa8NK5rzIqFl4FScGgF6Nd+oyzao=
 github.com/hashicorp/nomad/api v0.0.0-20250617071336-d3e077a78e62/go.mod h1:y4olHzVXiQolzyk6QD/gqJxQTnnchlTf/QtczFFKwOI=
+github.com/hashicorp/nomad/api v0.0.0-20250630222842-3c2a6fefd3b2 h1:oEuBbu8IP4olIERuZalsO2pvrv7Tliilvjxy129oCJM=
+github.com/hashicorp/nomad/api v0.0.0-20250630222842-3c2a6fefd3b2/go.mod h1:y4olHzVXiQolzyk6QD/gqJxQTnnchlTf/QtczFFKwOI=
 github.com/hashicorp/raft v1.7.3 h1:DxpEqZJysHN0wK+fviai5mFcSYsCkNpFUl1xpAW8Rbo=
 github.com/hashicorp/raft v1.7.3/go.mod h1:DfvCGFxpAUPE0L4Uc8JLlTPtc3GzSbdH0MTJCLgnmJQ=
 github.com/hashicorp/raft-autopilot v0.3.0 h1:KhXCecBFqAMpC0i77qVfuYd937cl2dNatSA/sSNs+2s=

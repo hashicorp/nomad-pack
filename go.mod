@@ -7,7 +7,7 @@ replace (
 	github.com/armon/go-metrics => github.com/armon/go-metrics v0.0.0-20230509193637-d9ca9af9f1f9
 
 	// Use the same version of hcl v1 as Nomad.
-	github.com/hashicorp/hcl => github.com/hashicorp/hcl v1.0.1-0.20201016140508-a07e7d50bbee
+	github.com/hashicorp/hcl => github.com/hashicorp/hcl v1.0.1-nomad-1
 
 	// Use the same version of hcl v2 as Nomad.
 	github.com/hashicorp/hcl/v2 => github.com/hashicorp/hcl/v2 v2.20.2-0.20240517235513-55d9c02d147d
@@ -26,7 +26,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/hcl/v2 v2.23.0
 	github.com/hashicorp/nomad v1.10.3
-	github.com/hashicorp/nomad/api v0.0.0-20250617071336-d3e077a78e62
+	github.com/hashicorp/nomad/api v0.0.0-20250630222842-3c2a6fefd3b2
 	github.com/kr/text v0.2.0
 	github.com/lab47/vterm v0.0.0-20211107042118-80c3d2849f9c
 	github.com/mattn/go-isatty v0.0.20
