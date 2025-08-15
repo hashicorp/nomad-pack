@@ -1,5 +1,9 @@
 ## UNRELEASED
 
+IMPROVEMENTS:
+* build: Update Go version to 1.24.6 [[GH-719](https://github.com/hashicorp/nomad-pack/pull/719)]
+* build: Update go-getter version to 1.7.9 [[GH-719](https://github.com/hashicorp/nomad-pack/pull/719)] to resolve CVE-2025-8959. Nomad Client Agents with Landlock support are not impacted by this vulnerability.
+
 ## 0.4.0 (July 9, 2025)
 
 BREAKING CHANGES:
