@@ -174,7 +174,9 @@ func (r *Runner) SetRunnerConfig(cfg *runner.Config) { r.runnerCfg = cfg }
 // SetTemplates satisfies the SetTemplates function of the runner.Runner
 // interface.
 func (r *Runner) SetTemplates(templates map[string]string) {
-	r.rawTemplates = templates
+	for n, tpl := range templates {
+		r.rawTemplates[n] = r.setHCLMeta(tpl)
+	}
 }
 
 // determines next launch time and outputs to terminal
