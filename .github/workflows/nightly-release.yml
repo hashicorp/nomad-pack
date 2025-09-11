@@ -56,7 +56,7 @@ jobs:
       # If a release with this name already exists, it will overwrite the existing data
       - name: Create a nightly GitHub prerelease
         id: create_prerelease
-        uses: ncipollo/release-action@bcfe5470707e8832e12347755757cec0eb3c22af # v1.18.0
+        uses: ncipollo/release-action@b7eabc95ff50cbeeedec83973935c8f306dfcd0b # v1.20.0
         with:
           name: nightly
           artifacts: "${{ env.BUILD_OUTPUT_LIST }}"
