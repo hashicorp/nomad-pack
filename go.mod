@@ -40,7 +40,6 @@ require (
 	github.com/shoenig/test v1.12.2
 	github.com/spf13/afero v1.14.0
 	github.com/spf13/pflag v1.0.10
-	github.com/stretchr/testify v1.10.0
 	github.com/zclconf/go-cty v1.17.0
 	golang.org/x/exp v0.0.0-20250813145105-42675adae3e6
 	golang.org/x/term v0.34.0
@@ -313,6 +312,7 @@ require (
 	github.com/spf13/cast v1.7.1 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.5.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
+	github.com/stretchr/testify v1.10.0 // indirect
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635 // indirect
 	github.com/tencentcloud/tencentcloud-sdk-go v3.0.233+incompatible // indirect
 	github.com/tj/go-spin v1.1.0 // indirect
