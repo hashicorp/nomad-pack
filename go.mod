@@ -40,7 +40,7 @@ require (
 	github.com/shoenig/test v1.12.2
 	github.com/spf13/afero v1.14.0
 	github.com/spf13/pflag v1.0.10
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 	github.com/zclconf/go-cty v1.17.0
 	golang.org/x/exp v0.0.0-20250813145105-42675adae3e6
 	golang.org/x/term v0.34.0
