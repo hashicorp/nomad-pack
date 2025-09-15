@@ -80,10 +80,6 @@ func (r *Runner) CanonicalizeTemplates() []*errors.WrappedUIContext {
 		}
 	}
 
-	for _, jobSpec := range r.parsedTemplates {
-		r.setJobMeta(jobSpec.Job())
-	}
-
 	return nil
 }
 

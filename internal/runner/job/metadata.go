@@ -8,7 +8,6 @@ import (
 	"github.com/hashicorp/hcl/v2/gohcl"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/hcl/v2/hclwrite"
-	"github.com/hashicorp/nomad/api"
 	"github.com/hashicorp/nomad/jobspec2/hclutil"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -21,27 +20,6 @@ const (
 	PackJobKey            = "pack.job"
 	PackRefKey            = "pack.version"
 )
-
-// add metadata to the job for in cluster querying and management
-func (r *Runner) setJobMeta(job *api.Job) {
-	jobMeta := make(map[string]string)
-
-	// If current job meta isn't nil, use that instead
-	if job.Meta != nil {
-		jobMeta = job.Meta
-	}
-
-	// Add the Nomad Pack custom metadata.
-	jobMeta[PackPathKey] = r.runnerCfg.PathPath
-	jobMeta[PackNameKey] = r.runnerCfg.PackName
-	jobMeta[PackRegistryKey] = r.runnerCfg.RegistryName
-	jobMeta[PackDeploymentNameKey] = r.runnerCfg.DeploymentName
-	jobMeta[PackJobKey] = *job.Name
-	jobMeta[PackRefKey] = r.runnerCfg.PackRef
-
-	// Replace the job metadata with our modified ref.
-	job.Meta = jobMeta
-}
 
 // setHCLMeta sets the nomad-pack metadata in the HCL job definition, merging
 // the values with any existing meta block or attribute. If the parsing fails,
