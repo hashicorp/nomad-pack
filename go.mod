@@ -38,7 +38,7 @@ require (
 	github.com/posener/complete v1.2.3
 	github.com/ryanuber/columnize v2.1.2+incompatible
 	github.com/shoenig/test v1.12.2
-	github.com/spf13/afero v1.14.0
+	github.com/spf13/afero v1.15.0
 	github.com/spf13/pflag v1.0.10
 	github.com/zclconf/go-cty v1.17.0
 	golang.org/x/exp v0.0.0-20250813145105-42675adae3e6
