@@ -107,11 +107,12 @@ func (r *Runner) Deploy(ui terminal.UI, errorContext *errors.UIErrorContext) *er
 		}
 
 		registerOpts := api.RegisterOptions{
-			EnforceIndex:   r.cfg.RunConfig.CheckIndex > 0,
-			ModifyIndex:    r.cfg.RunConfig.CheckIndex,
-			PolicyOverride: r.cfg.RunConfig.PolicyOverride,
-			PreserveCounts: r.cfg.RunConfig.PreserveCounts,
-			Submission:     submission,
+			EnforceIndex:      r.cfg.RunConfig.CheckIndex > 0,
+			ModifyIndex:       r.cfg.RunConfig.CheckIndex,
+			PolicyOverride:    r.cfg.RunConfig.PolicyOverride,
+			PreserveCounts:    r.cfg.RunConfig.PreserveCounts,
+			PreserveResources: r.cfg.RunConfig.PreserveResources,
+			Submission:        submission,
 		}
 
 		// Submit the job

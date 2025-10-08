@@ -263,6 +263,14 @@ func (c *RunCommand) Flags() *flag.Sets {
 		})
 
 		f.BoolVar(&flag.BoolVar{
+			Name:    "preserve-resources",
+			Target:  &c.jobConfig.RunConfig.PreserveResources,
+			Default: false,
+			Usage: `If set, the existing task group resource definitions will be preserved
+					when updating a job.`,
+		})
+
+		f.BoolVar(&flag.BoolVar{
 			Name:    "rollback",
 			Hidden:  true,
 			Target:  &c.jobConfig.RunConfig.EnableRollback,
