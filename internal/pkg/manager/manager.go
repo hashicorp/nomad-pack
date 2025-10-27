@@ -142,6 +142,7 @@ func (pm *PackManager) ProcessTemplates(renderAux bool, format bool, ignoreMissi
 
 	r := new(renderer.Renderer)
 	r.Client = pm.client
+	r.PackPath = pm.cfg.Path
 	pm.renderer = r
 
 	// should auxiliary files be rendered as well?
