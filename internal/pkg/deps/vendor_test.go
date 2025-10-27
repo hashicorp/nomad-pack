@@ -155,9 +155,9 @@ func createTestDepRepo(t *testing.T, dst string) error {
 
 type NoopLogger struct{}
 
-func (_ NoopLogger) Debug(_ string)                                  {}
-func (_ NoopLogger) Error(_ string)                                  {}
-func (_ NoopLogger) ErrorWithContext(_ error, _ string, _ ...string) {}
-func (_ NoopLogger) Info(_ string)                                   {}
-func (_ NoopLogger) Trace(_ string)                                  {}
-func (_ NoopLogger) Warning(_ string)                                {}
+func (NoopLogger) Debug(_ string)                                  {}
+func (NoopLogger) Error(_ string)                                  {}
+func (NoopLogger) ErrorWithContext(_ error, _ string, _ ...string) {}
+func (NoopLogger) Info(_ string)                                   {}
+func (NoopLogger) Trace(_ string)                                  {}
+func (NoopLogger) Warning(_ string)                                {}

@@ -1,47 +1,63 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
+version: "2"
 run:
-  deadline: 10m
   tests: true
-
-# Output configuration options.
 output:
-  formats: colored-line-number
-  print-issued-lines: true
-  print-linter-name: true
-
-# All available settings of specific linters.
-linters-settings:
-  errcheck:
-    check-type-assertions: true
-  govet:
-    check-shadowing: true
-  gofmt:
-    simplify: true
-  staticcheck:
-    checks: [ "all","-ST1000" ]
-
+  formats:
+    text:
+      path: stdout
+      print-linter-name: true
+      print-issued-lines: true
 linters:
-  disable-all: true
+  default: none
   enable:
-    - goimports
-    - gocritic
-    - misspell
-    - govet
-    - ineffassign
-    - unconvert
-    - gofmt
-    - gosimple
-    - staticcheck
     - asasalint
     - asciicheck
     - bidichk
     - bodyclose
+    - copyloopvar
     - dogsled
     - durationcheck
-    # - errchkjson (todo)
-    # - errorlint (todo)
-    - copyloopvar
+    - gocritic
+    - govet
+    - ineffassign
+    - misspell
+    - staticcheck
+    - unconvert
     - usestdlibvars
-  fast: false
+  settings:
+    errcheck:
+      check-type-assertions: false
+      exclude-functions:
+        - io.*
+        - fmt.*
+    gocritic:
+      disabled-checks:
+        - commentFormatting
+        - deprecatedComment
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    gofmt:
+      simplify: true
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

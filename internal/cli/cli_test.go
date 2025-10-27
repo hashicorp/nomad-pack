@@ -72,7 +72,7 @@ func TestCLI_CreateTestRegistry(t *testing.T) {
 
 	result := runPackCmd(t, []string{"registry", "list"})
 	out := result.cmdOut.String()
-	regex := regexp.MustCompile(`(?m)^ +` + reg.Name + ` +\| (\w+) +\| (\w+) +\| ` + reg.Source + ` +[^\n]+?$`)
+	regex := regexp.MustCompile(`(?m)^ +` + reg.Name + ` +\| (\w+) +\| (\w+) +\| ` + reg.Source + `+[^\n]+?$`)
 	matches := regex.FindAllString(out, -1)
 	for i, match := range matches {
 		t.Logf("match %v:  %v\n", i, match)

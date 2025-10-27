@@ -63,10 +63,10 @@ func (c *PlanCommand) Run(args []string) int {
 	// load pack
 	r, err := renderPack(
 		packManager,
-		c.baseCommand.ui,
+		c.ui,
 		false,
 		false,
-		c.baseCommand.ignoreMissingVars,
+		c.ignoreMissingVars,
 		errorContext,
 	)
 	if err != nil {

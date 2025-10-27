@@ -8,6 +8,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/loader"
 	"github.com/hashicorp/nomad-pack/internal/pkg/renderer"
@@ -25,6 +26,7 @@ type Config struct {
 	VariableCLIArgs map[string]string
 	VariableEnvVars map[string]string
 	UseParserV1     bool
+	AllowUnsetVars  bool
 }
 
 // PackManager is responsible for loading, parsing, and rendering a Pack and
@@ -90,6 +92,28 @@ func (pm *PackManager) ProcessVariableFiles() (*parser.ParsedVariables, []*error
 	parsedVars, diags := variableParser.Parse()
 	if diags != nil && diags.HasErrors() {
 		return nil, errors.HCLDiagsToWrappedUIContext(diags)
+	}
+
+	// Ensure required variables are set, unless --allow-unset-vars
+	if !pm.cfg.AllowUnsetVars {
+		for _, vars := range parsedVars.GetVars() {
+			for _, v := range vars {
+				if v.Value.IsNull() {
+					detail := fmt.Sprintf("missing required variable: %q", v.Name)
+					if v.Description != "" {
+						detail = fmt.Sprintf("%s (%s)", detail, v.Description)
+					}
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "missing required variable",
+						Detail:   detail,
+					})
+				}
+			}
+		}
+		if diags != nil && diags.HasErrors() {
+			return nil, errors.HCLDiagsToWrappedUIContext(diags)
+		}
 	}
 
 	return parsedVars, nil

@@ -1,7 +1,27 @@
 ## UNRELEASED
 
 IMPROVEMENTS:
+* build: Update Go version to 1.24.6 [[GH-719](https://github.com/hashicorp/nomad-pack/pull/719)]
+* build: Update go-getter version to 1.7.9 [[GH-719](https://github.com/hashicorp/nomad-pack/pull/719)] to resolve CVE-2025-8959. Nomad Client Agents with Landlock support are not impacted by this vulnerability.
+* cli: Add `preserve-resources` flag to `nomad-pack run` [[GH-749](https://github.com/hashicorp/nomad-pack/pull/749)]
+* pack: Inject pack metadata into HCL jobspec when running the job [[GH-737](https://github.com/hashicorp/nomad-pack/pull/737)]
 * template: Add template function for returning the path to the pack's directory [[GH-574](https://github.com/hashicorp/nomad-pack/pull/574)]
+
+## 0.4.0 (July 9, 2025)
+
+BREAKING CHANGES:
+* variables: Pack variables without `default` values now cause an error when not provided,
+  unless the `--allow-unset-vars` flag or `NOMAD_PACK_ALLOW_UNSET_VARS` env var are set.
+  [[GH-697]](https://github.com/hashicorp/nomad-pack/pull/697)
+
+## 0.3.0 (April 15, 2025)
+
+BREAKING CHANGES:
+* cli: Remove deprecated Consul and Vault token configuration [[GH-659](https://github.com/hashicorp/nomad-pack/pull/659)]
+
+IMPROVEMENTS:
+* build: Update Nomad verison to 1.10.0 [[GH-659](https://github.com/hashicorp/nomad-pack/pull/659)]
+* build: Update Go version to 1.24.2 [[GH-668](https://github.com/hashicorp/nomad-pack/pull/668)]
 
 ## 0.2.0 (October 16, 2024)
 
@@ -9,19 +29,20 @@ BREAKING CHANGES:
 * template: HCL1 parsing has been removed and is no longer available [[GH-581](https://github.com/hashicorp/nomad-pack/pull/581)]
 
 IMPROVEMENTS:
-* build: Update Go version to 1.23.2 [[GH-580](https://github.com/hashicorp/nomad-pack/pull/580)]
-* deps: Update Nomad version to 1.9.0 [[GH-581](https://github.com/hashicorp/nomad-pack/pull/581)]
+* build: Update Go version to 1.24.0 [[GH-643](https://github.com/hashicorp/nomad-pack/pull/643)]
+* build: Update Alpine image for Docker continer build to v3.21.3 [[GH-652](https://github.com/hashicorp/nomad-pack/pull/652)]
+* deps: Update Nomad version to 1.9.7 [[GH-650](https://github.com/hashicorp/nomad-pack/pull/650)]
 
 BUG FIXES:
 * cli: Update references to `hello-world` pack in command help text to `hello_world` [[GH-523](https://github.com/hashicorp/nomad-pack/pull/523)]
 * docker: Added tzdata to container to fix panics running packs containing periodic jobs with timezones [[GH-564](https://github.com/hashicorp/nomad-pack/pull/564)]
 * cli: Replace path separators to slash on windows for local packs [[GH-578](https://github.com/hashicorp/nomad-pack/pull/578)]
 
-## 0.1.2 (June 7, 2024) 
+## 0.1.2 (June 7, 2024)
 
 IMPROVEMENTS:
 * cli: Emit the modify index in the output of `nomad-pack plan` [[GH-507](https://github.com/hashicorp/nomad-pack/pull/507)]
- 
+
 BUG FIXES:
 * cli: Fix non-interactive UI debug print output [[GH-508](https://github.com/hashicorp/nomad-pack/pull/508)]
 
@@ -34,7 +55,7 @@ DEPENDENCY CHANGES:
 
 IMPROVEMENTS:
 * build: Improve OS/Architecture detection [[GH-499](https://github.com/hashicorp/nomad-pack/pull/499)]
-* build: Update Go version to 1.21.5 [[GH-478](https://github.com/hashicorp/nomad-pack/pull/478)] 
+* build: Update Go version to 1.21.5 [[GH-478](https://github.com/hashicorp/nomad-pack/pull/478)]
 * build: Update Docker build dependencies [[GH-421](https://github.com/hashicorp/nomad-pack/pull/421)]
 * release: Add license (MPL) to release artifacts [[GH-498](https://github.com/hashicorp/nomad-pack/pull/498)]
 

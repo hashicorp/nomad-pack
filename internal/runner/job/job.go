@@ -5,14 +5,12 @@ package job
 
 import (
 	"fmt"
-	"os"
 	"regexp"
 	"time"
 
 	"github.com/hashicorp/nomad/api"
 
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
-	"github.com/hashicorp/nomad-pack/internal/pkg/helper/pointer"
 	"github.com/hashicorp/nomad-pack/internal/runner"
 	"github.com/hashicorp/nomad-pack/terminal"
 )
@@ -82,11 +80,6 @@ func (r *Runner) CanonicalizeTemplates() []*errors.WrappedUIContext {
 		}
 	}
 
-	for _, jobSpec := range r.parsedTemplates {
-		r.handleConsulAndVault(jobSpec.Job())
-		r.setJobMeta(jobSpec.Job())
-	}
-
 	return nil
 }
 
@@ -114,11 +107,12 @@ func (r *Runner) Deploy(ui terminal.UI, errorContext *errors.UIErrorContext) *er
 		}
 
 		registerOpts := api.RegisterOptions{
-			EnforceIndex:   r.cfg.RunConfig.CheckIndex > 0,
-			ModifyIndex:    r.cfg.RunConfig.CheckIndex,
-			PolicyOverride: r.cfg.RunConfig.PolicyOverride,
-			PreserveCounts: r.cfg.RunConfig.PreserveCounts,
-			Submission:     submission,
+			EnforceIndex:      r.cfg.RunConfig.CheckIndex > 0,
+			ModifyIndex:       r.cfg.RunConfig.CheckIndex,
+			PolicyOverride:    r.cfg.RunConfig.PolicyOverride,
+			PreserveCounts:    r.cfg.RunConfig.PreserveCounts,
+			PreserveResources: r.cfg.RunConfig.PreserveResources,
+			Submission:        submission,
 		}
 
 		// Submit the job
@@ -177,39 +171,8 @@ func (r *Runner) SetRunnerConfig(cfg *runner.Config) { r.runnerCfg = cfg }
 // SetTemplates satisfies the SetTemplates function of the runner.Runner
 // interface.
 func (r *Runner) SetTemplates(templates map[string]string) {
-	r.rawTemplates = templates
-}
-
-// handles resolving Consul and Vault options overrides with environment
-// variables, if present, and then set the values on the job instance.
-func (r *Runner) handleConsulAndVault(job *api.Job) {
-
-	// If the user didn't set a Consul token, check the environment to see if
-	// there is one.
-	if r.cfg.RunConfig.ConsulToken == "" {
-		r.cfg.RunConfig.ConsulToken = os.Getenv("CONSUL_HTTP_TOKEN")
-	}
-
-	if r.cfg.RunConfig.ConsulToken != "" {
-		job.ConsulToken = pointer.Of(r.cfg.RunConfig.ConsulToken)
-	}
-
-	if r.cfg.RunConfig.ConsulNamespace != "" {
-		job.ConsulNamespace = pointer.Of(r.cfg.RunConfig.ConsulNamespace)
-	}
-
-	// If the user didn't set a Vault token, check the environment to see if
-	// there is one.
-	if r.cfg.RunConfig.VaultToken == "" {
-		r.cfg.RunConfig.VaultToken = os.Getenv("VAULT_TOKEN")
-	}
-
-	if r.cfg.RunConfig.VaultToken != "" {
-		job.VaultToken = pointer.Of(r.cfg.RunConfig.VaultToken)
-	}
-
-	if r.cfg.RunConfig.VaultNamespace != "" {
-		job.VaultNamespace = pointer.Of(r.cfg.RunConfig.VaultNamespace)
+	for n, tpl := range templates {
+		r.rawTemplates[n] = r.setHCLMeta(tpl)
 	}
 }
 

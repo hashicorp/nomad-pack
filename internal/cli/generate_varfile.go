@@ -137,8 +137,13 @@ func (c *generateVarFileCommand) Run(args []string) int {
 		return 1
 	}
 
+	// we need to always allow unset vars here, else we'll get an error
+	// from required variables (those without defaults, which are "unset"
+	// until something sets them, like the var file we're trying to create!)
+	c.allowUnsetVars = true
+
 	packManager := generatePackManager(c.baseCommand, nil, c.packConfig)
-	renderOutput, err := renderVariableOverrideFile(packManager, c.baseCommand.ui, errorContext)
+	renderOutput, err := renderVariableOverrideFile(packManager, c.ui, errorContext)
 	if err != nil {
 		return 1
 	}

@@ -70,10 +70,10 @@ func (c *RunCommand) run() int {
 	// we won't make it to the deployer.
 	r, err := renderPack(
 		packManager,
-		c.baseCommand.ui,
+		c.ui,
 		false,
 		false,
-		c.baseCommand.ignoreMissingVars,
+		c.ignoreMissingVars,
 		errorContext,
 	)
 	if err != nil {
@@ -259,6 +259,14 @@ func (c *RunCommand) Flags() *flag.Sets {
 			Target:  &c.jobConfig.RunConfig.PreserveCounts,
 			Default: false,
 			Usage: `If set, the existing task group counts will be preserved
+					when updating a job.`,
+		})
+
+		f.BoolVar(&flag.BoolVar{
+			Name:    "preserve-resources",
+			Target:  &c.jobConfig.RunConfig.PreserveResources,
+			Default: false,
+			Usage: `If set, the existing task group resource definitions will be preserved
 					when updating a job.`,
 		})
 

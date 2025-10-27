@@ -88,10 +88,10 @@ func (c *StopCommand) Run(args []string) int {
 		// render the pack
 		r, err = renderPack(
 			packManager,
-			c.baseCommand.ui,
+			c.ui,
 			false,
 			false,
-			c.baseCommand.ignoreMissingVars,
+			c.ignoreMissingVars,
 			errorContext,
 		)
 		if err != nil {

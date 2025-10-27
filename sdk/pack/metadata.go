@@ -158,7 +158,7 @@ func (md *Metadata) Validate() error {
 // contain invalid or incorrect data.
 func (ma *MetadataApp) validate() error {
 	if ma == nil {
-		return errors.New("App is uninitialized")
+		return errors.New("app is uninitialized")
 	}
 	return nil
 }

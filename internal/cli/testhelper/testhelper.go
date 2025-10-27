@@ -39,16 +39,12 @@ func makeACLEnabledHTTPServer(t testing.TB, cb func(c *agent.Config)) *agent.Tes
 		ACLEnabled()(c)
 	}
 	srv := agent.NewTestAgent(t, t.Name(), aclCB)
-	testutil.WaitForLeader(t, srv.Agent.RPC)
-	c, err := NewTestClient(srv)
-	must.NoError(t, err)
-	tResp, _, err := c.ACLTokens().Bootstrap(&api.WriteOptions{})
-	must.NoError(t, err)
+	testutil.WaitForLeader(t, srv.RPC)
 
 	// Store the bootstrap ACL secret in the TestServer's client meta map
 	// so that it is easily accessible from tests.
 	srv.Config.Client.Meta = make(map[string]string, 1)
-	srv.Config.Client.Meta["token"] = tResp.SecretID
+	srv.Config.Client.Meta["token"] = srv.RootToken.SecretID
 
 	return srv
 }
@@ -99,7 +95,7 @@ func httpTest(t *testing.T, cb func(c *agent.Config), f func(srv *agent.TestAgen
 	}
 	s := makeHTTPServer(t, cb)
 	defer s.Shutdown()
-	testutil.WaitForLeader(t, s.Agent.RPC)
+	testutil.WaitForLeader(t, s.RPC)
 	f(s)
 }
 
@@ -128,8 +124,8 @@ func httpTestMultiRegionClusters(t *testing.T, cb1, cb2 func(c *agent.Config), f
 		s2.Shutdown()
 	}(s1, s2)
 
-	testutil.WaitForLeader(t, s1.Agent.RPC)
-	testutil.WaitForLeader(t, s2.Agent.RPC)
+	testutil.WaitForLeader(t, s1.RPC)
+	testutil.WaitForLeader(t, s2.RPC)
 
 	f(s1, s2)
 }
@@ -209,6 +205,7 @@ func LogLevel(level string) AgentOption {
 // enabled. Once started, this agent will need to have the ACLs bootstrapped.
 func ACLEnabled() AgentOption {
 	return func(c *agent.Config) {
+		c.ACL.Enabled = true
 		c.NomadConfig.ACLEnabled = true
 	}
 }

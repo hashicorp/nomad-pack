@@ -167,7 +167,7 @@ func (p *PackTemplateError) enhanceNPE() {
 		// directly, then they are probably using the old syntax. Since I'm not
 		// 100% on this yet, I'm going to reorganize the error message a little
 		// and add some information to DidYouMean
-		p.Err = fmt.Errorf("Pack %q not found when accessing %q", strings.TrimPrefix(p.badElement, "."), p.at)
+		p.Err = fmt.Errorf("pack %q not found when accessing %q", strings.TrimPrefix(p.badElement, "."), p.at)
 		p.Details = "The referenced pack was not found in the template context."
 		if parts := strings.Split(p.at, "."); len(parts) == 3 && parts[0] == "" {
 			// This case very much looks like the old .packname.varname. Let's try to

@@ -15,7 +15,6 @@ import (
 	"text/tabwriter"
 
 	"github.com/fatih/color"
-	"github.com/olekukonko/tablewriter"
 
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/helper"
@@ -169,27 +168,8 @@ func (ui *nonInteractiveTestUI) Table(tbl *terminal.Table, opts ...terminal.Opti
 	ui.mu.Lock()
 	defer ui.mu.Unlock()
 
-	table := tablewriter.NewWriter(ui.OutWriter)
-	table.SetHeader(tbl.Headers)
-	table.SetBorder(false)
-	table.SetAutoWrapText(false)
-
-	for _, row := range tbl.Rows {
-		colors := make([]tablewriter.Colors, len(row))
-		entries := make([]string, len(row))
-
-		for i, ent := range row {
-			entries[i] = ent.Value
-
-			color, ok := colorMapping[ent.Color]
-			if ok {
-				colors[i] = tablewriter.Colors{color}
-			}
-		}
-
-		table.Rich(entries, colors)
-	}
-
+	table := terminal.TableWithSettings(ui.OutWriter, tbl.Headers)
+	table.Bulk(tbl.Rows)
 	table.Render()
 }
 
@@ -393,22 +373,6 @@ var reAnsi = regexp.MustCompile("[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*
 var (
 	colorInfo = color.New()
 )
-
-const (
-	Yellow  = terminal.YellowStyle
-	Green   = terminal.GreenStyle
-	Red     = terminal.RedStyle
-	Bold    = terminal.BoldStyle
-	Default = terminal.DefaultStyle
-)
-
-var colorMapping = map[string]int{
-	Green:   tablewriter.FgGreenColor,
-	Yellow:  tablewriter.FgYellowColor,
-	Red:     tablewriter.FgRedColor,
-	Bold:    tablewriter.Bold,
-	Default: tablewriter.Normal,
-}
 
 var textStatus = map[string]string{
 	terminal.StatusOK:      " +",
