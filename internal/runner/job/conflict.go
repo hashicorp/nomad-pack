@@ -49,7 +49,7 @@ func (r *Runner) checkForConflict(jobName string) error {
 	// if there is a job with this name, that has no meta, it was
 	// created by something other than the package manager and this
 	// process should fail.
-	if existing.Meta == nil {
+	if existing.Meta == nil && !r.cfg.RunConfig.DeployOverride{
 		return ErrExistsNonPack{*existing.ID}
 	}
 
@@ -59,13 +59,13 @@ func (r *Runner) checkForConflict(jobName string) error {
 	// it was created by something other than the package manager and this
 	// process should abort.
 	existingDeploymentName, ok := meta[PackDeploymentNameKey]
-	if !ok {
+	if !ok && !r.cfg.RunConfig.DeployOverride {
 		return ErrExistsNonPack{*existing.ID}
 	}
 
 	// If there is a job with this ID, and a different deployment name, this
 	// process should abort.
-	if existingDeploymentName != r.runnerCfg.DeploymentName {
+	if existingDeploymentName != r.runnerCfg.DeploymentName && !r.cfg.RunConfig.DeployOverride {
 		return ErrExistsInDeployment{*existing.ID, existingDeploymentName}
 	}
 

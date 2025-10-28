@@ -247,6 +247,14 @@ func (c *RunCommand) Flags() *flag.Sets {
 		})
 
 		f.BoolVar(&flag.BoolVar{
+			Name:    "deploy-override",
+			Target:  &c.jobConfig.RunConfig.DeployOverride,
+			Default: false,
+			Usage: `Sets the flag to force deploy over currently deployed job (even 
+					externally deployed jobs).`,
+		})
+
+		f.BoolVar(&flag.BoolVar{
 			Name:    "policy-override",
 			Target:  &c.jobConfig.RunConfig.PolicyOverride,
 			Default: false,

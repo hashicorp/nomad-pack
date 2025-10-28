@@ -20,12 +20,14 @@ type RunCLIConfig struct {
 	VaultNamespace  string
 	EnableRollback  bool
 	PreserveCounts  bool
+	DeployOverride  bool
 	PolicyOverride  bool
 }
 
 // PlanCLIConfig specifies the configuration that is used by the Nomad Pack
 // plan command.
 type PlanCLIConfig struct {
+	DeployOverride  bool
 	PolicyOverride bool
 	Verbose        bool
 	Diff           bool
