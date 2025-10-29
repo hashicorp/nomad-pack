@@ -40,15 +40,11 @@ func makeACLEnabledHTTPServer(t testing.TB, cb func(c *agent.Config)) *agent.Tes
 	}
 	srv := agent.NewTestAgent(t, t.Name(), aclCB)
 	testutil.WaitForLeader(t, srv.RPC)
-	c, err := NewTestClient(srv)
-	must.NoError(t, err)
-	tResp, _, err := c.ACLTokens().Bootstrap(&api.WriteOptions{})
-	must.NoError(t, err)
 
 	// Store the bootstrap ACL secret in the TestServer's client meta map
 	// so that it is easily accessible from tests.
 	srv.Config.Client.Meta = make(map[string]string, 1)
-	srv.Config.Client.Meta["token"] = tResp.SecretID
+	srv.Config.Client.Meta["token"] = srv.RootToken.SecretID
 
 	return srv
 }
@@ -209,6 +205,7 @@ func LogLevel(level string) AgentOption {
 // enabled. Once started, this agent will need to have the ACLs bootstrapped.
 func ACLEnabled() AgentOption {
 	return func(c *agent.Config) {
+		c.ACL.Enabled = true
 		c.NomadConfig.ACLEnabled = true
 	}
 }

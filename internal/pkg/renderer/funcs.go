@@ -51,6 +51,12 @@ func funcMap(r *Renderer) template.FuncMap {
 		f["nomadRegions"] = nomadRegions(r.Client)
 	}
 
+	if r != nil && r.PackPath != "" {
+		f["packPath"] = func() (string, error) {
+			return r.PackPath, nil
+		}
+	}
+
 	// Add additional custom functions.
 	f["fileContents"] = fileContents
 	f["toStringList"] = toStringList

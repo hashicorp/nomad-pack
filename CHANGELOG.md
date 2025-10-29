@@ -1,3 +1,12 @@
+## UNRELEASED
+
+IMPROVEMENTS:
+* build: Update Go version to 1.24.6 [[GH-719](https://github.com/hashicorp/nomad-pack/pull/719)]
+* build: Update go-getter version to 1.7.9 [[GH-719](https://github.com/hashicorp/nomad-pack/pull/719)] to resolve CVE-2025-8959. Nomad Client Agents with Landlock support are not impacted by this vulnerability.
+* cli: Add `preserve-resources` flag to `nomad-pack run` [[GH-749](https://github.com/hashicorp/nomad-pack/pull/749)]
+* pack: Inject pack metadata into HCL jobspec when running the job [[GH-737](https://github.com/hashicorp/nomad-pack/pull/737)]
+* template: Add template function for returning the path to the pack's directory [[GH-574](https://github.com/hashicorp/nomad-pack/pull/574)]
+
 ## 0.4.0 (July 9, 2025)
 
 BREAKING CHANGES:
