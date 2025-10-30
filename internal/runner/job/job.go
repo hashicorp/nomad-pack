@@ -203,14 +203,21 @@ func (r *Runner) ParseTemplates() []*errors.WrappedUIContext {
 		// if a template contains region or namespace information, it needs to be passed
 		// to the client before calling the parse methods, otherwise they might fail in
 		// case ACL restricts our permissions
+
+		// Remove template blocks (data = <<EOF ... EOF) before checking for namespace/region
+		// to avoid false positives from heredoc content.
+		// NOTE: This does not do proper HEREDOC parsing, as we cannot use back-references
+		// to match the word after `<<`, e.g. 'EOF'.
+		templateBlockRe := regexp.MustCompile(`(?s)template\s*\{.*?data\s*=\s*<<-?\w+\n.*?\n\s*\w+\s*\n.*?\}`)
+		tplFiltered := templateBlockRe.ReplaceAllString(tpl, "")
+
 		namespaceRe := regexp.MustCompile(`(?m)namespace = \"([\w-]+)`)
 		regionRe := regexp.MustCompile(`(?m)region = \"([\w-]+)`)
 
-		if nsRes := namespaceRe.FindStringSubmatch(tpl); len(nsRes) > 1 {
+		if nsRes := namespaceRe.FindStringSubmatch(tplFiltered); len(nsRes) > 1 {
 			r.client.SetNamespace(nsRes[1])
 		}
-
-		if regRes := regionRe.FindStringSubmatch(tpl); len(regRes) > 1 {
+		if regRes := regionRe.FindStringSubmatch(tplFiltered); len(regRes) > 1 {
 			r.client.SetRegion(regRes[1])
 		}
 
