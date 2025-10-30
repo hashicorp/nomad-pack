@@ -26,7 +26,7 @@ var (
 	// Metadata allows us to provide additional metadata information to the
 	// version identifier. This is typically used to identify enterprise builds
 	// using the "ent" metadata string.
-	Metadata = ""
+	Metadata = "vxfiber"
 )
 
 // HumanVersion composes the parts of the version in a way that's suitable for
