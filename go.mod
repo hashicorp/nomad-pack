@@ -237,7 +237,7 @@ require (
 	github.com/hashicorp/yamux v0.1.2 // indirect
 	github.com/hpcloud/tail v1.0.1-0.20170814160653-37f427138745 // indirect
 	github.com/huandu/xstrings v1.5.0 // indirect
-	github.com/ishidawataru/sctp v0.0.0-20250303034628-ecf9ed6df987 // indirect
+	github.com/ishidawataru/sctp v0.0.0-20250829011129-4b890084db30 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/jefferai/isbadcipher v0.0.0-20190226160619-51d2077c035f // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
