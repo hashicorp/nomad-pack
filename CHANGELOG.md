@@ -1,4 +1,4 @@
-## UNRELEASED
+## 0.4.1 (November 13, 2025)
 
 IMPROVEMENTS:
 * build: Update Go version to 1.25.4 [[GH-765](https://github.com/hashicorp/nomad-pack/pull/765)]
