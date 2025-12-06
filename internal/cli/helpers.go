@@ -5,8 +5,8 @@ package cli
 
 import (
 	"fmt"
+	"net/url"
 	"os"
-	"strings"
 
 	"github.com/hashicorp/nomad/api"
 
@@ -408,30 +408,31 @@ func clientOptsFromCLI(c *baseCommand) *api.Config {
 	return conf
 }
 
-// handlBasicAuth checks whether the NOMAD_ADDR string is in the user:pass@addr
-// format and if it is, it returns user, password and address. It returns "", "",
-// address otherwise.
-func handleBasicAuth(s string) (string, string, string) {
-	before, after, found := strings.Cut(s, "@")
-	if found {
-		user, pass, found := strings.Cut(before, ":")
-		if found {
-			return user, pass, after
-		}
+// removeBasicAuth removes userinfo from a URL and returns the adjusted URL.
+// The second return value is the userinfo that was removed.
+func removeBasicAuth(addr string) (string, *url.Userinfo) {
+	u, err := url.Parse(addr)
+	if err != nil {
+		return addr, nil
 	}
-	return "", "", before
+
+	userinfo := u.User
+	u.User = nil
+	return u.String(), userinfo
 }
 
 // clientOptsFromEnvironment populates api client conf with environment
 // variables present at the CLI's runtime.
 func clientOptsFromEnvironment(conf *api.Config) {
 	if v := os.Getenv("NOMAD_ADDR"); v != "" {
-		// we support user:pass@addr here
-		user, pass, addr := handleBasicAuth(v)
+		addr, userinfo := removeBasicAuth(v)
 		conf.Address = addr
-		if user != "" && pass != "" {
-			conf.HttpAuth.Username = user
-			conf.HttpAuth.Password = pass
+		if userinfo != nil {
+			pass, _ := userinfo.Password()
+			conf.HttpAuth = &api.HttpBasicAuth{
+				Username: userinfo.Username(),
+				Password: pass,
+			}
 		}
 	}
 	if v := os.Getenv("NOMAD_NAMESPACE"); v != "" {
@@ -463,12 +464,14 @@ func clientOptsFromEnvironment(conf *api.Config) {
 func clientOptsFromFlags(c *baseCommand, conf *api.Config) {
 	cfg := c.nomadConfig
 	if cfg.address != "" {
-		// we support user:pass@addr here
-		user, pass, addr := handleBasicAuth(cfg.address)
+		addr, userinfo := removeBasicAuth(cfg.address)
 		conf.Address = addr
-		if user != "" && pass != "" {
-			conf.HttpAuth.Username = user
-			conf.HttpAuth.Password = pass
+		if userinfo != nil {
+			pass, _ := userinfo.Password()
+			conf.HttpAuth = &api.HttpBasicAuth{
+				Username: userinfo.Username(),
+				Password: pass,
+			}
 		}
 	}
 	if cfg.namespace != "" {
