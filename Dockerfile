@@ -10,7 +10,7 @@
 
 # devbuild compiles the binary
 # -----------------------------------
-FROM golang:1.24 AS devbuild
+FROM golang:1.25 AS devbuild
 
 # Disable CGO to make sure we build static binaries
 ENV CGO_ENABLED=0
@@ -22,7 +22,7 @@ RUN go build -o nomad-pack .
 
 # dev runs the binary from devbuild
 # -----------------------------------
-FROM alpine:3.21.3 AS dev
+FROM alpine:3.23.0 AS dev
 
 RUN apk add --no-cache git libc6-compat tzdata
 COPY --from=devbuild /build/nomad-pack /bin/
@@ -34,7 +34,7 @@ CMD ["help"]
 # ===================================
 #   Release images.
 # ===================================
-FROM alpine:3.21.3 AS release
+FROM alpine:3.23.0 AS release
 
 ARG PRODUCT_NAME=nomad-pack
 ARG PRODUCT_VERSION
