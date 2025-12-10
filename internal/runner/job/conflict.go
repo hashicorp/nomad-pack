@@ -36,6 +36,11 @@ func (r *Runner) CheckForConflicts(errCtx *errors.UIErrorContext) []*errors.Wrap
 // supplied job is found. If the job is found, we confirm if it belongs to this
 // Nomad Pack deployment. In the event it doesn't this will result in an error.
 func (r *Runner) checkForConflict(jobName string) error {
+	deploy_override := r.cfg.RunConfig.DeployOverride || r.cfg.PlanConfig.DeployOverride
+	if deploy_override {
+		return nil
+	}
+
 	existing, _, err := r.client.Jobs().Info(jobName, &api.QueryOptions{})
 	if err != nil && !errIsNotFound(err) {
 		return err
@@ -49,7 +54,7 @@ func (r *Runner) checkForConflict(jobName string) error {
 	// if there is a job with this name, that has no meta, it was
 	// created by something other than the package manager and this
 	// process should fail.
-	if existing.Meta == nil && !r.cfg.RunConfig.DeployOverride{
+	if existing.Meta == nil {
 		return ErrExistsNonPack{*existing.ID}
 	}
 
@@ -59,13 +64,13 @@ func (r *Runner) checkForConflict(jobName string) error {
 	// it was created by something other than the package manager and this
 	// process should abort.
 	existingDeploymentName, ok := meta[PackDeploymentNameKey]
-	if !ok && !r.cfg.RunConfig.DeployOverride {
+	if !ok {
 		return ErrExistsNonPack{*existing.ID}
 	}
 
 	// If there is a job with this ID, and a different deployment name, this
 	// process should abort.
-	if existingDeploymentName != r.runnerCfg.DeploymentName && !r.cfg.RunConfig.DeployOverride {
+	if existingDeploymentName != r.runnerCfg.DeploymentName {
 		return ErrExistsInDeployment{*existing.ID, existingDeploymentName}
 	}
 
