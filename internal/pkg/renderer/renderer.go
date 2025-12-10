@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2021, 2025
 // SPDX-License-Identifier: MPL-2.0
 
 package renderer
@@ -26,6 +26,9 @@ type Renderer struct {
 	// Strict determines the template rendering missingkey option setting. If
 	// set to true error will be used, otherwise zero is used.
 	Strict bool
+
+	// PackPath is the path to the pack being rendered.
+	PackPath string
 
 	// Client is the Nomad API client used when running the Nomad template
 	// functions. It can potentially be nil, therefore care should be taken

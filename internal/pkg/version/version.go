@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2021, 2025
 // SPDX-License-Identifier: MPL-2.0
 
 package version
@@ -16,12 +16,12 @@ var (
 
 	// Version is the semantic version number describing the current state of
 	// NOM.
-	Version = "0.4.0"
+	Version = "0.4.2"
 
 	// Prerelease designates whether the current version is within a prerelease
 	// phase. Typically, this will be "dev" to signify a development cycle or a
 	// release candidate phase such as alpha, beta.1, rc.1, or such.
-	Prerelease = ""
+	Prerelease = "dev"
 
 	// Metadata allows us to provide additional metadata information to the
 	// version identifier. This is typically used to identify enterprise builds

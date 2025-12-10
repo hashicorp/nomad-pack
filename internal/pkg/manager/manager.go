@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2021, 2025
 // SPDX-License-Identifier: MPL-2.0
 
 package manager
@@ -142,6 +142,7 @@ func (pm *PackManager) ProcessTemplates(renderAux bool, format bool, ignoreMissi
 
 	r := new(renderer.Renderer)
 	r.Client = pm.client
+	r.PackPath = pm.cfg.Path
 	pm.renderer = r
 
 	// should auxiliary files be rendered as well?

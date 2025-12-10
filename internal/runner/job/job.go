@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2021, 2025
 // SPDX-License-Identifier: MPL-2.0
 
 package job
@@ -80,10 +80,6 @@ func (r *Runner) CanonicalizeTemplates() []*errors.WrappedUIContext {
 		}
 	}
 
-	for _, jobSpec := range r.parsedTemplates {
-		r.setJobMeta(jobSpec.Job())
-	}
-
 	return nil
 }
 
@@ -111,11 +107,12 @@ func (r *Runner) Deploy(ui terminal.UI, errorContext *errors.UIErrorContext) *er
 		}
 
 		registerOpts := api.RegisterOptions{
-			EnforceIndex:   r.cfg.RunConfig.CheckIndex > 0,
-			ModifyIndex:    r.cfg.RunConfig.CheckIndex,
-			PolicyOverride: r.cfg.RunConfig.PolicyOverride,
-			PreserveCounts: r.cfg.RunConfig.PreserveCounts,
-			Submission:     submission,
+			EnforceIndex:      r.cfg.RunConfig.CheckIndex > 0,
+			ModifyIndex:       r.cfg.RunConfig.CheckIndex,
+			PolicyOverride:    r.cfg.RunConfig.PolicyOverride,
+			PreserveCounts:    r.cfg.RunConfig.PreserveCounts,
+			PreserveResources: r.cfg.RunConfig.PreserveResources,
+			Submission:        submission,
 		}
 
 		// Submit the job
@@ -174,7 +171,9 @@ func (r *Runner) SetRunnerConfig(cfg *runner.Config) { r.runnerCfg = cfg }
 // SetTemplates satisfies the SetTemplates function of the runner.Runner
 // interface.
 func (r *Runner) SetTemplates(templates map[string]string) {
-	r.rawTemplates = templates
+	for n, tpl := range templates {
+		r.rawTemplates[n] = r.setHCLMeta(tpl)
+	}
 }
 
 // determines next launch time and outputs to terminal

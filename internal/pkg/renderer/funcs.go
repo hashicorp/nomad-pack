@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2021, 2025
 // SPDX-License-Identifier: MPL-2.0
 
 package renderer
@@ -49,6 +49,12 @@ func funcMap(r *Renderer) template.FuncMap {
 		f["nomadNamespaces"] = nomadNamespaces(r.Client)
 		f["nomadNamespace"] = nomadNamespace(r.Client)
 		f["nomadRegions"] = nomadRegions(r.Client)
+	}
+
+	if r != nil && r.PackPath != "" {
+		f["packPath"] = func() (string, error) {
+			return r.PackPath, nil
+		}
 	}
 
 	// Add additional custom functions.
