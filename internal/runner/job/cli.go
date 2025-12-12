@@ -21,12 +21,14 @@ type RunCLIConfig struct {
 	EnableRollback    bool
 	PreserveCounts    bool
 	PreserveResources bool
+	DeployOverride    bool
 	PolicyOverride    bool
 }
 
 // PlanCLIConfig specifies the configuration that is used by the Nomad Pack
 // plan command.
 type PlanCLIConfig struct {
+	DeployOverride bool
 	PolicyOverride bool
 	Verbose        bool
 	Diff           bool

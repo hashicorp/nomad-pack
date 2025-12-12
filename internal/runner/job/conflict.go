@@ -36,6 +36,11 @@ func (r *Runner) CheckForConflicts(errCtx *errors.UIErrorContext) []*errors.Wrap
 // supplied job is found. If the job is found, we confirm if it belongs to this
 // Nomad Pack deployment. In the event it doesn't this will result in an error.
 func (r *Runner) checkForConflict(jobName string) error {
+	deploy_override := r.cfg.RunConfig.DeployOverride || r.cfg.PlanConfig.DeployOverride
+	if deploy_override {
+		return nil
+	}
+
 	existing, _, err := r.client.Jobs().Info(jobName, &api.QueryOptions{})
 	if err != nil && !errIsNotFound(err) {
 		return err

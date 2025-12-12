@@ -203,8 +203,8 @@ func (r *Runner) ParseTemplates() []*errors.WrappedUIContext {
 		// if a template contains region or namespace information, it needs to be passed
 		// to the client before calling the parse methods, otherwise they might fail in
 		// case ACL restricts our permissions
-		namespaceRe := regexp.MustCompile(`(?m)namespace = \"(\w+)`)
-		regionRe := regexp.MustCompile(`(?m)region = \"(\w+)`)
+		namespaceRe := regexp.MustCompile(`(?m)namespace\s*=\s*\"([\w-]+)\"`)
+		regionRe := regexp.MustCompile(`(?m)region\s*=\s*\"([\w-]+)\"`)
 
 		if nsRes := namespaceRe.FindStringSubmatch(tpl); len(nsRes) > 1 {
 			r.client.SetNamespace(nsRes[1])
