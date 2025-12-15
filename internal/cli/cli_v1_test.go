@@ -564,7 +564,7 @@ func TestCLI_V1_CLIFlag_Token(t *testing.T) {
 		})
 
 		expectNoStdErrOutput(t, result)
-		must.StrContains(t, result.cmdOut.String(), "Unexpected response code: 403 (ACL token not found)", must.Sprintf("Expected token not found error, received %q", result.cmdOut.String()))
+		must.StrContains(t, result.cmdOut.String(), "Unexpected response code: 403 (Permission denied)", must.Sprintf("Expected token not found error, received %q", result.cmdOut.String()))
 
 		result = runTestPackV1Cmd(t, srv, []string{
 			"run",
@@ -587,7 +587,7 @@ func TestCLI_V1_EnvConfig_Token(t *testing.T) {
 			getTestPackV1Path(t, testPack),
 		})
 		expectNoStdErrOutput(t, result)
-		must.StrContains(t, result.cmdOut.String(), "Unexpected response code: 403 (ACL token not found)", must.Sprintf("Expected token not found error, received %q", result.cmdOut.String()))
+		must.StrContains(t, result.cmdOut.String(), "Unexpected response code: 403 (Permission denied)", must.Sprintf("Expected token not found error, received %q", result.cmdOut.String()))
 
 		// Good token - Should run
 		t.Setenv("NOMAD_TOKEN", srv.Config.Client.Meta["token"])
