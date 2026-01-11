@@ -195,7 +195,7 @@ jobs:
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - name: Docker Build (Action)
-        uses: hashicorp/actions-docker-build@0ecbfabcce42edc96cf740b9547ab7cf8a07d47c # v2.0.0
+        uses: hashicorp/actions-docker-build@e028f0fa0532e4e971c032e2f2fe6a3aec398f65 # v2.0.0
         with:
           smoke_test: |
             TEST_VERSION="$(docker run "${IMAGE_NAME}" version | awk '/Nomad Pack/{print $3}')"
