@@ -143,7 +143,10 @@ func decode(root *pack.Pack, filename string, src []byte, ctx *hcl.EvalContext, 
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Unsupported file format",
-			Detail:   fmt.Sprintf("Cannot read from %s: unrecognized file format suffix %q.", filename, suffix),
+			Detail: fmt.Sprintf(
+				"Cannot read from %s: unrecognized file format suffix %q. Supported formats are \".hcl\" and \".json\"",
+				filename, suffix,
+			),
 		})
 	}
 
