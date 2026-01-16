@@ -3,6 +3,7 @@
 IMPROVEMENTS:
 * cli: Add -deploy-override flag to plan and run commands to allow forcing deployment over existing jobs, including those not deployed by Nomad Pack [[GH-757](https://github.com/hashicorp/nomad-pack/pull/757)]
 * template: Improve regex parsing for namespace and region fields to support hyphenated values [[GH-757](https://github.com/hashicorp/nomad-pack/pull/757)]
+* variable: Improve the error message returned when using a variable file with an unsupported file extension [[GH-791](https://github.com/hashicorp/nomad-pack/pull/791)]
 
 ## 0.4.1 (November 13, 2025)
 
