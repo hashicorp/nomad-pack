@@ -18,17 +18,18 @@ func (c *GenerateHelpCommand) Run(args []string) int {
 	c.cmdKey = "generate"
 
 	// Initialize. If we fail, we just exit since Init handles the UI.
+	exitCode := 0
 	if err := c.Init(
 		WithNoArgs(args),
 		WithNoConfig(),
 		WithClient(false),
 	); err != nil {
-		c.ui.Info("The generate command requires one of the following subcommands: pack, registry, var-file.")
-		return 1
+		c.ui.ErrorWithContext(err, ErrParsingArgsOrFlags)
+		exitCode = 1
 	}
 
 	c.ui.Info("The generate command requires one of the following subcommands: pack, registry, var-file.")
-	return 0
+	return exitCode
 }
 
 func (c *GenerateHelpCommand) Flags() *flag.Sets {

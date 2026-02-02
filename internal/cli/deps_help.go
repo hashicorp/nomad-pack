@@ -19,17 +19,18 @@ func (d *depsHelpCommand) Run(args []string) int {
 	d.cmdKey = "deps"
 
 	// Initialize. If we fail, we just exit since Init handles the UI.
+	exitCode := 0
 	if err := d.Init(
 		WithNoArgs(args),
 		WithNoConfig(),
 		WithClient(false),
 	); err != nil {
-		d.ui.Info("The deps command requires the following subcommand: vendor.")
-		return 1
+		d.ui.ErrorWithContext(err, ErrParsingArgsOrFlags)
+		exitCode = 1
 	}
 
 	d.ui.Info("The deps command requires the following subcommand: vendor.")
-	return 0
+	return exitCode
 }
 
 func (d *depsHelpCommand) Flags() *flag.Sets {

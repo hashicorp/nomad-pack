@@ -100,6 +100,12 @@ func Main(args []string) int {
 		panic(err)
 	}
 
+	// The mitchellh/cli library returns 127 (cli.RunResultHelp) when displaying help.
+	// We want help to be a successful operation with exit code 0.
+	if exitCode == 127 {
+		return 0
+	}
+
 	return exitCode
 }
 

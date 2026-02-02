@@ -18,17 +18,18 @@ func (c *RegistryHelpCommand) Run(args []string) int {
 	c.cmdKey = "registry"
 
 	// Initialize. If we fail, we just exit since Init handles the UI.
+	exitCode := 0
 	if err := c.Init(
 		WithNoArgs(args),
 		WithNoConfig(),
 		WithClient(false),
 	); err != nil {
-		c.ui.Info("The registry command requires one of the following subcommands: add, delete, list.")
-		return 1
+		c.ui.ErrorWithContext(err, ErrParsingArgsOrFlags)
+		exitCode = 1
 	}
 
 	c.ui.Info("The registry command requires one of the following subcommands: add, delete, list.")
-	return 0
+	return exitCode
 }
 
 func (c *RegistryHelpCommand) Flags() *flag.Sets {
