@@ -1,7 +1,7 @@
 // Copyright IBM Corp. 2021, 2025
 // SPDX-License-Identifier: MPL-2.0
 
-package cache
+package caching
 
 import (
 	"os"
@@ -44,17 +44,17 @@ func (c *Cache) Get(opts *GetOpts) (registry *Registry, err error) {
 	return
 }
 
-// GetOpts are the arguments are required to get a registry or pack from the cache.
+// GetOpts are the arguments are required to get a registry or pack from the caching.
 type GetOpts struct {
-	// Path to the cache containing the registry. Must be set by cache after opts
+	// Path to the caching containing the registry. Must be set by caching after opts
 	// are passed.
 	cachePath string
 	// Optional Name or alias of the registry the get operation will be performed
 	// against.
 	RegistryName string
-	// Optional name of pack to get from cache
+	// Optional name of pack to get from caching
 	PackName string
-	// Optional ref ov pack or registry to get from the cache.
+	// Optional ref ov pack or registry to get from the caching.
 	Ref string
 }
 

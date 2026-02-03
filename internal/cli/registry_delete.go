@@ -7,13 +7,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
+	"github.com/hashicorp/nomad-pack/internal/pkg/caching"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
 	"github.com/posener/complete"
 )
 
-// RegistryDeleteCommand deletes a registry from the global cache.
+// RegistryDeleteCommand deletes a registry from the global caching.
 type RegistryDeleteCommand struct {
 	*baseCommand
 	name   string
@@ -43,17 +43,17 @@ func (c *RegistryDeleteCommand) Run(args []string) int {
 	errorContext.Add(errors.UIContextPrefixRegistryName, c.name)
 	errorContext.Add(errors.UIContextPrefixRegistryTarget, c.target)
 
-	// Get the global cache dir - may be configurable in the future, so using this
+	// Get the global caching dir - may be configurable in the future, so using this
 	// helper function rather than a direct reference to the CONST.
-	globalCache, err := cache.NewCache(&cache.CacheConfig{
-		Path:   cache.DefaultCachePath(),
+	globalCache, err := caching.NewCache(&caching.CacheConfig{
+		Path:   caching.DefaultCachePath(),
 		Logger: c.ui,
 	})
 	if err != nil {
 		return 1
 	}
 
-	err = globalCache.Delete(&cache.DeleteOpts{
+	err = globalCache.Delete(&caching.DeleteOpts{
 		RegistryName: c.name,
 		PackName:     c.target,
 		Ref:          c.ref,

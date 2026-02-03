@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/nomad/api"
 	"github.com/posener/complete"
 
-	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
+	"github.com/hashicorp/nomad-pack/internal/pkg/caching"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
 	"github.com/hashicorp/nomad-pack/internal/pkg/helper"
@@ -20,7 +20,7 @@ import (
 
 type StopCommand struct {
 	*baseCommand
-	packConfig *cache.PackConfig
+	packConfig *caching.PackConfig
 	purge      bool
 	global     bool
 	Validation ValidationFn
@@ -215,7 +215,7 @@ func (c *StopCommand) confirmStop() bool {
 
 func (c *StopCommand) Flags() *flag.Sets {
 	return c.flagSet(flagSetOperation|flagSetNomadClient, func(set *flag.Sets) {
-		c.packConfig = &cache.PackConfig{}
+		c.packConfig = &caching.PackConfig{}
 
 		f := set.NewSet("Stop Options")
 		f.StringVar(&flag.StringVar{

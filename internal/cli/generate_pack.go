@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/nomad-pack/sdk/pack"
 )
 
-// GeneratePackCommand adds a registry to the global cache.
+// GeneratePackCommand adds a registry to the global caching.
 type GeneratePackCommand struct {
 	*baseCommand
 	cfg config.PackConfig

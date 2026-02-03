@@ -1,7 +1,7 @@
 // Copyright IBM Corp. 2021, 2025
 // SPDX-License-Identifier: MPL-2.0
 
-package cache
+package caching
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 )
 
-// Delete deletes a registry from the specified global cache directory.
+// Delete deletes a registry from the specified global caching directory.
 // If the name includes a @ref component, only packs matching that ref
 // will be deleted. If a target is specified, only packs matching that target
 // will be deleted.  Ref and target are additive.
@@ -20,9 +20,9 @@ func (c *Cache) Delete(opts *DeleteOpts) (err error) {
 	logger := c.cfg.Logger
 	opts.cachePath = c.cfg.Path
 
-	// if cache directory is empty return error
+	// if caching directory is empty return error
 	if opts.cachePath == "" {
-		err = errors.New("cache path is required")
+		err = errors.New("caching path is required")
 		return
 	}
 
@@ -95,14 +95,14 @@ func (c *Cache) Delete(opts *DeleteOpts) (err error) {
 }
 
 // DeleteOpts are the arguments that are required to delete a registry or pack
-// from the cache.
+// from the caching.
 type DeleteOpts struct {
-	// Path to the cache containing the registry. Must be set by cache after opts
+	// Path to the caching containing the registry. Must be set by caching after opts
 	// are passed.
 	cachePath string
 	// Name or alias of the registry the delete operation will be performed against.
 	RegistryName string
-	// Optional pack name to delete when deleting a specific pack from the cache.
+	// Optional pack name to delete when deleting a specific pack from the caching.
 	PackName string
 	// Optional ref of pack or registry at which to delete. Ignored it not
 	// specifying a git source. Defaults to latest.

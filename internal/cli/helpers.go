@@ -10,7 +10,7 @@ import (
 
 	"github.com/hashicorp/nomad/api"
 
-	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
+	"github.com/hashicorp/nomad-pack/internal/pkg/caching"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/manager"
 	"github.com/hashicorp/nomad-pack/internal/pkg/renderer"
@@ -21,7 +21,7 @@ import (
 )
 
 // get an initialized error context for a command that accepts pack args.
-func initPackCommand(cfg *cache.PackConfig) (errorContext *errors.UIErrorContext) {
+func initPackCommand(cfg *caching.PackConfig) (errorContext *errors.UIErrorContext) {
 	cfg.Init()
 
 	// Generate our UI error context.
@@ -29,15 +29,15 @@ func initPackCommand(cfg *cache.PackConfig) (errorContext *errors.UIErrorContext
 	errorContext.Add(errors.UIContextPrefixRegistryName, cfg.Registry)
 	errorContext.Add(errors.UIContextPrefixPackName, cfg.Name)
 	errorContext.Add(errors.UIContextPrefixPackRef, cfg.Ref)
-	if cfg.Registry == cache.DevRegistryName && cfg.Ref == cache.DevRef {
+	if cfg.Registry == caching.DevRegistryName && cfg.Ref == caching.DevRef {
 		errorContext.Add(errors.UIContextPrefixPackPath, cfg.Path)
 	}
 	return
 }
 
 // generatePackManager is used to generate the pack manager for this Nomad Pack run.
-func generatePackManager(c *baseCommand, client *api.Client, packCfg *cache.PackConfig) *manager.PackManager {
-	// TODO: Refactor to have manager use cache.
+func generatePackManager(c *baseCommand, client *api.Client, packCfg *caching.PackConfig) *manager.PackManager {
+	// TODO: Refactor to have manager use caching.
 	cfg := manager.Config{
 		Path:            packCfg.Path,
 		VariableFiles:   c.varFiles,
@@ -61,7 +61,7 @@ func packTable() *terminal.Table {
 	return terminal.NewTable("PACK NAME", "METADATA VERSION", "REGISTRY NAME")
 }
 
-func registryTableRow(cachedRegistry *cache.Registry) []string {
+func registryTableRow(cachedRegistry *caching.Registry) []string {
 	return []string{
 		cachedRegistry.Name,
 		formatSHA1Reference(cachedRegistry.Ref),
@@ -70,7 +70,7 @@ func registryTableRow(cachedRegistry *cache.Registry) []string {
 	}
 }
 
-func registryPackRow(cachedRegistry *cache.Registry, cachedPack *cache.Pack) []string {
+func registryPackRow(cachedRegistry *caching.Registry, cachedPack *caching.Pack) []string {
 	return []string{
 		// The Name of the registryPack
 		cachedPack.Name(),
@@ -93,7 +93,7 @@ func registryPackRow(cachedRegistry *cache.Registry, cachedPack *cache.Pack) []s
 		// TODO: The app version
 	}
 }
-func registryName(cr *cache.Registry) string {
+func registryName(cr *caching.Registry) string {
 	if cr.Ref == cr.LocalRef {
 		return fmt.Sprintf("%s@%s", cr.Name, formatSHA1Reference(cr.LocalRef))
 	}
@@ -105,7 +105,7 @@ func registryName(cr *cache.Registry) string {
 	return fmt.Sprintf("%s@%s (%s)", cr.Name, formatSHA1Reference(cr.Ref), formatSHA1Reference(cr.LocalRef))
 }
 
-func packRow(cachedRegistry *cache.Registry, cachedPack *cache.Pack) []string {
+func packRow(cachedRegistry *caching.Registry, cachedPack *caching.Pack) []string {
 	return []string{
 		// The Name of the registryPack
 		cachedPack.Name(),
@@ -196,15 +196,15 @@ func parseJob(cmd *baseCommand, hcl string, errCtx *errors.UIErrorContext) (*api
 }
 
 // Generates a deployment name if not specified. Default is pack@version.
-func getDeploymentName(c *baseCommand, cfg *cache.PackConfig) string {
+func getDeploymentName(c *baseCommand, cfg *caching.PackConfig) string {
 	if c.deploymentName == "" {
-		return cache.AppendRef(cfg.Name, cfg.Ref)
+		return caching.AppendRef(cfg.Name, cfg.Ref)
 	}
 	return c.deploymentName
 }
 
 // TODO: Move to a domain specific package.
-func getPackJobsByDeploy(c *api.Client, cfg *cache.PackConfig, deploymentName string) ([]*api.Job, error) {
+func getPackJobsByDeploy(c *api.Client, cfg *caching.PackConfig, deploymentName string) ([]*api.Job, error) {
 	jobsApi := c.Jobs()
 	jobs, _, err := jobsApi.List(&api.QueryOptions{})
 	if err != nil {
@@ -352,7 +352,7 @@ type JobStatusError struct {
 }
 
 // TODO: Move to a domain specific package.
-func getDeployedPackJobs(c *api.Client, cfg *cache.PackConfig, deploymentName string) ([]JobStatusInfo, []JobStatusError, error) {
+func getDeployedPackJobs(c *api.Client, cfg *caching.PackConfig, deploymentName string) ([]JobStatusInfo, []JobStatusError, error) {
 	jobsApi := c.Jobs()
 	jobs, _, err := jobsApi.List(&api.QueryOptions{})
 	if err != nil {

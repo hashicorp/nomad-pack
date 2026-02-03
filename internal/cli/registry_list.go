@@ -6,7 +6,7 @@ package cli
 import (
 	"github.com/posener/complete"
 
-	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
+	"github.com/hashicorp/nomad-pack/internal/pkg/caching"
 	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
 )
 
@@ -29,10 +29,10 @@ func (c *RegistryListCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Get the global cache dir - may be configurable in the future, so using this
+	// Get the global caching dir - may be configurable in the future, so using this
 	// helper function rather than a direct reference to the CONST.
-	globalCache, err := cache.NewCache(&cache.CacheConfig{
-		Path:   cache.DefaultCachePath(),
+	globalCache, err := caching.NewCache(&caching.CacheConfig{
+		Path:   caching.DefaultCachePath(),
 		Logger: c.ui,
 	})
 	if err != nil {
@@ -59,14 +59,14 @@ func (c *RegistryListCommand) Run(args []string) int {
 		// TODO: This message is to make upgrading from tech preview versions
 		// to 0.1 easier. Remove it at 0.2 release.
 		if table.Rows[0][2] == "" {
-			c.ui.Warning("It appears that you have a cache created before Nomad-Pack 0.1 (hence the\n" +
+			c.ui.Warning("It appears that you have a caching created before Nomad-Pack 0.1 (hence the\n" +
 				"missing values in LOCAL REF and REGISTRY URL columns). We recommend deleting\n" +
-				"your current cache with `nomad-pack registry delete <name>` and re-adding your\n" +
+				"your current caching with `nomad-pack registry delete <name>` and re-adding your\n" +
 				"registries to take full advantage of new `nomad-pack registry list` and\n" +
 				"`nomad-pack list` commands behavior.")
 		}
 	} else {
-		c.ui.Output("No registries present in the cache.")
+		c.ui.Output("No registries present in the caching.")
 	}
 
 	return 0

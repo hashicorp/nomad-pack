@@ -9,13 +9,13 @@ import (
 
 	"github.com/posener/complete"
 
-	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
+	"github.com/hashicorp/nomad-pack/internal/pkg/caching"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
 	"github.com/hashicorp/nomad-pack/terminal"
 )
 
-// RegistryAddCommand adds a registry to the global cache.
+// RegistryAddCommand adds a registry to the global caching.
 type RegistryAddCommand struct {
 	*baseCommand
 	source string
@@ -53,16 +53,16 @@ func (c *RegistryAddCommand) Run(args []string) int {
 		errorContext.Add(errors.UIContextPrefixRegistryTarget, c.target)
 	}
 
-	// Add the registry or registry target to the global cache
-	globalCache, err := cache.NewCache(&cache.CacheConfig{
-		Path:   cache.DefaultCachePath(),
+	// Add the registry or registry target to the global caching
+	globalCache, err := caching.NewCache(&caching.CacheConfig{
+		Path:   caching.DefaultCachePath(),
 		Logger: c.ui,
 	})
 	if err != nil {
 		return 1
 	}
 
-	newRegistry, err := globalCache.Add(&cache.AddOpts{
+	newRegistry, err := globalCache.Add(&caching.AddOpts{
 		RegistryName: c.name,
 		Source:       c.source,
 		PackName:     c.target,
@@ -80,7 +80,7 @@ func (c *RegistryAddCommand) Run(args []string) int {
 
 	// Initialize output table
 	var table *terminal.Table
-	var validPack *cache.Pack
+	var validPack *caching.Pack
 	// If only targeting a single pack, only output a single row
 	if c.target != "" {
 		table = registryPackTable()
@@ -101,7 +101,7 @@ func (c *RegistryAddCommand) Run(args []string) int {
 		}
 	}
 
-	c.ui.Info("Registry successfully added to cache.")
+	c.ui.Info("Registry successfully added to caching.")
 	c.ui.Table(table)
 
 	if validPack != nil {
@@ -132,7 +132,7 @@ func (c *RegistryAddCommand) Flags() *flag.Sets {
 					times for the same ref is idempotent, however running
 					"nomad-pack registry add" without specifying a ref, or when
 					specifying @latest, is destructive, and will overwrite
-					current @latest in the global cache.
+					current @latest in the global caching.
 
 					Using ref with a file path is not supported.`,
 		})
@@ -153,10 +153,10 @@ func (c *RegistryAddCommand) Synopsis() string {
 
 func (c *RegistryAddCommand) Help() string {
 	c.Example = `
-	# Download latest ref of the pack registry to the global cache.
+	# Download latest ref of the pack registry to the global caching.
 	nomad-pack registry add community github.com/hashicorp/nomad-pack-community-registry
 
-	# Download latest ref of a specific pack from the registry to the global cache.
+	# Download latest ref of a specific pack from the registry to the global caching.
 	nomad-pack registry add community github.com/hashicorp/nomad-pack-community-registry --target=nomad_example
 
 	# Download packs from a registry at a specific tag/release/SHA.

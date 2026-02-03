@@ -23,7 +23,7 @@ import (
 	"github.com/shoenig/test/wait"
 
 	ct "github.com/hashicorp/nomad-pack/internal/cli/testhelper"
-	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
+	"github.com/hashicorp/nomad-pack/internal/pkg/caching"
 	flag "github.com/hashicorp/nomad-pack/internal/pkg/flag"
 	"github.com/hashicorp/nomad-pack/internal/pkg/helper"
 	"github.com/hashicorp/nomad-pack/internal/pkg/helper/filesystem"
@@ -53,7 +53,7 @@ const (
 )
 
 func TestCLI_CreateTestRegistry(t *testing.T) {
-	// This test is here to help setup the pack registry cache. It needs to be
+	// This test is here to help setup the pack registry caching. It needs to be
 	// the first one in the file and can not be `Parallel()`
 	reg, _, regPath := createTestRegistries(t)
 	defer cleanTestRegistry(t, regPath)
@@ -381,7 +381,7 @@ func TestCLI_PackDestroy_WithOverrides(t *testing.T) {
 	ct.HTTPTestParallel(t, ct.WithDefaultConfig(), func(s *agent.TestAgent) {
 		c, err := ct.NewTestClient(s)
 		must.NoError(t, err)
-		// Because this test uses ref, it requires a populated pack cache.
+		// Because this test uses ref, it requires a populated pack caching.
 		reg, _, regPath := createTestRegistries(t)
 		defer cleanTestRegistry(t, regPath)
 
@@ -468,7 +468,7 @@ func TestCLI_PackStatus(t *testing.T) {
 				args := append([]string{"status"}, tc.args...)
 				result := runTestPackCmd(t, s, args)
 				must.Zero(t, result.exitCode)
-				must.StrContains(t, result.cmdOut.String(), "simple_raw_exec | "+cache.DevRegistryName+" ")
+				must.StrContains(t, result.cmdOut.String(), "simple_raw_exec | "+caching.DevRegistryName+" ")
 			})
 		}
 	})
@@ -907,13 +907,13 @@ func expectGoodPackPlan(t *testing.T, r PackCommandResult) {
 // createTestRegistries creates two registries: first one has "latest" ref,
 // second one has testRef ref. It returns registry objects, and a string that
 // points to the root where the two refs are on the filesystem.
-func createTestRegistries(t *testing.T) (*cache.Registry, *cache.Registry, string) {
+func createTestRegistries(t *testing.T) (*caching.Registry, *caching.Registry, string) {
 	t.Helper()
 
 	// Fake a clone
 	registryName := fmt.Sprintf("test-%v", time.Now().UnixMilli())
 
-	regDir := path.Join(cache.DefaultCachePath(), registryName)
+	regDir := path.Join(caching.DefaultCachePath(), registryName)
 	err := filesystem.MaybeCreateDestinationDir(regDir)
 	must.NoError(t, err)
 
@@ -927,7 +927,7 @@ func createTestRegistries(t *testing.T) (*cache.Registry, *cache.Registry, strin
 	}
 
 	// create output registries and metadata.json files
-	latestReg := &cache.Registry{
+	latestReg := &caching.Registry{
 		Name:     registryName,
 		Source:   "github.com/hashicorp/nomad-pack-test-registry",
 		LocalRef: testRef,
@@ -937,7 +937,7 @@ func createTestRegistries(t *testing.T) (*cache.Registry, *cache.Registry, strin
 	b, _ := json.Marshal(latestReg)
 	must.NoError(t, os.WriteFile(latestMetaPath, b, 0644))
 
-	testRefReg := &cache.Registry{
+	testRefReg := &caching.Registry{
 		Name:     registryName,
 		Source:   "github.com/hashicorp/nomad-pack-test-registry",
 		LocalRef: testRef,

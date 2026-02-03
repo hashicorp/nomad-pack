@@ -1,7 +1,7 @@
 // Copyright IBM Corp. 2021, 2025
 // SPDX-License-Identifier: MPL-2.0
 
-package cache
+package caching
 
 import (
 	"encoding/json"
@@ -209,7 +209,7 @@ func TestAddRegistryWithRefAndPackName(t *testing.T) {
 }
 
 func TestAddRegistryNoCacheDir(t *testing.T) {
-	opts := testAddOpts("no-cache-dir")
+	opts := testAddOpts("no-caching-dir")
 
 	cache, err := NewCache(&CacheConfig{
 		Path:   "",
@@ -501,7 +501,7 @@ func initialize() {
 // GetTestGithubRegistry will initialize a cloneable local git registry containing
 // the contents of test_registry in the fixtures folder of the project. This local
 // git repo is then used to reduce network impacts of registry clone actions in
-// the cache test suite.
+// the caching test suite.
 func GetTestGithubRegistry() *TestGithubRegistry {
 	initialize()
 	return tReg
@@ -526,7 +526,7 @@ func (t *TestGithubRegistry) Cleanup() {
 
 func makeTestRegRepo(tReg *TestGithubRegistry) {
 	var err error
-	tReg.tmpDir, err = os.MkdirTemp("", "cache-test-*")
+	tReg.tmpDir, err = os.MkdirTemp("", "caching-test-*")
 	if err != nil {
 		panic(fmt.Errorf("unable to create temp dir for test git repo: %w", err))
 	}
@@ -608,7 +608,7 @@ func dirEntries(t *testing.T, p string) []fs.DirEntry {
 	return dirEntries
 }
 
-// packtuple describes each pack found in an entire cache
+// packtuple describes each pack found in an entire caching
 // directory. The listAllTestPacks produces a packtuples,
 // which is an alias for []packtuple
 type packtuple struct {

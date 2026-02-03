@@ -6,7 +6,7 @@ package cli
 import (
 	"github.com/posener/complete"
 
-	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
+	"github.com/hashicorp/nomad-pack/internal/pkg/caching"
 	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
 )
 
@@ -32,10 +32,10 @@ func (c *ListCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Get the global cache dir - may be configurable in the future, so using this
+	// Get the global caching dir - may be configurable in the future, so using this
 	// helper function rather than a direct reference to the CONST.
-	globalCache, err := cache.NewCache(&cache.CacheConfig{
-		Path:   cache.DefaultCachePath(),
+	globalCache, err := caching.NewCache(&caching.CacheConfig{
+		Path:   caching.DefaultCachePath(),
 		Logger: c.ui,
 	})
 	if err != nil {
@@ -73,7 +73,7 @@ func (c *ListCommand) Run(args []string) int {
 	if len(table.Rows) > 0 {
 		c.ui.Table(table)
 	} else {
-		c.ui.Output("No packs present in the cache.")
+		c.ui.Output("No packs present in the caching.")
 	}
 
 	return 0

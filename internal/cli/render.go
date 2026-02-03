@@ -15,7 +15,7 @@ import (
 	"github.com/posener/complete"
 	"golang.org/x/exp/maps"
 
-	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
+	"github.com/hashicorp/nomad-pack/internal/pkg/caching"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
 	"github.com/hashicorp/nomad-pack/internal/pkg/helper/filesystem"
@@ -27,7 +27,7 @@ import (
 // debugging packs.
 type RenderCommand struct {
 	*baseCommand
-	packConfig *cache.PackConfig
+	packConfig *caching.PackConfig
 
 	// renderOutputTemplate is a boolean flag to control whether the output
 	// template is rendered.
@@ -264,7 +264,7 @@ func (c *RenderCommand) Run(args []string) int {
 	// Set the packConfig defaults if necessary and generate our UI error context.
 	errorContext := initPackCommand(c.packConfig)
 
-	if err := cache.VerifyPackExists(c.packConfig, errorContext, c.ui); err != nil {
+	if err := caching.VerifyPackExists(c.packConfig, errorContext, c.ui); err != nil {
 		return 1
 	}
 
@@ -343,7 +343,7 @@ func (c *RenderCommand) Run(args []string) int {
 
 func (c *RenderCommand) Flags() *flag.Sets {
 	return c.flagSet(flagSetOperation|flagSetNeedsApproval, func(set *flag.Sets) {
-		c.packConfig = &cache.PackConfig{}
+		c.packConfig = &caching.PackConfig{}
 
 		f := set.NewSet("Render Options")
 

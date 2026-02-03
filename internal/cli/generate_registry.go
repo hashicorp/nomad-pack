@@ -11,7 +11,7 @@ import (
 	"github.com/posener/complete"
 )
 
-// GenerateRegistryCommand adds a registry to the global cache.
+// GenerateRegistryCommand adds a registry to the global caching.
 type GenerateRegistryCommand struct {
 	*baseCommand
 	cfg config.PackConfig
