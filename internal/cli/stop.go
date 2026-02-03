@@ -5,6 +5,7 @@ package cli
 
 import (
 	"context"
+	stderrors "errors"
 	"fmt"
 	"time"
 
@@ -187,20 +188,24 @@ func (c *StopCommand) checkForConflicts(client *api.Client, job *api.Job) error 
 		queryOpts.Namespace = *job.Namespace
 	}
 
-	queryOpts.Prefix = *job.ID
+	// Use exact job lookup instead of prefix matching to avoid false conflicts
 	jobsApi := client.Jobs()
 
-	jobs, _, err := jobsApi.List(queryOpts.WithContext(context.Background()))
+	existingJob, _, err := jobsApi.Info(*job.ID, queryOpts.WithContext(context.Background()))
 	if err != nil {
+		// Check if the error is "not found" - this is acceptable as it means the job doesn't exist
+		var unexpectedResponse api.UnexpectedResponseError
+		if stderrors.As(err, &unexpectedResponse) {
+			if unexpectedResponse.HasStatusText() && unexpectedResponse.StatusText() == "Not Found" {
+				return fmt.Errorf("no job with id %q found", *job.ID)
+			}
+		}
 		return fmt.Errorf("error checking for conflicts for job %q: %s", *job.Name, err)
 	}
 
-	if len(jobs) == 0 {
-		return fmt.Errorf("no job(s) with prefix or id %q found", *job.Name)
-	}
-
-	if len(jobs) > 1 {
-		return fmt.Errorf("prefix matched multiple jobs\n\n%s", createStatusListOutput(jobs, c.allNamespaces()))
+	// If we found the job, verify it exists (should always be true if no error)
+	if existingJob == nil {
+		return fmt.Errorf("no job with id %q found", *job.ID)
 	}
 
 	return nil
