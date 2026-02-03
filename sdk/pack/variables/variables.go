@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/nomad-pack/sdk/pack"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/ext/typeexpr"
 	"github.com/mitchellh/go-wordwrap"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
@@ -46,6 +47,12 @@ type Variable struct {
 	Type    cty.Type
 	hasType bool
 
+	// ConstraintType represents the type constraint for this variable and is
+	// used for decoding and type validation. This may contain nested
+	// ObjectWithOptionalAttrs types.
+	ConstraintType cty.Type
+	TypeDefaults   *typeexpr.Defaults
+
 	// Value stores the variable value and is used when converting the cty type
 	// value into a Go type value.
 	Value cty.Value
@@ -57,7 +64,12 @@ type Variable struct {
 
 func (v *Variable) SetDescription(d string) { v.Description = d; v.hasDescription = true }
 func (v *Variable) SetDefault(d cty.Value)  { v.Default = d; v.hasDefault = true }
-func (v *Variable) SetType(t cty.Type)      { v.Type = t; v.hasType = true }
+func (v *Variable) SetType(t cty.Type) {
+	v.Type = t.WithoutOptionalAttributesDeep()
+	v.ConstraintType = t
+	v.hasType = true
+}
+func (v *Variable) SetTypeDefaults(t *typeexpr.Defaults) { v.TypeDefaults = t }
 
 func (v *Variable) Equal(ivp *Variable) bool {
 	if v == ivp {
@@ -147,7 +159,16 @@ func (v *Variable) Merge(in *Variable) hcl.Diagnostics {
 				))
 			}
 		} else {
-			v.Value = val
+			// Apply defaults from the variable's type constraint after conversion, unless
+			// the converted value is null. This will ensure that optional attributes are
+			// properly populated even if the default attribute is not set in the variable block.
+			if v.TypeDefaults != nil && !val.IsNull() && v.Type.IsObjectType() {
+				val = v.TypeDefaults.Apply(val)
+				v.Value = val
+				v.Type = val.Type()
+			} else {
+				v.Value = val
+			}
 		}
 	}
 
