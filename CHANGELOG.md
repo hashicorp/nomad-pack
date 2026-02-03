@@ -5,6 +5,9 @@ IMPROVEMENTS:
 * template: Improve regex parsing for namespace and region fields to support hyphenated values [[GH-757](https://github.com/hashicorp/nomad-pack/pull/757)]
 * variable: Improve the error message returned when using a variable file with an unsupported file extension [[GH-791](https://github.com/hashicorp/nomad-pack/pull/791)]
 
+BUG FIXES:
+* cli: Return exit code 0 instead of 127 when displaying help, aligning with standard Unix conventions [[GH-796](https://github.com/hashicorp/nomad-pack/pull/796)]
+
 ## 0.4.1 (November 13, 2025)
 
 IMPROVEMENTS:
