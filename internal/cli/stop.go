@@ -141,11 +141,11 @@ func (c *StopCommand) Run(args []string) int {
 
 	var errs []error
 	for _, job := range jobs {
-		err = c.checkForConflicts(client, job)
+		err = c.validateJobExists(client, job)
 
 		if err != nil {
 			errs = append(errs, err)
-			c.ui.Warning(fmt.Sprintf("skipping job %q - conflict check failed with err: %s", *job.ID, err))
+			c.ui.Warning(fmt.Sprintf("skipping job %q - job validation failed with err: %s", *job.ID, err))
 			continue
 		}
 
@@ -182,7 +182,7 @@ func (c *StopCommand) Run(args []string) int {
 	return 0
 }
 
-func (c *StopCommand) checkForConflicts(client *api.Client, job *api.Job) error {
+func (c *StopCommand) validateJobExists(client *api.Client, job *api.Job) error {
 	queryOpts := &api.QueryOptions{}
 	if job.Namespace != nil {
 		queryOpts.Namespace = *job.Namespace
@@ -200,7 +200,7 @@ func (c *StopCommand) checkForConflicts(client *api.Client, job *api.Job) error 
 				return fmt.Errorf("no job with id %q found", *job.ID)
 			}
 		}
-		return fmt.Errorf("error checking for conflicts for job %q: %s", *job.Name, err)
+		return fmt.Errorf("error validating job %q: %s", *job.Name, err)
 	}
 
 	// If we found the job, verify it exists (should always be true if no error)
