@@ -37,7 +37,7 @@ func initPackCommand(cfg *caching.PackConfig) (errorContext *errors.UIErrorConte
 
 // generatePackManager is used to generate the pack manager for this Nomad Pack run.
 func generatePackManager(c *baseCommand, client *api.Client, packCfg *caching.PackConfig) *manager.PackManager {
-	// TODO: Refactor to have manager use caching.
+	// TODO: Refactor to have manager use cache.
 	cfg := manager.Config{
 		Path:            packCfg.Path,
 		VariableFiles:   c.varFiles,

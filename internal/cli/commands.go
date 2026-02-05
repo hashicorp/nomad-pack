@@ -219,7 +219,7 @@ func (c *baseCommand) Init(opts ...Option) error {
 		c.ui = terminal.NonInteractiveUI(c.Ctx)
 	}
 
-	// Perform the caching ensure, but skip if we are running the version
+	// Perform the cache ensure, but skip if we are running the version
 	// command.
 	if c.cmdKey != "version" {
 		return c.ensureCache()
@@ -229,7 +229,7 @@ func (c *baseCommand) Init(opts ...Option) error {
 }
 
 func (c *baseCommand) ensureCache() error {
-	// Creates global caching
+	// Creates global cache
 	_, err := caching.NewCache(&caching.CacheConfig{
 		Path:   caching.DefaultCachePath(),
 		Logger: c.ui,
