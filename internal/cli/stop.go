@@ -4,7 +4,6 @@
 package cli
 
 import (
-	"context"
 	"fmt"
 	"time"
 
@@ -144,7 +143,7 @@ func (c *StopCommand) Run(args []string) int {
 
 		if err != nil {
 			errs = append(errs, err)
-			c.ui.Warning(fmt.Sprintf("skipping job %q - conflict check failed with err: %s", *job.ID, err))
+			c.ui.Warning(fmt.Sprintf("skipping job %q - job validation failed with err: %s", *job.ID, err))
 			continue
 		}
 
@@ -187,12 +186,12 @@ func (c *StopCommand) checkForConflicts(client *api.Client, job *api.Job) error 
 		queryOpts.Namespace = *job.Namespace
 	}
 
-	queryOpts.Prefix = *job.ID
+	prefix := *job.ID
 	jobsApi := client.Jobs()
 
-	jobs, _, err := jobsApi.List(queryOpts.WithContext(context.Background()))
+	jobs, _, err := jobsApi.PrefixList(prefix)
 	if err != nil {
-		return fmt.Errorf("error checking for conflicts for job %q: %s", *job.Name, err)
+		return fmt.Errorf("error querying job prefix %q: %s", prefix, err)
 	}
 
 	if len(jobs) == 0 {
@@ -200,7 +199,12 @@ func (c *StopCommand) checkForConflicts(client *api.Client, job *api.Job) error 
 	}
 
 	if len(jobs) > 1 {
-		return fmt.Errorf("prefix matched multiple jobs\n\n%s", createStatusListOutput(jobs, c.allNamespaces()))
+		exactMatch := prefix == jobs[0].ID
+		matchInMultipleNamespaces := c.allNamespaces() && jobs[0].ID == jobs[1].ID
+
+		if !exactMatch || matchInMultipleNamespaces {
+			return fmt.Errorf("prefix matched multiple jobs\n\n%s", createStatusListOutput(jobs, c.allNamespaces()))
+		}
 	}
 
 	return nil

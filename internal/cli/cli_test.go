@@ -385,40 +385,172 @@ func TestCLI_PackDestroy_WithOverrides(t *testing.T) {
 		reg, _, regPath := createTestRegistries(t)
 		defer cleanTestRegistry(t, regPath)
 
-		// 	TODO: Table Testing
-		// Create multiple jobs in the same pack deployment
-
-		jobNames := []string{"foo", "bar"}
-		for _, j := range jobNames {
-			expectGoodPackDeploy(t, runTestPackCmd(
-				t, s, []string{"run", testPack, "--var=job_name=" + j, "--registry=" + reg.Name}))
+		testCases := []struct {
+			desc             string
+			initialJobs      []string // Jobs to create before the test
+			destroyJobName   string   // Job name to destroy (via --var)
+			expectedExitCode int
+			expectError      bool
+			remainingJobs    []string // Jobs that should still exist after destroy
+			deletedJobs      []string // Jobs that should be gone after destroy
+		}{
+			{
+				desc:             "destroy-nonexistent-job",
+				initialJobs:      []string{"foo", "bar"},
+				destroyJobName:   "baz",
+				expectedExitCode: 1,
+				expectError:      true,
+				remainingJobs:    []string{"foo", "bar"},
+				deletedJobs:      []string{},
+			},
+			{
+				desc:             "destroy-specific-job-with-override",
+				initialJobs:      []string{"foo", "bar"},
+				destroyJobName:   "foo",
+				expectedExitCode: 0,
+				expectError:      false,
+				remainingJobs:    []string{"bar"},
+				deletedJobs:      []string{"foo"},
+			},
+			{
+				desc:             "destroy-with-prefix-conflict",
+				initialJobs:      []string{"service", "service-test", "service-prod"},
+				destroyJobName:   "service",
+				expectedExitCode: 0,
+				expectError:      false,
+				remainingJobs:    []string{"service-test", "service-prod"},
+				deletedJobs:      []string{"service"},
+			},
+			{
+				desc:             "destroy-all-with-no-override",
+				initialJobs:      []string{"job1", "job2"},
+				destroyJobName:   "", // No var override, should destroy all
+				expectedExitCode: 0,
+				expectError:      false,
+				remainingJobs:    []string{},
+				deletedJobs:      []string{"job1", "job2"},
+			},
 		}
 
-		// Stop nonexistent job
-		result := runTestPackCmd(t, s, []string{"destroy", testPack, "--var=job_name=baz", "--registry=" + reg.Name})
-		must.Eq(t, 1, result.exitCode, must.Sprintf(
-			"expected exitcode 1; got %v\ncmdOut:%v", result.exitCode, result.cmdOut.String()))
+		for _, tC := range testCases {
+			t.Run(tC.desc, func(t *testing.T) {
+				// Setup: Clean up any existing jobs first
+				defer ct.NomadCleanup(s)
 
-		// Stop job with var override
-		result = runTestPackCmd(t, s, []string{"destroy", testPack, "--var=job_name=foo", "--registry=" + reg.Name})
-		must.Zero(t, result.exitCode, must.Sprintf(
-			"expected exitcode 0; got %v\ncmdOut:%v", result.exitCode, result.cmdOut.String()))
+				// Create initial jobs
+				for _, jobName := range tC.initialJobs {
+					result := runTestPackCmd(
+						t, s, []string{"run", testPack, "--var=job_name=" + jobName, "--registry=" + reg.Name})
+					expectGoodPackDeploy(t, result)
+				}
 
-		// Assert job "bar" still exists
-		job, _, err := c.Jobs().Info("bar", &api.QueryOptions{WaitTime: 5 * time.Second})
+				// Execute destroy command
+				var args []string
+				if tC.destroyJobName != "" {
+					args = []string{"destroy", testPack, "--var=job_name=" + tC.destroyJobName, "--registry=" + reg.Name}
+				} else {
+					args = []string{"destroy", testPack, "--registry=" + reg.Name}
+				}
+				result := runTestPackCmd(t, s, args)
+
+				// Verify exit code
+				must.Eq(t, tC.expectedExitCode, result.exitCode, must.Sprintf(
+					"expected exitcode %d; got %v\ncmdOut:%v", tC.expectedExitCode, result.exitCode, result.cmdOut.String()))
+
+				// Verify remaining jobs still exist
+				for _, jobName := range tC.remainingJobs {
+					j, _, err := c.Jobs().Info(jobName, &api.QueryOptions{WaitTime: 5 * time.Second})
+					must.NoError(t, err, must.Sprintf("job %s should still exist", jobName))
+					must.NotNil(t, j, must.Sprintf("job %s should not be nil", jobName))
+				}
+
+				// Verify deleted jobs are gone
+				for _, jobName := range tC.deletedJobs {
+					j, _, err := c.Jobs().Info(jobName, &api.QueryOptions{WaitTime: 5 * time.Second})
+					must.Error(t, err, must.Sprintf("job %s should be deleted", jobName))
+					must.Eq(t, "Unexpected response code: 404 (job not found)", err.Error())
+					must.Nil(t, j, must.Sprintf("deleted job %s should be nil", jobName))
+				}
+			})
+		}
+	})
+}
+
+func TestCLI_PackDestroy_PrefixListBehavior(t *testing.T) {
+	ct.HTTPTestParallel(t, ct.WithDefaultConfig(), func(s *agent.TestAgent) {
+		c, err := ct.NewTestClient(s)
 		must.NoError(t, err)
-		must.NotNil(t, job)
 
-		// Stop job with no overrides passed
-		result = runTestPackCmd(t, s, []string{"destroy", testPack, "--registry=" + reg.Name})
-		must.Zero(t, result.exitCode, must.Sprintf(
-			"expected exitcode 0; got %v\ncmdOut:%v", result.exitCode, result.cmdOut.String()))
+		reg, _, regPath := createTestRegistries(t)
+		defer cleanTestRegistry(t, regPath)
+		defer ct.NomadCleanup(s)
 
-		// Assert job bar is gone
-		job, _, err = c.Jobs().Info("bar", &api.QueryOptions{WaitTime: 5 * time.Second})
-		must.Error(t, err)
-		must.Eq(t, "Unexpected response code: 404 (job not found)", err.Error())
-		must.Nil(t, job)
+		// Create jobs that will test prefix matching behavior
+		// These job names are chosen to test edge cases:
+		// - "service" is the base name
+		// - "service-aaa" and "service-zzz" test alphabetical sorting
+		// - All three start with "service" prefix
+		jobNames := []string{"service", "service-aaa", "service-zzz"}
+		for _, jobName := range jobNames {
+			result := runTestPackCmd(t, s, []string{
+				"run", testPack,
+				"--var=job_name=" + jobName,
+				"--registry=" + reg.Name,
+			})
+			expectGoodPackDeploy(t, result)
+		}
+
+		// Verify PrefixList returns all matching jobs
+		jobs, _, err := c.Jobs().PrefixList("service")
+		must.NoError(t, err)
+		must.Eq(t, 3, len(jobs), must.Sprintf("expected 3 jobs with prefix 'service', got %d", len(jobs)))
+
+		// Verify jobs are sorted (PrefixList guarantees lexicographic order)
+		must.Eq(t, "service", jobs[0].ID, must.Sprint("first job should be 'service'"))
+		must.Eq(t, "service-aaa", jobs[1].ID, must.Sprint("second job should be 'service-aaa'"))
+		must.Eq(t, "service-zzz", jobs[2].ID, must.Sprint("third job should be 'service-zzz'"))
+
+		// Now destroy the exact match "service"
+		// This tests that the destroy logic correctly identifies "service"
+		// among the prefix matches and only destroys that specific job
+		result := runTestPackCmd(t, s, []string{
+			"destroy", testPack,
+			"--var=job_name=service",
+			"--registry=" + reg.Name,
+		})
+		must.Zero(t, result.exitCode, must.Sprintf("destroy should succeed, got exitcode %d\ncmdOut: %v",
+			result.exitCode, result.cmdOut.String()))
+
+		// Verify only the exact match "service" was destroyed
+		j, _, err := c.Jobs().Info("service", &api.QueryOptions{})
+		must.Error(t, err, must.Sprint("job 'service' should be deleted"))
+		must.Nil(t, j, must.Sprint("deleted job 'service' should be nil"))
+
+		// Verify other jobs with similar prefixes still exist
+		for _, jobName := range []string{"service-aaa", "service-zzz"} {
+			j, _, err := c.Jobs().Info(jobName, &api.QueryOptions{})
+			must.NoError(t, err, must.Sprintf("job %s should still exist", jobName))
+			must.NotNil(t, j, must.Sprintf("job %s should not be nil", jobName))
+		}
+
+		// Additional test: Destroy one of the remaining jobs to verify
+		// the logic works for non-first matches in the sorted list
+		result = runTestPackCmd(t, s, []string{
+			"destroy", testPack,
+			"--var=job_name=service-zzz",
+			"--registry=" + reg.Name,
+		})
+		must.Zero(t, result.exitCode, must.Sprintf("destroy should succeed, got exitcode %d", result.exitCode))
+
+		// Verify "service-zzz" was destroyed
+		j, _, err = c.Jobs().Info("service-zzz", &api.QueryOptions{})
+		must.Error(t, err, must.Sprint("job 'service-zzz' should be deleted"))
+		must.Nil(t, j, must.Sprint("deleted job 'service-zzz' should be nil"))
+
+		// Verify "service-aaa" still exists
+		j, _, err = c.Jobs().Info("service-aaa", &api.QueryOptions{})
+		must.NoError(t, err, must.Sprint("job 'service-aaa' should still exist"))
+		must.NotNil(t, j, must.Sprint("job 'service-aaa' should not be nil"))
 	})
 }
 
