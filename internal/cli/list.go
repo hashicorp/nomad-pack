@@ -32,7 +32,7 @@ func (c *ListCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Get the global caching dir - may be configurable in the future, so using this
+	// Get the global cache dir - may be configurable in the future, so using this
 	// helper function rather than a direct reference to the CONST.
 	globalCache, err := caching.NewCache(&caching.CacheConfig{
 		Path:   caching.DefaultCachePath(),
@@ -73,7 +73,7 @@ func (c *ListCommand) Run(args []string) int {
 	if len(table.Rows) > 0 {
 		c.ui.Table(table)
 	} else {
-		c.ui.Output("No packs present in the caching.")
+		c.ui.Output("No packs present in the cache.")
 	}
 
 	return 0

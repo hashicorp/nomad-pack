@@ -4,11 +4,11 @@
 package errors
 
 var (
-	ErrCachePathRequired       = newError("caching path is required")
-	ErrInvalidCachePath        = newError("invalid caching path")
+	ErrCachePathRequired       = newError("cache path is required")
+	ErrInvalidCachePath        = newError("invalid cache path")
 	ErrInvalidRegistryRevision = newError("invalid revision")
 	ErrInvalidRegistrySource   = newError("invalid registry source")
-	ErrNoRegistriesAdded       = newError("no registries were added to the caching")
+	ErrNoRegistriesAdded       = newError("no registries were added to the cache")
 	ErrPackNameRequired        = newError("pack name is required")
 	ErrPackNotFound            = newError("pack not found")
 	ErrRegistryNameRequired    = newError("registry name is required")

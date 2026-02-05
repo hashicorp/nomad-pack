@@ -53,7 +53,7 @@ const (
 )
 
 func TestCLI_CreateTestRegistry(t *testing.T) {
-	// This test is here to help setup the pack registry caching. It needs to be
+	// This test is here to help setup the pack registry cache. It needs to be
 	// the first one in the file and can not be `Parallel()`
 	reg, _, regPath := createTestRegistries(t)
 	defer cleanTestRegistry(t, regPath)
@@ -381,7 +381,7 @@ func TestCLI_PackDestroy_WithOverrides(t *testing.T) {
 	ct.HTTPTestParallel(t, ct.WithDefaultConfig(), func(s *agent.TestAgent) {
 		c, err := ct.NewTestClient(s)
 		must.NoError(t, err)
-		// Because this test uses ref, it requires a populated pack caching.
+		// Because this test uses ref, it requires a populated pack cache.
 		reg, _, regPath := createTestRegistries(t)
 		defer cleanTestRegistry(t, regPath)
 

@@ -44,17 +44,17 @@ func (c *Cache) Get(opts *GetOpts) (registry *Registry, err error) {
 	return
 }
 
-// GetOpts are the arguments are required to get a registry or pack from the caching.
+// GetOpts are the arguments are required to get a registry or pack from the cache.
 type GetOpts struct {
-	// Path to the caching containing the registry. Must be set by caching after opts
+	// Path to the cache containing the registry. Must be set by cache after opts
 	// are passed.
 	cachePath string
 	// Optional Name or alias of the registry the get operation will be performed
 	// against.
 	RegistryName string
-	// Optional name of pack to get from caching
+	// Optional name of pack to get from cache
 	PackName string
-	// Optional ref ov pack or registry to get from the caching.
+	// Optional ref ov pack or registry to get from the cache.
 	Ref string
 }
 

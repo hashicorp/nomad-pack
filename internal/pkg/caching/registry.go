@@ -16,7 +16,7 @@ import (
 	"github.com/hashicorp/nomad-pack/sdk/pack"
 )
 
-// Registry represents a registry definition from the global caching.
+// Registry represents a registry definition from the global cache.
 type Registry struct {
 	// Name as defined by the user
 	Name string `json:"name,omitempty"`
@@ -35,7 +35,7 @@ type Registry struct {
 // If the root of the path does not contain a metadata.hcl file, it is not
 // considered a valid pack, and will return an invalid cached pack.
 // If the loader is unable to load the pack, likewise an invalid cached pack is
-// returned. This function is not exported, to enforce clients using the caching functions.
+// returned. This function is not exported, to enforce clients using the cache functions.
 // It will attempt resolve any errors so that it can continue loading potentially
 // valid packs.
 func (r *Registry) get(opts *GetOpts, cache *Cache) error {

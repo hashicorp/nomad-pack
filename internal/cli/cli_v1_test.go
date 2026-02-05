@@ -327,7 +327,7 @@ func TestCLI_V1_PackDestroy_WithOverrides(t *testing.T) {
 	ct.HTTPTestParallel(t, ct.WithDefaultConfig(), func(s *agent.TestAgent) {
 		c, err := ct.NewTestClient(s)
 		must.NoError(t, err)
-		// Because this test uses ref, it requires a populated pack caching.
+		// Because this test uses ref, it requires a populated pack cache.
 		reg, _, regPath := createV1TestRegistries(t)
 		defer cleanTestRegistry(t, regPath)
 

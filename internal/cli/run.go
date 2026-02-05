@@ -84,7 +84,7 @@ func (c *RunCommand) run() int {
 	renderedDeps := r.DependentRenders()
 
 	// TODO: Refactor to use PackConfig. Maybe PackConfig should be in a more common
-	// pkg than caching, or maybe it's ok for runner to depend on the caching.
+	// pkg than cache, or maybe it's ok for runner to depend on the cache.
 	// Need to discuss with jrasell.
 	depConfig := runner.Config{
 		PackName:       c.packConfig.Name,

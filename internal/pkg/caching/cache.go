@@ -24,8 +24,8 @@ const (
 	DefaultDirPerms     = 0700
 )
 
-// NewCache instantiates a new caching instance with the specified config. If no
-// config is provided, the caching is initialized with default configuration.
+// NewCache instantiates a new cache instance with the specified config. If no
+// config is provided, the cache is initialized with default configuration.
 func NewCache(cfg *CacheConfig) (cache *Cache, err error) {
 	if cfg == nil {
 		cfg = defaultCacheConfig()
@@ -54,7 +54,7 @@ func (c *Cache) ensureGlobalCache() error {
 	return filesystem.MaybeCreateDestinationDir(c.cfg.Path)
 }
 
-// DefaultCachePath returns the default caching path.
+// DefaultCachePath returns the default cache path.
 func DefaultCachePath() string {
 	cacheDir, err := os.UserCacheDir()
 	if err != nil {
@@ -85,7 +85,7 @@ type Cache struct {
 	ErrorContext *errors.ErrorContext
 }
 
-// CacheConfig encapsulates the configuration options for a caching instance.
+// CacheConfig encapsulates the configuration options for a cache instance.
 type CacheConfig struct {
 	Path   string
 	Eager  bool
@@ -93,7 +93,7 @@ type CacheConfig struct {
 }
 
 // cacheOperationProvider provides an interface for the Opts family of structs
-// that are used to perform caching operations. The logic may vary slightly based
+// that are used to perform cache operations. The logic may vary slightly based
 // on the operation being performed. See IsTarget for good example of variance.
 type cacheOperationProvider interface {
 	RegistryPath() string
@@ -118,7 +118,7 @@ func (c *Cache) clonedPacksPath() string {
 	return path.Join(c.cfg.Path, tmpDir, "packs")
 }
 
-// Registries is an accessor for the cached registries contain within the caching instance.
+// Registries is an accessor for the cached registries contain within the cache instance.
 func (c *Cache) Registries() []*Registry {
 	if len(c.registries) == 0 {
 		err := c.Load()
@@ -129,7 +129,7 @@ func (c *Cache) Registries() []*Registry {
 	return c.registries
 }
 
-// Packs is an accessor for the cached packs contains within the caching instance.
+// Packs is an accessor for the cached packs contains within the cache instance.
 func (c *Cache) Packs() (packs []*Pack) {
 	packs = make([]*Pack, 0)
 
@@ -140,8 +140,8 @@ func (c *Cache) Packs() (packs []*Pack) {
 	return
 }
 
-// Load loads a list of registries from a caching path. It assumes each
-// directory in the specified path caching is a registry.
+// Load loads a list of registries from a cache path. It assumes each
+// directory in the specified path cache is a registry.
 func (c *Cache) Load() (err error) {
 	c.ErrorContext.Add(errors.RegistryContextPrefixCachePath, c.cfg.Path)
 

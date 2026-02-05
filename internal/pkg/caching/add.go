@@ -21,10 +21,10 @@ import (
 
 const tmpDir = "nomad-pack-tmp"
 
-// Add adds a registry to a caching from the passed config.
+// Add adds a registry to a cache from the passed config.
 func (c *Cache) Add(opts *AddOpts) (*Registry, error) {
 	var cachedRegistry *Registry
-	// Throw error if caching path not defined
+	// Throw error if cache path not defined
 	if c.cfg.Path == "" {
 		return cachedRegistry, errors.ErrCachePathRequired
 	}
@@ -54,8 +54,8 @@ func (c *Cache) Add(opts *AddOpts) (*Registry, error) {
 }
 
 // addFromURI loads a registry from a remote git repository. If addToCache is
-// true, the registry will also be added to the global caching. The caching directory
-// must be specified to allow user customization of caching location. If a name is
+// true, the registry will also be added to the global cache. The cache directory
+// must be specified to allow user customization of cache location. If a name is
 // specified, the registry will be added with that alias, otherwise the registry
 // URL slug will be used.
 func (c *Cache) addFromURI(opts *AddOpts) (cachedRegistry *Registry, err error) {
@@ -89,7 +89,7 @@ func (c *Cache) addFromURI(opts *AddOpts) (cachedRegistry *Registry, err error) 
 
 	logger.Debug(fmt.Sprintf("Processing pack entries at %s", c.clonePath()))
 
-	// Move the cloned registry packs to the global caching.
+	// Move the cloned registry packs to the global cache.
 	packEntries, err := os.ReadDir(c.clonedPacksPath())
 	for _, packEntry := range packEntries {
 		// Don't process the .git folder or any files
@@ -139,7 +139,7 @@ func (c *Cache) addFromURI(opts *AddOpts) (cachedRegistry *Registry, err error) 
 	return
 }
 
-// cloneRemoteGitRegistry clones a remote git repository to the caching. Returns
+// cloneRemoteGitRegistry clones a remote git repository to the cache. Returns
 // the SHA of the HEAD of the cloned repository.
 func (c *Cache) cloneRemoteGitRegistry(opts *AddOpts) (string, error) {
 	logger := c.cfg.Logger
@@ -312,9 +312,9 @@ func (c *Cache) logLatest(opts *AddOpts) (err error) {
 	return
 }
 
-// AddOpts are the arguments that are required to add a registry or pack to the caching.
+// AddOpts are the arguments that are required to add a registry or pack to the cache.
 type AddOpts struct {
-	// Required caching patch. Must be set by caching after opts are passed.
+	// Required cache patch. Must be set by cache after opts are passed.
 	cachePath string
 	// Required name for the registry. Used when managing a registry by a user defined name.
 	RegistryName string
@@ -382,7 +382,7 @@ func (opts *AddOpts) IsTarget(dirEntry os.DirEntry) bool {
 }
 
 // clonedPackPath is a helper that consistently resolves the clone location of
-// pack within a caching.
+// pack within a cache.
 func (opts *AddOpts) clonedPackPath(c *Cache) string {
 	// Don't use PackDir here because we won't have the Revision on the cloned
 	// directory name, thought we will append it to the registry entry if it is set.

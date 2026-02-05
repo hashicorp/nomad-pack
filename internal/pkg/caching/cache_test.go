@@ -209,7 +209,7 @@ func TestAddRegistryWithRefAndPackName(t *testing.T) {
 }
 
 func TestAddRegistryNoCacheDir(t *testing.T) {
-	opts := testAddOpts("no-caching-dir")
+	opts := testAddOpts("no-cache-dir")
 
 	cache, err := NewCache(&CacheConfig{
 		Path:   "",
@@ -501,7 +501,7 @@ func initialize() {
 // GetTestGithubRegistry will initialize a cloneable local git registry containing
 // the contents of test_registry in the fixtures folder of the project. This local
 // git repo is then used to reduce network impacts of registry clone actions in
-// the caching test suite.
+// the cache test suite.
 func GetTestGithubRegistry() *TestGithubRegistry {
 	initialize()
 	return tReg
@@ -526,7 +526,7 @@ func (t *TestGithubRegistry) Cleanup() {
 
 func makeTestRegRepo(tReg *TestGithubRegistry) {
 	var err error
-	tReg.tmpDir, err = os.MkdirTemp("", "caching-test-*")
+	tReg.tmpDir, err = os.MkdirTemp("", "cache-test-*")
 	if err != nil {
 		panic(fmt.Errorf("unable to create temp dir for test git repo: %w", err))
 	}
@@ -608,7 +608,7 @@ func dirEntries(t *testing.T, p string) []fs.DirEntry {
 	return dirEntries
 }
 
-// packtuple describes each pack found in an entire caching
+// packtuple describes each pack found in an entire cache
 // directory. The listAllTestPacks produces a packtuples,
 // which is an alias for []packtuple
 type packtuple struct {

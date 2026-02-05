@@ -67,8 +67,8 @@ func (cfg *PackConfig) initFromArgs() {
 	}
 }
 
-// Pack wraps a pack.Pack add adds the local caching ref. Useful for
-// showing the registry in the global caching differentiated from the pack metadata.
+// Pack wraps a pack.Pack add adds the local cache ref. Useful for
+// showing the registry in the global cache differentiated from the pack metadata.
 type Pack struct {
 	Ref string
 	*pack.Pack
