@@ -191,7 +191,7 @@ func (c *StopCommand) checkForConflicts(client *api.Client, job *api.Job) error 
 
 	jobs, _, err := jobsApi.PrefixList(prefix)
 	if err != nil {
-		return fmt.Errorf("Error querying job prefix %q: %s", prefix, err)
+		return fmt.Errorf("error querying job prefix %q: %s", prefix, err)
 	}
 
 	if len(jobs) == 0 {

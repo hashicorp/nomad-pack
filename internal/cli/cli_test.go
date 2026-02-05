@@ -476,6 +476,84 @@ func TestCLI_PackDestroy_WithOverrides(t *testing.T) {
 	})
 }
 
+func TestCLI_PackDestroy_PrefixListBehavior(t *testing.T) {
+	ct.HTTPTestParallel(t, ct.WithDefaultConfig(), func(s *agent.TestAgent) {
+		c, err := ct.NewTestClient(s)
+		must.NoError(t, err)
+
+		reg, _, regPath := createTestRegistries(t)
+		defer cleanTestRegistry(t, regPath)
+		defer ct.NomadCleanup(s)
+
+		// Create jobs that will test prefix matching behavior
+		// These job names are chosen to test edge cases:
+		// - "service" is the base name
+		// - "service-aaa" and "service-zzz" test alphabetical sorting
+		// - All three start with "service" prefix
+		jobNames := []string{"service", "service-aaa", "service-zzz"}
+		for _, jobName := range jobNames {
+			result := runTestPackCmd(t, s, []string{
+				"run", testPack,
+				"--var=job_name=" + jobName,
+				"--registry=" + reg.Name,
+			})
+			expectGoodPackDeploy(t, result)
+		}
+
+		// Verify PrefixList returns all matching jobs
+		jobs, _, err := c.Jobs().PrefixList("service")
+		must.NoError(t, err)
+		must.Eq(t, 3, len(jobs), must.Sprintf("expected 3 jobs with prefix 'service', got %d", len(jobs)))
+
+		// Verify jobs are sorted (PrefixList guarantees lexicographic order)
+		must.Eq(t, "service", jobs[0].ID, must.Sprint("first job should be 'service'"))
+		must.Eq(t, "service-aaa", jobs[1].ID, must.Sprint("second job should be 'service-aaa'"))
+		must.Eq(t, "service-zzz", jobs[2].ID, must.Sprint("third job should be 'service-zzz'"))
+
+		// Now destroy the exact match "service"
+		// This tests that the destroy logic correctly identifies "service"
+		// among the prefix matches and only destroys that specific job
+		result := runTestPackCmd(t, s, []string{
+			"destroy", testPack,
+			"--var=job_name=service",
+			"--registry=" + reg.Name,
+		})
+		must.Zero(t, result.exitCode, must.Sprintf("destroy should succeed, got exitcode %d\ncmdOut: %v",
+			result.exitCode, result.cmdOut.String()))
+
+		// Verify only the exact match "service" was destroyed
+		j, _, err := c.Jobs().Info("service", &api.QueryOptions{})
+		must.Error(t, err, must.Sprint("job 'service' should be deleted"))
+		must.Nil(t, j, must.Sprint("deleted job 'service' should be nil"))
+
+		// Verify other jobs with similar prefixes still exist
+		for _, jobName := range []string{"service-aaa", "service-zzz"} {
+			j, _, err := c.Jobs().Info(jobName, &api.QueryOptions{})
+			must.NoError(t, err, must.Sprintf("job %s should still exist", jobName))
+			must.NotNil(t, j, must.Sprintf("job %s should not be nil", jobName))
+		}
+
+		// Additional test: Destroy one of the remaining jobs to verify
+		// the logic works for non-first matches in the sorted list
+		result = runTestPackCmd(t, s, []string{
+			"destroy", testPack,
+			"--var=job_name=service-zzz",
+			"--registry=" + reg.Name,
+		})
+		must.Zero(t, result.exitCode, must.Sprintf("destroy should succeed, got exitcode %d", result.exitCode))
+
+		// Verify "service-zzz" was destroyed
+		j, _, err = c.Jobs().Info("service-zzz", &api.QueryOptions{})
+		must.Error(t, err, must.Sprint("job 'service-zzz' should be deleted"))
+		must.Nil(t, j, must.Sprint("deleted job 'service-zzz' should be nil"))
+
+		// Verify "service-aaa" still exists
+		j, _, err = c.Jobs().Info("service-aaa", &api.QueryOptions{})
+		must.NoError(t, err, must.Sprint("job 'service-aaa' should still exist"))
+		must.NotNil(t, j, must.Sprint("job 'service-aaa' should not be nil"))
+	})
+}
+
 func TestCLI_CLIFlag_NotDefined(t *testing.T) {
 	t.Parallel() // nomad not required
 
