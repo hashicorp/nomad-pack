@@ -4,8 +4,6 @@
 package cli
 
 import (
-	"context"
-	stderrors "errors"
 	"fmt"
 	"time"
 
@@ -141,7 +139,7 @@ func (c *StopCommand) Run(args []string) int {
 
 	var errs []error
 	for _, job := range jobs {
-		err = c.validateJobExists(client, job)
+		err = c.checkForConflicts(client, job)
 
 		if err != nil {
 			errs = append(errs, err)
@@ -182,30 +180,31 @@ func (c *StopCommand) Run(args []string) int {
 	return 0
 }
 
-func (c *StopCommand) validateJobExists(client *api.Client, job *api.Job) error {
+func (c *StopCommand) checkForConflicts(client *api.Client, job *api.Job) error {
 	queryOpts := &api.QueryOptions{}
 	if job.Namespace != nil {
 		queryOpts.Namespace = *job.Namespace
 	}
 
-	// Use exact job lookup instead of prefix matching to avoid false conflicts
+	prefix := *job.ID
 	jobsApi := client.Jobs()
 
-	existingJob, _, err := jobsApi.Info(*job.ID, queryOpts.WithContext(context.Background()))
+	jobs, _, err := jobsApi.PrefixList(prefix)
 	if err != nil {
-		// Check if the error is "not found" - this is acceptable as it means the job doesn't exist
-		var unexpectedResponse api.UnexpectedResponseError
-		if stderrors.As(err, &unexpectedResponse) {
-			if unexpectedResponse.HasStatusText() && unexpectedResponse.StatusText() == "Not Found" {
-				return fmt.Errorf("no job with id %q found", *job.ID)
-			}
-		}
-		return fmt.Errorf("error validating job %q: %s", *job.Name, err)
+		return fmt.Errorf("Error querying job prefix %q: %s", prefix, err)
 	}
 
-	// If we found the job, verify it exists (should always be true if no error)
-	if existingJob == nil {
-		return fmt.Errorf("no job with id %q found", *job.ID)
+	if len(jobs) == 0 {
+		return fmt.Errorf("no job(s) with prefix or id %q found", *job.Name)
+	}
+
+	if len(jobs) > 1 {
+		exactMatch := prefix == jobs[0].ID
+		matchInMultipleNamespaces := c.allNamespaces() && jobs[0].ID == jobs[1].ID
+
+		if !exactMatch || matchInMultipleNamespaces {
+			return fmt.Errorf("prefix matched multiple jobs\n\n%s", createStatusListOutput(jobs, c.allNamespaces()))
+		}
 	}
 
 	return nil
