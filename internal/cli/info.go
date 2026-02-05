@@ -6,7 +6,7 @@ package cli
 import (
 	"fmt"
 
-	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
+	"github.com/hashicorp/nomad-pack/internal/pkg/caching"
 	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
 	"github.com/hashicorp/nomad-pack/internal/pkg/loader"
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser"
@@ -17,7 +17,7 @@ import (
 
 type InfoCommand struct {
 	*baseCommand
-	packConfig *cache.PackConfig
+	packConfig *caching.PackConfig
 }
 
 func (c *InfoCommand) Run(args []string) int {
@@ -39,7 +39,7 @@ func (c *InfoCommand) Run(args []string) int {
 	errorContext := initPackCommand(c.packConfig)
 
 	// verify packs exist before running jobs
-	if err := cache.VerifyPackExists(c.packConfig, errorContext, c.ui); err != nil {
+	if err := caching.VerifyPackExists(c.packConfig, errorContext, c.ui); err != nil {
 		return 1
 	}
 
@@ -127,7 +127,7 @@ func (c *InfoCommand) Run(args []string) int {
 
 func (c *InfoCommand) Flags() *flag.Sets {
 	return c.flagSet(flagSetOperation, func(set *flag.Sets) {
-		c.packConfig = &cache.PackConfig{}
+		c.packConfig = &caching.PackConfig{}
 
 		f := set.NewSet("Render Options")
 

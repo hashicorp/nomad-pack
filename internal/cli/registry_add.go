@@ -9,7 +9,7 @@ import (
 
 	"github.com/posener/complete"
 
-	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
+	"github.com/hashicorp/nomad-pack/internal/pkg/caching"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
 	"github.com/hashicorp/nomad-pack/terminal"
@@ -54,15 +54,15 @@ func (c *RegistryAddCommand) Run(args []string) int {
 	}
 
 	// Add the registry or registry target to the global cache
-	globalCache, err := cache.NewCache(&cache.CacheConfig{
-		Path:   cache.DefaultCachePath(),
+	globalCache, err := caching.NewCache(&caching.CacheConfig{
+		Path:   caching.DefaultCachePath(),
 		Logger: c.ui,
 	})
 	if err != nil {
 		return 1
 	}
 
-	newRegistry, err := globalCache.Add(&cache.AddOpts{
+	newRegistry, err := globalCache.Add(&caching.AddOpts{
 		RegistryName: c.name,
 		Source:       c.source,
 		PackName:     c.target,
@@ -80,7 +80,7 @@ func (c *RegistryAddCommand) Run(args []string) int {
 
 	// Initialize output table
 	var table *terminal.Table
-	var validPack *cache.Pack
+	var validPack *caching.Pack
 	// If only targeting a single pack, only output a single row
 	if c.target != "" {
 		table = registryPackTable()

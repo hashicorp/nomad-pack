@@ -8,7 +8,7 @@ import (
 
 	"github.com/posener/complete"
 
-	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
+	"github.com/hashicorp/nomad-pack/internal/pkg/caching"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
 	"github.com/hashicorp/nomad-pack/internal/runner"
@@ -17,7 +17,7 @@ import (
 
 type RunCommand struct {
 	*baseCommand
-	packConfig *cache.PackConfig
+	packConfig *caching.PackConfig
 	jobConfig  *job.CLIConfig
 	Validation ValidationFn
 }
@@ -48,7 +48,7 @@ func (c *RunCommand) run() int {
 	errorContext := initPackCommand(c.packConfig)
 
 	// verify packs exist before running jobs
-	err := cache.VerifyPackExists(c.packConfig, errorContext, c.ui)
+	err := caching.VerifyPackExists(c.packConfig, errorContext, c.ui)
 	if err != nil {
 		return 1
 	}
@@ -143,7 +143,7 @@ func (c *RunCommand) run() int {
 		return 1
 	}
 
-	if c.packConfig.Registry == cache.DevRegistryName {
+	if c.packConfig.Registry == caching.DevRegistryName {
 		c.ui.Success(fmt.Sprintf("Pack successfully deployed. Use %s to manage this deployed instance with plan, stop, destroy, or info", c.packConfig.SourcePath))
 	} else {
 		c.ui.Success(fmt.Sprintf("Pack successfully deployed. Use %s with --ref=%s to manage this deployed instance with plan, stop, destroy, or info", c.packConfig.Name, c.packConfig.Ref))
@@ -166,7 +166,7 @@ func (c *RunCommand) Flags() *flag.Sets {
 	return c.flagSet(flagSetOperation|flagSetNomadClient, func(set *flag.Sets) {
 		f := set.NewSet("Run Options")
 
-		c.packConfig = &cache.PackConfig{}
+		c.packConfig = &caching.PackConfig{}
 
 		c.jobConfig = &job.CLIConfig{
 			RunConfig: &job.RunCLIConfig{},
