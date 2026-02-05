@@ -66,9 +66,10 @@ func DecodeVariableBlock(block *hcl.Block) (*variables.Variable, hcl.Diagnostics
 	// A variable doesn't need to declare a type. If it does, process this and
 	// store it, along with any processing errors.
 	if attr, exists := content.Attributes[schema.VariableAttributeType]; exists {
-		ty, tyDiags := typeexpr.Type(attr.Expr)
+		ty, tyDefaults, tyDiags := typeexpr.TypeConstraintWithDefaults(attr.Expr)
 		diags = packdiags.SafeDiagnosticsExtend(diags, tyDiags)
 		v.SetType(ty)
+		v.SetTypeDefaults(tyDefaults)
 	}
 
 	// A variable doesn't need to declare a default. If it does, process this
@@ -77,11 +78,15 @@ func DecodeVariableBlock(block *hcl.Block) (*variables.Variable, hcl.Diagnostics
 		val, valDiags := attr.Expr.Value(nil)
 		diags = packdiags.SafeDiagnosticsExtend(diags, valDiags)
 
+		if v.TypeDefaults != nil && !val.IsNull() {
+			val = v.TypeDefaults.Apply(val)
+		}
+
 		// Attempt to convert the default to the variable's declared type
 		// to produce an informative error if they are not compatible.
-		if shouldCompareDefaultType(v.Type, val.Type()) {
+		if shouldCompareDefaultType(v.ConstraintType, val.Type()) {
 			var err *hcl.Diagnostic
-			val, err = hclhelp.ConvertValUsingType(val, v.Type, attr.Expr.Range().Ptr())
+			val, err = hclhelp.ConvertValUsingType(val, v.ConstraintType, attr.Expr.Range().Ptr())
 			diags = packdiags.SafeDiagnosticsAppend(diags, err)
 		}
 		v.SetDefault(val)

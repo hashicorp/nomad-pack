@@ -8,6 +8,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/ext/typeexpr"
 	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable/schema"
 	"github.com/hashicorp/nomad-pack/sdk/pack/variables"
@@ -301,7 +302,334 @@ variable "bad_object" {
 				},
 			}},
 		},
+		// Optional attribute tests
+		{
+			name: "passes/on optional without default arg and no default attribute",
+			input: testGetHCLBlock(t, testLoadPackFile(t, []byte(`
+variable "optional_obj" {
+	type = object({
+		required_field = string
+		optional_field = optional(string)
+	})
+	default = {
+		required_field = "hello"
 	}
+}`))),
+			expectOut: func() *variables.Variable {
+				out := variables.Variable{
+					Name: "optional_obj",
+					DeclRange: hcl.Range{
+						Filename: "/fake/test/path",
+						Start:    hcl.Pos{Line: 2, Column: 1, Byte: 1},
+						End:      hcl.Pos{Line: 2, Column: 24, Byte: 24},
+					},
+				}
+				out.SetType(cty.ObjectWithOptionalAttrs(map[string]cty.Type{
+					"required_field": cty.String,
+					"optional_field": cty.String,
+				}, []string{"optional_field"}))
+				val := cty.ObjectVal(map[string]cty.Value{
+					"required_field": cty.StringVal("hello"),
+					"optional_field": cty.NullVal(cty.String),
+				})
+				out.SetDefault(val)
+				out.Value = val
+				return &out
+			}(),
+			expectDiags: hcl.Diagnostics{},
+		},
+		{
+			name: "passes/on optional with default arg and no defaults block",
+			input: testGetHCLBlock(t, testLoadPackFile(t, []byte(`
+variable "optional_obj" {
+	type = object({
+		required_field = string
+		optional_field = optional(string, "default_value")
+	})
+	default = {
+		required_field = "hello"
+	}
+}`))),
+			expectOut: func() *variables.Variable {
+				out := variables.Variable{
+					Name: "optional_obj",
+					DeclRange: hcl.Range{
+						Filename: "/fake/test/path",
+						Start:    hcl.Pos{Line: 2, Column: 1, Byte: 1},
+						End:      hcl.Pos{Line: 2, Column: 24, Byte: 24},
+					},
+				}
+				out.SetType(cty.ObjectWithOptionalAttrs(map[string]cty.Type{
+					"required_field": cty.String,
+					"optional_field": cty.String,
+				}, []string{"optional_field"}))
+				out.SetTypeDefaults(&typeexpr.Defaults{
+					Type: cty.ObjectWithOptionalAttrs(map[string]cty.Type{
+						"required_field": cty.String,
+						"optional_field": cty.String,
+					}, []string{"optional_field"}),
+					DefaultValues: map[string]cty.Value{
+						"optional_field": cty.StringVal("default_value"),
+					},
+				})
+				val := cty.ObjectVal(map[string]cty.Value{
+					"required_field": cty.StringVal("hello"),
+					"optional_field": cty.StringVal("default_value"),
+				})
+				out.SetDefault(val)
+				out.Value = val
+				return &out
+			}(),
+			expectDiags: hcl.Diagnostics{},
+		},
+		{
+			name: "passes/on optional with default arg overridden by user value",
+			input: testGetHCLBlock(t, testLoadPackFile(t, []byte(`
+variable "optional_obj" {
+	type = object({
+		required_field = string
+		optional_field = optional(string, "default_value")
+	})
+	default = {
+		required_field = "hello"
+		optional_field = "user_provided"
+	}
+}`))),
+			expectOut: func() *variables.Variable {
+				out := variables.Variable{
+					Name: "optional_obj",
+					DeclRange: hcl.Range{
+						Filename: "/fake/test/path",
+						Start:    hcl.Pos{Line: 2, Column: 1, Byte: 1},
+						End:      hcl.Pos{Line: 2, Column: 24, Byte: 24},
+					},
+				}
+				out.SetType(cty.ObjectWithOptionalAttrs(map[string]cty.Type{
+					"required_field": cty.String,
+					"optional_field": cty.String,
+				}, []string{"optional_field"}))
+				out.SetTypeDefaults(&typeexpr.Defaults{
+					Type: cty.ObjectWithOptionalAttrs(map[string]cty.Type{
+						"required_field": cty.String,
+						"optional_field": cty.String,
+					}, []string{"optional_field"}),
+					DefaultValues: map[string]cty.Value{
+						"optional_field": cty.StringVal("default_value"),
+					},
+				})
+				val := cty.ObjectVal(map[string]cty.Value{
+					"required_field": cty.StringVal("hello"),
+					"optional_field": cty.StringVal("user_provided"),
+				})
+				out.SetDefault(val)
+				out.Value = val
+				return &out
+			}(),
+			expectDiags: hcl.Diagnostics{},
+		},
+		{
+			name: "passes/on nested optional objects",
+			input: testGetHCLBlock(t, testLoadPackFile(t, []byte(`
+variable "nested_optional" {
+	type = object({
+		outer_required = string
+		nested = optional(object({
+			inner_required = string
+			inner_optional = optional(string, "inner_default")
+		}))
+	})
+	default = {
+		outer_required = "outer_value"
+	}
+}`))),
+			expectOut: func() *variables.Variable {
+				out := variables.Variable{
+					Name: "nested_optional",
+					DeclRange: hcl.Range{
+						Filename: "/fake/test/path",
+						Start:    hcl.Pos{Line: 2, Column: 1, Byte: 1},
+						End:      hcl.Pos{Line: 2, Column: 27, Byte: 27},
+					},
+				}
+				innerType := cty.ObjectWithOptionalAttrs(map[string]cty.Type{
+					"inner_required": cty.String,
+					"inner_optional": cty.String,
+				}, []string{"inner_optional"})
+				outerType := cty.ObjectWithOptionalAttrs(map[string]cty.Type{
+					"outer_required": cty.String,
+					"nested":         innerType,
+				}, []string{"nested"})
+				out.SetType(outerType)
+				out.SetTypeDefaults(&typeexpr.Defaults{
+					Type: outerType,
+					Children: map[string]*typeexpr.Defaults{
+						"nested": {
+							Type: innerType,
+							DefaultValues: map[string]cty.Value{
+								"inner_optional": cty.StringVal("inner_default"),
+							},
+						},
+					},
+				})
+				val := cty.ObjectVal(map[string]cty.Value{
+					"outer_required": cty.StringVal("outer_value"),
+					"nested": cty.NullVal(cty.Object(map[string]cty.Type{
+						"inner_required": cty.String,
+						"inner_optional": cty.String,
+					})),
+				})
+				out.SetDefault(val)
+				out.Value = val
+				return &out
+			}(),
+			expectDiags: hcl.Diagnostics{},
+		},
+		{
+			name: "passes/on nested optional with partial nested config",
+			input: testGetHCLBlock(t, testLoadPackFile(t, []byte(`
+variable "nested_optional" {
+	type = object({
+		outer_required = string
+		nested = optional(object({
+			inner_required = string
+			inner_optional = optional(string, "inner_default")
+		}))
+	})
+	default = {
+		outer_required = "outer_value"
+		nested = {
+			inner_required = "provided"
+		}
+	}
+}`))),
+			expectOut: func() *variables.Variable {
+				out := variables.Variable{
+					Name: "nested_optional",
+					DeclRange: hcl.Range{
+						Filename: "/fake/test/path",
+						Start:    hcl.Pos{Line: 2, Column: 1, Byte: 1},
+						End:      hcl.Pos{Line: 2, Column: 27, Byte: 27},
+					},
+				}
+				innerType := cty.ObjectWithOptionalAttrs(map[string]cty.Type{
+					"inner_required": cty.String,
+					"inner_optional": cty.String,
+				}, []string{"inner_optional"})
+				outerType := cty.ObjectWithOptionalAttrs(map[string]cty.Type{
+					"outer_required": cty.String,
+					"nested":         innerType,
+				}, []string{"nested"})
+				out.SetType(outerType)
+				out.SetTypeDefaults(&typeexpr.Defaults{
+					Type: outerType,
+					Children: map[string]*typeexpr.Defaults{
+						"nested": {
+							Type: innerType,
+							DefaultValues: map[string]cty.Value{
+								"inner_optional": cty.StringVal("inner_default"),
+							},
+						},
+					},
+				})
+				val := cty.ObjectVal(map[string]cty.Value{
+					"outer_required": cty.StringVal("outer_value"),
+					"nested": cty.ObjectVal(map[string]cty.Value{
+						"inner_required": cty.StringVal("provided"),
+						"inner_optional": cty.StringVal("inner_default"),
+					}),
+				})
+				out.SetDefault(val)
+				out.Value = val
+				return &out
+			}(),
+			expectDiags: hcl.Diagnostics{},
+		},
+		{
+			name: "passes/on optional bool with default",
+			input: testGetHCLBlock(t, testLoadPackFile(t, []byte(`
+variable "optional_bool" {
+	type = object({
+		name    = string
+		enabled = optional(bool, true)
+	})
+	default = {
+		name = "test"
+	}
+}`))),
+			expectOut: func() *variables.Variable {
+				out := variables.Variable{
+					Name: "optional_bool",
+					DeclRange: hcl.Range{
+						Filename: "/fake/test/path",
+						Start:    hcl.Pos{Line: 2, Column: 1, Byte: 1},
+						End:      hcl.Pos{Line: 2, Column: 25, Byte: 25},
+					},
+				}
+				objType := cty.ObjectWithOptionalAttrs(map[string]cty.Type{
+					"name":    cty.String,
+					"enabled": cty.Bool,
+				}, []string{"enabled"})
+				out.SetType(objType)
+				out.SetTypeDefaults(&typeexpr.Defaults{
+					Type: objType,
+					DefaultValues: map[string]cty.Value{
+						"enabled": cty.True,
+					},
+				})
+				val := cty.ObjectVal(map[string]cty.Value{
+					"name":    cty.StringVal("test"),
+					"enabled": cty.True,
+				})
+				out.SetDefault(val)
+				out.Value = val
+				return &out
+			}(),
+			expectDiags: hcl.Diagnostics{},
+		},
+		{
+			name: "passes/on optional list with default",
+			input: testGetHCLBlock(t, testLoadPackFile(t, []byte(`
+variable "optional_list" {
+	type = object({
+		name = string
+		tags = optional(list(string), ["default-tag"])
+	})
+	default = {
+		name = "test"
+	}
+}`))),
+			expectOut: func() *variables.Variable {
+				out := variables.Variable{
+					Name: "optional_list",
+					DeclRange: hcl.Range{
+						Filename: "/fake/test/path",
+						Start:    hcl.Pos{Line: 2, Column: 1, Byte: 1},
+						End:      hcl.Pos{Line: 2, Column: 25, Byte: 25},
+					},
+				}
+				objType := cty.ObjectWithOptionalAttrs(map[string]cty.Type{
+					"name": cty.String,
+					"tags": cty.List(cty.String),
+				}, []string{"tags"})
+				out.SetType(objType)
+				out.SetTypeDefaults(&typeexpr.Defaults{
+					Type: objType,
+					DefaultValues: map[string]cty.Value{
+						"tags": cty.ListVal([]cty.Value{cty.StringVal("default-tag")}),
+					},
+				})
+				val := cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("test"),
+					"tags": cty.ListVal([]cty.Value{cty.StringVal("default-tag")}),
+				})
+				out.SetDefault(val)
+				out.Value = val
+				return &out
+			}(),
+			expectDiags: hcl.Diagnostics{},
+		},
+	}
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			ci.Parallel(t)
