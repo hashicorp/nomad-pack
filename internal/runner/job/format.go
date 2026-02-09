@@ -274,6 +274,12 @@ func formatFieldDiff(diff *api.FieldDiff, startPrefix, keyPrefix, valuePrefix in
 	ui.AppendToRow("%s%s", strings.Repeat(" ", startPrefix), marker, terminal.WithStyle(style))
 	ui.AppendToRow("%s%s: %s", strings.Repeat(" ", keyPrefix), diff.Name, strings.Repeat(" ", valuePrefix))
 
+	// For EmbeddedTmpl fields, render multi-line content with proper formatting
+	if diff.Name == "EmbeddedTmpl" {
+		formatMultilineFieldDiff(diff, startPrefix, ui)
+		return
+	}
+
 	switch diff.Type {
 	case "Added":
 		ui.AppendToRow("%q", diff.New)
@@ -283,6 +289,48 @@ func formatFieldDiff(diff *api.FieldDiff, startPrefix, keyPrefix, valuePrefix in
 		ui.AppendToRow("%q => %q", diff.Old, diff.New)
 	default:
 		ui.AppendToRow("%q", diff.New)
+	}
+
+	// Color the annotations where possible
+	if len(diff.Annotations) > 0 {
+		printColorAnnotations(diff.Annotations, ui)
+	}
+}
+
+// formatMultilineFieldDiff renders field content (like EmbeddedTmpl) with preserved line breaks
+func formatMultilineFieldDiff(diff *api.FieldDiff, startPrefix int, ui terminal.UI) {
+	indent := strings.Repeat(" ", startPrefix+2)
+
+	formatMultilineValue := func(prefix string, value string, style string) {
+		value = strings.TrimRight(value, "\n") // Remove trailing newline for cleaner output
+		lines := strings.Split(value, "\n")
+		ui.AppendToRow("\n", terminal.WithStyle(style))
+		for i, line := range lines {
+			ui.AppendToRow("%s%s", indent, prefix, terminal.WithStyle(style))
+			ui.AppendToRow("%s", line)
+			if i < len(lines)-1 {
+				ui.AppendToRow("\n", terminal.WithStyle(style))
+			}
+		}
+	}
+
+	switch diff.Type {
+	case "Added":
+		formatMultilineValue("+ ", diff.New, terminal.GreenStyle)
+		ui.AppendToRow("\n")
+	case "Deleted":
+		formatMultilineValue("- ", diff.Old, terminal.RedStyle)
+		ui.AppendToRow("\n")
+	case "Edited":
+		ui.AppendToRow("\n\n%s- Old:\n", indent, terminal.WithStyle(terminal.RedStyle))
+		ui.AppendToRow("%s+ New:\n", indent, terminal.WithStyle(terminal.GreenStyle))
+		formatMultilineValue("- ", diff.Old, terminal.RedStyle)
+		ui.AppendToRow("\n")
+		formatMultilineValue("+ ", diff.New, terminal.GreenStyle)
+		ui.AppendToRow("\n")
+	default:
+		formatMultilineValue("+ ", diff.New, terminal.DefaultStyle)
+		ui.AppendToRow("\n")
 	}
 
 	// Color the annotations where possible
