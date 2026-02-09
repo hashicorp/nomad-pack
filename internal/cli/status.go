@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/nomad/api"
 	"github.com/posener/complete"
 
-	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
+	"github.com/hashicorp/nomad-pack/internal/pkg/caching"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	flag "github.com/hashicorp/nomad-pack/internal/pkg/flag"
 	"github.com/hashicorp/nomad-pack/terminal"
@@ -18,7 +18,7 @@ import (
 
 type StatusCommand struct {
 	*baseCommand
-	packConfig *cache.PackConfig
+	packConfig *caching.PackConfig
 }
 
 func (c *StatusCommand) Run(args []string) int {
@@ -102,7 +102,7 @@ func (c *StatusCommand) renderAllDeployedPacks(client *api.Client, errorContext 
 
 func (c *StatusCommand) Flags() *flag.Sets {
 	return c.flagSet(flagSetOperation|flagSetNomadClient, func(set *flag.Sets) {
-		c.packConfig = &cache.PackConfig{}
+		c.packConfig = &caching.PackConfig{}
 
 		f := set.NewSet("Status Options")
 

@@ -10,7 +10,7 @@ import (
 	"path"
 
 	"github.com/hashicorp/nomad-pack/internal/config"
-	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
+	"github.com/hashicorp/nomad-pack/internal/pkg/caching"
 )
 
 type packCreator struct {
@@ -59,7 +59,7 @@ func CreatePack(c config.PackConfig) error {
 		tplPath: path.Join(outPath, c.PackName, "templates"),
 	}
 
-	err = os.MkdirAll(pc.tplPath, cache.DefaultDirPerms)
+	err = os.MkdirAll(pc.tplPath, caching.DefaultDirPerms)
 	if err != nil {
 		return newCreatePackError(err)
 	}

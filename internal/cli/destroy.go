@@ -4,7 +4,7 @@
 package cli
 
 import (
-	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
+	"github.com/hashicorp/nomad-pack/internal/pkg/caching"
 	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
 	"github.com/posener/complete"
 )
@@ -40,7 +40,7 @@ func (c *DestroyCommand) Run(args []string) int {
 
 func (c *DestroyCommand) Flags() *flag.Sets {
 	return c.flagSet(flagSetOperation|flagSetNomadClient, func(set *flag.Sets) {
-		c.packConfig = &cache.PackConfig{}
+		c.packConfig = &caching.PackConfig{}
 
 		set.HideUnusedFlags("Operation Options", []string{"var", "var-file"})
 

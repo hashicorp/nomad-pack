@@ -4,7 +4,7 @@
 package cli
 
 import (
-	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
+	"github.com/hashicorp/nomad-pack/internal/pkg/caching"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
 	"github.com/hashicorp/nomad-pack/internal/runner"
@@ -14,7 +14,7 @@ import (
 
 type PlanCommand struct {
 	*baseCommand
-	packConfig        *cache.PackConfig
+	packConfig        *caching.PackConfig
 	jobConfig         *job.CLIConfig
 	exitCodeNoChanges int
 	exitCodeChanges   int
@@ -44,7 +44,7 @@ func (c *PlanCommand) Run(args []string) int {
 	errorContext := initPackCommand(c.packConfig)
 
 	// verify packs exist before planning jobs
-	if err := cache.VerifyPackExists(c.packConfig, errorContext, c.ui); err != nil {
+	if err := caching.VerifyPackExists(c.packConfig, errorContext, c.ui); err != nil {
 		return c.exitCodeError
 	}
 
@@ -145,7 +145,7 @@ func (c *PlanCommand) Run(args []string) int {
 }
 
 func (c *PlanCommand) Flags() *flag.Sets {
-	c.packConfig = &cache.PackConfig{}
+	c.packConfig = &caching.PackConfig{}
 
 	return c.flagSet(flagSetOperation|flagSetNomadClient, func(set *flag.Sets) {
 		f := set.NewSet("Plan Options")

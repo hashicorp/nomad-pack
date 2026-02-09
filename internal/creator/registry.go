@@ -10,7 +10,7 @@ import (
 	"path"
 
 	"github.com/hashicorp/nomad-pack/internal/config"
-	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
+	"github.com/hashicorp/nomad-pack/internal/pkg/caching"
 )
 
 type registryCreator struct {
@@ -44,7 +44,7 @@ func CreateRegistry(c config.PackConfig) error {
 	// TODO: Make this optional
 	// TODO: Make this interactive
 
-	err := os.MkdirAll(rc.packsPath, cache.DefaultDirPerms)
+	err := os.MkdirAll(rc.packsPath, caching.DefaultDirPerms)
 	if err != nil {
 		return newCreateRegistryError(err)
 	}

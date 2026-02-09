@@ -11,7 +11,7 @@ import (
 
 	"github.com/posener/complete"
 
-	"github.com/hashicorp/nomad-pack/internal/pkg/cache"
+	"github.com/hashicorp/nomad-pack/internal/pkg/caching"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
 	"github.com/hashicorp/nomad-pack/terminal"
@@ -23,7 +23,7 @@ import (
 // pack.
 type generateVarFileCommand struct {
 	*baseCommand
-	packConfig *cache.PackConfig
+	packConfig *caching.PackConfig
 
 	// renderTo is the path to write generated var override files to in
 	// addition to standard output.
@@ -133,7 +133,7 @@ func (c *generateVarFileCommand) Run(args []string) int {
 	// Set the packConfig defaults if necessary and generate our UI error context.
 	errorContext := initPackCommand(c.packConfig)
 
-	if err := cache.VerifyPackExists(c.packConfig, errorContext, c.ui); err != nil {
+	if err := caching.VerifyPackExists(c.packConfig, errorContext, c.ui); err != nil {
 		return 1
 	}
 
@@ -165,7 +165,7 @@ func (c *generateVarFileCommand) Run(args []string) int {
 
 func (c *generateVarFileCommand) Flags() *flag.Sets {
 	return c.flagSet(flagSetNeedsApproval, func(set *flag.Sets) {
-		c.packConfig = &cache.PackConfig{}
+		c.packConfig = &caching.PackConfig{}
 
 		f := set.NewSet("Render Options")
 
