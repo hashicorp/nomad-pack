@@ -115,10 +115,16 @@ func (c *InfoCommand) Run(args []string) int {
 				varType = v.Default.Type().FriendlyName()
 			}
 
+			// Indent multi-line type strings to align with opening paren
+			varType = varpkg.IndentTypeString(varType, 21)
+
 			if v.Default.IsNull() {
 				required = append(required, fmt.Sprintf("\t- %q (%s: required) - %s", v.Name, varType, v.Description))
 			} else {
-				defaultStr := fmt.Sprintf("\t- %q (%s: optional) - %s\n\t  default: %s", v.Name, varType, v.Description, varpkg.PrintDefault(v.Default))
+				defaultVal := varpkg.PrintDefault(v.Default)
+				// Indent multi-line default values (align with "default:" keyword)
+				defaultVal = varpkg.IndentTypeString(defaultVal, 17)
+				defaultStr := fmt.Sprintf("\t- %q (%s: optional) - %s\n\t  default: %s", v.Name, varType, v.Description, defaultVal)
 				optional = append(optional, defaultStr)
 			}
 

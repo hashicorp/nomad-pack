@@ -289,7 +289,10 @@ func TestFormatters_printDefault(t *testing.T) {
 				"a": cty.StringVal("apple"),
 				"b": cty.StringVal("ball"),
 			}),
-			expect: `{"a" = "apple", "b" = "ball"}`,
+			expect: `{
+  "a" = "apple",
+  "b" = "ball"
+}`,
 		},
 		{
 			name: "map/bool",
@@ -297,7 +300,10 @@ func TestFormatters_printDefault(t *testing.T) {
 				"a": cty.BoolVal(false),
 				"b": cty.BoolVal(true),
 			}),
-			expect: `{"a" = false, "b" = true}`,
+			expect: `{
+  "a" = false,
+  "b" = true
+}`,
 		},
 		{
 			name: "map/number",
@@ -305,7 +311,10 @@ func TestFormatters_printDefault(t *testing.T) {
 				"a": cty.NumberIntVal(0),
 				"b": cty.NumberFloatVal(2.4),
 			}),
-			expect: `{"a" = 0, "b" = 2.4}`,
+			expect: `{
+  "a" = 0,
+  "b" = 2.4
+}`,
 		},
 		{
 			name: "set/string",
@@ -348,7 +357,13 @@ func TestFormatters_printDefault(t *testing.T) {
 					"foo": cty.StringVal("bar"),
 				}),
 			}),
-			expect: `["a", true, 0.2, ["a", "b", "c"], {"foo" = "bar"}]`,
+			expect: `[
+  "a",
+  true,
+  0.2,
+  ["a", "b", "c"],
+  {"foo" = "bar"}
+]`,
 		},
 		{
 			name:   "object/empty",
