@@ -10,9 +10,9 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-// printType recursively prints out a cty.Type specification in a format that
+// PrintType recursively prints out a cty.Type specification in a format that
 // matched the way in which it is defined.
-func printType(t cty.Type) string {
+func PrintType(t cty.Type) string {
 	return printTypeR(t)
 }
 
@@ -57,11 +57,11 @@ func printTypeR(t cty.Type) string {
 	}
 }
 
-// printDefault recursively prints out a cty.Value specification in a format
+// PrintDefault recursively prints out a cty.Value specification in a format
 // that matched the way it is defined. This allows us to not have to capture
 // or replicate the original presentation. However, could this be captured in
 // parsing?
-func printDefault(v cty.Value) string {
+func PrintDefault(v cty.Value) string {
 	return printDefaultR(v)
 }
 
