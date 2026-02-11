@@ -1,5 +1,8 @@
 ## UNRELEASED
 
+SECURITY:
+* build: Update go-git to 5.16.5 to address CVE-2026-25934 [[GH-26533](https://github.com/hashicorp/nomad-pack/pull/800)]
+
 IMPROVEMENTS:
 * cli: Add -deploy-override flag to plan and run commands to allow forcing deployment over existing jobs, including those not deployed by Nomad Pack [[GH-757](https://github.com/hashicorp/nomad-pack/pull/757)]
 * template: Improve regex parsing for namespace and region fields to support hyphenated values [[GH-757](https://github.com/hashicorp/nomad-pack/pull/757)]
