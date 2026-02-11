@@ -2,6 +2,8 @@
 
 IMPROVEMENTS:
 * cli: Add -deploy-override flag to plan and run commands to allow forcing deployment over existing jobs, including those not deployed by Nomad Pack [[GH-757](https://github.com/hashicorp/nomad-pack/pull/757)]
+* cli: Enhance `info` command to display full object type information and nested field details for complex variable types [[GH-801](https://github.com/hashicorp/nomad-pack/pull/801)]
+* cli: Display default values for all optional variables in `info` command output with proper indentation [[GH-801](https://github.com/hashicorp/nomad-pack/pull/801)]
 * template: Improve regex parsing for namespace and region fields to support hyphenated values [[GH-757](https://github.com/hashicorp/nomad-pack/pull/757)]
 * variable: Improve the error message returned when using a variable file with an unsupported file extension [[GH-791](https://github.com/hashicorp/nomad-pack/pull/791)]
 * variable: Add support for `optional()` type constraint modifier in variable definitions [[GH-798](https://github.com/hashicorp/nomad-pack/pull/798)]

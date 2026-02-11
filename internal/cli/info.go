@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/hashicorp/nomad-pack/internal/pkg/caching"
@@ -11,6 +12,7 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/loader"
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser"
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser/config"
+	varpkg "github.com/hashicorp/nomad-pack/sdk/pack/variables"
 	"github.com/mitchellh/go-glint"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -69,6 +71,14 @@ func (c *InfoCommand) Run(args []string) int {
 	// Create a new glint document to handle the outputting of information.
 	doc := glint.New()
 
+	// Set up the renderer to write to a buffer
+	var buf bytes.Buffer
+	doc.SetRenderer(&glint.TerminalRenderer{
+		Output: &buf,
+		Rows:   10,
+		Cols:   1024,
+	})
+
 	doc.Append(glint.Layout(
 		glint.Style(glint.Text("Pack Name          "), glint.Bold()),
 		glint.Text(p.Metadata.Pack.Name),
@@ -99,16 +109,23 @@ func (c *InfoCommand) Run(args []string) int {
 			varType := "unknown"
 			if !v.Type.Equals(cty.NilType) {
 				// check the explicit "type" parameter
-				varType = v.Type.FriendlyName()
+				varType = varpkg.PrintType(v.Type)
 			} else if !v.Default.IsNull() {
 				// or infer from the default
 				varType = v.Default.Type().FriendlyName()
 			}
 
+			// Indent multi-line type strings to align with opening paren
+			varType = varpkg.IndentTypeString(varType, 21)
+
 			if v.Default.IsNull() {
 				required = append(required, fmt.Sprintf("\t- %q (%s: required) - %s", v.Name, varType, v.Description))
 			} else {
-				optional = append(optional, fmt.Sprintf("\t- %q (%s: optional) - %s", v.Name, varType, v.Description))
+				defaultVal := varpkg.PrintDefault(v.Default)
+				// Indent multi-line default values (align with "default:" keyword)
+				defaultVal = varpkg.IndentTypeString(defaultVal, 17)
+				defaultStr := fmt.Sprintf("\t- %q (%s: optional) - %s\n\t  default: %s", v.Name, varType, v.Description, defaultVal)
+				optional = append(optional, defaultStr)
 			}
 
 		}
@@ -122,6 +139,7 @@ func (c *InfoCommand) Run(args []string) int {
 	}
 
 	doc.RenderFrame()
+	c.ui.Info(buf.String())
 	return 0
 }
 

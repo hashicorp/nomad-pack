@@ -109,7 +109,7 @@ func TestFormatters_printType(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			ci.Parallel(t)
-			out := printType(tc.input)
+			out := PrintType(tc.input)
 			must.Eq(t, tc.expect, out, must.Sprint(tc.input.FriendlyName()))
 		})
 	}
@@ -132,7 +132,7 @@ func TestFormatters_printType(t *testing.T) {
 				"any": cty.DynamicPseudoType}),
 			expect: "object({str = string, b = bool, num = number, any = dynamic})",
 		}
-		out := printType(tc.input)
+		out := PrintType(tc.input)
 		exp := tc.expect
 		must.True(t, strings.HasPrefix(out, "object({"))
 		out = strings.TrimPrefix(out, "object({")
@@ -146,6 +146,64 @@ func TestFormatters_printType(t *testing.T) {
 		eParts := strings.Split(exp, ", ")
 
 		must.SliceContainsAll(t, eParts, oParts)
+	})
+
+	t.Run("list/object", func(t *testing.T) {
+		// List of objects - special case due to map ordering
+		ci.Parallel(t)
+		input := cty.List(cty.Object(map[string]cty.Type{"id": cty.Number, "name": cty.String}))
+		out := PrintType(input)
+		must.True(t, strings.HasPrefix(out, "list(object({"))
+		must.True(t, strings.Contains(out, "id = number"))
+		must.True(t, strings.Contains(out, "name = string"))
+		must.True(t, strings.HasSuffix(out, "}))"))
+	})
+
+	t.Run("map/object", func(t *testing.T) {
+		// Map of objects - special case due to map ordering
+		ci.Parallel(t)
+		input := cty.Map(cty.Object(map[string]cty.Type{"enabled": cty.Bool}))
+		out := PrintType(input)
+		must.True(t, strings.HasPrefix(out, "map(object({"))
+		must.True(t, strings.Contains(out, "enabled = bool"))
+		must.True(t, strings.HasSuffix(out, "}))"))
+	})
+
+	t.Run("object/nested", func(t *testing.T) {
+		// Nested object is special cased because it has a map that prints in
+		// non-guaranteed order.
+		ci.Parallel(t)
+		input := cty.Object(map[string]cty.Type{
+			"id": cty.Number,
+			"config": cty.Object(map[string]cty.Type{
+				"name": cty.String,
+				"port": cty.Number,
+			}),
+		})
+		out := PrintType(input)
+		must.True(t, strings.HasPrefix(out, "object({"))
+		must.True(t, strings.Contains(out, "id = number"))
+		must.True(t, strings.Contains(out, "config = object({"))
+		must.True(t, strings.Contains(out, "name = string"))
+		must.True(t, strings.Contains(out, "port = number"))
+	})
+
+	t.Run("object/with-collection-types", func(t *testing.T) {
+		// Object containing maps and lists
+		ci.Parallel(t)
+		input := cty.Object(map[string]cty.Type{
+			"tags": cty.Map(cty.String),
+			"ids":  cty.List(cty.Number),
+			"metadata": cty.Object(map[string]cty.Type{
+				"a": cty.Number,
+				"b": cty.String,
+			}),
+		})
+		out := PrintType(input)
+		must.True(t, strings.HasPrefix(out, "object({"))
+		must.True(t, strings.Contains(out, "tags = map(string)"))
+		must.True(t, strings.Contains(out, "ids = list(number)"))
+		must.True(t, strings.Contains(out, "metadata = object({"))
 	})
 }
 
@@ -231,7 +289,10 @@ func TestFormatters_printDefault(t *testing.T) {
 				"a": cty.StringVal("apple"),
 				"b": cty.StringVal("ball"),
 			}),
-			expect: `{"a" = "apple", "b" = "ball"}`,
+			expect: `{
+  "a" = "apple",
+  "b" = "ball"
+}`,
 		},
 		{
 			name: "map/bool",
@@ -239,7 +300,10 @@ func TestFormatters_printDefault(t *testing.T) {
 				"a": cty.BoolVal(false),
 				"b": cty.BoolVal(true),
 			}),
-			expect: `{"a" = false, "b" = true}`,
+			expect: `{
+  "a" = false,
+  "b" = true
+}`,
 		},
 		{
 			name: "map/number",
@@ -247,7 +311,10 @@ func TestFormatters_printDefault(t *testing.T) {
 				"a": cty.NumberIntVal(0),
 				"b": cty.NumberFloatVal(2.4),
 			}),
-			expect: `{"a" = 0, "b" = 2.4}`,
+			expect: `{
+  "a" = 0,
+  "b" = 2.4
+}`,
 		},
 		{
 			name: "set/string",
@@ -290,14 +357,78 @@ func TestFormatters_printDefault(t *testing.T) {
 					"foo": cty.StringVal("bar"),
 				}),
 			}),
-			expect: `["a", true, 0.2, ["a", "b", "c"], {"foo" = "bar"}]`,
+			expect: `[
+  "a",
+  true,
+  0.2,
+  ["a", "b", "c"],
+  {"foo" = "bar"}
+]`,
+		},
+		{
+			name:   "object/empty",
+			input:  cty.ObjectVal(map[string]cty.Value{}),
+			expect: `{}`,
 		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			ci.Parallel(t)
-			out := printDefault(tc.input)
+			out := PrintDefault(tc.input)
 			must.Eq(t, tc.expect, out, must.Sprint(tc.input.GoString()))
 		})
 	}
+
+	t.Run("object/simple", func(t *testing.T) {
+		// Object is special cased because it has a map that prints in
+		// non-guaranteed order.
+		ci.Parallel(t)
+		input := cty.ObjectVal(map[string]cty.Value{
+			"id":   cty.NumberIntVal(123),
+			"name": cty.StringVal("test"),
+		})
+		out := PrintDefault(input)
+		must.True(t, strings.HasPrefix(out, "{"))
+		must.True(t, strings.HasSuffix(out, "}"))
+		must.True(t, strings.Contains(out, `"id" = 123`))
+		must.True(t, strings.Contains(out, `"name" = "test"`))
+	})
+
+	t.Run("object/nested", func(t *testing.T) {
+		// Nested object - special case due to map ordering
+		ci.Parallel(t)
+		input := cty.ObjectVal(map[string]cty.Value{
+			"id": cty.NumberIntVal(1),
+			"config": cty.ObjectVal(map[string]cty.Value{
+				"enabled": cty.BoolVal(true),
+				"port":    cty.NumberIntVal(8080),
+			}),
+		})
+		out := PrintDefault(input)
+		must.True(t, strings.HasPrefix(out, "{"))
+		must.True(t, strings.HasSuffix(out, "}"))
+		must.True(t, strings.Contains(out, `"id" = 1`))
+		must.True(t, strings.Contains(out, `"config" = {`))
+		must.True(t, strings.Contains(out, `"enabled" = true`))
+		must.True(t, strings.Contains(out, `"port" = 8080`))
+	})
+
+	t.Run("object/with-collections", func(t *testing.T) {
+		// Object with collections - special case due to map ordering
+		ci.Parallel(t)
+		input := cty.ObjectVal(map[string]cty.Value{
+			"tags": cty.MapVal(map[string]cty.Value{
+				"env": cty.StringVal("prod"),
+			}),
+			"ids": cty.ListVal([]cty.Value{
+				cty.NumberIntVal(1), cty.NumberIntVal(2), cty.NumberIntVal(3),
+			}),
+		})
+		out := PrintDefault(input)
+		must.True(t, strings.HasPrefix(out, "{"))
+		must.True(t, strings.HasSuffix(out, "}"))
+		must.True(t, strings.Contains(out, `"tags" = {`))
+		must.True(t, strings.Contains(out, `"env" = "prod"`))
+		must.True(t, strings.Contains(out, `"ids" = [1, 2, 3]`))
+	})
 }
