@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -153,11 +154,17 @@ func (c *StopCommand) Run(args []string) int {
 			continue
 		}
 
+		// Build write options with namespace from the job template
+		writeOpts := &api.WriteOptions{}
+		if job.Namespace != nil {
+			writeOpts.Namespace = *job.Namespace
+		}
+
 		// Invoke the stop
 		_, _, err := client.Jobs().DeregisterOpts(*job.ID, &api.DeregisterOptions{
 			Purge:  c.purge,
 			Global: c.global,
-		}, &api.WriteOptions{})
+		}, writeOpts)
 		if err != nil {
 			errs = append(errs, err)
 			c.ui.ErrorWithContext(err, fmt.Sprintf("error deregistering job: %q", *job.ID))
@@ -187,9 +194,14 @@ func (c *StopCommand) checkForConflicts(client *api.Client, job *api.Job) error 
 	}
 
 	prefix := *job.ID
+	queryOpts.Prefix = prefix
 	jobsApi := client.Jobs()
 
-	jobs, _, err := jobsApi.PrefixList(prefix)
+	// List jobs matching the prefix and namespace. Multiple jobs may be returned
+	// if the prefix matches multiple job IDs, or if the same job ID exists in
+	// different namespaces when using '*' namespace. We error if the prefix doesn't
+	// give an exact match or if the same job ID exists in multiple namespaces.
+	jobs, _, err := jobsApi.List(queryOpts.WithContext(context.Background()))
 	if err != nil {
 		return fmt.Errorf("error querying job prefix %q: %s", prefix, err)
 	}
