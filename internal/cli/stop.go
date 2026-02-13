@@ -154,9 +154,12 @@ func (c *StopCommand) Run(args []string) int {
 			continue
 		}
 
-		// Build write options with namespace from the job template
+		// Build write options with namespace from the job template.
+		// Only use job.Namespace if it was explicitly set in the template
+		// (i.e., not the "default" that Canonicalize sets when no namespace is specified).
+		// This allows --namespace flag to work when --var=namespace is not provided.
 		writeOpts := &api.WriteOptions{}
-		if job.Namespace != nil {
+		if job.Namespace != nil && *job.Namespace != "" && *job.Namespace != api.DefaultNamespace {
 			writeOpts.Namespace = *job.Namespace
 		}
 
@@ -188,8 +191,11 @@ func (c *StopCommand) Run(args []string) int {
 }
 
 func (c *StopCommand) checkForConflicts(client *api.Client, job *api.Job) error {
+	// Only use job.Namespace if it was explicitly set in the template
+	// (i.e., not the "default" that Canonicalize sets when no namespace is specified).
+	// This allows --namespace flag to work when --var=namespace is not provided.
 	queryOpts := &api.QueryOptions{}
-	if job.Namespace != nil {
+	if job.Namespace != nil && *job.Namespace != "" && *job.Namespace != api.DefaultNamespace {
 		queryOpts.Namespace = *job.Namespace
 	}
 
