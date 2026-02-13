@@ -7,6 +7,8 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/posener/complete"
+
 	"github.com/hashicorp/nomad-pack/internal/pkg/caching"
 	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
 	"github.com/hashicorp/nomad-pack/internal/pkg/loader"
@@ -186,4 +188,12 @@ func (c *InfoCommand) Help() string {
 
 func (c *InfoCommand) Synopsis() string {
 	return "Get information on a pack"
+}
+
+func (c *InfoCommand) AutocompleteArgs() complete.Predictor {
+	return predictPackName
+}
+
+func (c *InfoCommand) AutocompleteFlags() complete.Flags {
+	return c.Flags().Completions()
 }

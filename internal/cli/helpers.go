@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/nomad/api"
+	"github.com/posener/complete"
 
 	"github.com/hashicorp/nomad-pack/internal/pkg/caching"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
@@ -47,6 +48,58 @@ func generatePackManager(c *baseCommand, client *api.Client, packCfg *caching.Pa
 		UseParserV1:     c.useParserV1,
 	}
 	return manager.NewPackManager(&cfg, client)
+}
+
+// predictPackName is a complete.Predictor that suggests cached pack names.
+// When --registry is specified on the command line, suggestions are filtered
+// to only that registry. Duplicate pack names across registries are removed.
+var predictPackName = complete.PredictFunc(func(args complete.Args) []string {
+	registryFilter := extractFlagValue(args.All, "registry")
+
+	globalCache, err := caching.NewCache(&caching.CacheConfig{
+		Path:   caching.DefaultCachePath(),
+		Logger: nil,
+	})
+	if err != nil {
+		return nil
+	}
+
+	if err = globalCache.Load(); err != nil {
+		return nil
+	}
+
+	seen := map[string]struct{}{}
+	var packNames []string
+
+	for _, cachedRegistry := range globalCache.Registries() {
+		if registryFilter != "" && cachedRegistry.Name != registryFilter {
+			continue
+		}
+		for _, registryPack := range cachedRegistry.Packs {
+			name := registryPack.Name()
+			if _, ok := seen[name]; !ok {
+				seen[name] = struct{}{}
+				packNames = append(packNames, name)
+			}
+		}
+	}
+
+	return packNames
+})
+
+// extractFlagValue looks for --flag value or --flag=value in the given args
+// and returns the value. Returns an empty string if not found.
+func extractFlagValue(args []string, flag string) string {
+	dashed := "--" + flag
+	for i, arg := range args {
+		if arg == dashed && i+1 < len(args) {
+			return args[i+1]
+		}
+		if strings.HasPrefix(arg, dashed+"=") {
+			return strings.TrimPrefix(arg, dashed+"=")
+		}
+	}
+	return ""
 }
 
 func registryTable() *terminal.Table {

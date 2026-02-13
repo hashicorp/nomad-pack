@@ -402,7 +402,7 @@ func (c *RenderCommand) Flags() *flag.Sets {
 }
 
 func (c *RenderCommand) AutocompleteArgs() complete.Predictor {
-	return complete.PredictNothing
+	return predictPackName
 }
 
 func (c *RenderCommand) AutocompleteFlags() complete.Flags {

@@ -230,7 +230,7 @@ func (c *PlanCommand) Flags() *flag.Sets {
 }
 
 func (c *PlanCommand) AutocompleteArgs() complete.Predictor {
-	return complete.PredictNothing
+	return predictPackName
 }
 
 func (c *PlanCommand) AutocompleteFlags() complete.Flags {

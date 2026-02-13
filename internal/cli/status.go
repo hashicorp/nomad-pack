@@ -128,7 +128,7 @@ func (c *StatusCommand) Flags() *flag.Sets {
 }
 
 func (c *StatusCommand) AutocompleteArgs() complete.Predictor {
-	return complete.PredictNothing
+	return predictPackName
 }
 
 func (c *StatusCommand) AutocompleteFlags() complete.Flags {
