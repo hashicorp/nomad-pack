@@ -16,6 +16,7 @@ IMPROVEMENTS:
 BUG FIXES:
 * cli: Fix destroy command incorrectly detecting conflicts when multiple jobs share name prefixes (e.g., "Laas-Service" vs "Laas-Service-Regression") [[GH-795](https://github.com/hashicorp/nomad-pack/pull/795)]
 * cli: Fix plan diff output to display `EmbeddedTmpl` content with proper line breaks for improved readability [[GH-799](https://github.com/hashicorp/nomad-pack/pull/799)]
+* cli: Fix destroy command not using namespace from job template, requiring explicit `--namespace` flag [[GH-802](https://github.com/hashicorp/nomad-pack/pull/802)]
 
 ## 0.4.1 (November 13, 2025)
 
