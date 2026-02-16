@@ -349,7 +349,7 @@ func TestCLI_PackStop_Conflicts(t *testing.T) {
 				}
 
 				// Try to stop job
-				result := runTestPackCmd(t, s, []string{"stop", tC.packName})
+				result := runTestPackCmd(t, s, []string{"stop", getTestPackPath(t, tC.packName)})
 				must.Eq(t, 1, result.exitCode)
 			})
 		}
@@ -424,11 +424,11 @@ func TestCLI_PackDestroy_WithOverrides(t *testing.T) {
 			{
 				desc:             "destroy-all-with-no-override",
 				initialJobs:      []string{"job1", "job2"},
-				destroyJobName:   "", // No var override, should destroy all
-				expectedExitCode: 0,
+				destroyJobName:   "", // No var override, shouldn't destroy jobs with injected job_name unless specified through overrides
+				expectedExitCode: 1,
 				expectError:      false,
-				remainingJobs:    []string{},
-				deletedJobs:      []string{"job1", "job2"},
+				remainingJobs:    []string{"job1", "job2"},
+				deletedJobs:      []string{},
 			},
 		}
 
