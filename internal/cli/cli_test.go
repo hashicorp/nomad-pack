@@ -494,7 +494,7 @@ func TestCLI_PackDestroy_WithNamespaceOverrides(t *testing.T) {
 			initialJobs map[string][]string
 			// Destroy args
 			destroyJobName   string
-			destroyNamespace string // namespace via --var=namespace=
+			destroyNamespace string // namespace via jobspec (injected with --var=namespace=)
 			namespaceFlag    string // namespace via --namespace flag
 			expectedExitCode int
 			// Verification: remaining jobs as map of namespace -> job names
