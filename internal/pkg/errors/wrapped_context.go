@@ -35,6 +35,37 @@ func (w *WrappedUIContext) Error() string {
 	return fmt.Sprintf("%s: %v: \n%s", w.Subject, w.Err, w.Context.String())
 }
 
+// formatHCLRange formats an hcl.Range using the standard HCL v2 format.
+// This matches the format used by the HCL library itself and Nomad CLI.
+// Format for same line: filename:line,column-column
+// Format for different lines: filename:line,column-line,column
+// If line/column information is not available, it falls back to just the filename.
+func formatHCLRange(r *hcl.Range) string {
+	if r == nil {
+		return ""
+	}
+
+	// Check if we have meaningful line/column information
+	// (all zeros means the position wasn't set)
+	hasStartPos := r.Start.Line > 0 || r.Start.Column > 0
+	hasEndPos := r.End.Line > 0 || r.End.Column > 0
+
+	if !hasStartPos && !hasEndPos {
+		// Fall back to filename only if no position info
+		return r.Filename
+	}
+
+	// Use the standard HCL v2 format: filename:line,column-line,column
+	// This matches what hcl.Range.String() returns and what Nomad uses
+	if r.Start.Line == r.End.Line {
+		// Same line: filename:line,column-column
+		return fmt.Sprintf("%s:%d,%d-%d", r.Filename, r.Start.Line, r.Start.Column, r.End.Column)
+	} else {
+		// Different lines: filename:line,column-line,column
+		return fmt.Sprintf("%s:%d,%d-%d,%d", r.Filename, r.Start.Line, r.Start.Column, r.End.Line, r.End.Column)
+	}
+}
+
 // HCLDiagsToWrappedUIContext converts HCL specific hcl.Diagnostics into an
 // array of WrappedUIContext.
 func HCLDiagsToWrappedUIContext(diags hcl.Diagnostics) []*WrappedUIContext {
@@ -45,8 +76,19 @@ func HCLDiagsToWrappedUIContext(diags hcl.Diagnostics) []*WrappedUIContext {
 			Subject: diag.Summary,
 			Context: NewUIErrorContext(),
 		}
+
+		// Choose the best available range for reporting.
+		// Prefer Subject (the location where the error occurred),
+		// but fall back to Context if Subject is not available.
+		var rangeToUse *hcl.Range
 		if diag.Subject != nil {
-			wrapped[i].Context.Add(UIContextPrefixHCLRange, diag.Subject.String())
+			rangeToUse = diag.Subject
+		} else if diag.Context != nil {
+			rangeToUse = diag.Context
+		}
+
+		if rangeToUse != nil {
+			wrapped[i].Context.Add(UIContextPrefixHCLRange, formatHCLRange(rangeToUse))
 		}
 	}
 	return wrapped
