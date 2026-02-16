@@ -290,7 +290,7 @@ func (c *RunCommand) Flags() *flag.Sets {
 }
 
 func (c *RunCommand) AutocompleteArgs() complete.Predictor {
-	return complete.PredictNothing
+	return predictPackName
 }
 
 func (c *RunCommand) AutocompleteFlags() complete.Flags {

@@ -78,7 +78,7 @@ func (c *DestroyCommand) Flags() *flag.Sets {
 }
 
 func (c *DestroyCommand) AutocompleteArgs() complete.Predictor {
-	return complete.PredictNothing
+	return predictPackName
 }
 
 func (c *DestroyCommand) AutocompleteFlags() complete.Flags {

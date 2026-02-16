@@ -261,7 +261,7 @@ func (c *StopCommand) Flags() *flag.Sets {
 }
 
 func (c *StopCommand) AutocompleteArgs() complete.Predictor {
-	return complete.PredictNothing
+	return predictPackName
 }
 
 func (c *StopCommand) AutocompleteFlags() complete.Flags {
