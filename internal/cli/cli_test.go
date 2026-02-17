@@ -349,7 +349,7 @@ func TestCLI_PackStop_Conflicts(t *testing.T) {
 				}
 
 				// Try to stop job
-				result := runTestPackCmd(t, s, []string{"stop", tC.packName})
+				result := runTestPackCmd(t, s, []string{"stop", getTestPackPath(t, tC.packName)})
 				must.Eq(t, 1, result.exitCode)
 			})
 		}
@@ -424,11 +424,11 @@ func TestCLI_PackDestroy_WithOverrides(t *testing.T) {
 			{
 				desc:             "destroy-all-with-no-override",
 				initialJobs:      []string{"job1", "job2"},
-				destroyJobName:   "", // No var override, should destroy all
-				expectedExitCode: 0,
+				destroyJobName:   "", // No var override, shouldn't destroy jobs with injected job_name unless specified through overrides
+				expectedExitCode: 1,
 				expectError:      false,
-				remainingJobs:    []string{},
-				deletedJobs:      []string{"job1", "job2"},
+				remainingJobs:    []string{"job1", "job2"},
+				deletedJobs:      []string{},
 			},
 		}
 
@@ -470,6 +470,186 @@ func TestCLI_PackDestroy_WithOverrides(t *testing.T) {
 					must.Error(t, err, must.Sprintf("job %s should be deleted", jobName))
 					must.Eq(t, "Unexpected response code: 404 (job not found)", err.Error())
 					must.Nil(t, j, must.Sprintf("deleted job %s should be nil", jobName))
+				}
+			})
+		}
+	})
+}
+
+// Test destroy with namespace overrides via --var and --namespace flag
+func TestCLI_PackDestroy_WithNamespaceOverrides(t *testing.T) {
+	ct.HTTPTestParallel(t, ct.WithDefaultConfig(), func(s *agent.TestAgent) {
+		c, err := ct.NewTestClient(s)
+		must.NoError(t, err)
+
+		// Create test namespaces
+		ct.MakeTestNamespaces(t, c)
+
+		reg, _, regPath := createTestRegistries(t)
+		defer cleanTestRegistry(t, regPath)
+
+		testCases := []struct {
+			desc string
+			// Setup: jobs to create as map of namespace -> job names
+			initialJobs map[string][]string
+			// Destroy args
+			destroyJobName   string
+			destroyNamespace string // namespace via jobspec (injected with --var=namespace=)
+			namespaceFlag    string // namespace via --namespace flag
+			expectedExitCode int
+			// Verification: remaining jobs as map of namespace -> job names
+			remainingJobs map[string][]string
+			// Verification: deleted jobs as map of namespace -> job names
+			deletedJobs map[string][]string
+		}{
+			{
+				desc: "destroy-job-in-specific-namespace-via-var",
+				initialJobs: map[string][]string{
+					"job":     {"myjob"},
+					"default": {"myjob"}, // Same job name in different namespace
+				},
+				destroyJobName:   "myjob",
+				destroyNamespace: "job", // Use --var=namespace=job
+				namespaceFlag:    "",
+				expectedExitCode: 0,
+				remainingJobs: map[string][]string{
+					"default": {"myjob"},
+				},
+				deletedJobs: map[string][]string{
+					"job": {"myjob"},
+				},
+			},
+			{
+				desc: "destroy-job-in-specific-namespace-via-flag",
+				initialJobs: map[string][]string{
+					"flag":    {"myjob"},
+					"default": {"myjob"},
+				},
+				destroyJobName:   "myjob",
+				destroyNamespace: "",
+				namespaceFlag:    "flag", // Use --namespace=flag
+				expectedExitCode: 0,
+				remainingJobs: map[string][]string{
+					"default": {"myjob"},
+				},
+				deletedJobs: map[string][]string{
+					"flag": {"myjob"},
+				},
+			},
+			{
+				desc: "destroy-job-var-namespace-takes-precedence-over-flag",
+				initialJobs: map[string][]string{
+					"job":  {"myjob"},
+					"flag": {"myjob"},
+				},
+				destroyJobName:   "myjob",
+				destroyNamespace: "job",  // --var=namespace=job
+				namespaceFlag:    "flag", // --namespace=flag (should be overridden)
+				expectedExitCode: 0,
+				remainingJobs: map[string][]string{
+					"flag": {"myjob"}, // flag namespace job should remain
+				},
+				deletedJobs: map[string][]string{
+					"job": {"myjob"}, // job namespace job should be deleted
+				},
+			},
+			{
+				desc: "destroy-fails-same-job-multiple-namespaces-no-namespace-specified",
+				initialJobs: map[string][]string{
+					"job":     {"samejob"},
+					"flag":    {"samejob"},
+					"default": {"samejob"},
+				},
+				destroyJobName:   "samejob",
+				destroyNamespace: "*", // Wildcard - should fail with multiple namespaces
+				namespaceFlag:    "",
+				expectedExitCode: 1, // Should fail due to conflict
+				remainingJobs: map[string][]string{
+					"job":     {"samejob"},
+					"flag":    {"samejob"},
+					"default": {"samejob"},
+				},
+				deletedJobs: map[string][]string{},
+			},
+			{
+				desc: "destroy-different-jobs-in-different-namespaces",
+				initialJobs: map[string][]string{
+					"job":  {"app1"},
+					"flag": {"app2"},
+				},
+				destroyJobName:   "app1",
+				destroyNamespace: "job",
+				namespaceFlag:    "",
+				expectedExitCode: 0,
+				remainingJobs: map[string][]string{
+					"flag": {"app2"},
+				},
+				deletedJobs: map[string][]string{
+					"job": {"app1"},
+				},
+			},
+		}
+
+		for _, tC := range testCases {
+			t.Run(tC.desc, func(t *testing.T) {
+				defer ct.NomadCleanup(s)
+
+				// Create initial jobs in their respective namespaces
+				for namespace, jobNames := range tC.initialJobs {
+					for _, jobName := range jobNames {
+						args := []string{
+							"run", testPack,
+							"--var=job_name=" + jobName,
+							"--var=namespace=" + namespace,
+							"--registry=" + reg.Name,
+						}
+						result := runTestPackCmd(t, s, args)
+						expectGoodPackDeploy(t, result)
+					}
+				}
+
+				// Build destroy command args
+				args := []string{"destroy", testPack, "--registry=" + reg.Name}
+				if tC.destroyJobName != "" {
+					args = append(args, "--var=job_name="+tC.destroyJobName)
+				}
+				if tC.destroyNamespace != "" {
+					args = append(args, "--var=namespace="+tC.destroyNamespace)
+				}
+				if tC.namespaceFlag != "" {
+					args = append(args, "--namespace="+tC.namespaceFlag)
+				}
+
+				// Execute destroy command
+				result := runTestPackCmd(t, s, args)
+
+				// Verify exit code
+				must.Eq(t, tC.expectedExitCode, result.exitCode, must.Sprintf(
+					"expected exitcode %d; got %d\ncmdOut: %s", tC.expectedExitCode, result.exitCode, result.cmdOut.String()))
+
+				// Verify remaining jobs still exist in their namespaces
+				for namespace, jobNames := range tC.remainingJobs {
+					for _, jobName := range jobNames {
+						j, _, err := c.Jobs().Info(jobName, &api.QueryOptions{
+							Namespace: namespace,
+							WaitTime:  5 * time.Second,
+						})
+						must.NoError(t, err, must.Sprintf("job %s in namespace %s should still exist", jobName, namespace))
+						must.NotNil(t, j, must.Sprintf("job %s in namespace %s should not be nil", jobName, namespace))
+					}
+				}
+
+				// Verify deleted jobs are gone from their namespaces
+				for namespace, jobNames := range tC.deletedJobs {
+					for _, jobName := range jobNames {
+						j, _, err := c.Jobs().Info(jobName, &api.QueryOptions{
+							Namespace: namespace,
+							WaitTime:  5 * time.Second,
+						})
+						must.Error(t, err, must.Sprintf("job %s in namespace %s should be deleted", jobName, namespace))
+						must.Eq(t, "Unexpected response code: 404 (job not found)", err.Error())
+						must.Nil(t, j, must.Sprintf("deleted job %s in namespace %s should be nil", jobName, namespace))
+					}
 				}
 			})
 		}

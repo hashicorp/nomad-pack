@@ -294,7 +294,7 @@ func TestCLI_V1_PackStop_Conflicts(t *testing.T) {
 				}
 
 				// Try to stop job
-				result := runTestPackV1Cmd(t, s, []string{"stop", tC.packName})
+				result := runTestPackV1Cmd(t, s, []string{"stop", getTestPackV1Path(t, tC.packName)})
 				must.Eq(t, 1, result.exitCode)
 			})
 		}
@@ -364,11 +364,23 @@ func TestCLI_V1_PackDestroy_WithOverrides(t *testing.T) {
 		must.NoError(t, err)
 		must.NotNil(t, j)
 
-		// Stop job with no overrides passed
+		// Stop job with no overrides passed - this should fail because the rendered
+		// pack will have job_name=simple_raw_exec (the default), not "bar"
 		result = runTestPackV1Cmd(t, s, []string{"destroy", testPack, "--registry=" + reg.Name})
+		must.Eq(t, 1, result.exitCode, must.Sprintf("expected exitcode 1; got %v\ncmdOut:%v", result.exitCode, result.cmdOut.String()))
+
+		// Assert job bar still exists (was not deleted)
+		tCtx, done = context.WithTimeout(context.TODO(), 5*time.Second)
+		j, _, err = c.Jobs().Info("bar", q.WithContext(tCtx))
+		done()
+		must.NoError(t, err)
+		must.NotNil(t, j)
+
+		// Destroy with the correct override
+		result = runTestPackV1Cmd(t, s, []string{"destroy", testPack, "--var=job_name=bar", "--registry=" + reg.Name})
 		must.Zero(t, result.exitCode, must.Sprintf("expected exitcode 0; got %v\ncmdOut:%v", result.exitCode, result.cmdOut.String()))
 
-		// Assert job bar is gone
+		// Assert job bar is now gone
 		tCtx, done = context.WithTimeout(context.TODO(), 5*time.Second)
 		j, _, err = c.Jobs().Info("bar", q.WithContext(tCtx))
 		done()

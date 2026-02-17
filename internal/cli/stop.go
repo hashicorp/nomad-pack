@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -78,63 +79,62 @@ func (c *StopCommand) Run(args []string) int {
 
 	var jobs []*api.Job
 
-	// Get job names if var overrides are passed
-	if hasVarOverrides(c.baseCommand) {
-		packManager := generatePackManager(c.baseCommand, client, c.packConfig)
+	packManager := generatePackManager(c.baseCommand, client, c.packConfig)
 
-		var r *renderer.Rendered
+	var r *renderer.Rendered
 
-		// render the pack
-		r, err = renderPack(
-			packManager,
-			c.ui,
-			false,
-			false,
-			c.ignoreMissingVars,
-			errorContext,
-		)
+	// render the pack to get the jobs to stop.
+	r, err = renderPack(
+		packManager,
+		c.ui,
+		false,
+		false,
+		c.ignoreMissingVars,
+		errorContext,
+	)
+	if err != nil {
+		return 255
+	}
+
+	// Commands that render templates are required to render at least one
+	// parent template.
+	if r.LenParentRenders() < 1 {
+		c.ui.ErrorWithContext(errors.ErrNoTemplatesRendered, "no templates rendered", errorContext.GetAll()...)
+		return 1
+	}
+
+	for tplName, tpl := range r.ParentRenders() {
+
+		// tplErrorContext forms the basis for error output context as is
+		// appended to when new information becomes available.
+		tplErrorContext := errorContext.Copy()
+		tplErrorContext.Add(errors.UIContextPrefixTemplateName, tplName)
+
+		// get job struct from template
+		var job *api.Job
+		job, err = parseJob(c.baseCommand, tpl, tplErrorContext)
 		if err != nil {
-			return 255
-		}
-
-		// Commands that render templates are required to render at least one
-		// parent template.
-		if r.LenParentRenders() < 1 {
-			c.ui.ErrorWithContext(errors.ErrNoTemplatesRendered, "no templates rendered", errorContext.GetAll()...)
+			// err output is handled by parseJob
 			return 1
 		}
 
-		for tplName, tpl := range r.ParentRenders() {
+		// Add the jobID to the error context.
+		tplErrorContext.Add(errors.UIContextPrefixJobName, *job.Name)
+		jobs = append(jobs, job)
+	}
 
-			// tplErrorContext forms the basis for error output context as is
-			// appended to when new information becomes available.
-			tplErrorContext := errorContext.Copy()
-			tplErrorContext.Add(errors.UIContextPrefixTemplateName, tplName)
+	// Filter the rendered jobs to only those matching the deployment name.
+	// This is necessary because the IDs of rendered pack jobs may match with jobs
+	// from other deployments or non-pack jobs.
+	jobs, err = getPackJobsByDeploy(jobs, client, c.packConfig, c.deploymentName)
+	if err != nil {
+		c.ui.ErrorWithContext(err, "failed to find jobs for pack", errorContext.GetAll()...)
+		return 1
+	}
 
-			// get job struct from template
-			var job *api.Job
-			job, err = parseJob(c.baseCommand, tpl, tplErrorContext)
-			if err != nil {
-				// err output is handled by parseJob
-				return 1
-			}
-
-			// Add the jobID to the error context.
-			tplErrorContext.Add(errors.UIContextPrefixJobName, *job.Name)
-			jobs = append(jobs, job)
-		}
-	} else {
-		// If no job names are specified, get all jobs belonging to the pack and deployment
-		jobs, err = getPackJobsByDeploy(client, c.packConfig, c.deploymentName)
-		if err != nil {
-			c.ui.ErrorWithContext(err, "failed to find jobs for pack", errorContext.GetAll()...)
-			return 1
-		}
-
-		if len(jobs) == 0 {
-			c.ui.Warning(fmt.Sprintf("no jobs found for pack %q", c.packConfig.Name))
-			return 1
-		}
+	if len(jobs) == 0 {
+		c.ui.Warning(fmt.Sprintf("no jobs found for pack %q", c.packConfig.Name))
+		return 1
 	}
 
 	var errs []error
@@ -153,11 +153,20 @@ func (c *StopCommand) Run(args []string) int {
 			continue
 		}
 
+		// Build write options with namespace from the job template.
+		// Only use job.Namespace if it was explicitly set in the template
+		// (i.e., not the "default" that Canonicalize sets when no namespace is specified).
+		// This allows --namespace flag to work when --var=namespace is not provided.
+		writeOpts := &api.WriteOptions{}
+		if job.Namespace != nil && *job.Namespace != "" && *job.Namespace != api.DefaultNamespace {
+			writeOpts.Namespace = *job.Namespace
+		}
+
 		// Invoke the stop
 		_, _, err := client.Jobs().DeregisterOpts(*job.ID, &api.DeregisterOptions{
 			Purge:  c.purge,
 			Global: c.global,
-		}, &api.WriteOptions{})
+		}, writeOpts)
 		if err != nil {
 			errs = append(errs, err)
 			c.ui.ErrorWithContext(err, fmt.Sprintf("error deregistering job: %q", *job.ID))
@@ -181,15 +190,23 @@ func (c *StopCommand) Run(args []string) int {
 }
 
 func (c *StopCommand) checkForConflicts(client *api.Client, job *api.Job) error {
+	// Only use job.Namespace if it was explicitly set in the template
+	// (i.e., not the "default" that Canonicalize sets when no namespace is specified).
+	// This allows --namespace flag to work when --var=namespace is not provided.
 	queryOpts := &api.QueryOptions{}
-	if job.Namespace != nil {
+	if job.Namespace != nil && *job.Namespace != "" && *job.Namespace != api.DefaultNamespace {
 		queryOpts.Namespace = *job.Namespace
 	}
 
 	prefix := *job.ID
+	queryOpts.Prefix = prefix
 	jobsApi := client.Jobs()
 
-	jobs, _, err := jobsApi.PrefixList(prefix)
+	// List jobs matching the prefix and namespace. Multiple jobs may be returned
+	// if the prefix matches multiple job IDs, or if the same job ID exists in
+	// different namespaces when using '*' namespace. We error if the prefix doesn't
+	// give an exact match or if the same job ID exists in multiple namespaces.
+	jobs, _, err := jobsApi.List(queryOpts.WithContext(context.Background()))
 	if err != nil {
 		return fmt.Errorf("error querying job prefix %q: %s", prefix, err)
 	}
