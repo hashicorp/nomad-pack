@@ -8,6 +8,7 @@ IMPROVEMENTS:
 * cli: Add pack name autocompletion for destroy, info, plan, render, run, status, and stop commands with support for --registry flag filtering [[GH-803](https://github.com/hashicorp/nomad-pack/pull/803)]
 * cli: Enhance `info` command to display full object type information and nested field details for complex variable types [[GH-801](https://github.com/hashicorp/nomad-pack/pull/801)]
 * cli: Display default values for all optional variables in `info` command output with proper indentation [[GH-801](https://github.com/hashicorp/nomad-pack/pull/801)]
+* cli: Add line and column information to HCL error messages using the standard HCL v2 format (e.g., `variables.hcl:3,3-7`) to help users locate configuration errors more easily [[GH-807](https://github.com/hashicorp/nomad-pack/pull/807)]
 * template: Improve regex parsing for namespace and region fields to support hyphenated values [[GH-757](https://github.com/hashicorp/nomad-pack/pull/757)]
 * variable: Improve the error message returned when using a variable file with an unsupported file extension [[GH-791](https://github.com/hashicorp/nomad-pack/pull/791)]
 * variable: Add support for `optional()` type constraint modifier in variable definitions [[GH-798](https://github.com/hashicorp/nomad-pack/pull/798)]
