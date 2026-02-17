@@ -150,7 +150,11 @@ func Interpret(msg string, raw ...any) (string, string, io.Writer) {
 	}
 
 	// Build our message
-	msg = fmt.Sprintf(msg, args...)
+	// Only call fmt.Sprintf if there are args to interpolate, otherwise it will
+	// interpret format verbs in the message (e.g., %i, %l) as missing arguments
+	if len(args) > 0 {
+		msg = fmt.Sprintf(msg, args...)
+	}
 
 	// Build our config and set our options
 	cfg := &config{Writer: color.Output}
