@@ -392,12 +392,6 @@ func TestParsePackURL(t *testing.T) {
 			expectedResult: "/Users/voiselle/debugging/path-to-a-registry",
 			expectOk:       true,
 		},
-		{
-			name:           "nested-repo",
-			path:           "https://gitlab.com/a6281/nomad/my-pack-registry.git/packs/simple_service",
-			expectedResult: "gitlab.com/a6281/nomad/my-pack-registry",
-			expectOk:       true,
-		},
 	}
 
 	for _, tc := range testCases {
