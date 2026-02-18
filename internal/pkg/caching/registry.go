@@ -148,8 +148,6 @@ func (r *Registry) parsePackURL(packURL string) bool {
 	dir, _ := path.Split(parsedPackURL.Path)
 	// hop off the "/packs" component of the directory
 	dir, _ = path.Split(strings.TrimSuffix(dir, "/"))
-	// don't display the .git; note because this is still a path it ends in a /
-	//	dir = strings.TrimSuffix(dir, ".git/")
 
 	r.Source = path.Join(parsedPackURL.Hostname(), dir)
 	return true
