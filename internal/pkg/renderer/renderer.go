@@ -97,6 +97,9 @@ func (r *Renderer) Render(p *pack.Pack, variables *parser.ParsedVariables) (*Ren
 	// delimiters.
 	tpl := template.New("tpl").Funcs(funcMap(r)).Delims(leftTemplateDelim, rightTemplateDelim)
 
+	//set r.tpl before rendering so that they can be accessed by the tpl function
+	r.tpl = tpl
+
 	// Control the behaviour of rendering when it encounters an element
 	// referenced which doesn't exist within the variable mapping.
 	if r.Strict {
