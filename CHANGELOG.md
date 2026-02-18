@@ -8,6 +8,7 @@ IMPROVEMENTS:
 * cli: Add pack name autocompletion for destroy, info, plan, render, run, status, and stop commands with support for --registry flag filtering [[GH-803](https://github.com/hashicorp/nomad-pack/pull/803)]
 * cli: Enhance `info` command to display full object type information and nested field details for complex variable types [[GH-801](https://github.com/hashicorp/nomad-pack/pull/801)]
 * cli: Display default values for all optional variables in `info` command output with proper indentation [[GH-801](https://github.com/hashicorp/nomad-pack/pull/801)]
+* cli: Add line and column information to HCL error messages using the standard HCL v2 format (e.g., `variables.hcl:3,3-7`) to help users locate configuration errors more easily [[GH-807](https://github.com/hashicorp/nomad-pack/pull/807)]
 * template: Improve regex parsing for namespace and region fields to support hyphenated values [[GH-757](https://github.com/hashicorp/nomad-pack/pull/757)]
 * variable: Improve the error message returned when using a variable file with an unsupported file extension [[GH-791](https://github.com/hashicorp/nomad-pack/pull/791)]
 * variable: Add support for `optional()` type constraint modifier in variable definitions [[GH-798](https://github.com/hashicorp/nomad-pack/pull/798)]
@@ -16,6 +17,7 @@ BUG FIXES:
 * cli: Fix destroy command incorrectly detecting conflicts when multiple jobs share name prefixes (e.g., "Laas-Service" vs "Laas-Service-Regression") [[GH-795](https://github.com/hashicorp/nomad-pack/pull/795)]
 * cli: Fix plan diff output to display `EmbeddedTmpl` content with proper line breaks for improved readability [[GH-799](https://github.com/hashicorp/nomad-pack/pull/799)]
 * cli: Fix render and generate-var-file commands incorrectly treating rendered template content as a printf format string, which corrupted format specifiers (e.g., `%i` → `%!i(MISSING)`) in terminal output [[GH-809](https://github.com/hashicorp/nomad-pack/pull/809)]
+* cli: Fix destroy command not using namespace from job template, requiring explicit `--namespace` flag [[GH-802](https://github.com/hashicorp/nomad-pack/pull/802)]
 
 ## 0.4.1 (November 13, 2025)
 

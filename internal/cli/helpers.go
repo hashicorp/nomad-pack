@@ -257,22 +257,23 @@ func getDeploymentName(c *baseCommand, cfg *caching.PackConfig) string {
 }
 
 // TODO: Move to a domain specific package.
-func getPackJobsByDeploy(c *api.Client, cfg *caching.PackConfig, deploymentName string) ([]*api.Job, error) {
-	jobsApi := c.Jobs()
-	jobs, _, err := jobsApi.List(&api.QueryOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("error finding jobs for pack %s: %s", cfg.Name, err)
-	}
-	if len(jobs) == 0 {
-		return nil, errors.New("no job(s) found")
-	}
 
-	var packJobs []*api.Job
+// getPackJobsByDeploy filters the provided jobs to only those matching the deployment name.
+// If no jobs are found matching the deployment name but there are jobs matching the pack
+// name with different deployment names, an error is returned to avoid accidentally operating
+// on the wrong jobs.
+func getPackJobsByDeploy(jobs []*api.Job, c *api.Client, cfg *caching.PackConfig, deploymentName string) ([]*api.Job, error) {
+	packJobs := []*api.Job{}
+	queryOpts := &api.QueryOptions{}
+	jobsApi := c.Jobs()
 	hasOtherDeploys := false
-	for _, jobStub := range jobs {
-		nomadJob, _, err := jobsApi.Info(jobStub.ID, &api.QueryOptions{})
+	for _, packJob := range jobs {
+		if packJob.Namespace != nil && *packJob.Namespace != "" && *packJob.Namespace != api.DefaultNamespace {
+			queryOpts.Namespace = *packJob.Namespace
+		}
+		nomadJob, _, err := jobsApi.Info(*packJob.ID, queryOpts)
 		if err != nil {
-			return nil, fmt.Errorf("error retrieving job %s for pack %s: %s", *nomadJob.ID, cfg.Name, err)
+			return nil, fmt.Errorf("error retrieving job %s for pack %s: %s", *packJob.ID, cfg.Name, err)
 		}
 
 		if nomadJob.Meta != nil {

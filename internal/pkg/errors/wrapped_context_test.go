@@ -36,9 +36,11 @@ func TestWrappedUIContext_Error(t *testing.T) {
 
 func TestWrappedUIContext_HCLDiagsToWrappedUIContext(t *testing.T) {
 	testCases := []struct {
-		inputDiags     hcl.Diagnostics
-		expectedOutput []*WrappedUIContext
-		name           string
+		inputDiags              hcl.Diagnostics
+		expectedSummary         string
+		expectedDetail          string
+		expectedHCLRangeContext string
+		name                    string
 	}{
 		{
 			inputDiags: hcl.Diagnostics{
@@ -48,20 +50,89 @@ func TestWrappedUIContext_HCLDiagsToWrappedUIContext(t *testing.T) {
 					Subject: &hcl.Range{Filename: "test.hcl"},
 				},
 			},
-			expectedOutput: []*WrappedUIContext{
+			expectedSummary:         "some poor diag detail",
+			expectedDetail:          "this is the longer detail and is the real error",
+			expectedHCLRangeContext: "HCL Range: test.hcl",
+			name:                    "subject with no line data (filename only)",
+		},
+		{
+			inputDiags: hcl.Diagnostics{
 				{
-					Err:     newError("this is the longer detail and is the real error"),
-					Subject: "some poor diag detail",
-					Context: &UIErrorContext{contexts: []string{"HCL Range: test.hcl:0,0-0"}},
+					Summary: "variable type error",
+					Detail:  "duplicate type attribute",
+					Subject: &hcl.Range{
+						Filename: "variables.hcl",
+						Start:    hcl.Pos{Line: 3, Column: 3, Byte: 45},
+						End:      hcl.Pos{Line: 3, Column: 7, Byte: 49},
+					},
 				},
 			},
-			name: "basic test 1",
+			expectedSummary:         "variable type error",
+			expectedDetail:          "duplicate type attribute",
+			expectedHCLRangeContext: "HCL Range: variables.hcl:3,3-7",
+			name:                    "subject with line and column data (same line)",
+		},
+		{
+			inputDiags: hcl.Diagnostics{
+				{
+					Summary: "context fallback test",
+					Detail:  "error with context range",
+					Context: &hcl.Range{
+						Filename: "override.hcl",
+						Start:    hcl.Pos{Line: 5, Column: 1, Byte: 100},
+						End:      hcl.Pos{Line: 5, Column: 10, Byte: 109},
+					},
+				},
+			},
+			expectedSummary:         "context fallback test",
+			expectedDetail:          "error with context range",
+			expectedHCLRangeContext: "HCL Range: override.hcl:5,1-10",
+			name:                    "context range fallback when subject is nil",
+		},
+		{
+			inputDiags: hcl.Diagnostics{
+				{
+					Summary: "no range test",
+					Detail:  "error with no range information",
+				},
+			},
+			expectedSummary:         "no range test",
+			expectedDetail:          "error with no range information",
+			expectedHCLRangeContext: "",
+			name:                    "no subject or context range (no context added)",
+		},
+		{
+			inputDiags: hcl.Diagnostics{
+				{
+					Summary: "multi-line range test",
+					Detail:  "error spanning multiple lines",
+					Subject: &hcl.Range{
+						Filename: "complex.hcl",
+						Start:    hcl.Pos{Line: 2, Column: 5, Byte: 50},
+						End:      hcl.Pos{Line: 4, Column: 8, Byte: 100},
+					},
+				},
+			},
+			expectedSummary:         "multi-line range test",
+			expectedDetail:          "error spanning multiple lines",
+			expectedHCLRangeContext: "HCL Range: complex.hcl:2,5-4,8",
+			name:                    "subject with multi-line range",
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			must.Eq(t, HCLDiagsToWrappedUIContext(tc.inputDiags), tc.expectedOutput)
+			result := HCLDiagsToWrappedUIContext(tc.inputDiags)
+			must.True(t, len(result) == 1)
+			must.Eq(t, result[0].Subject, tc.expectedSummary)
+			must.Eq(t, result[0].Err.Error(), tc.expectedDetail)
+			ctxAll := result[0].Context.GetAll()
+			if tc.expectedHCLRangeContext == "" {
+				must.True(t, len(ctxAll) == 0)
+			} else {
+				must.True(t, len(ctxAll) == 1)
+				must.Eq(t, ctxAll[0], tc.expectedHCLRangeContext)
+			}
 		})
 	}
 }
