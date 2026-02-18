@@ -148,7 +148,9 @@ func (c *generateVarFileCommand) Run(args []string) int {
 		return 1
 	}
 
-	c.ui.Output(renderOutput.AsOverrideFile())
+	// Use "%s" to prevent fmt.Sprintf from interpreting format verbs
+	// (e.g., %i, %l) in the rendered variable override content.
+	c.ui.Output("%s", renderOutput.AsOverrideFile())
 	if c.renderTo != "" {
 		if err := c.validateOutFile(); err != nil {
 			c.ui.Error(err.Error())

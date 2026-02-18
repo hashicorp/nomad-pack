@@ -80,8 +80,8 @@ two
 	must.Eq(t, expected, buf.String())
 }
 
-// TestOutput_FormatSpecifiers tests that format specifiers like %i, %l, etc.
-// are not interpreted as format verbs when no arguments are provided.
+// TestOutput_FormatSpecifiers tests that pre-rendered content containing format
+// specifiers like %i, %l is preserved when passed via "%s" wrapping.
 // This is a regression test for the issue where rendered templates containing
 // format specifiers were incorrectly converted (e.g., %i -> %!i(MISSING)).
 func TestOutput_FormatSpecifiers(t *testing.T) {
@@ -116,7 +116,7 @@ func TestOutput_FormatSpecifiers(t *testing.T) {
 			expected: "data = <<EOT\n%i\nEOT\n",
 		},
 		{
-			name:     "multiple percent signs",
+			name:     "double percent signs preserved via %s wrapping",
 			input:    "100%% complete, %i done",
 			expected: "100%% complete, %i done\n",
 		},
@@ -131,7 +131,9 @@ func TestOutput_FormatSpecifiers(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			var buf bytes.Buffer
 			var ui basicUI
-			ui.Output(tc.input, WithWriter(&buf))
+			// Use "%s" wrapping to pass pre-rendered content safely,
+			// just as the render command does.
+			ui.Output("%s", tc.input, WithWriter(&buf))
 			must.Eq(t, tc.expected, buf.String())
 		})
 	}
@@ -182,7 +184,9 @@ func TestOutput_WithArguments(t *testing.T) {
 	}
 }
 
-// TestInterpret_FormatSpecifiers tests the Interpret function directly
+// TestInterpret_FormatSpecifiers tests the Interpret function directly.
+// Interpret is a printf-style API: callers must use "%s" wrapping when
+// passing pre-rendered content that may contain format verbs.
 func TestInterpret_FormatSpecifiers(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -191,9 +195,9 @@ func TestInterpret_FormatSpecifiers(t *testing.T) {
 		expected string
 	}{
 		{
-			name:     "no args preserves format specifiers",
-			input:    "%i",
-			args:     []any{},
+			name:     "%s wrapping preserves format specifiers",
+			input:    "%s",
+			args:     []any{"%i"},
 			expected: "%i",
 		},
 		{
@@ -203,9 +207,9 @@ func TestInterpret_FormatSpecifiers(t *testing.T) {
 			expected: "Hello world",
 		},
 		{
-			name:     "no args with multiple format specifiers",
-			input:    "%-4444l and %i",
-			args:     []any{},
+			name:     "%s wrapping preserves multiple format specifiers",
+			input:    "%s",
+			args:     []any{"%-4444l and %i"},
 			expected: "%-4444l and %i",
 		},
 		{
@@ -213,6 +217,12 @@ func TestInterpret_FormatSpecifiers(t *testing.T) {
 			input:    "Count: %d",
 			args:     []any{42, WithInfoStyle()},
 			expected: "Count: 42",
+		},
+		{
+			name:     "%s wrapping with realistic template content",
+			input:    "%s",
+			args:     []any{"template {\n  data = <<EOT\n%i\n%-4444l\nEOT\n}"},
+			expected: "template {\n  data = <<EOT\n%i\n%-4444l\nEOT\n}",
 		},
 	}
 

@@ -57,7 +57,9 @@ type Render struct {
 func (r Render) toTerminal(c *RenderCommand) {
 	c.ui.Output(r.Name+":", terminal.WithStyle(terminal.BoldStyle))
 	c.ui.Output("")
-	c.ui.Output(r.Content)
+	// Use "%s" to prevent fmt.Sprintf from interpreting format verbs
+	// (e.g., %i, %l) in the rendered template content.
+	c.ui.Output("%s", r.Content)
 }
 
 func (r Render) toFile(c *RenderCommand, ec *errors.UIErrorContext) error {
