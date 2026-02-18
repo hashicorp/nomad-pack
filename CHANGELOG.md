@@ -12,6 +12,7 @@ IMPROVEMENTS:
 * template: Improve regex parsing for namespace and region fields to support hyphenated values [[GH-757](https://github.com/hashicorp/nomad-pack/pull/757)]
 * variable: Improve the error message returned when using a variable file with an unsupported file extension [[GH-791](https://github.com/hashicorp/nomad-pack/pull/791)]
 * variable: Add support for `optional()` type constraint modifier in variable definitions [[GH-798](https://github.com/hashicorp/nomad-pack/pull/798)]
+* template: Add `tpl` function for evaluating template strings stored in variables [[GH-810](https://github.com/hashicorp/nomad-pack/pull/810)]
 
 BUG FIXES:
 * cli: Fix destroy command incorrectly detecting conflicts when multiple jobs share name prefixes (e.g., "Laas-Service" vs "Laas-Service-Regression") [[GH-795](https://github.com/hashicorp/nomad-pack/pull/795)]
