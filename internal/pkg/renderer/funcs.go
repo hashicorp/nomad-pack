@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 	"text/template"
+	"time"
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/davecgh/go-spew/spew"
@@ -49,6 +50,7 @@ func funcMap(r *Renderer) template.FuncMap {
 		f["nomadNamespaces"] = nomadNamespaces(r.Client)
 		f["nomadNamespace"] = nomadNamespace(r.Client)
 		f["nomadRegions"] = nomadRegions(r.Client)
+		f["nomadJobAllocations"] = nomadJobAllocations(r.Client)
 	}
 
 	if r != nil && r.PackPath != "" {
@@ -138,6 +140,68 @@ func nomadNamespace(client *api.Client) func(string) (*api.Namespace, error) {
 // call.
 func nomadRegions(client *api.Client) func() ([]string, error) {
 	return func() ([]string, error) { return client.Regions().List() }
+}
+
+// nomadJobAllocations returns allocations for a job with optional status filtering.
+// statuses can be nil, a []string, or []any (from sprig's list function).
+// The function will retry up to 5 times with 500ms intervals if no allocations are found,
+// to handle the timing window after job registration.
+func nomadJobAllocations(client *api.Client) func(string, ...any) ([]*api.AllocationListStub, error) {
+	return func(jobID string, args ...any) ([]*api.AllocationListStub, error) {
+		const maxRetries = 5
+		const retryInterval = 500 * time.Millisecond
+
+		var allocs []*api.AllocationListStub
+		var err error
+
+		// Retry loop to wait for allocations to appear after job registration
+		for i := 0; i < maxRetries; i++ {
+			allocs, _, err = client.Jobs().Allocations(jobID, false, &api.QueryOptions{})
+			if err != nil {
+				return nil, err
+			}
+			if len(allocs) > 0 {
+				break
+			}
+			if i < maxRetries-1 {
+				time.Sleep(retryInterval)
+			}
+		}
+
+		// Parse optional statuses from args
+		var statuses []string
+		if len(args) > 0 && args[0] != nil {
+			switch v := args[0].(type) {
+			case []string:
+				statuses = v
+			case []any:
+				for _, s := range v {
+					if str, ok := s.(string); ok {
+						statuses = append(statuses, str)
+					}
+				}
+			case string:
+				statuses = []string{v}
+			}
+		}
+
+		// If no status filters provided, return all allocations
+		if len(statuses) == 0 {
+			return allocs, nil
+		}
+
+		// Filter allocations by status
+		var filtered []*api.AllocationListStub
+		for _, a := range allocs {
+			for _, s := range statuses {
+				if a.ClientStatus == s {
+					filtered = append(filtered, a)
+					break
+				}
+			}
+		}
+		return filtered, nil
+	}
 }
 
 // toStringList takes a list of string and returns the HCL equivalent which is
