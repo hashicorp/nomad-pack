@@ -260,4 +260,11 @@ var helpText = map[string][2]string{
 		`The "registry list" command lists all registries and associated packs
 		that have been downloaded to the local environment.`,
 	},
+	"registry update": {
+		"Updates a previously added pack registry or specific pack",
+		`The "registry update" command can be used to update a previously added
+		registry or a specific pack from a registry at the latest ref or at a
+		specific ref (tag/SHA). The registry must have been added first using
+		"nomad-pack registry add".`,
+	},
 }

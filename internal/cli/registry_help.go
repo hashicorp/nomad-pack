@@ -23,11 +23,11 @@ func (c *RegistryHelpCommand) Run(args []string) int {
 		WithNoConfig(),
 		WithClient(false),
 	); err != nil {
-		c.ui.Info("The registry command requires one of the following subcommands: add, delete, list.")
+		c.ui.Info("The registry command requires one of the following subcommands: add, delete, list, update.")
 		return 1
 	}
 
-	c.ui.Info("The registry command requires one of the following subcommands: add, delete, list.")
+	c.ui.Info("The registry command requires one of the following subcommands: add, delete, list, update.")
 	return 0
 }
 
@@ -44,7 +44,7 @@ func (c *RegistryHelpCommand) AutocompleteFlags() complete.Flags {
 }
 
 func (c *RegistryHelpCommand) Synopsis() string {
-	return "Add, delete, or list registries and packs in the local environment."
+	return "Add, delete, list, or update registries and packs in the local environment."
 }
 
 func (c *RegistryHelpCommand) Help() string {
