@@ -98,6 +98,54 @@ default: Default shared namespace
 ```
 
 
+### Job functions
+
+#### `nomadJobAllocations` <a id="nomadJobAllocations"></a>
+
+The `nomadJobAllocations` function returns allocation information for a deployed job. This is useful in output templates (`outputs.tpl`) to display allocation details after a pack is deployed.
+
+##### Parameters
+
+- 1: `string` - The job ID to query allocations for
+- 2: (optional) `[]string` or `string` - Status filter(s) to limit results (e.g., "running", "pending", "complete", "failed")
+
+##### Returns
+
+- `error` or [`[]*api.AllocationListStub`][] containing allocation details for the job.
+
+##### Example
+
+Get all allocations for a job:
+
+```
+[[ range $alloc := nomadJobAllocations "my-job" -]]
+  - [[ $alloc.ID ]]: [[ $alloc.ClientStatus ]]
+[[ end -]]
+```
+
+Get only running allocations:
+
+```
+[[ range $alloc := nomadJobAllocations "my-job" "running" -]]
+  - [[ $alloc.ID ]]: [[ $alloc.ClientStatus ]] on [[ $alloc.NodeName ]]
+[[ end -]]
+```
+
+Get allocations with multiple status filters:
+
+```
+[[ range $alloc := nomadJobAllocations "my-job" (list "running" "pending") -]]
+  - [[ $alloc.ID ]]: [[ $alloc.ClientStatus ]]
+[[ end -]]
+```
+
+##### Output
+
+```
+  - abc123-def456: running on node-1
+  - ghi789-jkl012: running on node-2
+```
+
 
 ## Network functions <a id="topicNetwork"></a>
 
@@ -564,6 +612,7 @@ These are the additional functions supplied by Nomad Pack itself.
 
 - [`customSpew`][] - Returns a new `spew.ConfigState` with default configuration; used to build a custom Spew printer.
 - [`fileContents`][] - Returns the contents of a file as a string.
+- [`nomadJobAllocations`][] - Returns allocation information for a job.
 - [`nomadNamespace`][] - Returns the current namespace from the Nomad client.
 - [`nomadNamespaces`][] - Returns a list of namespaces from the Nomad client.
 - [`nomadRegions`][] - Returns a list of regions from the Nomad client.
@@ -595,9 +644,11 @@ These are the additional functions supplied by Nomad Pack itself.
 
 [`customSpew`]: #customSpew
 [`fileContents`]: #fileContents
+[`nomadJobAllocations`]: #nomadJobAllocations
 [`nomadNamespaces`]: #nomadNamespaces
 [`nomadNamespace`]: #nomadNamespace
 [`nomadRegions`]: #nomadRegions
+[`*api.AllocationListStub`]: https://pkg.go.dev/github.com/hashicorp/nomad/api#AllocationListStub
 [`toStringList`]: #toStringList
 [`tpl`]: #tpl
 [`spewDump`]: #spewDump

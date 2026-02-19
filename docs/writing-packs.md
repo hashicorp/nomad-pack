@@ -187,6 +187,7 @@ Custom Nomad-specific and debugging functions are also provided:
 - `nomadRegions` returns the API object from `/v1/regions`.
 - `nomadNamespaces` returns the API object from `/v1/namespaces`.
 - `nomadNamespace` takes a single string parameter of a namespace ID which will be read via `/v1/namespace/:namespace`.
+- `nomadJobAllocations` returns allocation information for a job. Takes a job ID and optional status filter(s). Useful in `outputs.tpl` to display allocation details after deployment.
 - `spewDump` dumps the entirety of the passed object as a string. The output includes the content types and values. This uses the `spew.SDump` function.
 - `spewPrintf` dumps the supplied arguments into a string according to the supplied format. This utilises the `spew.Printf` function.
 - `fileContents` takes an argument to a file on the local host relative to the directory `nomad-pack` is invoked in, reads its contents and provides the output as a string.
