@@ -495,6 +495,50 @@ hello from file
 **hello from file**
 ```
 
+#### `tpl` <a id="tpl"></a>
+
+The `tpl` function renders a template string using the current template context. This is useful for rendering dynamic templates stored in variables or for evaluating template expressions within strings.
+
+The function has access to the same FuncMap and variables as the parent template, including all Sprig functions and Nomad Pack custom functions.
+
+##### Parameters
+
+- 1: `string` - The template string to render
+- 2: `interface{}` - The data context to use for rendering (typically `.` to pass the current context)
+
+##### Returns
+
+- `string` - The rendered template output
+- `error` - Any error encountered during template parsing or execution
+
+##### Example
+
+Render a template stored in a variable:
+
+```
+[[ $tmpl := "Hello, [[ .name ]]!" -]]
+[[ tpl $tmpl (dict "name" "World") ]]
+```
+
+**Output**
+
+```
+Hello, World!
+```
+
+Render using pack variables with the `var` function:
+
+```
+[[ $greeting := "Deploying [[ var \"job_name\" . ]] to [[ var \"region\" . ]]" -]]
+[[ tpl $greeting . ]]
+```
+
+**Output**
+
+```
+Deploying my-job to us-west-1
+```
+
 #### `toStringList` <a id="toStringList"></a>
 
 The `toStringList` function will convert a slice of `any` into an HCL/JSON like
@@ -526,6 +570,7 @@ These are the additional functions supplied by Nomad Pack itself.
 - [`spewDump`][] - Returns a string representation of a value using `spew.Sdump`.
 - [`spewPrintf`][] - Returns a formatted string representation of a value using `spew.Sprintf`.
 - [`toStringList`][] - Converts a value to a string list.
+- [`tpl`][] - Renders a template string using the current template context.
 - [`withContinueOnMethod`][] - Sets the `ContinueOnMethod` flag for a `customSpew`.
 - [`withDisableCapacities`][] - Sets the `DisableCapacities` flag for a `customSpew`.
 - [`withDisableMethods`][] - Sets the `DisableMethods` flag for a `customSpew`.
@@ -554,6 +599,7 @@ These are the additional functions supplied by Nomad Pack itself.
 [`nomadNamespace`]: #nomadNamespace
 [`nomadRegions`]: #nomadRegions
 [`toStringList`]: #toStringList
+[`tpl`]: #tpl
 [`spewDump`]: #spewDump
 [`spewPrintf`]: #spewPrintf
 [`withIndent`]: #withIndent

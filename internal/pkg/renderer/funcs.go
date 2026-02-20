@@ -60,8 +60,51 @@ func funcMap(r *Renderer) template.FuncMap {
 	// Add additional custom functions.
 	f["fileContents"] = fileContents
 	f["toStringList"] = toStringList
+	f["tpl"] = tplFunc(r)
 
 	return f
+}
+
+// tplFunc returns a function which can be used as a template function to render
+// a template string within a template. It uses the Renderer to access the parent
+// template and render with the same FuncMap and variables as the parent template.
+// This is useful for rendering nested templates, such as when using the tpl
+// function within a pack template.
+func tplFunc(r *Renderer) func(string, interface{}) (string, error) {
+	return func(tpl string, vals interface{}) (string, error) {
+		// Clone the parent template so that we can add the tpl string as a new
+		// template to this clone without affecting the parent template.
+		t, err := r.tpl.Clone()
+		if err != nil {
+			return "", fmt.Errorf("cannot clone template: %w", err)
+		}
+
+		// Control the behaviour of rendering when it encounters an element
+		// referenced which doesn't exist within the variable mapping.
+		if r.Strict {
+			t.Option("missingkey=error")
+		} else {
+			t.Option("missingkey=zero")
+		}
+
+		// New() is required: Parse() won't replace a template's body if the
+		// content is empty/whitespace (e.g., empty string, or pure define blocks).
+		// Without New(), Execute() would run the clone's original body (parent's
+		// content) causing infinite recursion. New() ensures we execute only tpl.
+		// See: https://pkg.go.dev/text/template#Template.Parse
+		t, err = t.New(r.tpl.Name()).Parse(tpl)
+		if err != nil {
+			return "", fmt.Errorf("cannot parse template %w", err)
+		}
+
+		var buf strings.Builder
+		if err := t.Execute(&buf, vals); err != nil {
+			return "", fmt.Errorf("error during tpl function execution: %w", err)
+		}
+
+		// See comment in renderer explaining the <no value> hack.
+		return strings.ReplaceAll(buf.String(), "<no value>", ""), nil
+	}
 }
 
 // fileContents reads the passed path and returns the content as a string.
