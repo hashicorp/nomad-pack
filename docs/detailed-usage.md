@@ -178,6 +178,42 @@ nomad-pack plan hello_world --var greeting=hallo
 nomad-pack plan hello_world -f ./my-variables.hcl
 ```
 
+### Plan Exit Codes
+
+The `plan` command returns different exit codes depending on the result of the plan operation:
+
+- `0` - Plan completed with no changes
+- `1` - Plan completed and changes will be made
+- `255` - An error occurred during the plan operation
+
+These exit codes can be overridden using CLI flags or environment variables. CLI flags take precedence over environment variables.
+
+#### Using CLI Flags
+
+```
+nomad-pack plan hello_world --exit-code-no-changes=0 --exit-code-makes-changes=0 --exit-code-error=1
+```
+
+#### Using Environment Variables
+
+You can set the following environment variables to override the default exit codes:
+
+- `NOMAD_PACK_PLAN_EXIT_CODE_NO_CHANGES` - Exit code when plan shows no changes (default: 0)
+- `NOMAD_PACK_PLAN_EXIT_CODE_MAKES_CHANGES` - Exit code when plan shows changes (default: 1)
+- `NOMAD_PACK_PLAN_EXIT_CODE_ERROR` - Exit code when there is an error (default: 255)
+
+Example:
+
+```bash
+export NOMAD_PACK_PLAN_EXIT_CODE_NO_CHANGES=0
+export NOMAD_PACK_PLAN_EXIT_CODE_MAKES_CHANGES=0
+export NOMAD_PACK_PLAN_EXIT_CODE_ERROR=1
+
+nomad-pack plan hello_world
+```
+
+This is useful in CI/CD pipelines where you want to avoid treating a successful plan with changes as a failure. By setting `NOMAD_PACK_PLAN_EXIT_CODE_MAKES_CHANGES=0`, the command will exit with code `0` even when changes will be made, allowing your pipeline to continue.
+
 ## Status
 If you want to see a list of the packs currently deployed (this may include packs that are stopped but not yet removed), run the `status` command.
 

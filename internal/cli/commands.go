@@ -25,6 +25,11 @@ import (
 const (
 	// EnvAllowUnsetVars is the env var that prevents errors from unset variables.
 	EnvAllowUnsetVars = "NOMAD_PACK_ALLOW_UNSET_VARS"
+
+	// Plan exit code environment variables
+	EnvPlanExitCodeNoChanges    = "NOMAD_PACK_PLAN_EXIT_CODE_NO_CHANGES"
+	EnvPlanExitCodeMakesChanges = "NOMAD_PACK_PLAN_EXIT_CODE_MAKES_CHANGES"
+	EnvPlanExitCodeError        = "NOMAD_PACK_PLAN_EXIT_CODE_ERROR"
 )
 
 // baseCommand is embedded in all commands to provide common logic and data.

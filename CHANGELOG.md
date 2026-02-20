@@ -5,6 +5,7 @@ SECURITY:
 
 IMPROVEMENTS:
 * cli: Add -deploy-override flag to plan and run commands to allow forcing deployment over existing jobs, including those not deployed by Nomad Pack [[GH-757](https://github.com/hashicorp/nomad-pack/pull/757)]
+* cli: Add environment variable overrides for plan exit codes [[GH-813](https://github.com/hashicorp/nomad-pack/pull/813)]
 * cli: Add pack name autocompletion for destroy, info, plan, render, run, status, and stop commands with support for --registry flag filtering [[GH-803](https://github.com/hashicorp/nomad-pack/pull/803)]
 * cli: Enhance `info` command to display full object type information and nested field details for complex variable types [[GH-801](https://github.com/hashicorp/nomad-pack/pull/801)]
 * cli: Display default values for all optional variables in `info` command output with proper indentation [[GH-801](https://github.com/hashicorp/nomad-pack/pull/801)]

@@ -22,10 +22,6 @@ type PlanCommand struct {
 }
 
 func (c *PlanCommand) Run(args []string) int {
-	c.exitCodeNoChanges = 0
-	c.exitCodeChanges = 1
-	c.exitCodeError = 255
-
 	c.cmdKey = "plan" // Add cmdKey here to print out helpUsageMessage on Init error
 	// Initialize. If we fail, we just exit since Init handles the UI.
 	if err := c.Init(
@@ -210,21 +206,24 @@ func (c *PlanCommand) Flags() *flag.Sets {
 			Name:    "exit-code-no-changes",
 			Target:  &c.exitCodeNoChanges,
 			Default: 0,
-			Usage:   `Override exit code returned when the plan shown no changes.`,
+			EnvVar:  EnvPlanExitCodeNoChanges,
+			Usage:   `Override exit code returned when the plan shows no changes. Can also be set via NOMAD_PACK_PLAN_EXIT_CODE_NO_CHANGES environment variable (flags take precedence).`,
 		})
 
 		f.IntVar(&flag.IntVar{
 			Name:    "exit-code-makes-changes",
 			Target:  &c.exitCodeChanges,
 			Default: 1,
-			Usage:   `Override exit code returned when the plan shows changes.`,
+			EnvVar:  EnvPlanExitCodeMakesChanges,
+			Usage:   `Override exit code returned when the plan shows changes. Can also be set via NOMAD_PACK_PLAN_EXIT_CODE_MAKES_CHANGES environment variable (flags take precedence).`,
 		})
 
 		f.IntVar(&flag.IntVar{
 			Name:    "exit-code-error",
 			Target:  &c.exitCodeError,
 			Default: 255,
-			Usage:   `Override exit code returned when there is an error.`,
+			EnvVar:  EnvPlanExitCodeError,
+			Usage:   `Override exit code returned when there is an error. Can also be set via NOMAD_PACK_PLAN_EXIT_CODE_ERROR environment variable (flags take precedence).`,
 		})
 	})
 }

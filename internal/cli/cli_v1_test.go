@@ -221,6 +221,54 @@ func TestCLI_V1_PackPlan_OverrideExitCodes(t *testing.T) {
 	})
 }
 
+func TestCLI_V1_PackPlan_EnvExitCodes(t *testing.T) {
+	// Test that environment variables override default exit codes
+	ct.HTTPTest(t, ct.WithDefaultConfig(), func(s *agent.TestAgent) {
+		t.Setenv(EnvPlanExitCodeMakesChanges, "51")
+
+		t.Run("plan_against_empty_with_env", func(t *testing.T) {
+			// Plan against empty - should use env exit-code-makes-changes (51)
+			result := runTestPackV1Cmd(t, s, []string{"plan", getTestPackV1Path(t, testPack)})
+			must.Eq(t, "", result.cmdErr.String())
+			must.StrContains(t, result.cmdOut.String(), "Plan succeeded\n")
+			must.Eq(t, 51, result.exitCode, must.Sprintf("got %d, expected 51", result.exitCode))
+		})
+	})
+}
+
+
+func TestCLI_V1_PackPlan_FlagOverridesEnv(t *testing.T) {
+	// Test that CLI flags take precedence over environment variables
+	ct.HTTPTest(t, ct.WithDefaultConfig(), func(s *agent.TestAgent) {
+		// Set env vars to one value
+		t.Setenv(EnvPlanExitCodeMakesChanges, "71")
+
+		t.Run("plan_against_empty_flag_overrides_env", func(t *testing.T) {
+			// Flag value should win over env var
+			result := runTestPackV1Cmd(t, s, []string{"plan", "--exit-code-makes-changes=81", getTestPackV1Path(t, testPack)})
+			must.Eq(t, "", result.cmdErr.String())
+			must.StrContains(t, result.cmdOut.String(), "Plan succeeded\n")
+			must.Eq(t, 81, result.exitCode, must.Sprintf("got %d, expected 81 (flag should override env var 71)", result.exitCode))
+		})
+	})
+}
+
+func TestCLI_V1_PackPlan_EnvVarInvalid(t *testing.T) {
+	// Test that invalid environment variable values are silently ignored
+	ct.HTTPTest(t, ct.WithDefaultConfig(), func(s *agent.TestAgent) {
+		// Set invalid (non-integer) value
+		t.Setenv(EnvPlanExitCodeMakesChanges, "not-a-number")
+
+		t.Run("plan_with_invalid_env_uses_default", func(t *testing.T) {
+			// Invalid env var should be ignored, so default (1) is used
+			result := runTestPackV1Cmd(t, s, []string{"plan", getTestPackV1Path(t, testPack)})
+			must.Eq(t, "", result.cmdErr.String())
+			must.StrContains(t, result.cmdOut.String(), "Plan succeeded\n")
+			must.Eq(t, 1, result.exitCode, must.Sprintf("got %d, expected 1 (invalid env var should be ignored)", result.exitCode))
+		})
+	})
+}
+
 func TestCLI_V1_PackStop(t *testing.T) {
 	ct.HTTPTestParallel(t, ct.WithDefaultConfig(), func(s *agent.TestAgent) {
 		expectGoodPackDeploy(t, runTestPackV1Cmd(t, s, []string{"run", getTestPackV1Path(t, testPack)}))
