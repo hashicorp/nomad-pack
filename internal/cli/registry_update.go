@@ -5,6 +5,7 @@ package cli
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/posener/complete"
@@ -40,7 +41,6 @@ func (c *RegistryUpdateCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Generate our UI error context.
 	errorContext := errors.NewUIErrorContext()
 
 	c.name = args[0]
@@ -59,23 +59,24 @@ func (c *RegistryUpdateCommand) Run(args []string) int {
 		Logger: c.ui,
 	})
 	if err != nil {
+		c.ui.ErrorWithContext(err, "failed to initialize cache")
 		return 1
 	}
 
 	// Load the cache so we can verify the registry exists before updating.
 	err = globalCache.Load()
 	if err != nil {
+		c.ui.ErrorWithContext(err, "failed to load global cache while verifying registry")
 		return 1
 	}
 
 	// Check that the registry has been previously added.
-	registryExists := false
-	for _, registry := range globalCache.Registries() {
-		if registry.Name == c.name {
-			registryExists = true
-			break
-		}
-	}
+	registryExists := slices.ContainsFunc(
+		globalCache.Registries(),
+		func(r *caching.Registry) bool {
+			return r.Name == c.name
+		},
+	)
 
 	if !registryExists {
 		c.ui.ErrorWithContext(
@@ -93,6 +94,7 @@ func (c *RegistryUpdateCommand) Run(args []string) int {
 		Ref:          c.ref,
 	})
 	if err != nil {
+		c.ui.ErrorWithContext(err, "failed to update registry")
 		return 1
 	}
 
