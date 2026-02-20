@@ -191,6 +191,7 @@ Custom Nomad-specific and debugging functions are also provided:
 - `spewPrintf` dumps the supplied arguments into a string according to the supplied format. This utilises the `spew.Printf` function.
 - `fileContents` takes an argument to a file on the local host relative to the directory `nomad-pack` is invoked in, reads its contents and provides the output as a string.
 - `packPath` returns the path to the pack being invoked.
+- `tpl` renders a template string using the current template context, useful for dynamic templates stored in variables.
 
 A custom function within a template is called like any other:
 
