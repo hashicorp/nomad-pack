@@ -236,7 +236,6 @@ func TestCLI_V1_PackPlan_EnvExitCodes(t *testing.T) {
 	})
 }
 
-
 func TestCLI_V1_PackPlan_FlagOverridesEnv(t *testing.T) {
 	// Test that CLI flags take precedence over environment variables
 	ct.HTTPTest(t, ct.WithDefaultConfig(), func(s *agent.TestAgent) {
