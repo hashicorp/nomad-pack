@@ -77,6 +77,63 @@ func TestAddRegistry(t *testing.T) {
 	must.Eq(t, expected, len(registry.Packs))
 }
 
+func TestAddRegistryNoGitDir(t *testing.T) {
+	t.Parallel()
+	cacheDir := t.TempDir()
+
+	cache, err := NewCache(&CacheConfig{
+		Path:   cacheDir,
+		Logger: NewTestLogger(t),
+	})
+	must.NoError(t, err)
+
+	// Manually build a fake cloned pack directory that includes a .git
+	// subdirectory, simulating what go-getter would produce if .git were present.
+	// This bypasses go-getter to directly test the processPackEntry copy+cleanup logic.
+	packName := "simple_raw_exec"
+	fakeClonedPack := path.Join(cache.clonedPacksPath(), packName)
+
+	// Copy a real pack fixture as the base content
+	err = filesystem.CopyDir(
+		testfixture.MustAbsPath("v2/test_registry/packs/simple_raw_exec"),
+		fakeClonedPack, false, NoopLogger{},
+	)
+	must.NoError(t, err)
+
+	// Inject a .git directory into the fake cloned pack to simulate the bug scenario
+	err = os.MkdirAll(path.Join(fakeClonedPack, ".git"), 0700)
+	must.NoError(t, err)
+	err = os.WriteFile(path.Join(fakeClonedPack, ".git", "HEAD"), []byte("ref: refs/heads/main\n"), 0644)
+	must.NoError(t, err)
+
+	opts := &AddOpts{
+		cachePath:    cacheDir,
+		RegistryName: "no-git-dir",
+		PackName:     packName,
+		Ref:          "latest",
+	}
+
+	dirEntry, err := os.ReadDir(cache.clonedPacksPath())
+	must.NoError(t, err)
+	must.Eq(t, 1, len(dirEntry))
+
+	err = cache.processPackEntry(opts, dirEntry[0])
+	must.NoError(t, err)
+
+	// Walk the destination pack path and assert .git was not copied
+	destPack := opts.PackPath()
+	dirFS := os.DirFS(destPack)
+	walkErr := fs.WalkDir(dirFS, ".", func(p string, d fs.DirEntry, err error) error {
+		must.NoError(t, err)
+		if d.IsDir() {
+			must.NotEq(t, ".git", d.Name(),
+				must.Sprintf("found unexpected .git directory at %s", path.Join(destPack, p)))
+		}
+		return nil
+	})
+	must.NoError(t, walkErr)
+}
+
 func TestAddRegistryPacksAtMultipleRefs(t *testing.T) {
 	t.Parallel()
 	cacheDir := t.TempDir()
@@ -393,9 +450,9 @@ func TestParsePackURL(t *testing.T) {
 			expectOk:       true,
 		},
 		{
-			name:           "nested-repo-with-dot-git-kept",
+			name:           "nested-repo",
 			path:           "https://gitlab.com/a6281/nomad/my-pack-registry.git/packs/simple_service",
-			expectedResult: "gitlab.com/a6281/nomad/my-pack-registry.git",
+			expectedResult: "gitlab.com/a6281/nomad/my-pack-registry",
 			expectOk:       true,
 		},
 	}

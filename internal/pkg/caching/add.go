@@ -218,6 +218,19 @@ func (c *Cache) processPackEntry(opts *AddOpts, packEntry os.DirEntry) error {
 		return err
 	}
 
+	// Remove .git from the destination — we cache at a fixed ref and never
+	// perform branch or history operations, so git metadata is not needed.
+	gitDir := path.Join(opts.PackPath(), ".git")
+	if _, statErr := os.Stat(gitDir); statErr == nil {
+		if removeErr := os.RemoveAll(gitDir); removeErr != nil {
+			logger.Debug(fmt.Sprintf("warning: could not remove .git from cached pack at %s: %s", gitDir, removeErr))
+		}
+	} else if !os.IsNotExist(statErr) {
+		// statErr is an unexpected error (e.g. permission denied), not simply
+		// "does not exist" — log it so it doesn't go silently unnoticed.
+		logger.Debug(fmt.Sprintf("warning: could not stat .git directory at %s: %s", gitDir, statErr))
+	}
+
 	// Load the pack to the output registry
 	logger.Debug(fmt.Sprintf("Loading cloned pack from %s", opts.PackPath()))
 
