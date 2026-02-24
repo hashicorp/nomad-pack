@@ -1,6 +1,6 @@
 job [[ coalesce ( var "job_name" .) (meta "pack.name" .) | quote ]] {
   [[- if (var "region" .) ]]
-  region = [[.region ]]
+  region = [[ var "region" . | quote ]]
   [[- end ]]
   [[- if (var "namespace" .) ]]
   namespace = [[ var "namespace" . | quote ]]

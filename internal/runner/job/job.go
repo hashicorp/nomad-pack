@@ -5,7 +5,6 @@ package job
 
 import (
 	"fmt"
-	"regexp"
 	"time"
 
 	"github.com/hashicorp/nomad/api"
@@ -200,18 +199,19 @@ func (r *Runner) ParseTemplates() []*errors.WrappedUIContext {
 	var outputErrors []*errors.WrappedUIContext
 
 	for tplName, tpl := range r.rawTemplates {
-		// if a template contains region or namespace information, it needs to be passed
-		// to the client before calling the parse methods, otherwise they might fail in
-		// case ACL restricts our permissions
-		namespaceRe := regexp.MustCompile(`(?m)namespace\s*=\s*\"([\w-]+)\"`)
-		regionRe := regexp.MustCompile(`(?m)region\s*=\s*\"([\w-]+)\"`)
-
-		if nsRes := namespaceRe.FindStringSubmatch(tpl); len(nsRes) > 1 {
-			r.client.SetNamespace(nsRes[1])
-		}
-
-		if regRes := regionRe.FindStringSubmatch(tpl); len(regRes) > 1 {
-			r.client.SetRegion(regRes[1])
+		// If a template contains region or namespace information at the job
+		// level, it needs to be passed to the client before calling the parse
+		// methods, otherwise they might fail in case ACL restricts our permissions.
+		// Use HCL-based parsing instead of regex to avoid falsely matching pack
+		// variables named "region" or "namespace" as Nomad job settings.
+		region, namespace, err := ExtractJobRegionNamespace(tpl)
+		if err == nil {
+			if namespace != "" {
+				r.client.SetNamespace(namespace)
+			}
+			if region != "" {
+				r.client.SetRegion(region)
+			}
 		}
 
 		ncJob, err := r.client.Jobs().ParseHCLOpts(&api.JobsParseRequest{
