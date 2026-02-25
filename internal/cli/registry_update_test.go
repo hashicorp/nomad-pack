@@ -25,11 +25,13 @@ func TestCLI_RegistryUpdate_TooManyArgs(t *testing.T) {
 	must.StrContains(t, result.cmdOut.String(), "this command requires exactly 1 args")
 }
 
-// TestCLI_RegistryUpdate_NoArgs verifies that providing no arguments returns an error.
+// TestCLI_RegistryUpdate_NoArgs verifies that providing no arguments returns an error
+// and shows usage information.
 func TestCLI_RegistryUpdate_NoArgs(t *testing.T) {
 	result := runPackCmd(t, []string{"registry", "update"})
 	must.Eq(t, 1, result.exitCode)
 	must.StrContains(t, result.cmdOut.String(), "this command requires exactly 1 args")
+	must.StrContains(t, result.cmdOut.String(), `See "nomad-pack registry update --help"`)
 }
 
 // TestCLI_RegistryUpdate_ExistingRegistry verifies that updating a previously
@@ -50,4 +52,19 @@ func TestCLI_RegistryUpdate_ExistingRegistry(t *testing.T) {
 	// is not a real repository, but it should NOT fail with "has not been added yet".
 	out := result.cmdOut.String()
 	must.StrNotContains(t, out, "Has Not Been Added Yet")
+}
+
+// TestCLI_RegistryUpdate_WithRef verifies that the --ref flag is accepted when
+// updating a previously added registry and the command gets past argument
+// parsing and registry lookup.
+func TestCLI_RegistryUpdate_WithRef(t *testing.T) {
+	reg, _, regPath := createTestRegistries(t)
+	defer cleanTestRegistry(t, regPath)
+
+	result := runPackCmd(t, []string{"registry", "update", reg.Name, "--ref=v0.1.0"})
+
+	out := result.cmdOut.String()
+	// Should not fail with registry-not-found or argument parsing errors.
+	must.StrNotContains(t, out, "Has Not Been Added Yet")
+	must.StrNotContains(t, out, "this command requires exactly 1 args")
 }
