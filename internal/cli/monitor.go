@@ -140,18 +140,16 @@ func (m *monitor) update(update *evalState) {
 					formatTime(time.Now()), limit(alloc.id, m.length),
 					limit(alloc.node, m.length), alloc.group))
 			}
-		} else {
-			if existing.client != alloc.client {
-				description := ""
-				if alloc.clientDesc != "" {
-					description = fmt.Sprintf(" (%s)", alloc.clientDesc)
-				}
-				// Allocation status has changed
-				m.ui.Info(fmt.Sprintf(
-					"%s: Allocation %q status changed: %q -> %q%s",
-					formatTime(time.Now()), limit(alloc.id, m.length),
-					existing.client, alloc.client, description))
+		} else if existing.client != alloc.client {
+			description := ""
+			if alloc.clientDesc != "" {
+				description = fmt.Sprintf(" (%s)", alloc.clientDesc)
 			}
+			// Allocation status has changed
+			m.ui.Info(fmt.Sprintf(
+				"%s: Allocation %q status changed: %q -> %q%s",
+				formatTime(time.Now()), limit(alloc.id, m.length),
+				existing.client, alloc.client, description))
 		}
 	}
 
