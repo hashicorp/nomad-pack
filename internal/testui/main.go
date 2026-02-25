@@ -15,6 +15,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/fatih/color"
+	"github.com/mitchellh/go-glint"
 
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/helper"
@@ -157,6 +158,11 @@ func (ui *nonInteractiveTestUI) OutputWriters() (io.Writer, io.Writer, error) {
 // Status implements UI
 func (ui *nonInteractiveTestUI) Status() terminal.Status {
 	return &nonInteractiveStatus{mu: &ui.mu}
+}
+
+// LiveView implements UI
+func (ui *nonInteractiveTestUI) LiveView() terminal.LiveView {
+	return &testLiveView{mu: &ui.mu}
 }
 
 func (ui *nonInteractiveTestUI) StepGroup() terminal.StepGroup {
@@ -379,4 +385,17 @@ var textStatus = map[string]string{
 	terminal.StatusError:   " !",
 	terminal.StatusWarn:    " *",
 	terminal.StatusTimeout: "<>",
+}
+
+// testLiveView is a no-op implementation of LiveView for testing
+type testLiveView struct {
+	mu *sync.Mutex
+}
+
+func (v *testLiveView) SetComponent(c glint.Component) {
+	// No-op for non-interactive test UI
+}
+
+func (v *testLiveView) Close() error {
+	return nil
 }
