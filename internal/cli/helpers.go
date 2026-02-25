@@ -548,3 +548,12 @@ func clientOptsFromFlags(c *baseCommand, conf *api.Config) {
 		conf.TLSConfig.Insecure = true
 	}
 }
+
+// Limits the length of the string.
+func limit(s string, length int) string {
+	if len(s) < length {
+		return s
+	}
+
+	return s[:length]
+}

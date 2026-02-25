@@ -73,6 +73,11 @@ type UI interface {
 	// called until the StepGroup is complete.
 	StepGroup() StepGroup
 
+	// LiveView returns a component that displays content which updates in-place.
+	// This is useful for showing live-updating information like deployment status,
+	// progress tables, etc. For non-interactive UIs, updates are printed as new lines.
+	LiveView() LiveView
+
 	// Debug formats output with the DebugStyle
 	Debug(string)
 

@@ -23,6 +23,8 @@ type StopCommand struct {
 	packConfig *caching.PackConfig
 	purge      bool
 	global     bool
+	detach     bool
+	verbose    bool
 	Validation ValidationFn
 }
 
@@ -163,7 +165,7 @@ func (c *StopCommand) Run(args []string) int {
 		}
 
 		// Invoke the stop
-		_, _, err := client.Jobs().DeregisterOpts(*job.ID, &api.DeregisterOptions{
+		evalID, _, err := client.Jobs().DeregisterOpts(*job.ID, &api.DeregisterOptions{
 			Purge:  c.purge,
 			Global: c.global,
 		}, writeOpts)
@@ -171,6 +173,17 @@ func (c *StopCommand) Run(args []string) int {
 			errs = append(errs, err)
 			c.ui.ErrorWithContext(err, fmt.Sprintf("error deregistering job: %q", *job.ID))
 			continue
+		}
+
+		// Monitor the evaluation unless --detach is specified
+		if !c.detach && evalID != "" {
+			c.ui.Info(fmt.Sprintf("Evaluation %q submitted for job %q", evalID, *job.ID))
+			mon := newMonitor(c.ui, client, c.lengthForVerbose())
+			if exitCode := mon.monitor(evalID); exitCode != 0 {
+				errs = append(errs, fmt.Errorf("evaluation %q did not complete successfully", evalID))
+			}
+		} else if evalID != "" {
+			c.ui.Info(fmt.Sprintf("Evaluation %q submitted for job %q", evalID, *job.ID))
 		}
 
 		c.ui.Success(fmt.Sprintf("Job %q %s", *job.Name, stoppedOrDestroyed))
@@ -234,6 +247,14 @@ func (c *StopCommand) confirmStop() bool {
 	return true
 }
 
+// lengthForVerbose returns the ID length to use based on verbose flag
+func (c *StopCommand) lengthForVerbose() int {
+	if c.verbose {
+		return fullId
+	}
+	return shortId
+}
+
 func (c *StopCommand) Flags() *flag.Sets {
 	return c.flagSet(flagSetOperation|flagSetNomadClient, func(set *flag.Sets) {
 		c.packConfig = &caching.PackConfig{}
@@ -273,6 +294,22 @@ func (c *StopCommand) Flags() *flag.Sets {
 			Usage: `Stop multi-region pack in all its regions. By default, pack
 					stop will stop only a single region at a time. Ignored for
 					single-region jobs.`,
+		})
+
+		f.BoolVar(&flag.BoolVar{
+			Name:    "detach",
+			Target:  &c.detach,
+			Default: false,
+			Usage: `Return immediately instead of monitoring the evaluation.
+					A new evaluation ID will be output which can be used to
+					examine the evaluation using "nomad eval status".`,
+		})
+
+		f.BoolVar(&flag.BoolVar{
+			Name:    "verbose",
+			Target:  &c.verbose,
+			Default: false,
+			Usage:   `Display full information during evaluation monitoring.`,
 		})
 	})
 }

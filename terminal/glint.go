@@ -13,6 +13,7 @@ import (
 	"slices"
 	"strings"
 	"text/tabwriter"
+	"time"
 
 	"github.com/bgentry/speakeasy"
 	"github.com/fatih/color"
@@ -35,6 +36,8 @@ func GlintUI(ctx context.Context) UI {
 		row: make([]glint.Component, 0),
 		ctx: ctx,
 	}
+
+	result.d.SetRefreshRate(100 * time.Millisecond)
 
 	go result.d.Render(ctx)
 
@@ -309,6 +312,13 @@ func (ui *glintUI) StepGroup() StepGroup {
 	sg := &glintStepGroup{ctx: ctx, cancel: cancel}
 	ui.d.Append(sg)
 	return sg
+}
+
+// LiveView implements UI
+func (ui *glintUI) LiveView() LiveView {
+	lv := newGlintLiveView()
+	ui.d.Append(lv)
+	return lv
 }
 
 // Table implements UI

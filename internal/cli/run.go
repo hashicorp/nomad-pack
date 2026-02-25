@@ -143,6 +143,21 @@ func (c *RunCommand) run() int {
 		return 1
 	}
 
+	// Monitor deployments unless detach flag is set
+	if !c.jobConfig.RunConfig.Detach {
+		evalIDs := runDeployer.EvalIDs()
+		for _, evalID := range evalIDs {
+			length := shortId
+			if c.jobConfig.RunConfig.Verbose {
+				length = fullId
+			}
+			mon := newMonitor(c.ui, client, length)
+			if exitCode := mon.monitor(evalID); exitCode != 0 {
+				return exitCode
+			}
+		}
+	}
+
 	if c.packConfig.Registry == caching.DevRegistryName {
 		c.ui.Success(fmt.Sprintf("Pack successfully deployed. Use %s to manage this deployed instance with plan, stop, destroy, or info", c.packConfig.SourcePath))
 	} else {
@@ -276,6 +291,22 @@ func (c *RunCommand) Flags() *flag.Sets {
 			Default: false,
 			Usage: `If set, the existing task group resource definitions will be preserved
 					when updating a job.`,
+		})
+
+		f.BoolVar(&flag.BoolVar{
+			Name:    "detach",
+			Target:  &c.jobConfig.RunConfig.Detach,
+			Default: false,
+			Usage: `If set, deployment monitoring will be skipped and the command
+					will return immediately after registration.`,
+		})
+
+		f.BoolVar(&flag.BoolVar{
+			Name:    "verbose",
+			Target:  &c.jobConfig.RunConfig.Verbose,
+			Default: false,
+			Usage: `If set, deployment monitoring will show verbose output
+					including allocation details.`,
 		})
 
 		f.BoolVar(&flag.BoolVar{

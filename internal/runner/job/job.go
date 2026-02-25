@@ -33,6 +33,10 @@ type Runner struct {
 	// deployedJobs tracks the jobs that have successfully been deployed to
 	// Nomad so that in the event of a failure, we can attempt to rollback.
 	deployedJobs []ParsedTemplate
+
+	// evalIDs tracks the evaluation IDs returned from job registrations
+	// during Deploy. These can be used for deployment monitoring.
+	evalIDs []string
 }
 
 type ParsedTemplate struct {
@@ -90,8 +94,14 @@ func (r *Runner) ParsedTemplates() any { return r.parsedTemplates }
 // Name satisfies the Name function of the runner.Runner interface.
 func (r *Runner) Name() string { return "job" }
 
+// EvalIDs returns the evaluation IDs from the most recent Deploy call.
+func (r *Runner) EvalIDs() []string { return r.evalIDs }
+
 // Deploy satisfies the Deploy function of the runner.Runner interface.
 func (r *Runner) Deploy(ui terminal.UI, errorContext *errors.UIErrorContext) *errors.WrappedUIContext {
+
+	// Clear any previous eval IDs
+	r.evalIDs = nil
 
 	for tplName, jobSpec := range r.parsedTemplates {
 
@@ -132,6 +142,8 @@ func (r *Runner) Deploy(ui terminal.UI, errorContext *errors.UIErrorContext) *er
 			r.handlePeriodicJobResponse(ui, jobSpec.Job())
 		} else if !jobSpec.Job().IsParameterized() {
 			ui.Info(fmt.Sprintf("Evaluation ID: %s", result.EvalID))
+			// Store eval ID for deployment monitoring
+			r.evalIDs = append(r.evalIDs, result.EvalID)
 		}
 
 		r.deployedJobs = append(r.deployedJobs, jobSpec)

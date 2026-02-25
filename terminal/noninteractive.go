@@ -16,6 +16,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/fatih/color"
+	"github.com/mitchellh/go-glint"
 	"github.com/mitchellh/go-wordwrap"
 
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
@@ -162,6 +163,11 @@ func (ui *nonInteractiveUI) Status() Status {
 
 func (ui *nonInteractiveUI) StepGroup() StepGroup {
 	return &nonInteractiveStepGroup{mu: &ui.mu}
+}
+
+// LiveView implements UI
+func (ui *nonInteractiveUI) LiveView() LiveView {
+	return &nonInteractiveLiveView{mu: &ui.mu}
 }
 
 // Table implements UI
@@ -377,6 +383,22 @@ func (f *nonInteractiveStep) Done() {
 
 func (f *nonInteractiveStep) Abort() {
 	f.Done()
+}
+
+type nonInteractiveLiveView struct {
+	mu     *sync.Mutex
+	closed bool
+}
+
+func (v *nonInteractiveLiveView) SetComponent(c glint.Component) {
+	// No-op for non-interactive UIs - glint components can't be rendered
+}
+
+func (v *nonInteractiveLiveView) Close() error {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+	v.closed = true
+	return nil
 }
 
 type stripAnsiWriter struct {

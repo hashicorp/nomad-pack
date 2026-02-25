@@ -23,6 +23,8 @@ type RunCLIConfig struct {
 	PreserveResources bool
 	DeployOverride    bool
 	PolicyOverride    bool
+	Detach            bool
+	Verbose           bool
 }
 
 // PlanCLIConfig specifies the configuration that is used by the Nomad Pack
