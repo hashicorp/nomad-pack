@@ -4,6 +4,7 @@ SECURITY:
 * build: Update go-git to 5.16.5 to address CVE-2026-25934 [[GH-800](https://github.com/hashicorp/nomad-pack/pull/800)]
 
 IMPROVEMENTS:
+* cli: Add evaluation and deployment monitoring to `run`, `stop`, and `destroy` commands [[GH-817](https://github.com/hashicorp/nomad-pack/pull/817)]
 * cli: Add -deploy-override flag to plan and run commands to allow forcing deployment over existing jobs, including those not deployed by Nomad Pack [[GH-757](https://github.com/hashicorp/nomad-pack/pull/757)]
 * cli: Add environment variable overrides for plan exit codes [[GH-813](https://github.com/hashicorp/nomad-pack/pull/813)]
 * cli: Add pack name autocompletion for destroy, info, plan, render, run, status, and stop commands with support for --registry flag filtering [[GH-803](https://github.com/hashicorp/nomad-pack/pull/803)]
