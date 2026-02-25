@@ -262,9 +262,10 @@ var helpText = map[string][2]string{
 	},
 	"registry update": {
 		"Updates a previously added pack registry or specific pack",
-		`The "registry update" command can be used to update a previously added
-		registry or a specific pack from a registry at the latest ref or at a
-		specific ref (tag/SHA). The registry must have been added first using
-		"nomad-pack registry add".`,
+		`The "registry update" command updates a previously added registry or a
+		specific pack from a registry to the latest ref or to a specific ref
+		(tag/SHA). Only the registry name is required; the source URL is
+		automatically retrieved from the cached registry metadata. The registry
+		must have been added first using "nomad-pack registry add".`,
 	},
 }

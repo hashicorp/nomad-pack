@@ -5,7 +5,6 @@ package cli
 
 import (
 	"fmt"
-	"slices"
 	"strings"
 
 	"github.com/posener/complete"
@@ -19,7 +18,6 @@ import (
 // RegistryUpdateCommand updates a previously added registry in the global cache.
 type RegistryUpdateCommand struct {
 	*baseCommand
-	source string
 	name   string
 	target string
 	ref    string
@@ -31,7 +29,7 @@ func (c *RegistryUpdateCommand) Run(args []string) int {
 
 	// Initialize. If we fail, we just exit since Init handles the UI.
 	if err := c.Init(
-		WithExactArgs(2, args),
+		WithExactArgs(1, args),
 		WithFlags(flagSet),
 		WithNoConfig(),
 		WithClient(false),
@@ -44,16 +42,14 @@ func (c *RegistryUpdateCommand) Run(args []string) int {
 	errorContext := errors.NewUIErrorContext()
 
 	c.name = args[0]
-	c.source = args[1]
 
 	errorContext.Add(errors.UIContextPrefixRegistryName, c.name)
-	errorContext.Add(errors.UIContextPrefixGitRegistryURL, c.source)
 
 	if c.target != "" {
 		errorContext.Add(errors.UIContextPrefixRegistryTarget, c.target)
 	}
 
-	// Update the registry or registry target in the global cache
+	// Initialize the global cache so we can look up the existing registry.
 	globalCache, err := caching.NewCache(&caching.CacheConfig{
 		Path:   caching.DefaultCachePath(),
 		Logger: c.ui,
@@ -63,22 +59,23 @@ func (c *RegistryUpdateCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Load the cache so we can verify the registry exists before updating.
+	// Load the cache so we can verify the registry exists and retrieve its source.
 	err = globalCache.Load()
 	if err != nil {
 		c.ui.ErrorWithContext(err, "failed to load global cache while verifying registry")
 		return 1
 	}
 
-	// Check that the registry has been previously added.
-	registryExists := slices.ContainsFunc(
-		globalCache.Registries(),
-		func(r *caching.Registry) bool {
-			return r.Name == c.name
-		},
-	)
+	// Find the existing registry by name so we can reuse its source URL.
+	var existingRegistry *caching.Registry
+	for _, r := range globalCache.Registries() {
+		if r.Name == c.name {
+			existingRegistry = r
+			break
+		}
+	}
 
-	if !registryExists {
+	if existingRegistry == nil {
 		c.ui.ErrorWithContext(
 			errors.New("registry not found in cache"),
 			fmt.Sprintf("Registry %q has not been added yet. Use \"nomad-pack registry add\" first.", c.name),
@@ -87,9 +84,22 @@ func (c *RegistryUpdateCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Verify the cached registry has a valid source URL.
+	if existingRegistry.Source == "" {
+		c.ui.ErrorWithContext(
+			errors.New("registry source not found"),
+			fmt.Sprintf("Registry %q exists but has no source URL recorded. Please delete and re-add the registry.", c.name),
+			errorContext.GetAll()...,
+		)
+		return 1
+	}
+
+	source := existingRegistry.Source
+	errorContext.Add(errors.UIContextPrefixGitRegistryURL, source)
+
 	newRegistry, err := globalCache.Add(&caching.AddOpts{
 		RegistryName: c.name,
-		Source:       c.source,
+		Source:       source,
 		PackName:     c.target,
 		Ref:          c.ref,
 	})
@@ -179,20 +189,22 @@ func (c *RegistryUpdateCommand) Synopsis() string {
 
 func (c *RegistryUpdateCommand) Help() string {
 	c.Example = `
-	# Update latest ref of the pack registry in the global cache.
-	nomad-pack registry update community github.com/hashicorp/nomad-pack-community-registry
+	# Update a previously added registry to the latest ref.
+	nomad-pack registry update community
 
-	# Update latest ref of a specific pack from the registry in the global cache.
-	nomad-pack registry update community github.com/hashicorp/nomad-pack-community-registry --target=nomad_example
+	# Update a specific pack from a previously added registry.
+	nomad-pack registry update community --target=nomad_example
 
-	# Update packs from a registry at a specific tag/release/SHA.
-	nomad-pack registry update community github.com/hashicorp/nomad-pack-community-registry --ref=v0.1.0
+	# Update a previously added registry at a specific tag/release/SHA.
+	nomad-pack registry update community --ref=v0.1.0
 	`
 	return formatHelp(`
-	Usage: nomad-pack registry update <name> <source> [options]
+	Usage: nomad-pack registry update <name> [options]
 
-	Update nomad pack registries. The registry must have been previously added
-	using "nomad-pack registry add".
+	Update a previously added nomad pack registry. The source URL is
+	automatically retrieved from the cached registry metadata, so only
+	the registry name is required. The registry must have been previously
+	added using "nomad-pack registry add".
 
 ` + c.GetExample() + c.Flags().Help())
 }
