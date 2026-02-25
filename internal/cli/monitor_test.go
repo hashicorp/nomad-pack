@@ -128,11 +128,11 @@ func TestFormatDeploymentGroups(t *testing.T) {
 			deploy: &api.Deployment{
 				TaskGroups: map[string]*api.DeploymentState{
 					"web": {
-						DesiredTotal:     2,
-						PlacedAllocs:     2,
-						HealthyAllocs:    2,
-						UnhealthyAllocs:  0,
-						ProgressDeadline: 10 * time.Minute,
+						DesiredTotal:      2,
+						PlacedAllocs:      2,
+						HealthyAllocs:     2,
+						UnhealthyAllocs:   0,
+						ProgressDeadline:  10 * time.Minute,
 						RequireProgressBy: time.Date(2026, 2, 25, 12, 0, 0, 0, time.UTC),
 					},
 				},

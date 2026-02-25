@@ -141,8 +141,7 @@ func (m *monitor) update(update *evalState) {
 					limit(alloc.node, m.length), alloc.group))
 			}
 		} else {
-			switch {
-			case existing.client != alloc.client:
+			if existing.client != alloc.client {
 				description := ""
 				if alloc.clientDesc != "" {
 					description = fmt.Sprintf(" (%s)", alloc.clientDesc)
@@ -686,7 +685,7 @@ func fetchMultiRegionDeployments(c *api.Client, d *api.Deployment) (map[string]*
 
 	job, _, err := c.Jobs().Info(d.JobID, &api.QueryOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("Error fetching job: %v", err)
+		return nil, fmt.Errorf("error fetching job: %v", err)
 	}
 
 	if job.Multiregion == nil || len(job.Multiregion.Regions) == 0 {
