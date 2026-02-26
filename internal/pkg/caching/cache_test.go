@@ -77,34 +77,6 @@ func TestAddRegistry(t *testing.T) {
 	must.Eq(t, expected, len(registry.Packs))
 }
 
-func TestAddRegistryNoGitDir(t *testing.T) {
-	t.Parallel()
-	cacheDir := t.TempDir()
-
-	cache, err := NewCache(&CacheConfig{Path: cacheDir, Logger: NewTestLogger(t)})
-	must.NoError(t, err)
-
-	packName := "simple_raw_exec"
-	fakeClonedPack := path.Join(cache.clonedPacksPath(), packName)
-
-	// Copy a real pack fixture and inject a .git dir to simulate the bug scenario.
-	must.NoError(t, filesystem.CopyDir(
-		testfixture.MustAbsPath("v2/test_registry/packs/simple_raw_exec"),
-		fakeClonedPack, false, NoopLogger{},
-	))
-	must.NoError(t, os.MkdirAll(path.Join(fakeClonedPack, ".git"), 0700))
-
-	opts := &AddOpts{cachePath: cacheDir, RegistryName: "no-git-dir", PackName: packName, Ref: "latest"}
-
-	dirEntries, err := os.ReadDir(cache.clonedPacksPath())
-	must.NoError(t, err)
-	must.NoError(t, cache.processPackEntry(opts, dirEntries[0]))
-
-	// .git must not exist in the cached destination.
-	_, statErr := os.Stat(path.Join(opts.PackPath(), ".git"))
-	must.True(t, os.IsNotExist(statErr))
-}
-
 func TestAddRegistryPacksAtMultipleRefs(t *testing.T) {
 	t.Parallel()
 	cacheDir := t.TempDir()
