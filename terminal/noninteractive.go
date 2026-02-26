@@ -390,7 +390,7 @@ type nonInteractiveLiveView struct {
 	closed bool
 }
 
-func (v *nonInteractiveLiveView) SetComponent(c glint.Component) {
+func (v *nonInteractiveLiveView) SetComponents(c ...glint.Component) {
 	// No-op for non-interactive UIs - glint components can't be rendered
 }
 

@@ -9,10 +9,10 @@ import "github.com/mitchellh/go-glint"
 // For glint-based UIs, this renders in-place with each update replacing
 // the previous content. For non-interactive UIs, this is a no-op.
 type LiveView interface {
-	// SetComponent updates the content to display as a glint component layout.
+	// SetComponents updates the content to display as a glint component layout.
 	// This allows for styled/formatted content that updates in-place.
 	// Only works with glint-based UIs. For non-interactive UIs, this is a no-op.
-	SetComponent(c glint.Component)
+	SetComponents(c ...glint.Component)
 
 	// Close marks this view as finalized. The current content becomes
 	// permanent and will no longer update.

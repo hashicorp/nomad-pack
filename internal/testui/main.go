@@ -392,7 +392,7 @@ type testLiveView struct {
 	mu *sync.Mutex
 }
 
-func (v *testLiveView) SetComponent(c glint.Component) {
+func (v *testLiveView) SetComponents(c ...glint.Component) {
 	// No-op for non-interactive test UI
 }
 

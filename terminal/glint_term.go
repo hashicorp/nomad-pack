@@ -111,7 +111,7 @@ func (t *glintTerm) StringEvent(kind string, data []byte) error {
 	return nil
 }
 
-func newGlintTerm(ctx context.Context, height, width int) (*glintTerm, error) {
+func NewGlintTerm(ctx context.Context, height, width int) (*glintTerm, error) {
 	term := &glintTerm{
 		height: height,
 		width:  width,

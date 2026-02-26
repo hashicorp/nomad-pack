@@ -146,15 +146,13 @@ func (c *RunCommand) run() int {
 	// Monitor deployments unless detach flag is set
 	if !c.jobConfig.RunConfig.Detach {
 		evalIDs := runDeployer.EvalIDs()
-		for _, evalID := range evalIDs {
-			length := shortId
-			if c.jobConfig.RunConfig.Verbose {
-				length = fullId
-			}
-			mon := newMonitor(c.ui, client, length)
-			if exitCode := mon.monitor(evalID); exitCode != 0 {
-				return exitCode
-			}
+		length := shortId
+		if c.jobConfig.RunConfig.Verbose {
+			length = fullId
+		}
+		mon := newMonitor(c.ui, client, length)
+		if exitCode := mon.monitor(evalIDs); exitCode != 0 {
+			return exitCode
 		}
 	}
 

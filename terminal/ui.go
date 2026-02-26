@@ -311,3 +311,14 @@ var (
 	colorWarning     = color.New(color.FgYellow)
 	colorWarningBold = color.New(color.FgYellow, color.Bold)
 )
+
+// CreateComponent is a generic helper that returns a glint.Component instance
+// for use in composition.
+//
+// Usage:
+//
+//	status := terminal.CreateComponent(NewGlintStatus)
+//	liveView := terminal.CreateComponent(NewGlintLiveView)
+func CreateComponent[T glint.Component](factory func() T) T {
+	return factory()
+}

@@ -17,16 +17,20 @@ type glintLiveView struct {
 	component glint.Component
 }
 
-// newGlintLiveView creates a new live view component.
-func newGlintLiveView() *glintLiveView {
+// NewGlintLiveView creates a new live view component.
+func NewGlintLiveView() *glintLiveView {
 	return &glintLiveView{}
 }
 
-// SetComponent updates the displayed component layout.
-func (v *glintLiveView) SetComponent(c glint.Component) {
+// SetComponents updates the displayed component layout.
+func (v *glintLiveView) SetComponents(c ...glint.Component) {
 	v.mu.Lock()
 	defer v.mu.Unlock()
-	v.component = c
+	if len(c) == 1 {
+		v.component = c[0]
+	} else {
+		v.component = glint.Layout(c...)
+	}
 }
 
 // Close marks the view as finalized.

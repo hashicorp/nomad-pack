@@ -623,3 +623,45 @@ func TestFormatAllocMetrics(t *testing.T) {
 		})
 	}
 }
+
+func TestNewPrefixedUI(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	ui := testui.NonInteractiveTestUI(context.Background(), &stdout, &stderr)
+
+	prefixed := newPrefixedUI(ui, "my-job")
+	prefixed.Info("test message")
+
+	out := stdout.String()
+	must.True(t, strings.Contains(out, "[my-job]"),
+		must.Sprintf("expected prefix in output: %q", out))
+	must.True(t, strings.Contains(out, "test message"),
+		must.Sprintf("expected message in output: %q", out))
+}
+
+func TestDeploymentInfo(t *testing.T) {
+	info := deploymentInfo{
+		jobID:        "test-job",
+		deploymentID: "abc123",
+		wait:         5 * time.Second,
+	}
+	must.Eq(t, "test-job", info.jobID)
+	must.Eq(t, "abc123", info.deploymentID)
+	must.Eq(t, 5*time.Second, info.wait)
+}
+
+func TestEvalResult(t *testing.T) {
+	result := evalResult{
+		jobID:        "test-job",
+		evalID:       "eval-123",
+		deploymentID: "deploy-456",
+		exitCode:     0,
+		schedFailure: false,
+		wait:         10 * time.Second,
+	}
+	must.Eq(t, "test-job", result.jobID)
+	must.Eq(t, "eval-123", result.evalID)
+	must.Eq(t, "deploy-456", result.deploymentID)
+	must.Eq(t, 0, result.exitCode)
+	must.False(t, result.schedFailure)
+	must.Eq(t, 10*time.Second, result.wait)
+}

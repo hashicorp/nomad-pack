@@ -302,7 +302,7 @@ func (ui *glintUI) OutputWriters() (io.Writer, io.Writer, error) {
 
 // Status implements UI
 func (ui *glintUI) Status() Status {
-	st := newGlintStatus()
+	st := NewGlintStatus()
 	ui.d.Append(st)
 	return st
 }
@@ -316,7 +316,7 @@ func (ui *glintUI) StepGroup() StepGroup {
 
 // LiveView implements UI
 func (ui *glintUI) LiveView() LiveView {
-	lv := newGlintLiveView()
+	lv := NewGlintLiveView()
 	ui.d.Append(lv)
 	return lv
 }

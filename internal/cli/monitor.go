@@ -171,11 +171,42 @@ func (m *monitor) update(update *evalState) {
 // exhausted, etc), then the return code will be 2. For any other
 // failures (API connectivity, internal errors, etc), the return code
 // will be 1.
-func (m *monitor) monitor(evalID string) int {
-	// Track if we encounter a scheduling failure. This can only be
-	// detected while querying allocations, so we use this bool to
-	// carry that status into the return code.
-	var schedFailure bool
+
+func (m *monitor) monitor(evalIDs []string) int {
+
+	verbose := m.length == fullId
+
+	// Phase 1: Monitor all evaluations in parallel
+	deployments, evalExitCode := monitorAllEvaluations(m.ui, m.client, evalIDs, m.length)
+	if evalExitCode != 0 && len(deployments) == 0 {
+		return evalExitCode
+	}
+
+	// Phase 2: Monitor all deployments in parallel
+	if len(deployments) > 0 {
+		deployExitCode := monitorAllDeployments(m.ui, m.client, deployments, verbose)
+		if deployExitCode != 0 {
+			return deployExitCode
+		}
+	}
+
+	return evalExitCode
+}
+
+// evalResult holds the result of monitoring a single evaluation
+type evalResult struct {
+	jobID        string
+	evalID       string
+	deploymentID string
+	exitCode     int
+	schedFailure bool
+	wait         time.Duration
+}
+
+// monitorEval monitors just the evaluation, without monitoring the deployment.
+// It returns the result including the deployment ID for later parallel deployment monitoring.
+func (m *monitor) monitorEval(evalID string) evalResult {
+	result := evalResult{evalID: evalID}
 
 	// Add the initial pending state
 	m.update(newEvalState())
@@ -188,8 +219,11 @@ func (m *monitor) monitor(evalID string) int {
 		eval, _, err := m.client.Evaluations().Info(evalID, nil)
 		if err != nil {
 			m.ui.Error(fmt.Sprintf("No evaluation with id %q found", evalID))
-			return 1
+			result.exitCode = 1
+			return result
 		}
+
+		result.jobID = eval.JobID
 
 		// Create the new eval state.
 		state := newEvalState()
@@ -205,7 +239,8 @@ func (m *monitor) monitor(evalID string) int {
 		allocs, _, err := m.client.Evaluations().Allocations(eval.ID, nil)
 		if err != nil {
 			m.ui.Error(fmt.Sprintf("%s: Error reading allocations: %s", formatTime(time.Now()), err))
-			return 1
+			result.exitCode = 1
+			return result
 		}
 
 		// Add the allocs to the state
@@ -232,7 +267,7 @@ func (m *monitor) monitor(evalID string) int {
 					formatTime(time.Now()), limit(eval.ID, m.length), eval.Status))
 			} else {
 				// There were failures making the allocations
-				schedFailure = true
+				result.schedFailure = true
 				m.ui.Info(fmt.Sprintf("%s: Evaluation %q finished with status %q but failed to place all allocations:",
 					formatTime(time.Now()), limit(eval.ID, m.length), eval.Status))
 
@@ -274,34 +309,106 @@ func (m *monitor) monitor(evalID string) int {
 
 			// Reset the state and monitor the new eval
 			m.state = newEvalState()
-			return m.monitor(eval.NextEval)
+			return m.monitorEval(eval.NextEval)
 		}
 		break
 	}
 
-	// Monitor the deployment if it exists
-	dID := m.state.deployment
-	if dID != "" {
-		m.ui.Info(fmt.Sprintf("%s: Monitoring deployment %q", formatTime(time.Now()), limit(dID, m.length)))
+	// Capture deployment info for later parallel monitoring
+	result.deploymentID = m.state.deployment
+	result.wait = m.state.wait
+	return result
+}
 
-		verbose := m.length == fullId
+// deploymentInfo holds information needed to monitor a deployment
+type deploymentInfo struct {
+	jobID        string
+	deploymentID string
+	wait         time.Duration
+}
 
-		status, err := monitorDeployment(m.ui, m.client, dID, 0, m.state.wait, verbose)
-		if err != nil || status != api.DeploymentStatusSuccessful {
-			return 1
+// monitorAllEvaluations monitors all evaluations in parallel using prefixed output.
+// It returns the deployment info for all jobs that have deployments.
+func monitorAllEvaluations(ui terminal.UI, client *api.Client, evalIDs []string, length int) ([]deploymentInfo, int) {
+	if len(evalIDs) == 0 {
+		return nil, 0
+	}
+
+	// For a single job, just monitor directly
+	if len(evalIDs) == 1 {
+		mon := newMonitor(ui, client, length)
+		result := mon.monitorEval(evalIDs[0])
+		var deployments []deploymentInfo
+		if result.deploymentID != "" {
+			deployments = append(deployments, deploymentInfo{
+				jobID:        result.jobID,
+				deploymentID: result.deploymentID,
+				wait:         result.wait,
+			})
 		}
-		if status == api.DeploymentStatusSuccessful {
-			schedFailure = false
+		if result.schedFailure {
+			return deployments, 2
+		}
+		return deployments, result.exitCode
+	}
+
+	// Multiple jobs - monitor in parallel with prefixed output
+	results := make(chan evalResult, len(evalIDs))
+	var wg sync.WaitGroup
+
+	for _, evalID := range evalIDs {
+		wg.Add(1)
+		go func(eID string) {
+			defer wg.Done()
+			// Use a temporary non-prefixed monitor to get the job ID first
+			tempMon := newMonitor(ui, client, length)
+			eval, _, err := tempMon.client.Evaluations().Info(eID, nil)
+			if err != nil {
+				ui.Error(fmt.Sprintf("No evaluation with id %q found", eID))
+				results <- evalResult{evalID: eID, exitCode: 1}
+				return
+			}
+
+			// Now create a prefixed UI with the job ID
+			prefixedUI := newPrefixedUI(ui, eval.JobID)
+			mon := newMonitor(prefixedUI, client, length)
+			result := mon.monitorEval(eID)
+			results <- result
+		}(evalID)
+	}
+
+	// Wait for all monitors to complete
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	// Collect results
+	var deployments []deploymentInfo
+	var finalCode int
+	var hasSchedFailure bool
+
+	for result := range results {
+		if result.exitCode > finalCode {
+			finalCode = result.exitCode
+		}
+		if result.schedFailure {
+			hasSchedFailure = true
+		}
+		if result.deploymentID != "" {
+			deployments = append(deployments, deploymentInfo{
+				jobID:        result.jobID,
+				deploymentID: result.deploymentID,
+				wait:         result.wait,
+			})
 		}
 	}
 
-	// Treat scheduling failures specially using a dedicated exit code.
-	// This makes it easier to detect failures from the CLI.
-	if schedFailure {
-		return 2
+	if hasSchedFailure && finalCode == 0 {
+		finalCode = 2
 	}
 
-	return 0
+	return deployments, finalCode
 }
 
 // monitorDeployment monitors the deployment and returns the final status.
@@ -316,8 +423,66 @@ func monitorDeployment(ui terminal.UI, client *api.Client, deployID string, inde
 	return basicMonitorDeployment(ui, client, deployID, index, wait, verbose)
 }
 
+// deploymentResult holds the result of monitoring a deployment
+type deploymentResult struct {
+	jobID  string
+	status string
+	err    error
+}
+
+// monitorAllDeployments monitors all deployments in parallel.
+// It calls the existing monitorDeployment function for each deployment in a goroutine,
+// which handles TTY (with spinner) and non-TTY output appropriately.
+func monitorAllDeployments(ui terminal.UI, client *api.Client, deployments []deploymentInfo, verbose bool) int {
+	if len(deployments) == 0 {
+		return 0
+	}
+
+	// For a single deployment, just monitor directly
+	if len(deployments) == 1 {
+		d := deployments[0]
+		status, err := monitorDeployment(ui, client, d.deploymentID, 0, d.wait, verbose)
+		if err != nil || status != api.DeploymentStatusSuccessful {
+			return 1
+		}
+		return 0
+	}
+
+	// Multiple deployments - monitor in parallel
+	ui.Info(fmt.Sprintf("\n%s: Monitoring %d deployment(s)...", formatTime(time.Now()), len(deployments)))
+
+	results := make(chan deploymentResult, len(deployments))
+	var wg sync.WaitGroup
+
+	for _, d := range deployments {
+		wg.Add(1)
+		go func(info deploymentInfo) {
+			defer wg.Done()
+
+			status, err := monitorDeployment(ui, client, info.deploymentID, 0, info.wait, verbose)
+			results <- deploymentResult{jobID: info.jobID, status: status, err: err}
+		}(d)
+	}
+
+	// Wait for all monitors to complete
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	// Collect results
+	var exitCode int
+	for result := range results {
+		if result.err != nil || result.status != api.DeploymentStatusSuccessful {
+			exitCode = 1
+		}
+	}
+
+	return exitCode
+}
+
 // ttyMonitorDeployment provides a rich terminal UI for monitoring deployments
-// using the UI's Status interface for spinner and LiveView for live-updating content.
+// using a single LiveView that combines spinner, deployment details, and allocations.
 func ttyMonitorDeployment(ui terminal.UI, client *api.Client, deployID string, index uint64, wait time.Duration, verbose bool) (status string, err error) {
 	var length int
 	if verbose {
@@ -326,20 +491,13 @@ func ttyMonitorDeployment(ui terminal.UI, client *api.Client, deployID string, i
 		length = shortId
 	}
 
-	// Use Status for the spinner
-	st := ui.Status()
+	// Single LiveView for all components
+	liveView := ui.LiveView()
+	defer liveView.Close()
+
+	// Status component for spinner
+	st := terminal.CreateComponent(terminal.NewGlintStatus)
 	defer st.Close()
-
-	// Use LiveView for deployment status details
-	deploymentView := ui.LiveView()
-	defer deploymentView.Close()
-
-	// Use LiveView for allocations (only if verbose)
-	var allocationsView terminal.LiveView
-	if verbose {
-		allocationsView = ui.LiveView()
-		defer allocationsView.Close()
-	}
 
 	st.Update(fmt.Sprintf("Deployment %q in progress...", limit(deployID, length)))
 
@@ -359,39 +517,49 @@ func ttyMonitorDeployment(ui terminal.UI, client *api.Client, deployID string, i
 		}
 
 		status = deploy.Status
-		// Update deployment status view with glint layout
-		deploymentView.SetComponent(glint.Layout(
-			glint.Text(""),
-			glint.Text(formatTime(time.Now())),
-			glint.Text(formatDeployment(client, deploy, length)),
-		).MarginLeft(4))
 
-		// Update allocations view if verbose
-		if verbose && allocationsView != nil {
-
-			allocComponent := glint.Layout(
+		// Build the combined component
+		components := []glint.Component{
+			glint.Layout(
+				glint.Text(fmt.Sprintf("\n%s: Monitoring deployment %q", formatTime(time.Now()), limit(deployID, length))),
+			).MarginLeft(2),
+			st,
+			glint.Layout(
 				glint.Text(""),
-				glint.Style(
-					glint.Text("Allocations"),
-					glint.Bold(),
-				))
+				glint.Text(formatTime(time.Now())),
+				glint.Text(formatDeployment(client, deploy, length)),
+			).MarginLeft(4),
+		}
 
+		// Add allocations if verbose
+		if verbose {
 			allocs, _, allocErr := client.Deployments().Allocations(deployID, nil)
 			if allocErr != nil {
-				allocationsView.SetComponent(glint.Layout(
-					allocComponent,
+				components = append(components, glint.Layout(
+					glint.Text(""),
 					glint.Style(
-						glint.Text(fmt.Sprintf("Error fetching allocations for deployment %q: %v", limit(deployID, length), allocErr)),
+						glint.Text("Allocations"),
+						glint.Bold(),
+					),
+					glint.Style(
+						glint.Text(fmt.Sprintf("Error fetching allocations: %v", allocErr)),
 						glint.Color("red"),
 					),
 				).MarginLeft(4))
 			} else if len(allocs) > 0 {
-				allocationsView.SetComponent(glint.Layout(
-					allocComponent,
+				components = append(components, glint.Layout(
+					glint.Text(""),
+					glint.Style(
+						glint.Text("Allocations"),
+						glint.Bold(),
+					),
 					glint.Text(formatAllocListStubs(allocs, verbose, length)),
 				).MarginLeft(4))
 			}
 		}
+
+		// Update single LiveView with all components
+		liveView.SetComponents(components...)
 
 		switch status {
 		case api.DeploymentStatusFailed:
@@ -416,10 +584,7 @@ func ttyMonitorDeployment(ui terminal.UI, client *api.Client, deployID string, i
 
 				// Close current views before monitoring rollback
 				st.Close()
-				deploymentView.Close()
-				if allocationsView != nil {
-					allocationsView.Close()
-				}
+				liveView.Close()
 				return ttyMonitorDeployment(ui, client, rollback.ID, index, wait, verbose)
 			}
 			st.Step(terminal.StatusError, fmt.Sprintf("Deployment %q failed", limit(deployID, length)))
@@ -440,7 +605,8 @@ func ttyMonitorDeployment(ui terminal.UI, client *api.Client, deployID string, i
 	}
 }
 
-// basicMonitorDeployment provides simple text-based monitoring for non-glint UIs
+// basicMonitorDeployment provides simple text-based monitoring for non-TTY UIs.
+// It polls the deployment status and only prints the final result.
 func basicMonitorDeployment(ui terminal.UI, client *api.Client, deployID string, index uint64, wait time.Duration, verbose bool) (status string, err error) {
 	var length int
 	if verbose {
@@ -449,7 +615,7 @@ func basicMonitorDeployment(ui terminal.UI, client *api.Client, deployID string,
 		length = shortId
 	}
 
-	ui.Info(fmt.Sprintf("%s: Deployment %q in progress...", formatTime(time.Now()), limit(deployID, length)))
+	ui.Info(fmt.Sprintf("\n%s: Monitoring deployment %q", formatTime(time.Now()), limit(deployID, length)))
 
 	q := api.QueryOptions{
 		AllowStale: true,
@@ -457,8 +623,8 @@ func basicMonitorDeployment(ui terminal.UI, client *api.Client, deployID string,
 		WaitTime:   wait,
 	}
 
+	var deploy *api.Deployment
 	for {
-		var deploy *api.Deployment
 		var meta *api.QueryMeta
 		deploy, meta, err = client.Deployments().Info(deployID, &q)
 		if err != nil {
@@ -467,23 +633,6 @@ func basicMonitorDeployment(ui terminal.UI, client *api.Client, deployID string,
 		}
 
 		status = deploy.Status
-
-		// Print deployment details
-		ui.Info("")
-		ui.Info(formatTime(time.Now()))
-		ui.Info(formatDeployment(client, deploy, length))
-
-		// Print allocations if verbose
-		if verbose {
-			allocs, _, allocErr := client.Deployments().Allocations(deployID, nil)
-			if allocErr != nil {
-				ui.Error(fmt.Sprintf("%s: Error fetching allocations for deployment %q: %v", formatTime(time.Now()), limit(deployID, length), allocErr))
-			} else if len(allocs) > 0 {
-				ui.Info("")
-				ui.Info(ansiBold + "Allocations" + ansiReset)
-				ui.Info(formatAllocListStubs(allocs, verbose, length))
-			}
-		}
 
 		switch status {
 		case api.DeploymentStatusFailed:
@@ -503,22 +652,38 @@ func basicMonitorDeployment(ui terminal.UI, client *api.Client, deployID string,
 				return basicMonitorDeployment(ui, client, rollback.ID, index, wait, verbose)
 			}
 			ui.Error(fmt.Sprintf("%s: Deployment %q failed", formatTime(time.Now()), limit(deployID, length)))
-			return
 		case api.DeploymentStatusSuccessful:
 			ui.Success(fmt.Sprintf("%s: Deployment %q successful", formatTime(time.Now()), limit(deployID, length)))
-			return
 		case api.DeploymentStatusCancelled:
 			ui.Warning(fmt.Sprintf("%s: Deployment %q cancelled", formatTime(time.Now()), limit(deployID, length)))
-			return
 		case api.DeploymentStatusBlocked:
 			ui.Warning(fmt.Sprintf("%s: Deployment %q blocked", formatTime(time.Now()), limit(deployID, length)))
-			return
 		default:
 			q.WaitIndex = meta.LastIndex
 			time.Sleep(updateWait)
 			continue
 		}
+		break
 	}
+
+	// Print final deployment details
+	ui.Info("")
+	ui.Info(formatTime(time.Now()))
+	ui.Info(formatDeployment(client, deploy, length))
+
+	// Print allocations if verbose
+	if verbose {
+		allocs, _, allocErr := client.Deployments().Allocations(deployID, nil)
+		if allocErr != nil {
+			ui.Error(fmt.Sprintf("%s: Error fetching allocations for deployment %q: %v", formatTime(time.Now()), limit(deployID, length), allocErr))
+		} else if len(allocs) > 0 {
+			ui.Info("")
+			ui.Info(ansiBold + "Allocations" + ansiReset)
+			ui.Info(formatAllocListStubs(allocs, verbose, length))
+		}
+	}
+
+	return
 }
 
 // formatAllocMetrics iterates the passed allocation metrics and returns a
@@ -849,4 +1014,5 @@ func formatAllocListStubs(stubs []*api.AllocationListStub, verbose bool, uuidLen
 	}
 
 	return formatList(allocs)
+
 }

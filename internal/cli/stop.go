@@ -140,6 +140,9 @@ func (c *StopCommand) Run(args []string) int {
 	}
 
 	var errs []error
+	var evalIDs []string
+	var stoppedJobs []string
+
 	for _, job := range jobs {
 		err = c.checkForConflicts(client, job)
 
@@ -175,18 +178,24 @@ func (c *StopCommand) Run(args []string) int {
 			continue
 		}
 
-		// Monitor the evaluation unless --detach is specified
-		if !c.detach && evalID != "" {
+		if evalID != "" {
 			c.ui.Info(fmt.Sprintf("Evaluation %q submitted for job %q", evalID, *job.ID))
-			mon := newMonitor(c.ui, client, c.lengthForVerbose())
-			if exitCode := mon.monitor(evalID); exitCode != 0 {
-				errs = append(errs, fmt.Errorf("evaluation %q did not complete successfully", evalID))
-			}
-		} else if evalID != "" {
-			c.ui.Info(fmt.Sprintf("Evaluation %q submitted for job %q", evalID, *job.ID))
+			evalIDs = append(evalIDs, evalID)
 		}
 
-		c.ui.Success(fmt.Sprintf("Job %q %s", *job.Name, stoppedOrDestroyed))
+		stoppedJobs = append(stoppedJobs, *job.Name)
+	}
+
+	// Monitor all evaluations in parallel unless --detach is specified
+	if !c.detach && len(evalIDs) > 0 {
+		mon := newMonitor(c.ui, client, c.lengthForVerbose())
+		if exitCode := mon.monitor(evalIDs); exitCode != 0 {
+			errs = append(errs, fmt.Errorf("one or more evaluations did not complete successfully"))
+		}
+	}
+	// Print success messages for stopped jobs
+	for _, jobName := range stoppedJobs {
+		c.ui.Success(fmt.Sprintf("Job %q %s", jobName, stoppedOrDestroyed))
 	}
 
 	if len(errs) > 0 {
