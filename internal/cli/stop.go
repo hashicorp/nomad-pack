@@ -186,12 +186,12 @@ func (c *StopCommand) Run(args []string) int {
 		stoppedJobs = append(stoppedJobs, *job.Name)
 	}
 
+	monitorExitCode := 0
 	// Monitor all evaluations in parallel unless --detach is specified
 	if !c.detach && len(evalIDs) > 0 {
 		mon := newMonitor(c.ui, client, c.lengthForVerbose())
-		if exitCode := mon.monitor(evalIDs); exitCode != 0 {
-			errs = append(errs, fmt.Errorf("one or more evaluations did not complete successfully"))
-		}
+		monitorExitCode = mon.monitor(evalIDs)
+
 	}
 	// Print success messages for stopped jobs
 	for _, jobName := range stoppedJobs {
@@ -208,7 +208,7 @@ func (c *StopCommand) Run(args []string) int {
 	}
 
 	c.ui.Success(fmt.Sprintf("Pack %q %s", c.packConfig.Name, stoppedOrDestroyed))
-	return 0
+	return monitorExitCode
 }
 
 func (c *StopCommand) checkForConflicts(client *api.Client, job *api.Job) error {

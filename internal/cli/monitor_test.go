@@ -486,8 +486,6 @@ func TestMonitor_Update_AllocModification(t *testing.T) {
 }
 
 func TestFormatAllocMetrics(t *testing.T) {
-	var stdout, stderr bytes.Buffer
-	ui := testui.NonInteractiveTestUI(context.Background(), &stdout, &stderr)
 
 	testCases := []struct {
 		name     string
@@ -615,7 +613,7 @@ func TestFormatAllocMetrics(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result := formatAllocMetrics(tc.metrics, tc.scores, "  ", ui)
+			result := formatAllocMetrics(tc.metrics, tc.scores, "  ")
 			for _, expected := range tc.contains {
 				must.True(t, strings.Contains(result, expected),
 					must.Sprintf("expected %q to contain %q", result, expected))
