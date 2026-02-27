@@ -105,6 +105,11 @@ type UI interface {
 
 	// WarningBold formats Output with the WarningBoldStyle
 	WarningBold(string)
+
+	// WithPrefix returns a new UI that prepends the given prefix to output messages.
+	// The prefix is applied to Info, Error, Warning, Success, Debug, Trace, Header,
+	// and WarningBold methods.
+	WithPrefix(prefix string) UI
 }
 
 // StepGroup is a group of steps (that may be concurrent).

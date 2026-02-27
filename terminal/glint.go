@@ -25,9 +25,10 @@ import (
 )
 
 type glintUI struct {
-	ctx context.Context
-	d   *glint.Document
-	row []glint.Component
+	ctx    context.Context
+	d      *glint.Document
+	row    []glint.Component
+	prefix string
 }
 
 func GlintUI(ctx context.Context) UI {
@@ -46,6 +47,15 @@ func GlintUI(ctx context.Context) UI {
 
 func (ui *glintUI) Close() error {
 	return ui.d.Close()
+}
+
+func (ui *glintUI) WithPrefix(prefix string) UI {
+	return &glintUI{
+		ctx:    ui.ctx,
+		d:      ui.d,
+		row:    make([]glint.Component, 0),
+		prefix: ui.prefix + prefix,
+	}
 }
 
 func (ui *glintUI) Input(input *Input) (string, error) {
@@ -332,12 +342,12 @@ func (ui *glintUI) Table(tbl *Table, opts ...Option) {
 
 // Debug implements UI
 func (ui *glintUI) Debug(msg string) {
-	ui.Output(msg, WithDebugStyle())
+	ui.Output(ui.prefix+msg, WithDebugStyle())
 }
 
 // Error implements UI
 func (ui *glintUI) Error(msg string) {
-	ui.Output(msg, WithErrorStyle())
+	ui.Output(ui.prefix+msg, WithErrorStyle())
 }
 
 // ErrorWithContext satisfies the ErrorWithContext function on the UI
@@ -418,30 +428,30 @@ func (ui *glintUI) ErrorWithContext(err error, sub string, ctx ...string) {
 
 // Header implements UI
 func (ui *glintUI) Header(msg string) {
-	ui.Output(msg, WithHeaderStyle())
+	ui.Output(ui.prefix+msg, WithHeaderStyle())
 }
 
 // Info implements UI
 func (ui *glintUI) Info(msg string) {
-	ui.Output(msg, WithInfoStyle())
+	ui.Output(ui.prefix+msg, WithInfoStyle())
 }
 
 // Success implements UI
 func (ui *glintUI) Success(msg string) {
-	ui.Output(msg, WithSuccessStyle())
+	ui.Output(ui.prefix+msg, WithSuccessStyle())
 }
 
 // Trace implements UI
 func (ui *glintUI) Trace(msg string) {
-	ui.Output(msg, WithTraceStyle())
+	ui.Output(ui.prefix+msg, WithTraceStyle())
 }
 
 // Warning implements UI
 func (ui *glintUI) Warning(msg string) {
-	ui.Output(msg, WithWarningStyle())
+	ui.Output(ui.prefix+msg, WithWarningStyle())
 }
 
 // WarningBold implements UI
 func (ui *glintUI) WarningBold(msg string) {
-	ui.Output(msg, WithStyle(WarningBoldStyle))
+	ui.Output(ui.prefix+msg, WithStyle(WarningBoldStyle))
 }

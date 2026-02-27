@@ -404,7 +404,7 @@ func monitorAllEvaluations(ctx context.Context, ui terminal.UI, client *api.Clie
 			}
 
 			// Now create a prefixed UI with the job ID
-			prefixedUI := newPrefixedUI(ui, eval.JobID)
+			prefixedUI := ui.WithPrefix(fmt.Sprintf("[%s] ", eval.JobID))
 			mon := newMonitor(ctx, prefixedUI, client, length)
 			result := mon.monitorEval(eID)
 			results <- result

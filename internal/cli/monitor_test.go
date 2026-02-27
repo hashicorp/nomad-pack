@@ -626,7 +626,7 @@ func TestNewPrefixedUI(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	ui := testui.NonInteractiveTestUI(context.Background(), &stdout, &stderr)
 
-	prefixed := newPrefixedUI(ui, "my-job")
+	prefixed := ui.WithPrefix("[my-job] ")
 	prefixed.Info("test message")
 
 	out := stdout.String()
