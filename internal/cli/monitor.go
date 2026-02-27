@@ -10,16 +10,16 @@ import (
 	"sync"
 	"time"
 
+	"github.com/fatih/color"
 	"github.com/hashicorp/nomad-pack/terminal"
 	"github.com/hashicorp/nomad/api"
 	"github.com/mitchellh/go-glint"
 )
 
-const (
-	// ANSI escape codes for text formatting
-	ansiBold  = "\033[1m"
-	ansiReset = "\033[0m"
+// bold is a color printer for bold text
+var bold = color.New(color.Bold)
 
+const (
 	// updateWait is the amount of time to wait between status
 	// updates. Because the monitor is poll-based, we use this
 	// delay to avoid overwhelming the API server.
@@ -279,7 +279,7 @@ func (m *monitor) monitorEval(evalID string) evalResult {
 					}
 					m.ui.Info(fmt.Sprintf("%s: Task Group %q (failed to place %d %s):",
 						formatTime(time.Now()), tg, metrics.CoalescedFailures+1, noun))
-					metrics := formatAllocMetrics(metrics, false, "  ", m.ui)
+					metrics := formatAllocMetrics(metrics, false, "  ")
 					for _, line := range strings.Split(metrics, "\n") {
 						m.ui.Info(line)
 					}
@@ -678,7 +678,7 @@ func basicMonitorDeployment(ui terminal.UI, client *api.Client, deployID string,
 			ui.Error(fmt.Sprintf("%s: Error fetching allocations for deployment %q: %v", formatTime(time.Now()), limit(deployID, length), allocErr))
 		} else if len(allocs) > 0 {
 			ui.Info("")
-			ui.Info(ansiBold + "Allocations" + ansiReset)
+			ui.Info(bold.Sprint("Allocations"))
 			ui.Info(formatAllocListStubs(allocs, verbose, length))
 		}
 	}
@@ -693,7 +693,6 @@ func formatAllocMetrics(
 	metrics *api.AllocationMetric,
 	scores bool,
 	prefix string,
-	ui terminal.UI,
 ) string {
 
 	// Print a helpful message if we have an eligibility problem
@@ -720,9 +719,9 @@ func formatAllocMetrics(
 	// as this is a common problem we want to draw attention to.
 	for cs, num := range metrics.ConstraintFiltered {
 		if strings.Contains(cs, "missing drivers") {
-			ui.AppendToRow(
-				"%s* Constraint %q: %d nodes excluded by filter[reset]",
-				prefix, cs, num, terminal.WithStyle(terminal.RedStyle),
+			out += color.RedString(
+				"%s* Constraint %q: %d nodes excluded by filter",
+				prefix, cs, num,
 			)
 			out += "\n"
 		} else {
@@ -829,7 +828,7 @@ func formatDeployment(c *api.Client, d *api.Deployment, uuidLength int) string {
 			base += "\n\nError fetching multiregion deployment\n\n"
 			base += fmt.Sprintf("%v\n\n", err)
 		} else if len(regions) > 0 {
-			base += "\n\n" + ansiBold + "Multiregion Deployment" + ansiReset + "\n"
+			base += "\n\n" + bold.Sprint("Multiregion Deployment") + "\n"
 			base += formatMultiregionDeployment(regions, uuidLength)
 		}
 	}
@@ -837,7 +836,7 @@ func formatDeployment(c *api.Client, d *api.Deployment, uuidLength int) string {
 	if len(d.TaskGroups) == 0 {
 		return base
 	}
-	base += "\n\n" + ansiBold + "Deployed" + ansiReset + "\n"
+	base += "\n\n" + bold.Sprint("Deployed") + "\n"
 	base += formatDeploymentGroups(d, uuidLength)
 	return base
 }
