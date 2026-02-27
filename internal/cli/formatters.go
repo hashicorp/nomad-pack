@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -16,6 +17,15 @@ import (
 func formatList(in []string) string {
 	columnConf := columnize.DefaultConfig()
 	columnConf.Empty = "<none>"
+	return columnize.Format(in, columnConf)
+}
+
+// formatKV takes a set of key-value strings and formats them into properly
+// aligned output using " = " as a delimiter.
+func formatKV(in []string) string {
+	columnConf := columnize.DefaultConfig()
+	columnConf.Empty = "<none>"
+	columnConf.Glue = " = "
 	return columnize.Format(in, columnConf)
 }
 
@@ -47,4 +57,32 @@ func formatSHA1Reference(in string) string {
 		l = len(in)
 	}
 	return in[:l]
+}
+
+// formatUnixNanoTime formats a unix nano timestamp to a time string
+func formatUnixNanoTime(nano int64) string {
+	t := time.Unix(0, nano)
+	return formatTime(t)
+}
+
+// prettyTimeDiff formats the time difference between two times in a human-readable format
+func prettyTimeDiff(first, second time.Time) string {
+	// Handle zero times
+	if first.IsZero() || first.Unix() == 0 {
+		return "N/A"
+	}
+
+	d := second.Sub(first)
+	switch {
+	case d < time.Minute:
+		return fmt.Sprintf("%ds ago", int(d.Seconds()))
+	case d < time.Hour:
+		return fmt.Sprintf("%dm%ds ago", int(d.Minutes()), int(d.Seconds())%60)
+	case d < 24*time.Hour:
+		return fmt.Sprintf("%dh%dm ago", int(d.Hours()), int(d.Minutes())%60)
+	default:
+		days := int(d.Hours() / 24)
+		hours := int(d.Hours()) % 24
+		return fmt.Sprintf("%dd%dh ago", days, hours)
+	}
 }

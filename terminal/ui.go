@@ -73,6 +73,11 @@ type UI interface {
 	// called until the StepGroup is complete.
 	StepGroup() StepGroup
 
+	// LiveView returns a component that displays content which updates in-place.
+	// This is useful for showing live-updating information like deployment status,
+	// progress tables, etc. For non-interactive UIs, updates are printed as new lines.
+	LiveView() LiveView
+
 	// Debug formats output with the DebugStyle
 	Debug(string)
 
@@ -100,6 +105,11 @@ type UI interface {
 
 	// WarningBold formats Output with the WarningBoldStyle
 	WarningBold(string)
+
+	// WithPrefix returns a new UI that prepends the given prefix to output messages.
+	// The prefix is applied to Info, Error, Warning, Success, Debug, Trace, Header,
+	// and WarningBold methods.
+	WithPrefix(prefix string) UI
 }
 
 // StepGroup is a group of steps (that may be concurrent).
@@ -306,3 +316,14 @@ var (
 	colorWarning     = color.New(color.FgYellow)
 	colorWarningBold = color.New(color.FgYellow, color.Bold)
 )
+
+// CreateComponent is a generic helper that returns a glint.Component instance
+// for use in composition.
+//
+// Usage:
+//
+//	status := terminal.CreateComponent(NewGlintStatus)
+//	liveView := terminal.CreateComponent(NewGlintLiveView)
+func CreateComponent[T glint.Component](factory func() T) T {
+	return factory()
+}

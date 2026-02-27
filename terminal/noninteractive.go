@@ -16,6 +16,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/fatih/color"
+	"github.com/mitchellh/go-glint"
 	"github.com/mitchellh/go-wordwrap"
 
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
@@ -23,7 +24,8 @@ import (
 )
 
 type nonInteractiveUI struct {
-	mu sync.Mutex
+	mu     sync.Mutex
+	prefix string
 }
 
 func NonInteractiveUI(ctx context.Context) UI {
@@ -38,6 +40,12 @@ func (ui *nonInteractiveUI) Input(input *Input) (string, error) {
 // Interactive implements UI
 func (ui *nonInteractiveUI) Interactive() bool {
 	return false
+}
+
+func (ui *nonInteractiveUI) WithPrefix(prefix string) UI {
+	return &nonInteractiveUI{
+		prefix: prefix,
+	}
 }
 
 // Output implements UI
@@ -164,6 +172,11 @@ func (ui *nonInteractiveUI) StepGroup() StepGroup {
 	return &nonInteractiveStepGroup{mu: &ui.mu}
 }
 
+// LiveView implements UI
+func (ui *nonInteractiveUI) LiveView() LiveView {
+	return &nonInteractiveLiveView{mu: &ui.mu}
+}
+
 // Table implements UI
 func (ui *nonInteractiveUI) Table(tbl *Table, opts ...Option) {
 	ui.mu.Lock()
@@ -182,12 +195,12 @@ func (ui *nonInteractiveUI) Table(tbl *Table, opts ...Option) {
 
 // Debug implements UI
 func (ui *nonInteractiveUI) Debug(msg string) {
-	ui.Output(msg, WithDebugStyle())
+	ui.Output(ui.prefix+msg, WithDebugStyle())
 }
 
 // Error implements UI
 func (ui *nonInteractiveUI) Error(msg string) {
-	ui.Output(msg, WithErrorStyle())
+	ui.Output(ui.prefix+msg, WithErrorStyle())
 }
 
 // ErrorWithContext satisfies the ErrorWithContext function on the UI
@@ -255,32 +268,32 @@ func (ui *nonInteractiveUI) ErrorWithContext(err error, sub string, ctx ...strin
 
 // Header implements UI
 func (ui *nonInteractiveUI) Header(msg string) {
-	ui.Output(msg, WithHeaderStyle())
+	ui.Output(ui.prefix+msg, WithHeaderStyle())
 }
 
 // Info implements UI
 func (ui *nonInteractiveUI) Info(msg string) {
-	ui.Output(msg, WithInfoStyle())
+	ui.Output(ui.prefix+msg, WithInfoStyle())
 }
 
 // Success implements UI
 func (ui *nonInteractiveUI) Success(msg string) {
-	ui.Output(msg, WithSuccessStyle())
+	ui.Output(ui.prefix+msg, WithSuccessStyle())
 }
 
 // Trace implements UI
 func (ui *nonInteractiveUI) Trace(msg string) {
-	ui.Output(msg, WithTraceStyle())
+	ui.Output(ui.prefix+msg, WithTraceStyle())
 }
 
 // Warning implements UI
 func (ui *nonInteractiveUI) Warning(msg string) {
-	ui.Output(msg, WithWarningStyle())
+	ui.Output(ui.prefix+msg, WithWarningStyle())
 }
 
 // WarningBold implements UI
 func (ui *nonInteractiveUI) WarningBold(msg string) {
-	ui.Output(msg, WithStyle(WarningBoldStyle))
+	ui.Output(ui.prefix+msg, WithStyle(WarningBoldStyle))
 }
 
 type nonInteractiveStatus struct {
@@ -377,6 +390,22 @@ func (f *nonInteractiveStep) Done() {
 
 func (f *nonInteractiveStep) Abort() {
 	f.Done()
+}
+
+type nonInteractiveLiveView struct {
+	mu     *sync.Mutex
+	closed bool
+}
+
+func (v *nonInteractiveLiveView) SetComponents(c ...glint.Component) {
+	// No-op for non-interactive UIs - glint components can't be rendered
+}
+
+func (v *nonInteractiveLiveView) Close() error {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+	v.closed = true
+	return nil
 }
 
 type stripAnsiWriter struct {

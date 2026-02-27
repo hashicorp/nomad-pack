@@ -20,7 +20,7 @@ type glintStatus struct {
 	text    []glint.Component
 }
 
-func newGlintStatus() *glintStatus {
+func NewGlintStatus() *glintStatus {
 	return &glintStatus{
 		spinner: gc.Spinner(),
 	}

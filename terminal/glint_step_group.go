@@ -29,7 +29,7 @@ func (f *glintStepGroup) Add(str string, args ...any) Step {
 	defer f.mu.Unlock()
 
 	// Build our step
-	step := &glintStep{ctx: f.ctx, status: newGlintStatus()}
+	step := &glintStep{ctx: f.ctx, status: NewGlintStatus()}
 
 	// Setup initial status
 	step.Update(str, args...)
@@ -87,7 +87,7 @@ func (f *glintStep) TermOutput() io.Writer {
 	defer f.mu.Unlock()
 
 	if f.term == nil {
-		t, err := newGlintTerm(f.ctx, 10, 80)
+		t, err := NewGlintTerm(f.ctx, 10, 80)
 		if err != nil {
 			panic(err)
 		}

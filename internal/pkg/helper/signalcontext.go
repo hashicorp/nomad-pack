@@ -23,6 +23,7 @@ func WithInterrupt(ctx context.Context) (context.Context, func()) {
 		select {
 		case <-ch:
 			cancel()
+			signal.Stop(ch) // Stop receiving signals after the first one
 		case <-ctx.Done():
 			return
 		}

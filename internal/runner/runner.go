@@ -57,6 +57,10 @@ type Runner interface {
 	// function and is why the UI and UIErrorContext is passed.
 	Deploy(terminal.UI, *errors.UIErrorContext) *errors.WrappedUIContext
 
+	// EvalIDs returns the evaluation IDs from the most recent Deploy call.
+	// This can be used to monitor deployment progress.
+	EvalIDs() []string
+
 	// DestroyDeployment destroys the deployment as provided by the
 	// configuration set within SetDeployerConfig.
 	DestroyDeployment(terminal.UI) []*errors.WrappedUIContext
