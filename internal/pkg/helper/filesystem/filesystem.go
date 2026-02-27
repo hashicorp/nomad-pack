@@ -133,6 +133,11 @@ func CopyDir(sourceDir string, destinationDir string, overwrite bool, logger log
 
 	// Iterate over all the directory entries and copy them
 	for _, sourceEntry := range sourceEntries {
+		// Skip .git directories — cached registries don't need git metadata.
+		if sourceEntry.IsDir() && sourceEntry.Name() == ".git" {
+			continue
+		}
+
 		// Build the source and destination paths
 		sourcePath := filepath.Join(sourceDir, sourceEntry.Name())
 		destinationPath := filepath.Join(destinationDir, sourceEntry.Name())

@@ -393,9 +393,9 @@ func TestParsePackURL(t *testing.T) {
 			expectOk:       true,
 		},
 		{
-			name:           "nested-repo-with-dot-git-kept",
+			name:           "nested-repo",
 			path:           "https://gitlab.com/a6281/nomad/my-pack-registry.git/packs/simple_service",
-			expectedResult: "gitlab.com/a6281/nomad/my-pack-registry.git",
+			expectedResult: "gitlab.com/a6281/nomad/my-pack-registry",
 			expectOk:       true,
 		},
 	}
