@@ -150,7 +150,7 @@ func (c *RunCommand) run() int {
 		if c.jobConfig.RunConfig.Verbose {
 			length = fullId
 		}
-		mon := newMonitor(c.ui, client, length)
+		mon := newMonitor(c.Ctx, c.ui, client, length)
 		if exitCode := mon.monitor(evalIDs); exitCode != 0 {
 			return exitCode
 		}

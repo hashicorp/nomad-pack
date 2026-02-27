@@ -5,7 +5,6 @@ package helper
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
 )
@@ -23,9 +22,8 @@ func WithInterrupt(ctx context.Context) (context.Context, func()) {
 	go func() {
 		select {
 		case <-ch:
-			fmt.Fprintln(os.Stderr, "\nInterrupt received, shutting down...")
 			cancel()
-			os.Exit(1)
+			signal.Stop(ch) // Stop receiving signals after the first one
 		case <-ctx.Done():
 			return
 		}

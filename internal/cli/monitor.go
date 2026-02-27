@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"strings"
@@ -66,6 +67,7 @@ type allocState struct {
 // monitor wraps an evaluation monitor and holds metadata and
 // state information.
 type monitor struct {
+	ctx    context.Context
 	ui     terminal.UI
 	client *api.Client
 	state  *evalState
@@ -79,8 +81,9 @@ type monitor struct {
 // newMonitor returns a new monitor. The returned monitor will
 // write output information to the provided ui. The length parameter determines
 // the number of characters for identifiers in the ui.
-func newMonitor(ui terminal.UI, client *api.Client, length int) *monitor {
+func newMonitor(ctx context.Context, ui terminal.UI, client *api.Client, length int) *monitor {
 	mon := &monitor{
+		ctx:    ctx,
 		ui:     ui,
 		client: client,
 		state:  newEvalState(),
@@ -177,14 +180,14 @@ func (m *monitor) monitor(evalIDs []string) int {
 	verbose := m.length == fullId
 
 	// Phase 1: Monitor all evaluations in parallel
-	deployments, evalExitCode := monitorAllEvaluations(m.ui, m.client, evalIDs, m.length)
+	deployments, evalExitCode := monitorAllEvaluations(m.ctx, m.ui, m.client, evalIDs, m.length)
 	if evalExitCode != 0 && len(deployments) == 0 {
 		return evalExitCode
 	}
 
 	// Phase 2: Monitor all deployments in parallel
 	if len(deployments) > 0 {
-		deployExitCode := monitorAllDeployments(m.ui, m.client, deployments, verbose)
+		deployExitCode := monitorAllDeployments(m.ctx, m.ui, m.client, deployments, verbose)
 		if deployExitCode != 0 {
 			return deployExitCode
 		}
@@ -215,9 +218,22 @@ func (m *monitor) monitorEval(evalID string) evalResult {
 		formatTime(time.Now()), limit(evalID, m.length)))
 
 	for {
+		// Check for context cancellation
+		select {
+		case <-m.ctx.Done():
+			result.exitCode = 1
+			return result
+		default:
+		}
+
 		// Query the evaluation
 		eval, _, err := m.client.Evaluations().Info(evalID, nil)
 		if err != nil {
+			if m.ctx.Err() != nil {
+				m.ui.Warning(fmt.Sprintf("%s: Monitoring cancelled", formatTime(time.Now())))
+				result.exitCode = 1
+				return result
+			}
 			m.ui.Error(fmt.Sprintf("No evaluation with id %q found", evalID))
 			result.exitCode = 1
 			return result
@@ -238,6 +254,11 @@ func (m *monitor) monitorEval(evalID string) evalResult {
 		// Query the allocations associated with the evaluation
 		allocs, _, err := m.client.Evaluations().Allocations(eval.ID, nil)
 		if err != nil {
+			if m.ctx.Err() != nil {
+				m.ui.Warning(fmt.Sprintf("%s: Monitoring cancelled", formatTime(time.Now())))
+				result.exitCode = 1
+				return result
+			}
 			m.ui.Error(fmt.Sprintf("%s: Error reading allocations: %s", formatTime(time.Now()), err))
 			result.exitCode = 1
 			return result
@@ -292,7 +313,12 @@ func (m *monitor) monitorEval(evalID string) evalResult {
 			}
 		default:
 			// Wait for the next update
-			time.Sleep(updateWait)
+			select {
+			case <-m.ctx.Done():
+				result.exitCode = 1
+				return result
+			case <-time.After(updateWait):
+			}
 			continue
 		}
 
@@ -304,7 +330,12 @@ func (m *monitor) monitorEval(evalID string) evalResult {
 					formatTime(time.Now()), limit(eval.NextEval, m.length), eval.Wait))
 
 				// Skip some unnecessary polling
-				time.Sleep(eval.Wait)
+				select {
+				case <-m.ctx.Done():
+					result.exitCode = 1
+					return result
+				case <-time.After(eval.Wait):
+				}
 			}
 
 			// Reset the state and monitor the new eval
@@ -329,14 +360,14 @@ type deploymentInfo struct {
 
 // monitorAllEvaluations monitors all evaluations in parallel using prefixed output.
 // It returns the deployment info for all jobs that have deployments.
-func monitorAllEvaluations(ui terminal.UI, client *api.Client, evalIDs []string, length int) ([]deploymentInfo, int) {
+func monitorAllEvaluations(ctx context.Context, ui terminal.UI, client *api.Client, evalIDs []string, length int) ([]deploymentInfo, int) {
 	if len(evalIDs) == 0 {
 		return nil, 0
 	}
 
 	// For a single job, just monitor directly
 	if len(evalIDs) == 1 {
-		mon := newMonitor(ui, client, length)
+		mon := newMonitor(ctx, ui, client, length)
 		result := mon.monitorEval(evalIDs[0])
 		var deployments []deploymentInfo
 		if result.deploymentID != "" {
@@ -361,9 +392,12 @@ func monitorAllEvaluations(ui terminal.UI, client *api.Client, evalIDs []string,
 		go func(eID string) {
 			defer wg.Done()
 			// Use a temporary non-prefixed monitor to get the job ID first
-			tempMon := newMonitor(ui, client, length)
+			tempMon := newMonitor(ctx, ui, client, length)
 			eval, _, err := tempMon.client.Evaluations().Info(eID, nil)
 			if err != nil {
+				if ctx.Err() != nil {
+					return
+				}
 				ui.Error(fmt.Sprintf("No evaluation with id %q found", eID))
 				results <- evalResult{evalID: eID, exitCode: 1}
 				return
@@ -371,7 +405,7 @@ func monitorAllEvaluations(ui terminal.UI, client *api.Client, evalIDs []string,
 
 			// Now create a prefixed UI with the job ID
 			prefixedUI := newPrefixedUI(ui, eval.JobID)
-			mon := newMonitor(prefixedUI, client, length)
+			mon := newMonitor(ctx, prefixedUI, client, length)
 			result := mon.monitorEval(eID)
 			results <- result
 		}(evalID)
@@ -414,13 +448,13 @@ func monitorAllEvaluations(ui terminal.UI, client *api.Client, evalIDs []string,
 // monitorDeployment monitors the deployment and returns the final status.
 // It uses the UI's Status interface if available for in-place rendering,
 // otherwise falls back to basic text output.
-func monitorDeployment(ui terminal.UI, client *api.Client, deployID string, index uint64, wait time.Duration, verbose bool) (string, error) {
+func monitorDeployment(ctx context.Context, ui terminal.UI, client *api.Client, deployID string, index uint64, wait time.Duration, verbose bool) (string, error) {
 	// Check if UI is interactive (supports Status spinner)
 	if ui.Interactive() {
-		return ttyMonitorDeployment(ui, client, deployID, index, wait, verbose)
+		return ttyMonitorDeployment(ctx, ui, client, deployID, index, wait, verbose)
 	}
 	// Fall back to basic text output
-	return basicMonitorDeployment(ui, client, deployID, index, wait, verbose)
+	return basicMonitorDeployment(ctx, ui, client, deployID, index, wait, verbose)
 }
 
 // deploymentResult holds the result of monitoring a deployment
@@ -433,7 +467,7 @@ type deploymentResult struct {
 // monitorAllDeployments monitors all deployments in parallel.
 // It calls the existing monitorDeployment function for each deployment in a goroutine,
 // which handles TTY (with spinner) and non-TTY output appropriately.
-func monitorAllDeployments(ui terminal.UI, client *api.Client, deployments []deploymentInfo, verbose bool) int {
+func monitorAllDeployments(ctx context.Context, ui terminal.UI, client *api.Client, deployments []deploymentInfo, verbose bool) int {
 	if len(deployments) == 0 {
 		return 0
 	}
@@ -441,7 +475,7 @@ func monitorAllDeployments(ui terminal.UI, client *api.Client, deployments []dep
 	// For a single deployment, just monitor directly
 	if len(deployments) == 1 {
 		d := deployments[0]
-		status, err := monitorDeployment(ui, client, d.deploymentID, 0, d.wait, verbose)
+		status, err := monitorDeployment(ctx, ui, client, d.deploymentID, 0, d.wait, verbose)
 		if err != nil || status != api.DeploymentStatusSuccessful {
 			return 1
 		}
@@ -459,7 +493,7 @@ func monitorAllDeployments(ui terminal.UI, client *api.Client, deployments []dep
 		go func(info deploymentInfo) {
 			defer wg.Done()
 
-			status, err := monitorDeployment(ui, client, info.deploymentID, 0, info.wait, verbose)
+			status, err := monitorDeployment(ctx, ui, client, info.deploymentID, 0, info.wait, verbose)
 			results <- deploymentResult{jobID: info.jobID, status: status, err: err}
 		}(d)
 	}
@@ -483,7 +517,7 @@ func monitorAllDeployments(ui terminal.UI, client *api.Client, deployments []dep
 
 // ttyMonitorDeployment provides a rich terminal UI for monitoring deployments
 // using a single LiveView that combines spinner, deployment details, and allocations.
-func ttyMonitorDeployment(ui terminal.UI, client *api.Client, deployID string, index uint64, wait time.Duration, verbose bool) (status string, err error) {
+func ttyMonitorDeployment(ctx context.Context, ui terminal.UI, client *api.Client, deployID string, index uint64, wait time.Duration, verbose bool) (status string, err error) {
 	var length int
 	if verbose {
 		length = fullId
@@ -501,16 +535,27 @@ func ttyMonitorDeployment(ui terminal.UI, client *api.Client, deployID string, i
 
 	st.Update(fmt.Sprintf("Deployment %q in progress...", limit(deployID, length)))
 
-	q := api.QueryOptions{
+	q := &api.QueryOptions{
 		AllowStale: true,
 		WaitIndex:  index,
 		WaitTime:   wait,
 	}
+	q = q.WithContext(ctx)
 
 	for {
+		// Check for context cancellation
+		select {
+		case <-ctx.Done():
+			st.Close()
+			liveView.Close()
+			err = ctx.Err()
+			return
+		default:
+		}
+
 		var deploy *api.Deployment
 		var meta *api.QueryMeta
-		deploy, meta, err = client.Deployments().Info(deployID, &q)
+		deploy, meta, err = client.Deployments().Info(deployID, q)
 		if err != nil {
 			st.Step(terminal.StatusError, fmt.Sprintf("Error fetching deployment %q: %v", limit(deployID, length), err))
 			return
@@ -567,7 +612,14 @@ func ttyMonitorDeployment(ui terminal.UI, client *api.Client, deployID string, i
 				st.Step(terminal.StatusWarn, fmt.Sprintf("Deployment %q failed, waiting for rollback...", limit(deployID, length)))
 
 				// Wait for rollback to launch
-				time.Sleep(1 * time.Second)
+				select {
+				case <-ctx.Done():
+					st.Close()
+					liveView.Close()
+					err = ctx.Err()
+					return
+				case <-time.After(1 * time.Second):
+				}
 				var rollback *api.Deployment
 				rollback, _, err = client.Jobs().LatestDeployment(deploy.JobID, nil)
 
@@ -585,7 +637,7 @@ func ttyMonitorDeployment(ui terminal.UI, client *api.Client, deployID string, i
 				// Close current views before monitoring rollback
 				st.Close()
 				liveView.Close()
-				return ttyMonitorDeployment(ui, client, rollback.ID, index, wait, verbose)
+				return ttyMonitorDeployment(ctx, ui, client, rollback.ID, index, wait, verbose)
 			}
 			st.Step(terminal.StatusError, fmt.Sprintf("Deployment %q failed", limit(deployID, length)))
 			return
@@ -607,7 +659,7 @@ func ttyMonitorDeployment(ui terminal.UI, client *api.Client, deployID string, i
 
 // basicMonitorDeployment provides simple text-based monitoring for non-TTY UIs.
 // It polls the deployment status and only prints the final result.
-func basicMonitorDeployment(ui terminal.UI, client *api.Client, deployID string, index uint64, wait time.Duration, verbose bool) (status string, err error) {
+func basicMonitorDeployment(ctx context.Context, ui terminal.UI, client *api.Client, deployID string, index uint64, wait time.Duration, verbose bool) (status string, err error) {
 	var length int
 	if verbose {
 		length = fullId
@@ -617,17 +669,32 @@ func basicMonitorDeployment(ui terminal.UI, client *api.Client, deployID string,
 
 	ui.Info(fmt.Sprintf("\n%s: Monitoring deployment %q", formatTime(time.Now()), limit(deployID, length)))
 
-	q := api.QueryOptions{
+	q := &api.QueryOptions{
 		AllowStale: true,
 		WaitIndex:  index,
 		WaitTime:   wait,
 	}
+	q = q.WithContext(ctx)
 
 	var deploy *api.Deployment
 	for {
+		// Check for context cancellation
+		select {
+		case <-ctx.Done():
+			ui.Warning(fmt.Sprintf("%s: Deployment %q monitoring cancelled", formatTime(time.Now()), limit(deployID, length)))
+			err = ctx.Err()
+			return
+		default:
+		}
+
 		var meta *api.QueryMeta
-		deploy, meta, err = client.Deployments().Info(deployID, &q)
+		deploy, meta, err = client.Deployments().Info(deployID, q)
 		if err != nil {
+			if ctx.Err() != nil {
+				ui.Warning(fmt.Sprintf("%s: Deployment %q monitoring cancelled", formatTime(time.Now()), limit(deployID, length)))
+				err = ctx.Err()
+				return
+			}
 			ui.Error(fmt.Sprintf("%s: Error fetching deployment %q: %v", formatTime(time.Now()), limit(deployID, length), err))
 			return
 		}
@@ -638,7 +705,13 @@ func basicMonitorDeployment(ui terminal.UI, client *api.Client, deployID string,
 		case api.DeploymentStatusFailed:
 			if hasAutoRevert(deploy) {
 				ui.Warning(fmt.Sprintf("%s: Deployment %q failed, waiting for rollback...", formatTime(time.Now()), limit(deployID, length)))
-				time.Sleep(1 * time.Second)
+				select {
+				case <-ctx.Done():
+					ui.Warning(fmt.Sprintf("%s: Deployment %q monitoring cancelled", formatTime(time.Now()), limit(deployID, length)))
+					err = ctx.Err()
+					return
+				case <-time.After(1 * time.Second):
+				}
 				var rollback *api.Deployment
 				rollback, _, err = client.Jobs().LatestDeployment(deploy.JobID, nil)
 				if err != nil {
@@ -649,7 +722,7 @@ func basicMonitorDeployment(ui terminal.UI, client *api.Client, deployID string,
 					ui.Error(fmt.Sprintf("%s: Deployment %q failed", formatTime(time.Now()), limit(deployID, length)))
 					return
 				}
-				return basicMonitorDeployment(ui, client, rollback.ID, index, wait, verbose)
+				return basicMonitorDeployment(ctx, ui, client, rollback.ID, index, wait, verbose)
 			}
 			ui.Error(fmt.Sprintf("%s: Deployment %q failed", formatTime(time.Now()), limit(deployID, length)))
 		case api.DeploymentStatusSuccessful:
@@ -660,7 +733,12 @@ func basicMonitorDeployment(ui terminal.UI, client *api.Client, deployID string,
 			ui.Warning(fmt.Sprintf("%s: Deployment %q blocked", formatTime(time.Now()), limit(deployID, length)))
 		default:
 			q.WaitIndex = meta.LastIndex
-			time.Sleep(updateWait)
+			select {
+			case <-ctx.Done():
+				err = ctx.Err()
+				return
+			case <-time.After(updateWait):
+			}
 			continue
 		}
 		break
@@ -673,6 +751,7 @@ func basicMonitorDeployment(ui terminal.UI, client *api.Client, deployID string,
 
 	// Print allocations if verbose
 	if verbose {
+
 		allocs, _, allocErr := client.Deployments().Allocations(deployID, nil)
 		if allocErr != nil {
 			ui.Error(fmt.Sprintf("%s: Error fetching allocations for deployment %q: %v", formatTime(time.Now()), limit(deployID, length), allocErr))

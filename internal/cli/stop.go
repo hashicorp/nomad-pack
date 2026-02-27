@@ -189,7 +189,7 @@ func (c *StopCommand) Run(args []string) int {
 	monitorExitCode := 0
 	// Monitor all evaluations in parallel unless --detach is specified
 	if !c.detach && len(evalIDs) > 0 {
-		mon := newMonitor(c.ui, client, c.lengthForVerbose())
+		mon := newMonitor(c.Ctx, c.ui, client, c.lengthForVerbose())
 		monitorExitCode = mon.monitor(evalIDs)
 
 	}

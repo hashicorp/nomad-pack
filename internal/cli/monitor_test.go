@@ -327,7 +327,7 @@ func TestNewEvalState(t *testing.T) {
 func TestMonitor_Update_Eval(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	ui := testui.NonInteractiveTestUI(context.Background(), &stdout, &stderr)
-	mon := newMonitor(ui, nil, fullId)
+	mon := newMonitor(context.Background(), ui, nil, fullId)
 
 	// Evals triggered by jobs log
 	state := &evalState{
@@ -381,7 +381,7 @@ func TestMonitor_Update_Eval(t *testing.T) {
 func TestMonitor_Update_Allocs(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	ui := testui.NonInteractiveTestUI(context.Background(), &stdout, &stderr)
-	mon := newMonitor(ui, nil, fullId)
+	mon := newMonitor(context.Background(), ui, nil, fullId)
 
 	// New allocations write new logs
 	state := &evalState{
@@ -452,7 +452,7 @@ func TestMonitor_Update_Allocs(t *testing.T) {
 func TestMonitor_Update_AllocModification(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	ui := testui.NonInteractiveTestUI(context.Background(), &stdout, &stderr)
-	mon := newMonitor(ui, nil, fullId)
+	mon := newMonitor(context.Background(), ui, nil, fullId)
 
 	// New allocs with a create index lower than the
 	// eval create index are logged as modifications
