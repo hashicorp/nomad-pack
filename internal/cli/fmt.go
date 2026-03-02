@@ -63,10 +63,8 @@ func (c *FmtCommand) fmt(paths []string) int {
 				return 1
 			}
 			filesToFormat = append(filesToFormat, files...)
-		} else {
-			if c.isTemplateFile(path) {
-				filesToFormat = append(filesToFormat, path)
-			}
+		} else if c.isTemplateFile(path) {
+			filesToFormat = append(filesToFormat, path)
 		}
 	}
 
