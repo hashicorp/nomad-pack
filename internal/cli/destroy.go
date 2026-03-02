@@ -74,6 +74,22 @@ func (c *DestroyCommand) Flags() *flag.Sets {
 					pack destroy will destroy only a single region at a time.
 					Ignored for single-region packs.`,
 		})
+
+		f.BoolVar(&flag.BoolVar{
+			Name:    "detach",
+			Target:  &c.detach,
+			Default: false,
+			Usage: `Return immediately instead of monitoring the evaluation.
+					A new evaluation ID will be output which can be used to
+					examine the evaluation using "nomad eval status".`,
+		})
+
+		f.BoolVar(&flag.BoolVar{
+			Name:    "verbose",
+			Target:  &c.verbose,
+			Default: false,
+			Usage:   `Display full information during evaluation monitoring.`,
+		})
 	})
 }
 

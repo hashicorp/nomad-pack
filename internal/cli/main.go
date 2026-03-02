@@ -43,6 +43,7 @@ var (
 		"registry add",
 		"registry delete",
 		"registry list",
+		"registry update",
 	}
 
 	// Initialize hidden commands. Anything we add here will be ignored when
@@ -194,7 +195,11 @@ func Commands(
 				list:        true,
 			}, nil
 		},
-
+		"registry update": func() (cli.Command, error) {
+			return &RegistryUpdateCommand{
+				baseCommand: baseCommand,
+			}, nil
+		},
 		"generate": func() (cli.Command, error) {
 			return &GenerateHelpCommand{
 				baseCommand: baseCommand,

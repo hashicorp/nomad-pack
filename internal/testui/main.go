@@ -15,6 +15,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/fatih/color"
+	"github.com/mitchellh/go-glint"
 
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/helper"
@@ -25,6 +26,7 @@ type nonInteractiveTestUI struct {
 	mu        sync.Mutex
 	OutWriter io.Writer
 	ErrWriter io.Writer
+	prefix    string
 }
 
 func NonInteractiveTestUI(ctx context.Context, stdout io.Writer, stderr io.Writer) terminal.UI {
@@ -42,6 +44,14 @@ func (ui *nonInteractiveTestUI) Input(input *terminal.Input) (string, error) {
 // Interactive implements UI
 func (ui *nonInteractiveTestUI) Interactive() bool {
 	return false
+}
+
+func (ui *nonInteractiveTestUI) WithPrefix(prefix string) terminal.UI {
+	return &nonInteractiveTestUI{
+		OutWriter: ui.OutWriter,
+		ErrWriter: ui.ErrWriter,
+		prefix:    ui.prefix + prefix,
+	}
 }
 
 // Output implements UI
@@ -159,6 +169,11 @@ func (ui *nonInteractiveTestUI) Status() terminal.Status {
 	return &nonInteractiveStatus{mu: &ui.mu}
 }
 
+// LiveView implements UI
+func (ui *nonInteractiveTestUI) LiveView() terminal.LiveView {
+	return &testLiveView{mu: &ui.mu}
+}
+
 func (ui *nonInteractiveTestUI) StepGroup() terminal.StepGroup {
 	return &nonInteractiveStepGroup{mu: &ui.mu}
 }
@@ -175,12 +190,12 @@ func (ui *nonInteractiveTestUI) Table(tbl *terminal.Table, opts ...terminal.Opti
 
 // Debug implements UI
 func (ui *nonInteractiveTestUI) Debug(msg string) {
-	ui.Output(msg, terminal.WithDebugStyle())
+	ui.Output(ui.prefix+msg, terminal.WithDebugStyle())
 }
 
 // Error implements UI
 func (ui *nonInteractiveTestUI) Error(msg string) {
-	ui.Output(msg, terminal.WithErrorStyle())
+	ui.Output(ui.prefix+msg, terminal.WithErrorStyle())
 }
 
 // ErrorWithContext satisfies the ErrorWithContext function on the UI
@@ -236,32 +251,32 @@ func (ui *nonInteractiveTestUI) ErrorWithContext(err error, sub string, ctx ...s
 
 // Header implements UI
 func (ui *nonInteractiveTestUI) Header(msg string) {
-	ui.Output(msg, terminal.WithHeaderStyle())
+	ui.Output(ui.prefix+msg, terminal.WithHeaderStyle())
 }
 
 // Info implements UI
 func (ui *nonInteractiveTestUI) Info(msg string) {
-	ui.Output(msg, terminal.WithInfoStyle())
+	ui.Output(ui.prefix+msg, terminal.WithInfoStyle())
 }
 
 // Success implements UI
 func (ui *nonInteractiveTestUI) Success(msg string) {
-	ui.Output(msg, terminal.WithSuccessStyle())
+	ui.Output(ui.prefix+msg, terminal.WithSuccessStyle())
 }
 
 // Trace implements UI
 func (ui *nonInteractiveTestUI) Trace(msg string) {
-	ui.Output(msg, terminal.WithTraceStyle())
+	ui.Output(ui.prefix+msg, terminal.WithTraceStyle())
 }
 
 // Warning implements UI
 func (ui *nonInteractiveTestUI) Warning(msg string) {
-	ui.Output(msg, terminal.WithWarningStyle())
+	ui.Output(ui.prefix+msg, terminal.WithWarningStyle())
 }
 
 // WarningBold implements UI
 func (ui *nonInteractiveTestUI) WarningBold(msg string) {
-	ui.Output(msg, terminal.WithStyle(terminal.WarningBoldStyle))
+	ui.Output(ui.prefix+msg, terminal.WithStyle(terminal.WarningBoldStyle))
 }
 
 type nonInteractiveStatus struct {
@@ -379,4 +394,17 @@ var textStatus = map[string]string{
 	terminal.StatusError:   " !",
 	terminal.StatusWarn:    " *",
 	terminal.StatusTimeout: "<>",
+}
+
+// testLiveView is a no-op implementation of LiveView for testing
+type testLiveView struct {
+	mu *sync.Mutex
+}
+
+func (v *testLiveView) SetComponents(c ...glint.Component) {
+	// No-op for non-interactive test UI
+}
+
+func (v *testLiveView) Close() error {
+	return nil
 }
