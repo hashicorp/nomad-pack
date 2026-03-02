@@ -2,6 +2,8 @@ package job
 
 import (
 	"testing"
+
+	"github.com/shoenig/test/must"
 )
 
 func TestExtractJobRegionNamespace(t *testing.T) {
@@ -68,12 +70,9 @@ func TestExtractJobRegionNamespace(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			reg, ns, err := ExtractJobRegionNamespace(tt.hcl)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			if reg != tt.wantReg || ns != tt.wantNS {
-				t.Errorf("got region=%q, namespace=%q; want region=%q, namespace=%q", reg, ns, tt.wantReg, tt.wantNS)
-			}
+			must.NoError(t, err)
+			must.Eq(t, tt.wantReg, reg)
+			must.Eq(t, tt.wantNS, ns)
 		})
 	}
 }
