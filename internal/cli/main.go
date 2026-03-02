@@ -37,6 +37,7 @@ var (
 		"render",
 		"run",
 		"destroy",
+		"fmt",
 		"info",
 		"status",
 		"registry add",
@@ -186,6 +187,14 @@ func Commands(
 				baseCommand: baseCommand,
 			}, nil
 		},
+		"fmt": func() (cli.Command, error) {
+			return &FmtCommand{
+				baseCommand: baseCommand,
+				write:       true,
+				list:        true,
+			}, nil
+		},
+
 		"generate": func() (cli.Command, error) {
 			return &GenerateHelpCommand{
 				baseCommand: baseCommand,
