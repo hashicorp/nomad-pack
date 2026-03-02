@@ -1271,3 +1271,180 @@ func expectNoStdErrOutput(t *testing.T, r PackCommandResult) {
 	t.Helper()
 	must.Eq(t, "", r.cmdErr.String(), must.Sprintf("cmdErr should be empty, but was %q", r.cmdErr.String()))
 }
+
+// TestCLI_RunReconcilesStalejobs verifies that when a job template is removed
+// from a pack and the pack is redeployed, the job that was removed gets stopped
+// automatically. This exercises the reconciliation logic in the runner.
+func TestCLI_RunReconcileStaleJobs(t *testing.T) {
+	ct.HTTPTestParallel(t, ct.WithDefaultConfig(), func(s *agent.TestAgent) {
+		client, err := ct.NewTestClient(s)
+		must.NoError(t, err)
+
+		// Clone the test pack to a temp directory so we can modify it.
+		packDir := testfixture.Clone(t, "v2/test_registry/packs/simple_raw_exec")
+
+		// Create a second job template in the pack.
+		extraJobTpl := `job "extra_job" {
+         					datacenters = ["dc1"]
+							type        = "service"
+
+							group "app" {
+    						count = 1
+
+    						task "server" {
+							driver = "raw_exec"
+
+     						 config {
+        						command = "/bin/bash"
+								args    = ["-c", "while true; do sleep 300; done"]
+     						 }
+							}
+  						}
+					}
+				`
+
+		extraTplPath := filepath.Join(packDir, "templates", "extra_job.nomad.tpl")
+		must.NoError(t, os.WriteFile(extraTplPath, []byte(extraJobTpl), 0644))
+
+		// Step 1: Deploy the pack with both jobs.
+		result := runTestPackCmd(t, s, []string{"run", packDir})
+		expectGoodPackDeploy(t, result)
+
+		// Wait for both jobs to be registered in Nomad (they may stay
+		// "pending" in test agents that cannot place allocations).
+		must.Wait(t, wait.InitialSuccess(
+			wait.BoolFunc(func() bool {
+				j, _, err := client.Jobs().Info("extra_job", &api.QueryOptions{})
+				return err == nil && j != nil
+			}),
+			wait.Timeout(10*time.Second),
+			wait.Gap(500*time.Millisecond),
+		), must.Sprint("extra_job was not registered"))
+
+		must.Wait(t, wait.InitialSuccess(
+			wait.BoolFunc(func() bool {
+				j, _, err := client.Jobs().Info(testPack, &api.QueryOptions{})
+				return err == nil && j != nil
+			}),
+			wait.Timeout(10*time.Second),
+			wait.Gap(500*time.Millisecond),
+		), must.Sprint("simple_raw_exec was not registered"))
+
+		// Step 2: Remove the extra job template and redeploy.
+		must.NoError(t, os.Remove(extraTplPath))
+
+		result = runTestPackCmd(t, s, []string{"run", packDir})
+		expectGoodPackDeploy(t, result)
+
+		// Verify the output mentions stopping the removed job.
+		must.StrContains(t, result.cmdOut.String(), "is no longer defined in pack deployment")
+		must.StrContains(t, result.cmdOut.String(), "extra_job")
+
+		// Step 3: Verify extra_job is now dead/stopped, while simple_raw_exec
+		// is still running.
+		must.Wait(t, wait.InitialSuccess(
+			wait.BoolFunc(func() bool {
+				j, _, err := client.Jobs().Info("extra_job", &api.QueryOptions{})
+				if err != nil {
+					return false
+				}
+				return *j.Status == "dead"
+			}),
+			wait.Timeout(15*time.Second),
+			wait.Gap(500*time.Millisecond),
+		), must.Sprint("extra_job should be dead after reconciliation"))
+
+		// simple_raw_exec should still be registered and not dead.
+		j, _, err := client.Jobs().Info(testPack, &api.QueryOptions{})
+		must.NoError(t, err)
+		must.NotEq(t, "dead", *j.Status)
+	})
+}
+
+// TestCLI_RunReconcileNoStaleJobs verifies that when all jobs in a pack remain
+// present during a redeploy, no jobs are stopped.
+func TestCLI_RunReconcileNoStaleJobs(t *testing.T) {
+	ct.HTTPTestParallel(t, ct.WithDefaultConfig(), func(s *agent.TestAgent) {
+		client, err := ct.NewTestClient(s)
+		must.NoError(t, err)
+
+		// Deploy the pack.
+		result := runTestPackCmd(t, s, []string{"run", getTestPackPath(t, testPack)})
+		expectGoodPackDeploy(t, result)
+
+		// Wait for job to be registered in Nomad.
+		must.Wait(t, wait.InitialSuccess(
+			wait.BoolFunc(func() bool {
+				j, _, err := client.Jobs().Info(testPack, &api.QueryOptions{})
+				return err == nil && j != nil
+			}),
+			wait.Timeout(10*time.Second),
+			wait.Gap(500*time.Millisecond),
+		), must.Sprint("job was not registered"))
+
+		// Redeploy the same pack (no changes).
+		result = runTestPackCmd(t, s, []string{"run", getTestPackPath(t, testPack)})
+		expectGoodPackDeploy(t, result)
+
+		// The output should NOT mention stopping any jobs.
+		must.StrNotContains(t, result.cmdOut.String(), "is no longer defined in pack deployment")
+
+		// The job should still exist and not be dead.
+		j, _, err := client.Jobs().Info(testPack, &api.QueryOptions{})
+		must.NoError(t, err)
+		must.NotEq(t, "dead", *j.Status)
+	})
+}
+
+// TestCLI_RunReconcileIgnoresOtherDeployments verifies that reconciliation
+// does not stop jobs belonging to a different deployment name, even if they
+// are managed by nomad-pack.
+func TestCLI_RunReconcileIgnoresOtherDeployments(t *testing.T) {
+	ct.HTTPTestParallel(t, ct.WithDefaultConfig(), func(s *agent.TestAgent) {
+		client, err := ct.NewTestClient(s)
+		must.NoError(t, err)
+
+		// Deploy the same pack under two different deployment names with
+		// different job names to avoid conflict errors.
+		result := runTestPackCmd(t, s, []string{
+			"run", getTestPackPath(t, testPack),
+			"--name=deploy-a",
+			"--var=job_name=job_a",
+		})
+		expectGoodPackDeploy(t, result)
+
+		result = runTestPackCmd(t, s, []string{
+			"run", getTestPackPath(t, testPack),
+			"--name=deploy-b",
+			"--var=job_name=job_b",
+			"--deploy-override",
+		})
+		expectGoodPackDeploy(t, result)
+
+		// Wait for both jobs to be registered in Nomad.
+		for _, jobName := range []string{"job_a", "job_b"} {
+			jn := jobName
+			must.Wait(t, wait.InitialSuccess(
+				wait.BoolFunc(func() bool {
+					j, _, err := client.Jobs().Info(jn, &api.QueryOptions{})
+					return err == nil && j != nil
+				}),
+				wait.Timeout(10*time.Second),
+				wait.Gap(500*time.Millisecond),
+			), must.Sprintf("%s was not registered", jn))
+		}
+
+		// Redeploy deploy-a; this should NOT affect job_b from deploy-b.
+		result = runTestPackCmd(t, s, []string{
+			"run", getTestPackPath(t, testPack),
+			"--name=deploy-a",
+			"--var=job_name=job_a",
+		})
+		expectGoodPackDeploy(t, result)
+
+		// job_b must still exist and not be dead.
+		j, _, err := client.Jobs().Info("job_b", &api.QueryOptions{})
+		must.NoError(t, err)
+		must.NotEq(t, "dead", *j.Status)
+	})
+}
