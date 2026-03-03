@@ -16,6 +16,7 @@ import (
 	flag "github.com/hashicorp/nomad-pack/internal/pkg/flag"
 	"github.com/hashicorp/nomad-pack/internal/pkg/helper"
 	"github.com/hashicorp/nomad-pack/internal/testui"
+	"github.com/hashicorp/nomad/ci"
 )
 
 // ── Unit tests for formatTemplate() ──────────────────────────────────────────
@@ -93,17 +94,159 @@ func TestFmtCommand_FormatTemplate_MultipleDelimiters(t *testing.T) {
 	must.StrContains(t, result, "[[ .count ]]")
 }
 
+func TestFmtCommand_formatHCL(t *testing.T) {
+	ci.Parallel(t)
+
+	c := &FmtCommand{}
+
+	// Unformatted HCL content
+	input := `variable "test" {
+type = string
+default = "value"
+description = "A test variable"
+}`
+
+	result, err := c.formatHCL(input)
+	must.NoError(t, err)
+
+	// hclwrite.Format should add proper indentation
+	must.StrContains(t, result, "  type")
+	must.StrContains(t, result, "  default")
+	must.StrContains(t, result, "  description")
+}
+
 // ── Integration tests via runPackCmd() ───────────────────────────────────────
 
 func TestCLI_Fmt_NoTemplateFiles(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	// Writing a non-tpl file
-	must.NoError(t, os.WriteFile(filepath.Join(dir, "variables.hcl"), []byte("x = 1\n"), 0644))
+	// Writing a non-formattable file
+	must.NoError(t, os.WriteFile(filepath.Join(dir, "README.md"), []byte("# Test\n"), 0644))
 
 	result := runPackCmd(t, []string{"fmt", dir})
 	must.Zero(t, result.exitCode)
-	must.StrContains(t, result.cmdOut.String(), "No template files found")
+	must.StrContains(t, result.cmdOut.String(), "No formattable files")
+}
+
+func TestFmtCommand_FormatMetadataHCL(t *testing.T) {
+	ci.Parallel(t)
+
+	tmpDir := t.TempDir()
+	metadataPath := filepath.Join(tmpDir, "metadata.hcl")
+
+	unformattedContent := `app {
+url = "https://example.com"
+author = "test"
+}`
+
+	err := os.WriteFile(metadataPath, []byte(unformattedContent), 0644)
+	must.NoError(t, err)
+
+	// Use the existing test helper
+	result := runPackCmd(t, []string{"fmt", metadataPath})
+	must.Eq(t, 0, result.exitCode)
+	must.StrContains(t, result.cmdOut.String(), "Formatted")
+
+	// Verify file was formatted
+	formatted, err := os.ReadFile(metadataPath)
+	must.NoError(t, err)
+	must.StrContains(t, string(formatted), "  url")
+	must.StrContains(t, string(formatted), "  author")
+}
+
+func TestFmtCommand_FormatVariablesHCL(t *testing.T) {
+	ci.Parallel(t)
+
+	tmpDir := t.TempDir()
+	variablesPath := filepath.Join(tmpDir, "variables.hcl")
+
+	unformattedContent := `variable "job_name" {
+type = string
+default = "example"
+}
+
+variable "count" {
+type = number
+default = 1
+}`
+
+	err := os.WriteFile(variablesPath, []byte(unformattedContent), 0644)
+	must.NoError(t, err)
+
+	// Use the existing test helper
+	result := runPackCmd(t, []string{"fmt", variablesPath})
+	must.Eq(t, 0, result.exitCode)
+	must.StrContains(t, result.cmdOut.String(), "Formatted")
+
+	formatted, err := os.ReadFile(variablesPath)
+	must.NoError(t, err)
+	must.StrContains(t, string(formatted), "  type")
+	must.StrContains(t, string(formatted), "  default")
+}
+
+func TestFmtCommand_FormatMixedDirectory(t *testing.T) {
+	ci.Parallel(t)
+
+	tmpDir := t.TempDir()
+
+	// Create unformatted .tpl file
+	tplPath := filepath.Join(tmpDir, "app.nomad.tpl")
+	tplContent := `job "example" {
+group "app" {
+count = [[ var "count" . ]]
+}
+}`
+	err := os.WriteFile(tplPath, []byte(tplContent), 0644)
+	must.NoError(t, err)
+
+	// Create unformatted .hcl file
+	hclPath := filepath.Join(tmpDir, "variables.hcl")
+	hclContent := `variable "count" {
+type = number
+default = 1
+}`
+	err = os.WriteFile(hclPath, []byte(hclContent), 0644)
+	must.NoError(t, err)
+
+	// Run fmt with recursive flag
+	result := runPackCmd(t, []string{"fmt", "--recursive", tmpDir})
+	must.Eq(t, 0, result.exitCode)
+
+	// Verify both files were formatted
+	formattedTpl, err := os.ReadFile(tplPath)
+	must.NoError(t, err)
+	must.StrContains(t, string(formattedTpl), "  group")
+	must.StrContains(t, string(formattedTpl), "[[ var \"count\" . ]]") // Template syntax preserved
+
+	formattedHcl, err := os.ReadFile(hclPath)
+	must.NoError(t, err)
+	must.StrContains(t, string(formattedHcl), "  type")
+}
+
+func TestFmtCommand_CheckModeWithHCL(t *testing.T) {
+	ci.Parallel(t)
+
+	tmpDir := t.TempDir()
+	hclPath := filepath.Join(tmpDir, "metadata.hcl")
+
+	// Create unformatted HCL file
+	unformattedContent := `app {
+url = "https://example.com"
+}`
+	err := os.WriteFile(hclPath, []byte(unformattedContent), 0644)
+	must.NoError(t, err)
+
+	// Run with --check flag
+	result := runPackCmdAllowErrors(t, []string{"fmt", "--check", hclPath})
+	must.Eq(t, 1, result.exitCode) // Should return 1 because file needs formatting
+
+	// Verify file was NOT modified
+	content, err := os.ReadFile(hclPath)
+	must.NoError(t, err)
+	must.Eq(t, unformattedContent, string(content))
+
+	// Verify error message
+	must.StrContains(t, result.cmdOut.String(), "not formatted")
 }
 
 func TestCLI_Fmt_SingleFile_AlreadyFormatted(t *testing.T) {
@@ -183,7 +326,7 @@ func TestCLI_Fmt_RecursiveFlag(t *testing.T) {
 	// Without --recursive: no files found in subdir
 	result := runPackCmd(t, []string{"fmt", "--write=false", "--list=true", dir})
 	must.Zero(t, result.exitCode)
-	must.StrContains(t, result.cmdOut.String(), "No template files found")
+	must.StrContains(t, result.cmdOut.String(), "No formattable files")
 
 	// With --recursive: file found
 	result = runPackCmd(t, []string{"fmt", "--write=false", "--list=true", "--recursive", dir})

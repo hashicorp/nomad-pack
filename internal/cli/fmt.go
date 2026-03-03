@@ -57,19 +57,19 @@ func (c *FmtCommand) fmt(paths []string) int {
 		}
 
 		if info.IsDir() {
-			files, err := c.findTemplateFiles(path)
+			files, err := c.findFormattableFiles(path)
 			if err != nil {
 				c.ui.Error(fmt.Sprintf("Error scanning directory: %v", err))
 				return 1
 			}
 			filesToFormat = append(filesToFormat, files...)
-		} else if c.isTemplateFile(path) {
+		} else if c.isFormattableFile(path) {
 			filesToFormat = append(filesToFormat, path)
 		}
 	}
 
 	if len(filesToFormat) == 0 {
-		c.ui.Info("No template files found")
+		c.ui.Info("No formattable files (.tpl,.hcl) found")
 		return 0
 	}
 
@@ -103,12 +103,18 @@ func (c *FmtCommand) formatFile(path string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-
-	formatted, err := c.formatTemplate(string(content))
+	var formatted string
+	switch {
+	case strings.HasSuffix(path, ".tpl"):
+		formatted, err = c.formatTemplate(string(content))
+	case strings.HasSuffix(path, ".hcl"):
+		formatted, err = c.formatHCL(string(content))
+	default:
+		return false, fmt.Errorf("unsupported file type: %s", path)
+	}
 	if err != nil {
 		return false, err
 	}
-
 	changed := string(content) != formatted
 
 	if changed && c.write && !c.check {
@@ -116,9 +122,8 @@ func (c *FmtCommand) formatFile(path string) (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		c.ui.Output(fmt.Sprintf("Formatted: %s", path))
+		c.ui.Output(fmt.Sprintf("Formatted:%s", path))
 	}
-
 	return changed, nil
 }
 
@@ -145,7 +150,12 @@ func (c *FmtCommand) formatTemplate(content string) (string, error) {
 	return formattedStr, nil
 }
 
-func (c *FmtCommand) findTemplateFiles(dir string) ([]string, error) {
+func (c *FmtCommand) formatHCL(content string) (string, error) {
+	formatted := hclwrite.Format([]byte(content))
+	return string(formatted), nil
+}
+
+func (c *FmtCommand) findFormattableFiles(dir string) ([]string, error) {
 	var files []string
 	cleanDir := filepath.Clean(dir)
 	walkFunc := func(path string, d fs.DirEntry, err error) error {
@@ -159,7 +169,7 @@ func (c *FmtCommand) findTemplateFiles(dir string) ([]string, error) {
 		if d.IsDir() && path != cleanDir && !c.recursive {
 			return filepath.SkipDir
 		}
-		if !d.IsDir() && c.isTemplateFile(path) {
+		if !d.IsDir() && c.isFormattableFile(path) {
 			files = append(files, path)
 		}
 
@@ -170,9 +180,9 @@ func (c *FmtCommand) findTemplateFiles(dir string) ([]string, error) {
 	return files, err
 }
 
-func (c *FmtCommand) isTemplateFile(path string) bool {
-	return strings.HasSuffix(path, ".nomad.tpl") ||
-		strings.HasSuffix(path, ".tpl")
+func (c *FmtCommand) isFormattableFile(path string) bool {
+	return strings.HasSuffix(path, ".tpl") ||
+		strings.HasSuffix(path, ".hcl")
 }
 
 func (c *FmtCommand) Flags() *flag.Sets {
@@ -210,22 +220,25 @@ func (c *FmtCommand) Flags() *flag.Sets {
 }
 
 func (c *FmtCommand) AutocompleteArgs() complete.Predictor {
-	return complete.PredictFiles("*.tpl")
+	return complete.PredictOr(
+		complete.PredictFiles("*.tpl"),
+		complete.PredictFiles("*.hcl"),
+	)
 }
 
 func (c *FmtCommand) AutocompleteFlags() complete.Flags {
 	return c.Flags().Completions()
 }
 func (c *FmtCommand) Synopsis() string {
-	return "Format pack template files"
+	return "Format pack template and HCL files"
 }
 
 func (c *FmtCommand) Help() string {
 	return formatHelp(`
 Usage: nomad-pack fmt [options] [path...]
 
-  Format pack template files (.nomad.tpl, .tpl) using HCL formatting rules
-  while preserving the [[ ]] template syntax.
+  Format pack files (.tpl templates and .hcl files) using HCL formatting rules.
+  Template files preserve the [[ ]] syntax, while .hcl files are formatted directly.
 
   If no path is given, the current directory is used.
 
