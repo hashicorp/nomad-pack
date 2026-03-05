@@ -42,86 +42,76 @@ func (r *Runner) stopRemovedJobs(ui terminal.UI, errorContext *errors.UIErrorCon
 	}
 
 	// Stop each stale job.
-	for _, staleJob := range staleJobs {
-		jobID := *staleJob.ID
+	for _, stub := range staleJobs {
 		ui.Warning(fmt.Sprintf(
 			"Job '%s' is no longer defined in pack deployment '%s' - stopping",
-			jobID, r.runnerCfg.DeploymentName,
+			stub.ID, r.runnerCfg.DeploymentName,
 		))
 
-		_, _, err := r.client.Jobs().DeregisterOpts(jobID, &api.DeregisterOptions{
+		writeOpts := &api.WriteOptions{}
+		if stub.Namespace != "" {
+			writeOpts.Namespace = stub.Namespace
+		}
+
+		_, _, err := r.client.Jobs().DeregisterOpts(stub.ID, &api.DeregisterOptions{
 			Purge: false,
-		}, r.newWriteOptsFromClientJob(staleJob))
+		}, writeOpts)
 		if err != nil {
 			errCtx := errorContext.Copy()
-			errCtx.Add(errors.UIContextPrefixJobName, jobID)
+			errCtx.Add(errors.UIContextPrefixJobName, stub.ID)
 			return &errors.WrappedUIContext{
 				Err:     err,
-				Subject: fmt.Sprintf("failed to stop removed job '%s'", jobID),
+				Subject: fmt.Sprintf("failed to stop removed job '%s'", stub.ID),
 				Context: errCtx,
 			}
 		}
 
-		ui.Success(fmt.Sprintf("Job '%s' stopped successfully", jobID))
+		ui.Success(fmt.Sprintf("Job '%s' stopped successfully", stub.ID))
 	}
 
 	return nil
 }
 
-// findStaleJobs queries Nomad for all running jobs that belong to this pack
-// deployment (matched by pack.deployment_name metadata) but are NOT in the
-// provided set of currently deployed job IDs.
-func (r *Runner) findStaleJobs(currentJobIDs map[string]struct{}) ([]*api.Job, error) {
-	jobsAPI := r.client.Jobs()
+// findStaleJobs returns job list stubs that belong to this pack deployment but
+// are no longer in the provided set of currently deployed job IDs.
+//
+// A server-side filter expression is used so Nomad evaluates the
+// pack.deployment_name metadata match before sending any data over the wire.
+// This means only a single List API call is made regardless of how many jobs
+// or namespaces exist in the cluster.
+func (r *Runner) findStaleJobs(currentJobIDs map[string]struct{}) ([]*api.JobListStub, error) {
+	// Filter expression evaluated server-side: only jobs whose
+	// pack.deployment_name meta tag matches this deployment are returned.
+	filter := fmt.Sprintf(`Meta[%q] == %q`, PackDeploymentNameKey, r.runnerCfg.DeploymentName)
 
-	// List all jobs across all namespaces to find ones belonging to this deployment.
-	jobStubs, _, err := jobsAPI.List(&api.QueryOptions{
+	jobStubs, _, err := r.client.Jobs().List(&api.QueryOptions{
 		Namespace: "*",
+		Filter:    filter,
 	})
 	if err != nil {
-		// Fallback: if wildcard namespace is not supported, try default namespace.
-		jobStubs, _, err = jobsAPI.List(&api.QueryOptions{})
+		// Fallback: wildcard namespace may not be supported on older agents.
+		jobStubs, _, err = r.client.Jobs().List(&api.QueryOptions{
+			Filter: filter,
+		})
 		if err != nil {
-			return nil, fmt.Errorf("error listing jobs: %w", err)
+			return nil, fmt.Errorf("error listing jobs for deployment %q: %w", r.runnerCfg.DeploymentName, err)
 		}
 	}
 
-	var staleJobs []*api.Job
-
+	var staleJobs []*api.JobListStub
 	for _, stub := range jobStubs {
-		// Skip dead jobs.
+		// Skip already-stopped jobs — nothing to do.
 		if stub.Status == "dead" {
 			continue
 		}
 
-		// Query the full job to get metadata.
-		queryOpts := &api.QueryOptions{}
-		if stub.JobSummary != nil && stub.JobSummary.Namespace != "" {
-			queryOpts.Namespace = stub.JobSummary.Namespace
-		}
-
-		fullJob, _, err := jobsAPI.Info(stub.ID, queryOpts)
-		if err != nil {
-			continue // Skip jobs we can't read.
-		}
-
-		if fullJob.Meta == nil {
+		if stub.ID == "" {
 			continue
 		}
 
-		// Check if this job belongs to the same pack deployment.
-		jobDeploymentName, ok := fullJob.Meta[PackDeploymentNameKey]
-		if !ok || jobDeploymentName != r.runnerCfg.DeploymentName {
-			continue
-		}
-
-		// Check if this job is NOT in the set of currently deployed jobs.
-		if fullJob.ID == nil {
-			continue
-		}
-
-		if _, exists := currentJobIDs[*fullJob.ID]; !exists {
-			staleJobs = append(staleJobs, fullJob)
+		// If this job is not among the ones just deployed, it is stale.
+		if _, exists := currentJobIDs[stub.ID]; !exists {
+			staleJobs = append(staleJobs, stub)
 		}
 	}
 
