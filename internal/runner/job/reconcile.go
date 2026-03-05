@@ -21,7 +21,9 @@ func (r *Runner) stopRemovedJobs(ui terminal.UI, errorContext *errors.UIErrorCon
 	// Build a set of job IDs that were just deployed.
 	deployedJobIDs := make(map[string]struct{}, len(r.deployedJobs))
 	for _, dj := range r.deployedJobs {
-		deployedJobIDs[*dj.Job().ID] = struct{}{}
+		if id := dj.Job().ID; id != nil {
+			deployedJobIDs[*id] = struct{}{}
+		}
 	}
 
 	// Query Nomad for all jobs and filter to those belonging to this deployment.
@@ -114,6 +116,10 @@ func (r *Runner) findStaleJobs(currentJobIDs map[string]struct{}) ([]*api.Job, e
 		}
 
 		// Check if this job is NOT in the set of currently deployed jobs.
+		if fullJob.ID == nil {
+			continue
+		}
+
 		if _, exists := currentJobIDs[*fullJob.ID]; !exists {
 			staleJobs = append(staleJobs, fullJob)
 		}
