@@ -88,8 +88,9 @@ func (r *Registry) get(opts *GetOpts, cache *Cache) error {
 			invalidOpts := &GetOpts{
 				cachePath:    opts.cachePath,
 				RegistryName: opts.RegistryName,
-				PackName:     packEntry.Name(),
-				Ref:          opts.Ref,
+				// Use the unescaped pack name for display purposes.
+				PackName: nameFromPackEntry(packEntry),
+				Ref:      opts.Ref,
 			}
 			cachedPack = invalidPackDefinition(invalidOpts)
 			// Append the pack to the registry's packs field.
@@ -110,8 +111,9 @@ func (r *Registry) get(opts *GetOpts, cache *Cache) error {
 			invalidOpts := &GetOpts{
 				cachePath:    opts.cachePath,
 				RegistryName: opts.RegistryName,
-				PackName:     packEntry.Name(),
-				Ref:          refFromPackEntry(packEntry),
+				// Use the unescaped pack name for display purposes.
+				PackName: nameFromPackEntry(packEntry),
+				Ref:      refFromPackEntry(packEntry),
 			}
 			cachedPack = invalidPackDefinition(invalidOpts)
 		} else {

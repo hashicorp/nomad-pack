@@ -70,10 +70,11 @@ func (opts *GetOpts) PackPath() string {
 
 // PackDir fulfills the cacheOperationProvider interface for GetOpts
 func (opts *GetOpts) PackDir() string {
+	escaped := EscapePackName(opts.PackName)
 	if opts.Ref != "" {
-		return AppendRef(opts.PackName, opts.Ref)
+		return AppendRef(escaped, opts.Ref)
 	}
-	return opts.PackName
+	return escaped
 }
 
 // AtRevision fulfills the cacheOperationProvider interface for GetOpts

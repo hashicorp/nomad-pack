@@ -344,10 +344,11 @@ func (opts *AddOpts) PackPath() string {
 
 // PackDir fulfills the cacheOperationProvider interface for AddOpts
 func (opts *AddOpts) PackDir() string {
+	escaped := EscapePackName(opts.PackName)
 	if opts.Ref != "" {
-		return AppendRef(opts.PackName, opts.Ref)
+		return AppendRef(escaped, opts.Ref)
 	}
-	return opts.PackName
+	return escaped
 }
 
 // AtRef fulfills the cacheOperationProvider interface for AddOpts
