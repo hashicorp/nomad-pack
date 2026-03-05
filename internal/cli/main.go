@@ -37,6 +37,7 @@ var (
 		"render",
 		"run",
 		"destroy",
+		"fmt",
 		"info",
 		"status",
 		"registry add",
@@ -185,6 +186,13 @@ func Commands(
 		"registry list": func() (cli.Command, error) {
 			return &RegistryListCommand{
 				baseCommand: baseCommand,
+			}, nil
+		},
+		"fmt": func() (cli.Command, error) {
+			return &FmtCommand{
+				baseCommand: baseCommand,
+				write:       true,
+				list:        true,
 			}, nil
 		},
 		"registry update": func() (cli.Command, error) {

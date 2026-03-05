@@ -213,6 +213,28 @@ var helpText = map[string][2]string{
 		whether the pack could be run successfully and how it would affect
 		existing allocations.`,
 	},
+	"fmt": {
+		"Format pack template files",
+		`
+        Usage: nomad-pack fmt [options] [path...]
+		Format pack template files (.nomad.tpl, .tpl) using HCL formatting rules
+		while preserving the [[ ]] template syntax.
+		Format Options:
+		-check
+		Check if files are formatted without modifying them.
+		-list
+		List files that would be modified (default: true).
+		-write
+		Write formatted content back to files (default: true).
+		-recursive
+		Process directories recursively.
+		Examples:
+		nomad-pack fmt
+		nomad-pack fmt my-pack/
+		nomad-pack fmt -check .
+		`,
+	},
+
 	"stop": {
 		"Stop a running pack",
 		`The "stop" command stops a running pack. The --purge flag is used to
