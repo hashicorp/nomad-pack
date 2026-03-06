@@ -214,6 +214,57 @@ func AppendRef(name, ref string) string {
 	return fmt.Sprintf("%s@%s", name, ref)
 }
 
+// EscapePackName escapes a pack name for safe use as a filesystem path
+// component. Each uppercase letter is replaced by an exclamation mark followed
+// by the lowercase equivalent, mirroring the Go module cache convention.
+// This ensures producing distinct directory names even on case-insensitive
+// filesystems
+//
+// Examples:
+//
+//	"donutdns"  -> "donutdns"    (no uppercase, unchanged)
+//	"donutDNS"  -> "donut!d!n!s"
+//	"MyPack"    -> "!my!pack"
+func EscapePackName(name string) string {
+	var buf strings.Builder
+	for _, r := range name {
+		if r >= 'A' && r <= 'Z' {
+			buf.WriteByte('!')
+			buf.WriteRune(r - 'A' + 'a')
+		} else {
+			buf.WriteRune(r)
+		}
+	}
+
+	return buf.String()
+}
+
+// UnescapePackName reverses the escaping applied by EscapePackName. It returns
+// an error when the escaped string is malformed (e.g. a trailing '!' or an
+// '!' followed by a non-lowercase-ASCII letter).
+func UnescapePackName(escaped string) (string, error) {
+	var buf strings.Builder
+
+	runes := []rune(escaped)
+	for i := 0; i < len(runes); i++ {
+		if runes[i] == '!' {
+			if i+1 >= len(runes) {
+				return "", fmt.Errorf("invalid escaped pack name %q: trailing '!'", escaped)
+			}
+			r := runes[i+1]
+			if r < 'a' || r > 'z' {
+				return "", fmt.Errorf("invalid escaped pack name %q: '!' followed by non-lowercase-ASCII %q", escaped, r)
+			}
+			buf.WriteRune(r - 'a' + 'A')
+			i++
+		} else {
+			buf.WriteRune(runes[i])
+		}
+	}
+
+	return buf.String(), nil
+}
+
 // This is a utility method to parse the ref from the pack entry
 func refFromPackEntry(packEntry os.DirEntry) (ref string) {
 	ref = "unknown"
@@ -224,6 +275,25 @@ func refFromPackEntry(packEntry os.DirEntry) (ref string) {
 	}
 
 	return
+}
+
+// nameFromPackEntry extracts and unescapes the pack name from a directory entry.
+// Directory entry names follow the format `<escaped-pack-name>@<ref>`.
+// The returned name is the canonical (unescaped) pack name suitable for display.
+func nameFromPackEntry(packEntry os.DirEntry) string {
+	name := packEntry.Name()
+	// Strip the @ref suffix when present.
+	if idx := strings.LastIndex(name, "@"); idx != -1 {
+		name = name[:idx]
+	}
+
+	unescaped, err := UnescapePackName(name)
+	if err != nil {
+		// Fall back to the escaped form rather than surfacing a parse error.
+		return name
+	}
+
+	return unescaped
 }
 
 // getGitHeadRef is a helper method that takes a directory which is a git

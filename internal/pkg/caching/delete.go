@@ -127,10 +127,11 @@ func (opts *DeleteOpts) PackPath() (packPath string) {
 
 // PackDir fulfills the cacheOperationProvider interface for DeleteOpts
 func (opts *DeleteOpts) PackDir() string {
+	escaped := EscapePackName(opts.PackName)
 	if opts.Ref != "" {
-		return AppendRef(opts.PackName, opts.Ref)
+		return AppendRef(escaped, opts.Ref)
 	}
-	return opts.PackName
+	return escaped
 }
 
 // AtRef fulfills the cacheOperationProvider interface for DeleteOpts

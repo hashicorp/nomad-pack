@@ -754,3 +754,106 @@ func hasFile(name string) func(d fs.DirEntry) bool {
 		return d.Type().IsRegular() && d.Name() == name
 	}
 }
+
+// Tests for EscapePackName / UnescapePackName
+func TestEscapePackName(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		input    string
+		expected string
+	}{
+		// All lowercase – must be unchanged.
+		{"donutdns", "donutdns"},
+		// Uppercase letters must be escaped with '!' + lowercase.
+		{"donutDNS", "donut!d!n!s"},
+		{"MyPack", "!my!pack"},
+		// Mixed numbers/underscore – unchanged.
+		{"my_pack_1", "my_pack_1"},
+		// All uppercase.
+		{"ABC", "!a!b!c"},
+		// Empty string.
+		{"", ""},
+	}
+	for _, testCase := range cases {
+		tc := testCase
+		t.Run(tc.input, func(t *testing.T) {
+			t.Parallel()
+			must.Eq(t, tc.expected, EscapePackName(tc.input))
+		})
+	}
+}
+
+func TestUnescapePackName(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		input    string
+		expected string
+		wantErr  bool
+	}{
+		{"donutdns", "donutdns", false},
+		{"donut!d!n!s", "donutDNS", false},
+		{"!my!pack", "MyPack", false},
+		{"!a!b!c", "ABC", false},
+		{"my_pack_1", "my_pack_1", false},
+		{"", "", false},
+		// Error cases.
+		{"trailing!", "", true},
+		{"bad!1", "", true},
+		{"bad!Z", "", true},
+	}
+	for _, testCase := range cases {
+		tc := testCase
+		t.Run(tc.input, func(t *testing.T) {
+			t.Parallel()
+			got, err := UnescapePackName(tc.input)
+			if tc.wantErr {
+				must.Error(t, err)
+				return
+			}
+			must.NoError(t, err)
+			must.Eq(t, tc.expected, got)
+		})
+	}
+}
+
+func TestEscapeUnescapeRoundTrip(t *testing.T) {
+	t.Parallel()
+	names := []string{
+		"donutdns",
+		"donutDNS",
+		"MyPack",
+		"ABC",
+		"simple_raw_exec",
+		"SimpleRawExec",
+		"",
+	}
+	for _, n := range names {
+		name := n
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			got, err := UnescapePackName(EscapePackName(name))
+			must.NoError(t, err)
+			must.Eq(t, name, got)
+		})
+	}
+}
+
+// TestPackDirEscaping ensures that two pack names differing only in casing
+// produce distinct directory names on disk.
+func TestPackDirEscaping(t *testing.T) {
+	t.Parallel()
+
+	lower := &AddOpts{PackName: "donutdns", Ref: "latest"}
+	upper := &AddOpts{PackName: "donutDNS", Ref: "latest"}
+
+	must.NotEq(t, lower.PackDir(), upper.PackDir(),
+		must.Sprint("PackDir must differ for names that differ only in casing"))
+	must.Eq(t, "donutdns@latest", lower.PackDir())
+	must.Eq(t, "donut!d!n!s@latest", upper.PackDir())
+
+	// GetOpts and DeleteOpts must produce the same escaped dirs.
+	must.Eq(t, lower.PackDir(), (&GetOpts{PackName: "donutdns", Ref: "latest"}).PackDir())
+	must.Eq(t, upper.PackDir(), (&GetOpts{PackName: "donutDNS", Ref: "latest"}).PackDir())
+	must.Eq(t, lower.PackDir(), (&DeleteOpts{PackName: "donutdns", Ref: "latest"}).PackDir())
+	must.Eq(t, upper.PackDir(), (&DeleteOpts{PackName: "donutDNS", Ref: "latest"}).PackDir())
+}
