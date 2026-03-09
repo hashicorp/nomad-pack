@@ -49,6 +49,8 @@ func funcMap(r *Renderer) template.FuncMap {
 		f["nomadNamespaces"] = nomadNamespaces(r.Client)
 		f["nomadNamespace"] = nomadNamespace(r.Client)
 		f["nomadRegions"] = nomadRegions(r.Client)
+		f["nomadVariables"] = nomadVariables(r.Client)
+		f["nomadVariable"] = nomadVariable(r.Client)
 	}
 
 	if r != nil && r.PackPath != "" {
@@ -138,6 +140,22 @@ func nomadNamespace(client *api.Client) func(string) (*api.Namespace, error) {
 // call.
 func nomadRegions(client *api.Client) func() ([]string, error) {
 	return func() ([]string, error) { return client.Regions().List() }
+}
+
+// nomadVariables lists all variables in the specified namespace
+func nomadVariables(client *api.Client) func(string) ([]*api.VariableMetadata, error) {
+	return func(namespace string) ([]*api.VariableMetadata, error) {
+		out, _, err := client.Variables().List(&api.QueryOptions{Namespace: namespace})
+		return out, err
+	}
+}
+
+// nomadVariable retrieves a specific variable by path and namespace
+func nomadVariable(client *api.Client) func(string, string) (*api.Variable, error) {
+	return func(path string, namespace string) (*api.Variable, error) {
+		out, _, err := client.Variables().Read(path, &api.QueryOptions{Namespace: namespace})
+		return out, err
+	}
 }
 
 // toStringList takes a list of string and returns the HCL equivalent which is

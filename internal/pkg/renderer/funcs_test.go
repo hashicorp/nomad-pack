@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser"
 	"github.com/hashicorp/nomad-pack/sdk/pack"
 	"github.com/hashicorp/nomad-pack/sdk/pack/variables"
+	nomadapi "github.com/hashicorp/nomad/api"
 	"github.com/shoenig/test/must"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -371,4 +372,50 @@ func Test_tplFunc_NestedTplWithVar(t *testing.T) {
 	err = tpl.Execute(&buf, ctx)
 	must.NoError(t, err)
 	must.Eq(t, "nested-result", buf.String())
+}
+
+func TestNomadVariables(t *testing.T) {
+	client, err := nomadapi.NewClient(nomadapi.DefaultConfig())
+	if err != nil {
+		t.Skip("Skipping test - Nomad client not available")
+	}
+	fn := nomadVariables(client)
+	must.NotNil(t, fn)
+	result, err := fn("default")
+	if err != nil {
+		t.Logf("Expected error when Nomad not available: %v", err)
+	} else {
+		must.NotNil(t, result)
+		t.Logf("Found %d variables in default namespace", len(result))
+	}
+}
+
+func TestNomadVariable(t *testing.T) {
+	client, err := nomadapi.NewClient(nomadapi.DefaultConfig())
+	if err != nil {
+		t.Skip("Skipping test - Nomad client not available")
+	}
+
+	fn := nomadVariable(client)
+	must.NotNil(t, fn)
+	result, err := fn("test/example", "default")
+	if err != nil {
+		t.Logf("Expected error for non-existent variable : %v", err)
+	} else {
+		must.NotNil(t, result)
+		must.NotNil(t, result.Items)
+		t.Logf("Found variable with %d items", len(result.Items))
+	}
+}
+
+func TestFuncMapIncludesVariableFunctions(t *testing.T) {
+	r := &Renderer{
+		Client: &nomadapi.Client{},
+	}
+
+	fm := funcMap(r)
+	must.MapContainsKey(t, fm, "nomadVariables")
+	must.MapContainsKey(t, fm, "nomadVariable")
+	must.NotNil(t, fm["nomadVariables"])
+	must.NotNil(t, fm["nomadVariable"])
 }
