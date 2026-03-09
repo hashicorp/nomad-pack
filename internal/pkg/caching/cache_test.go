@@ -857,3 +857,101 @@ func TestPackDirEscaping(t *testing.T) {
 	must.Eq(t, lower.PackDir(), (&DeleteOpts{PackName: "donutdns", Ref: "latest"}).PackDir())
 	must.Eq(t, upper.PackDir(), (&DeleteOpts{PackName: "donutDNS", Ref: "latest"}).PackDir())
 }
+
+// TestEscapeRef verifies that EscapeRef replaces forward slashes so that
+// git refs such as "pack-name/v1.0.0" are safe to use as filesystem path
+// components.
+func TestEscapeRef(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		input    string
+		expected string
+	}{
+		// Plain ref – unchanged.
+		{"latest", "latest"},
+		// SHA – unchanged.
+		{"abc123", "abc123"},
+		// Namespaced tag with single slash.
+		{"pack-name/v1.0.0", "pack-name!_v1.0.0"},
+		// Multiple slashes.
+		{"foo/bar/v2.3.4", "foo!_bar!_v2.3.4"},
+		// Empty string.
+		{"", ""},
+	}
+	for _, testCase := range cases {
+		tc := testCase
+		t.Run(tc.input, func(t *testing.T) {
+			t.Parallel()
+			must.Eq(t, tc.expected, EscapeRef(tc.input))
+		})
+	}
+}
+
+// TestUnescapeRef verifies that UnescapeRef is the inverse of EscapeRef.
+func TestUnescapeRef(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		input    string
+		expected string
+	}{
+		{"latest", "latest"},
+		{"abc123", "abc123"},
+		{"pack-name!_v1.0.0", "pack-name/v1.0.0"},
+		{"foo!_bar!_v2.3.4", "foo/bar/v2.3.4"},
+		{"", ""},
+	}
+	for _, testCase := range cases {
+		tc := testCase
+		t.Run(tc.input, func(t *testing.T) {
+			t.Parallel()
+			must.Eq(t, tc.expected, UnescapeRef(tc.input))
+		})
+	}
+}
+
+// TestEscapeRefRoundTrip verifies EscapeRef / UnescapeRef are inverses.
+func TestEscapeRefRoundTrip(t *testing.T) {
+	t.Parallel()
+	refs := []string{
+		"latest",
+		"abc123def456",
+		"pack-name/v1.0.0",
+		"ns/sub/v0.1.2",
+		"",
+	}
+	for _, r := range refs {
+		ref := r
+		t.Run(ref, func(t *testing.T) {
+			t.Parallel()
+			must.Eq(t, ref, UnescapeRef(EscapeRef(ref)))
+		})
+	}
+}
+
+// TestPackDirSlashRef verifies that a ref containing a forward slash (e.g. a
+// namespaced git tag) produces a single flat directory component rather than
+// creating unexpected sub-directories.
+func TestPackDirSlashRef(t *testing.T) {
+	t.Parallel()
+	slashRef := "pack-name/v1.0.0"
+	escaped := "pack-name!_v1.0.0"
+
+	addOpts := &AddOpts{PackName: "simple_raw_exec", Ref: slashRef}
+	must.Eq(t, "simple_raw_exec@"+escaped, addOpts.PackDir(),
+		must.Sprint("AddOpts.PackDir must escape slashes in ref"))
+
+	getOpts := &GetOpts{PackName: "simple_raw_exec", Ref: slashRef}
+	must.Eq(t, "simple_raw_exec@"+escaped, getOpts.PackDir(),
+		must.Sprint("GetOpts.PackDir must escape slashes in ref"))
+
+	delOpts := &DeleteOpts{PackName: "simple_raw_exec", Ref: slashRef}
+	must.Eq(t, "simple_raw_exec@"+escaped, delOpts.PackDir(),
+		must.Sprint("DeleteOpts.PackDir must escape slashes in ref"))
+
+	// RegistryPath must not split the ref into sub-directories.
+	cacheRoot := "/tmp/cache"
+	getOpts2 := &GetOpts{cachePath: cacheRoot, RegistryName: "my-registry", Ref: slashRef}
+	expectedPath := cacheRoot + "/my-registry/" + escaped
+	must.Eq(t, expectedPath, getOpts2.RegistryPath(),
+		must.Sprint("GetOpts.RegistryPath must not create sub-directory for slash in ref"))
+}

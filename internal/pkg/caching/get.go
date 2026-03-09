@@ -60,7 +60,7 @@ type GetOpts struct {
 
 // RegistryPath fulfills the cacheOperationProvider interface for GetOpts
 func (opts *GetOpts) RegistryPath() string {
-	return path.Join(opts.cachePath, opts.RegistryName, opts.Ref)
+	return path.Join(opts.cachePath, opts.RegistryName, EscapeRef(opts.Ref))
 }
 
 // PackPath fulfills the cacheOperationProvider interface for GetOpts
@@ -72,7 +72,8 @@ func (opts *GetOpts) PackPath() string {
 func (opts *GetOpts) PackDir() string {
 	escaped := EscapePackName(opts.PackName)
 	if opts.Ref != "" {
-		return AppendRef(escaped, opts.Ref)
+		// Escape the ref so that slashes don't create unexpected sub-directories.
+		return AppendRef(escaped, EscapeRef(opts.Ref))
 	}
 	return escaped
 }
@@ -96,7 +97,7 @@ func (opts *GetOpts) IsLatest() bool {
 func (opts *GetOpts) IsTarget(dirEntry os.DirEntry) bool {
 	// TODO: Test with file paths.
 	// If pack name is empty, everything at revision is a target.
-	if opts.PackName == "" && strings.Contains(dirEntry.Name(), opts.Ref) {
+	if opts.PackName == "" && strings.Contains(dirEntry.Name(), EscapeRef(opts.Ref)) {
 		return true
 	}
 
