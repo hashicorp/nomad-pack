@@ -150,6 +150,13 @@ func (r *Runner) Deploy(ui terminal.UI, errorContext *errors.UIErrorContext) *er
 			*jobSpec.Job().ID, r.runnerCfg.DeploymentName))
 	}
 
+	// After deploying all current jobs, reconcile with Nomad to stop any jobs
+	// that were previously part of this deployment but are no longer in the
+	// pack definition.
+	if err := r.stopRemovedJobs(ui, errorContext); err != nil {
+		return err
+	}
+
 	return nil
 }
 
