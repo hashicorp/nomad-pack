@@ -276,6 +276,15 @@ func prepareFilesV1(p *pack.Pack,
 	// Add the pack's metadata to the variable mapping.
 	newVars = p.Metadata.AddToInterfaceMap(newVars)
 
+	// Enrich the "pack" entry within the nomad_pack metadata block with the
+	// pack's filesystem path so templates can use it to resolve pack-relative
+	// file paths at render time.
+	if nomadPack, ok := newVars["nomad_pack"].(map[string]any); ok {
+		if packMeta, okPack := nomadPack["pack"].(map[string]any); okPack {
+			packMeta["path"] = p.Path
+		}
+	}
+
 	// Make the `my` alias for the parent pack.
 	if !p.HasParent() {
 		newVars["my"] = newVars[p.Name()]
