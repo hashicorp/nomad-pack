@@ -130,7 +130,7 @@ func (c *Cache) addFromURI(opts *AddOpts) (cachedRegistry *Registry, err error) 
 
 	// Store a metadata JSON file for the cached registry
 	b, _ := json.MarshalIndent(cachedRegistry, "", "  ")
-	metaPath := filepath.Join(c.cfg.Path, opts.RegistryName, opts.Ref, "/metadata.json")
+	metaPath := filepath.Join(c.cfg.Path, opts.RegistryName, EscapeRef(opts.Ref), "metadata.json")
 	if err = os.WriteFile(metaPath, b, 0644); err != nil {
 		logger.ErrorWithContext(err, "error processing metadata file for the registry", c.ErrorContext.GetAll()...)
 		return
@@ -339,14 +339,15 @@ func (opts *AddOpts) RegistryPath() string {
 
 // PackPath fulfills the cacheOperationProvider interface for AddOpts
 func (opts *AddOpts) PackPath() string {
-	return path.Join(opts.cachePath, opts.RegistryName, opts.Ref, opts.PackDir())
+	return path.Join(opts.cachePath, opts.RegistryName, EscapeRef(opts.Ref), opts.PackDir())
 }
 
 // PackDir fulfills the cacheOperationProvider interface for AddOpts
 func (opts *AddOpts) PackDir() string {
 	escaped := EscapePackName(opts.PackName)
 	if opts.Ref != "" {
-		return AppendRef(escaped, opts.Ref)
+		// Escape the ref so that slashes don't create unexpected sub-directories.
+		return AppendRef(escaped, EscapeRef(opts.Ref))
 	}
 	return escaped
 }

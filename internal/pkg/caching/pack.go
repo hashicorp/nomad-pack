@@ -64,9 +64,12 @@ func (cfg *PackConfig) initFromArgs() {
 	// Escape the pack name so the constructed path matches the directory name
 	// stored on disk. See EscapePackName for details.
 	escapedName := EscapePackName(cfg.Name)
-	cfg.Path = path.Join(DefaultCachePath(), cfg.Registry, cfg.Ref, escapedName)
+	// Escape the ref so that slashes in git refs (e.g. "pack-name/v1.0.0") are
+	// stored as a single path component rather than creating sub-directories.
+	escapedRef := EscapeRef(cfg.Ref)
+	cfg.Path = path.Join(DefaultCachePath(), cfg.Registry, escapedRef, escapedName)
 	if cfg.Ref != "" {
-		cfg.Path = AppendRef(cfg.Path, cfg.Ref)
+		cfg.Path = AppendRef(cfg.Path, escapedRef)
 	}
 }
 

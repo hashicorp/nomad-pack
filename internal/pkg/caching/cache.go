@@ -180,7 +180,9 @@ func (c *Cache) Load() (err error) {
 		}
 		for _, registryRef := range registryRefs {
 			opts.RegistryName = registryEntry.Name()
-			opts.Ref = registryRef.Name()
+			// Unescape the directory name to recover the original ref that may
+			// contain slashes (e.g. "pack-name/v1.0.0" stored as "pack-name!_v1.0.0").
+			opts.Ref = UnescapeRef(registryRef.Name())
 
 			// Load the registry from the path
 			var registry *Registry
@@ -212,6 +214,20 @@ func AppendRef(name, ref string) string {
 		return name
 	}
 	return fmt.Sprintf("%s@%s", name, ref)
+}
+
+// EscapeRef makes a git ref safe for use as a filesystem path component by
+// replacing forward slashes with the escape sequence "!_". Slashes in refs (e.g.
+// namespaced tags like "pack-name/v1.0.0") would otherwise be interpreted as
+// directory separators by path.Join and friends.
+func EscapeRef(ref string) string {
+	return strings.ReplaceAll(ref, "/", "!_")
+}
+
+// UnescapeRef reverses the escaping applied by EscapeRef, converting "!_"
+// back to "/".
+func UnescapeRef(escaped string) string {
+	return strings.ReplaceAll(escaped, "!_", "/")
 }
 
 // EscapePackName escapes a pack name for safe use as a filesystem path
@@ -271,7 +287,8 @@ func refFromPackEntry(packEntry os.DirEntry) (ref string) {
 
 	segments := strings.Split(packEntry.Name(), "@")
 	if len(segments) == 2 {
-		ref = segments[1]
+		// Unescape the ref component: slashes in git refs are stored as "!_".
+		ref = UnescapeRef(segments[1])
 	}
 
 	return

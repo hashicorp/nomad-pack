@@ -129,14 +129,17 @@ func (opts *DeleteOpts) PackPath() (packPath string) {
 func (opts *DeleteOpts) PackDir() string {
 	escaped := EscapePackName(opts.PackName)
 	if opts.Ref != "" {
-		return AppendRef(escaped, opts.Ref)
+		// Escape the ref so that slashes don't create unexpected sub-directories.
+		return AppendRef(escaped, EscapeRef(opts.Ref))
 	}
 	return escaped
 }
 
-// AtRef fulfills the cacheOperationProvider interface for DeleteOpts
+// AtRef fulfills the cacheOperationProvider interface for DeleteOpts.
+// Returns the filesystem-safe (escaped) form of the ref so that callers
+// that use it in path.Join operations handle slashes in git refs correctly.
 func (opts *DeleteOpts) AtRef() string {
-	return opts.Ref
+	return EscapeRef(opts.Ref)
 }
 
 // ForPackName fulfills the cacheOperationProvider interface for DeleteOpts
@@ -154,7 +157,7 @@ func (opts *DeleteOpts) IsTarget(dirEntry os.DirEntry) bool {
 	// If no pack name is set, then check if this directory contains the
 	// @ref string. If so, it is a target.
 	if opts.PackName == "" {
-		return strings.Contains(dirEntry.Name(), AppendRef("", opts.Ref))
+		return strings.Contains(dirEntry.Name(), AppendRef("", EscapeRef(opts.Ref)))
 	}
 
 	return dirEntry.Name() == opts.PackDir()
