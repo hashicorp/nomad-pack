@@ -5,6 +5,9 @@ package cli
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/posener/complete"
 
@@ -78,6 +81,46 @@ func (c *RunCommand) run() int {
 	)
 	if err != nil {
 		return 255
+	}
+
+	// Validate that at least one parent template was rendered
+	if r.LenParentRenders() < 1 {
+		// Try to list actual template files from the pack path
+		templatesPath := filepath.Join(c.packConfig.Path, "templates")
+		templateFiles := []string{}
+
+		if entries, err := os.ReadDir(templatesPath); err == nil {
+			for _, entry := range entries {
+				if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".tpl") {
+					templateFiles = append(templateFiles, entry.Name())
+				}
+			}
+		}
+
+		// Build error message
+		c.ui.Error("! No parent templates found\n")
+		c.ui.Error("No parent templates (*.nomad.tpl files) were found in the pack.\n")
+		c.ui.Error("\nTemplate Naming Convention:")
+		c.ui.Error("  • Parent templates must end with .nomad.tpl (e.g., app.nomad.tpl)")
+		c.ui.Error("  • Helper templates should start with _ (e.g., _helpers.tpl)")
+		c.ui.Error("  • Other .tpl files are treated as auxiliary templates\n")
+
+		if len(templateFiles) > 0 {
+			c.ui.Error("Found template files in templates/ directory:")
+			for _, tmpl := range templateFiles {
+				c.ui.Error("  " + tmpl)
+			}
+		} else {
+			c.ui.Error("No .tpl files found in templates/ directory")
+		}
+
+		c.ui.Error("\nPlease ensure at least one template follows the *.nomad.tpl naming pattern.\n")
+		c.ui.Error("\nContext:")
+		for _, ctx := range errorContext.GetAll() {
+			c.ui.Error("  - " + ctx)
+		}
+
+		return 1
 	}
 
 	renderedParents := r.ParentRenders()
