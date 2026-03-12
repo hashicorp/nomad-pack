@@ -82,16 +82,24 @@ The `nomadVariables` function retrieves a list of all Nomad Variables stored in 
 ##### Parameters
 
 - 1: `string` - The target namespace name
+- 2: `string` (optional) - Prefix to filter variables by path
 
 ##### Returns
 
-- `error` or `[]*api.Variable` - A list of Variable objects
+- `error` or `[]*api.VariableMetadata` - A list of Variable metadata objects (path, namespace, timestamps, lock info). Does not include actual key-value items.
 
 ##### Example
 
 [[ range nomadVariables "production" ]]
 Path: [[ .Path ]]
+Namespace: [[ .Namespace ]]
+Modified: [[ .ModifyTime ]]
 [[ end ]]
+
+Note: To get the actual variable data, use nomadVariable() with path:
+[[ $meta := index (nomadVariables "production") 0 ]]
+[[ $var := nomadVariable $meta.Path "production" ]]
+Password: [[ $var.Items.password ]]
 
 
 #### `nomadVariable` <a id="nomadVariable"></a>

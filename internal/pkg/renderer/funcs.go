@@ -142,10 +142,17 @@ func nomadRegions(client *api.Client) func() ([]string, error) {
 	return func() ([]string, error) { return client.Regions().List() }
 }
 
-// nomadVariables lists all variables in the specified namespace
-func nomadVariables(client *api.Client) func(string) ([]*api.VariableMetadata, error) {
-	return func(namespace string) ([]*api.VariableMetadata, error) {
-		out, _, err := client.Variables().List(&api.QueryOptions{Namespace: namespace})
+// nomadVariables lists all variables in the specified namespace, optionally filtered by prefix
+func nomadVariables(client *api.Client) func(string, ...string) ([]*api.VariableMetadata, error) {
+	return func(namespace string, prefix ...string) ([]*api.VariableMetadata, error) {
+		opts := &api.QueryOptions{Namespace: namespace}
+
+		// If prefix is provided and not empty, add it to query options
+		if len(prefix) > 0 && prefix[0] != "" {
+			opts.Prefix = prefix[0]
+		}
+
+		out, _, err := client.Variables().List(opts)
 		return out, err
 	}
 }

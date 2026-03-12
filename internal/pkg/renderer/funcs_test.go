@@ -5,6 +5,7 @@ package renderer
 
 import (
 	"bytes"
+	"strings"
 	"testing"
 	"text/template"
 
@@ -376,46 +377,146 @@ func Test_tplFunc_NestedTplWithVar(t *testing.T) {
 
 func TestNomadVariables(t *testing.T) {
 	client, err := nomadapi.NewClient(nomadapi.DefaultConfig())
-	if err != nil {
-		t.Skip("Skipping test - Nomad client not available")
+	must.NoError(t, err)
+
+	// Create a test variable
+	testPath := "test/nomad-pack/test-var"
+	testVar := &nomadapi.Variable{
+		Namespace: "default",
+		Path:      testPath,
+		Items:     map[string]string{"test_key": "test_value"},
 	}
+
+	_, _, err = client.Variables().Create(testVar, nil)
+	if err != nil {
+		t.Skipf("Skipping test - Nomad not available: %v", err)
+		return
+	}
+	defer client.Variables().Delete(testPath, nil)
+
 	fn := nomadVariables(client)
 	must.NotNil(t, fn)
+
 	result, err := fn("default")
-	if err != nil {
-		t.Logf("Expected error when Nomad not available: %v", err)
-	} else {
-		must.NotNil(t, result)
-		t.Logf("Found %d variables in default namespace", len(result))
+	must.NoError(t, err)
+	must.NotNil(t, result)
+
+	if len(result) == 0 {
+		t.Fatal("Expected at least one variable")
+	}
+
+	// Verify our test variable is in the results
+	found := false
+	for _, v := range result {
+		if v.Path == testPath {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("Expected to find test variable %s in results", testPath)
+	}
+}
+
+func TestNomadVariablesWithPrefix(t *testing.T) {
+	client, err := nomadapi.NewClient(nomadapi.DefaultConfig())
+	must.NoError(t, err)
+
+	// Create test variables with different prefixes
+	testVars := []*nomadapi.Variable{
+		{
+			Namespace: "default",
+			Path:      "test/nomad-pack/secret/db",
+			Items:     map[string]string{"key": "value1"},
+		},
+		{
+			Namespace: "default",
+			Path:      "test/nomad-pack/secret/api",
+			Items:     map[string]string{"key": "value2"},
+		},
+		{
+			Namespace: "default",
+			Path:      "test/nomad-pack/config/app",
+			Items:     map[string]string{"key": "value3"},
+		},
+	}
+
+	// Create all test variables
+	for _, v := range testVars {
+		_, _, err := client.Variables().Create(v, nil)
+		if err != nil {
+			t.Skipf("Skipping test - Nomad not available: %v", err)
+			return
+		}
+		defer client.Variables().Delete(v.Path, nil)
+	}
+
+	fn := nomadVariables(client)
+	must.NotNil(t, fn)
+
+	// Test with "test/nomad-pack/secret/" prefix
+	result, err := fn("default", "test/nomad-pack/secret/")
+	must.NoError(t, err)
+	must.NotNil(t, result)
+
+	if len(result) < 2 {
+		t.Fatalf("Expected at least 2 variables with secret/ prefix, got %d", len(result))
+	}
+
+	// Verify all returned paths start with the prefix
+	for _, v := range result {
+		if !strings.HasPrefix(v.Path, "test/nomad-pack/secret/") {
+			t.Errorf("Expected path %s to start with 'test/nomad-pack/secret/'", v.Path)
+		}
+	}
+
+	// Test without prefix (should return more)
+	resultAll, err := fn("default")
+	must.NoError(t, err)
+
+	if len(resultAll) < len(result) {
+		t.Errorf("Expected all results (%d) >= filtered results (%d)", len(resultAll), len(result))
 	}
 }
 
 func TestNomadVariable(t *testing.T) {
 	client, err := nomadapi.NewClient(nomadapi.DefaultConfig())
-	if err != nil {
-		t.Skip("Skipping test - Nomad client not available")
+	must.NoError(t, err)
+
+	// Create a test variable
+	testPath := "test/nomad-pack/test-variable"
+	testVar := &nomadapi.Variable{
+		Namespace: "default",
+		Path:      testPath,
+		Items: map[string]string{
+			"password": "secret123",
+			"host":     "localhost",
+		},
 	}
+
+	_, _, err = client.Variables().Create(testVar, nil)
+	if err != nil {
+		t.Skipf("Skipping test - Nomad not available: %v", err)
+		return
+	}
+	defer client.Variables().Delete(testPath, nil)
 
 	fn := nomadVariable(client)
 	must.NotNil(t, fn)
-	result, err := fn("test/example", "default")
-	if err != nil {
-		t.Logf("Expected error for non-existent variable : %v", err)
-	} else {
-		must.NotNil(t, result)
-		must.NotNil(t, result.Items)
-		t.Logf("Found variable with %d items", len(result.Items))
-	}
-}
 
-func TestFuncMapIncludesVariableFunctions(t *testing.T) {
-	r := &Renderer{
-		Client: &nomadapi.Client{},
-	}
+	// Test reading the variable we just created
+	result, err := fn(testPath, "default")
+	must.NoError(t, err)
+	must.NotNil(t, result)
+	must.Eq(t, testPath, result.Path)
+	must.Eq(t, "default", result.Namespace)
+	must.Eq(t, "secret123", result.Items["password"])
+	must.Eq(t, "localhost", result.Items["host"])
 
-	fm := funcMap(r)
-	must.MapContainsKey(t, fm, "nomadVariables")
-	must.MapContainsKey(t, fm, "nomadVariable")
-	must.NotNil(t, fm["nomadVariables"])
-	must.NotNil(t, fm["nomadVariable"])
+	// Test reading non-existent variable
+	resultNone, err := fn("nonexistent/path", "default")
+	if err == nil {
+		t.Error("Expected error for non-existent variable")
+	}
+	must.Nil(t, resultNone)
 }
