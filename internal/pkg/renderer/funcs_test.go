@@ -7,11 +7,14 @@ import (
 	"bytes"
 	"testing"
 	"text/template"
+	"time"
 
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser"
 	"github.com/hashicorp/nomad-pack/sdk/pack"
 	"github.com/hashicorp/nomad-pack/sdk/pack/variables"
 	nomadapi "github.com/hashicorp/nomad/api"
+	"github.com/hashicorp/nomad/command/agent"
+	"github.com/hashicorp/nomad/testutil"
 	"github.com/shoenig/test/must"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -375,8 +378,16 @@ func Test_tplFunc_NestedTplWithVar(t *testing.T) {
 }
 
 func TestNomadVariables(t *testing.T) {
-	client, err := nomadapi.NewClient(nomadapi.DefaultConfig())
-	must.NoError(t, err)
+	//starts test Nomad server
+	srv := agent.NewTestAgent(t, t.Name(), nil)
+	defer srv.Shutdown()
+	testutil.WaitForLeader(t, srv.RPC)
+
+	//wait for keyring initialization to complete
+	time.Sleep(100 * time.Millisecond)
+
+	//get client from test server
+	client := srv.APIClient()
 
 	// Create a test variable
 	testPath := "test/nomad-pack/test-var"
@@ -386,7 +397,7 @@ func TestNomadVariables(t *testing.T) {
 		Items:     map[string]string{"test_key": "test_value"},
 	}
 
-	_, _, err = client.Variables().Create(testVar, nil)
+	_, _, err := client.Variables().Create(testVar, nil)
 	must.NoError(t, err)
 	defer client.Variables().Delete(testPath, nil)
 
@@ -398,7 +409,7 @@ func TestNomadVariables(t *testing.T) {
 	must.NotNil(t, result)
 
 	if len(result) == 0 {
-		t.Fatal("Expected at least one variable")
+		t.Fatal("Expected at least one variable in results")
 	}
 
 	// Verify our test variable is in the results
@@ -415,8 +426,18 @@ func TestNomadVariables(t *testing.T) {
 }
 
 func TestNomadVariablesWithPrefix(t *testing.T) {
-	client, err := nomadapi.NewClient(nomadapi.DefaultConfig())
-	must.NoError(t, err)
+	// Start a test Nomad server
+	srv := agent.NewTestAgent(t, t.Name(), nil)
+	defer srv.Shutdown()
+
+	// Wait for leader election
+	testutil.WaitForLeader(t, srv.RPC)
+
+	//wait for keyring initialization to complete
+	time.Sleep(100 * time.Millisecond)
+
+	// Get client from test server
+	client := srv.APIClient()
 
 	// Create test variables with different prefixes
 	testVars := []*nomadapi.Variable{
@@ -498,8 +519,18 @@ func TestNomadVariablesWithPrefix(t *testing.T) {
 }
 
 func TestNomadVariable(t *testing.T) {
-	client, err := nomadapi.NewClient(nomadapi.DefaultConfig())
-	must.NoError(t, err)
+	// Start a test Nomad server
+	srv := agent.NewTestAgent(t, t.Name(), nil)
+	defer srv.Shutdown()
+
+	// Wait for leader election
+	testutil.WaitForLeader(t, srv.RPC)
+
+	//wait for keyring initialization to complete
+	time.Sleep(100 * time.Millisecond)
+
+	// Get client from test server
+	client := srv.APIClient()
 
 	// Create a test variable
 	testPath := "test/nomad-pack/test-variable"
@@ -512,7 +543,7 @@ func TestNomadVariable(t *testing.T) {
 		},
 	}
 
-	_, _, err = client.Variables().Create(testVar, nil)
+	_, _, err := client.Variables().Create(testVar, nil)
 	must.NoError(t, err)
 	defer client.Variables().Delete(testPath, nil)
 
