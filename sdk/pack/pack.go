@@ -48,6 +48,12 @@ type File struct {
 // successfully interrogate and render the pack.
 type Pack struct {
 
+	// Path is the absolute filesystem path to the root directory of this pack.
+	// It is populated by the loader and is available to templates via the
+	// "pack.path" metadata key, allowing pack-relative file references to be
+	// resolved to absolute paths at render time.
+	Path string
+
 	// Metadata is the contents of the Pack metadata.hcl file. It contains
 	// high-level information about the pack which is useful for operators and
 	// is also exposed as template variables during rendering.

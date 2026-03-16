@@ -113,10 +113,19 @@ func (pv *ParsedVariables) toPackTemplateContextR(tgt *PackTemplateContext, p *p
 		return diags
 	}
 
+	meta := p.Metadata.ConvertToMapInterface()
+
+	// Enrich the "pack" metadata entry with the pack's filesystem path so that
+	// templates can resolve pack-relative file paths at render time using the
+	// "pack.path" metadata key, e.g. via: meta "pack.path" .
+	if packMeta, ok := meta["pack"].(map[string]any); ok {
+		packMeta["path"] = p.Path
+	}
+
 	(*tgt)[CurrentPackKey] = PackData{
 		Pack: p,
 		vars: pVars,
-		meta: p.Metadata.ConvertToMapInterface(),
+		meta: meta,
 	}
 
 	for _, d := range p.Dependencies() {

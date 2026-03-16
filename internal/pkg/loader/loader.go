@@ -33,6 +33,9 @@ func loadDir(dir string) (*pack.Pack, error) {
 		return nil, err
 	}
 
+	// Preserve the clean root path before appending the walk separator.
+	packRoot := abs
+
 	var files []*pack.File
 	abs += string(filepath.Separator)
 
@@ -72,7 +75,12 @@ func loadDir(dir string) (*pack.Pack, error) {
 	if err = walk(abs, walkFn); err != nil {
 		return nil, err
 	}
-	return loadFiles(files)
+	p, err := loadFiles(files)
+	if err != nil {
+		return p, err
+	}
+	p.Path = packRoot
+	return p, nil
 }
 
 func loadFiles(files []*pack.File) (*pack.Pack, error) {
