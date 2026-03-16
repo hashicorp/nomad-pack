@@ -73,45 +73,6 @@ Retrieve a list of namespaces visible to the current user.
 default: Default shared namespace
 ```
 
-### Variable functions
-
-#### `nomadVariables` <a id="nomadVariables"></a>
-
-The `nomadVariables` function retrieves a list of all Nomad Variables stored in the specified namespace.
-
-##### Parameters
-
-- 1: `string` - The target namespace name
-
-##### Returns
-
-- `error` or `[]*api.Variable` - A list of Variable objects
-
-##### Example
-
-[[ range nomadVariables "production" ]]
-Path: [[ .Path ]]
-[[ end ]]
-
-
-#### `nomadVariable` <a id="nomadVariable"></a>
-
-The `nomadVariable` function retrieves a specific Nomad Variable by path and namespace.
-
-##### Parameters
-
-- 1: `string` - The path of the variable
-- 2: `string` - The namespace
-
-##### Returns
-
-- `error` or `*api.Variable` - The Variable object
-
-##### Example
-
-[[ with nomadVariable "secret/db" "production" ]]
-password = "[[ .Items.password ]]"
-[[ end ]]
 
 ### Region functions
 
@@ -120,7 +81,6 @@ password = "[[ .Items.password ]]"
 ##### Parameters
 
 - None
-
 
 ##### Returns
 
@@ -607,8 +567,6 @@ These are the additional functions supplied by Nomad Pack itself.
 - [`nomadNamespace`][] - Returns the current namespace from the Nomad client.
 - [`nomadNamespaces`][] - Returns a list of namespaces from the Nomad client.
 - [`nomadRegions`][] - Returns a list of regions from the Nomad client.
-- [`nomadVariable`][] - Retrieves a specific Nomad Variable by path and namespace.
-- [`nomadVariables`][] - Lists all Nomad Variables in the specified namespace.
 - [`spewDump`][] - Returns a string representation of a value using `spew.Sdump`.
 - [`spewPrintf`][] - Returns a formatted string representation of a value using `spew.Sprintf`.
 - [`toStringList`][] - Converts a value to a string list.
