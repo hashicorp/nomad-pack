@@ -1,5 +1,7 @@
 ## UNRELEASED
 
+## 0.4.2 (March 16, 2026)
+
 SECURITY:
 * build: Update go-git to 5.16.5 to address CVE-2026-25934 [[GH-800](https://github.com/hashicorp/nomad-pack/pull/800)]
 
