@@ -93,6 +93,41 @@ func DecodeVariableBlock(block *hcl.Block) (*variables.Variable, hcl.Diagnostics
 		v.Value = val
 	}
 
+	// Process any validation blocks.
+	for _, block := range content.Blocks {
+		if block.Type != schema.VariableBlockValidation {
+			continue
+		}
+		valContent, valDiags := block.Body.Content(schema.ValidationBlockSchema)
+		diags = packdiags.SafeDiagnosticsExtend(diags, valDiags)
+		if valContent == nil {
+			continue
+		}
+
+		validation := variables.Validation{DeclRange: block.DefRange}
+
+		if attr, exists := valContent.Attributes[schema.ValidationAttributeCondition]; exists {
+			validation.Condition = attr.Expr
+		}
+
+		if attr, exists := valContent.Attributes[schema.ValidationAttributeErrorMessage]; exists {
+			msgVal, msgDiags := attr.Expr.Value(nil)
+			diags = packdiags.SafeDiagnosticsExtend(diags, msgDiags)
+			if msgVal.Type() == cty.String {
+				validation.ErrorMessage = msgVal.AsString()
+			} else {
+				diags = packdiags.SafeDiagnosticsAppend(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid error_message type",
+					Detail:   fmt.Sprintf("error_message must be a string, got %s", msgVal.Type().FriendlyName()),
+					Subject:  attr.Range.Ptr(),
+				})
+			}
+		}
+
+		v.Validations = append(v.Validations, validation)
+	}
+
 	if diags.HasErrors() {
 		return nil, diags
 	}

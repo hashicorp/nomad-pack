@@ -9,6 +9,10 @@ const (
 	VariableAttributeType        = "type"
 	VariableAttributeDefault     = "default"
 	VariableAttributeDescription = "description"
+
+	VariableBlockValidation         = "validation"
+	ValidationAttributeCondition    = "condition"
+	ValidationAttributeErrorMessage = "error_message"
 )
 
 // VariableFileSchema defines the hcl.BlockHeaderSchema for each root variable
@@ -29,5 +33,17 @@ var VariableBlockSchema = &hcl.BodySchema{
 		{Name: VariableAttributeDescription},
 		{Name: VariableAttributeDefault},
 		{Name: VariableAttributeType},
+	},
+	Blocks: []hcl.BlockHeaderSchema{
+		{Type: VariableBlockValidation},
+	},
+}
+
+// ValidationBlockSchema defines the hcl.BodySchema for a validation block
+// inside a variable definition.
+var ValidationBlockSchema = &hcl.BodySchema{
+	Attributes: []hcl.AttributeSchema{
+		{Name: ValidationAttributeCondition, Required: true},
+		{Name: ValidationAttributeErrorMessage, Required: true},
 	},
 }
