@@ -12,8 +12,6 @@ import (
 // indication to the problem, as I have certainly been confused by this.
 var ErrNoTemplatesRendered = newError("no templates were rendered by the renderer process run")
 
-var ErrNoParentTemplates = newError("no parent templates found")
-
 // UIContextPrefix* are the prefixes commonly used to create a string used in
 // UI errors outputs. If a prefix is used more than once, it should have a
 // const created.

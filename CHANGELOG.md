@@ -14,6 +14,8 @@ IMPROVEMENTS:
 * cli: Add `fmt` command to format pack template (.tpl) and configuration (.hcl) files [[GH-767](https://github.com/hashicorp/nomad-pack/pull/824)]
 * cli: Add path information to metadata to aid file template funcs [[GH-830](https://github.com/hashicorp/nomad-pack/pull/830)]
 * cli: Improved error message when pack lacks `.nomad.tpl` files to clearly explain naming requirements, show template naming convention, and list found template files [[GH-510](https://github.com/hashicorp/nomad-pack/pull/831)]
+* cli: Improved error message when pack lacks `.nomad.tpl` files to clearly explain naming requirements, show template naming convention, and list found template files [[GH-510](https://github.com/hashicorp/nomad-pack/pull/831)]
+* cli: Add path information to metadata to aid file template funcs [[GH-830](https://github.com/hashicorp/nomad-pack/pull/830)]
 * template: Improve regex parsing for namespace and region fields to support hyphenated values [[GH-757](https://github.com/hashicorp/nomad-pack/pull/757)]
 * template: Add `tpl` function for evaluating template strings stored in variables [[GH-810](https://github.com/hashicorp/nomad-pack/pull/810)]
 * variable: Improve the error message returned when using a variable file with an unsupported file extension [[GH-791](https://github.com/hashicorp/nomad-pack/pull/791)]
