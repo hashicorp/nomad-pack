@@ -148,7 +148,7 @@ func nomadVariables(client *api.Client) func(string, ...string) ([]*api.Variable
 		opts := &api.QueryOptions{Namespace: namespace}
 
 		// If prefix is provided and not empty, add it to query options
-		if len(prefix) > 0 && prefix[0] != "" {
+		if len(prefix) > 0 {
 			opts.Prefix = prefix[0]
 		}
 

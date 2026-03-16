@@ -5,7 +5,6 @@ package renderer
 
 import (
 	"bytes"
-	"strings"
 	"testing"
 	"text/template"
 
@@ -388,10 +387,7 @@ func TestNomadVariables(t *testing.T) {
 	}
 
 	_, _, err = client.Variables().Create(testVar, nil)
-	if err != nil {
-		t.Skipf("Skipping test - Nomad not available: %v", err)
-		return
-	}
+	must.NoError(t, err)
 	defer client.Variables().Delete(testPath, nil)
 
 	fn := nomadVariables(client)
@@ -444,10 +440,7 @@ func TestNomadVariablesWithPrefix(t *testing.T) {
 	// Create all test variables
 	for _, v := range testVars {
 		_, _, err := client.Variables().Create(v, nil)
-		if err != nil {
-			t.Skipf("Skipping test - Nomad not available: %v", err)
-			return
-		}
+		must.NoError(t, err)
 		defer client.Variables().Delete(v.Path, nil)
 	}
 
@@ -459,23 +452,48 @@ func TestNomadVariablesWithPrefix(t *testing.T) {
 	must.NoError(t, err)
 	must.NotNil(t, result)
 
-	if len(result) < 2 {
-		t.Fatalf("Expected at least 2 variables with secret/ prefix, got %d", len(result))
+	must.Eq(t, 2, len(result), must.Sprint("Expected exactly 2 variables with secret/ prefix"))
+
+	// Verify only our expected variables are returned
+	expectedPaths := map[string]bool{
+		"test/nomad-pack/secret/db":  false,
+		"test/nomad-pack/secret/api": false,
 	}
 
-	// Verify all returned paths start with the prefix
 	for _, v := range result {
-		if !strings.HasPrefix(v.Path, "test/nomad-pack/secret/") {
-			t.Errorf("Expected path %s to start with 'test/nomad-pack/secret/'", v.Path)
+		if _, exists := expectedPaths[v.Path]; exists {
+			expectedPaths[v.Path] = true
+		} else {
+			t.Errorf("Unexpected variable returned: %s", v.Path)
 		}
 	}
 
-	// Test without prefix (should return more)
+	//ensure both expected variables were found
+	for path, found := range expectedPaths {
+		must.True(t, found, must.Sprintf("Expected variable not found:%s", path))
+	}
+
+	// Test without prefix - should return all 3 test variables
 	resultAll, err := fn("default")
 	must.NoError(t, err)
 
-	if len(resultAll) < len(result) {
-		t.Errorf("Expected all results (%d) >= filtered results (%d)", len(resultAll), len(result))
+	must.Eq(t, 3, len(resultAll), must.Sprint("Expected exactly 3 variables total"))
+
+	//verify all 3 test variables are present
+	allExpectedPaths := map[string]bool{
+		"test/nomad-pack/secret/db":  false,
+		"test/nomad-pack/secret/api": false,
+		"test/nomad-pack/config/app": false,
+	}
+	for _, v := range resultAll {
+		if _, exists := allExpectedPaths[v.Path]; exists {
+			allExpectedPaths[v.Path] = true
+		} else {
+			t.Errorf("Unexpected variable returned: %s", v.Path)
+		}
+	}
+	for path, found := range allExpectedPaths {
+		must.True(t, found, must.Sprintf("Expected variable not found: %s", path))
 	}
 }
 
@@ -495,10 +513,7 @@ func TestNomadVariable(t *testing.T) {
 	}
 
 	_, _, err = client.Variables().Create(testVar, nil)
-	if err != nil {
-		t.Skipf("Skipping test - Nomad not available: %v", err)
-		return
-	}
+	must.NoError(t, err)
 	defer client.Variables().Delete(testPath, nil)
 
 	fn := nomadVariable(client)
