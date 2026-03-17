@@ -143,21 +143,7 @@ func (c *Cache) addFromURI(opts *AddOpts) (cachedRegistry *Registry, err error) 
 // the SHA of the HEAD of the cloned repository.
 func (c *Cache) cloneRemoteGitRegistry(opts *AddOpts) (string, error) {
 	logger := c.cfg.Logger
-	url := opts.Source
-
-	// Append the pack name to the go-getter url if a pack name was specified
-	if opts.PackName != "" {
-		src := strings.TrimSuffix(opts.Source, ".git") // to make the next command work consistently
-		url = fmt.Sprintf("%s.git//packs/%s", src, opts.PackName)
-	}
-
-	// If ref is set, add query string variable
-	if !opts.IsLatest() {
-		url = fmt.Sprintf("%s?ref=%s", url, opts.Ref)
-	} else {
-		// Attempt to shallow clone the constructed url
-		url = fmt.Sprintf("%s?depth=1", url)
-	}
+	url := buildGoGetterGitURL(opts)
 
 	logger.Debug(fmt.Sprintf("go-getter URL is %s", url))
 
@@ -180,6 +166,21 @@ func (c *Cache) cloneRemoteGitRegistry(opts *AddOpts) (string, error) {
 	logger.Debug(fmt.Sprintf("Registry successfully cloned at %s", c.clonePath()))
 
 	return sha, nil
+}
+
+func buildGoGetterGitURL(opts *AddOpts) string {
+	url := opts.Source
+
+	if opts.PackName != "" {
+		src := strings.TrimSuffix(opts.Source, ".git")
+		url = fmt.Sprintf("%s.git//packs/%s", src, opts.PackName)
+	}
+
+	if !opts.IsLatest() {
+		url = fmt.Sprintf("%s?ref=%s", url, opts.Ref)
+	}
+
+	return url
 }
 
 func (c *Cache) processPackEntry(opts *AddOpts, packEntry os.DirEntry) error {
