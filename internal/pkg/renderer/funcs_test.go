@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"testing"
 	"text/template"
-	"time"
 
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser"
 	"github.com/hashicorp/nomad-pack/sdk/pack"
@@ -382,9 +381,7 @@ func TestNomadVariables(t *testing.T) {
 	srv := agent.NewTestAgent(t, t.Name(), nil)
 	defer srv.Shutdown()
 	testutil.WaitForLeader(t, srv.RPC)
-
-	//wait for keyring initialization to complete
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForKeyring(t, srv.RPC, srv.Config.Region)
 
 	//get client from test server
 	client := srv.APIClient()
@@ -402,7 +399,6 @@ func TestNomadVariables(t *testing.T) {
 	defer client.Variables().Delete(testPath, nil)
 
 	fn := nomadVariables(client)
-	must.NotNil(t, fn)
 
 	result, err := fn("default")
 	must.NoError(t, err)
@@ -432,9 +428,7 @@ func TestNomadVariablesWithPrefix(t *testing.T) {
 
 	// Wait for leader election
 	testutil.WaitForLeader(t, srv.RPC)
-
-	//wait for keyring initialization to complete
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForKeyring(t, srv.RPC, srv.Config.Region)
 
 	// Get client from test server
 	client := srv.APIClient()
@@ -466,7 +460,6 @@ func TestNomadVariablesWithPrefix(t *testing.T) {
 	}
 
 	fn := nomadVariables(client)
-	must.NotNil(t, fn)
 
 	// Test with "test/nomad-pack/secret/" prefix
 	result, err := fn("default", "test/nomad-pack/secret/")
@@ -525,9 +518,7 @@ func TestNomadVariable(t *testing.T) {
 
 	// Wait for leader election
 	testutil.WaitForLeader(t, srv.RPC)
-
-	//wait for keyring initialization to complete
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForKeyring(t, srv.RPC, srv.Config.Region)
 
 	// Get client from test server
 	client := srv.APIClient()
@@ -548,7 +539,6 @@ func TestNomadVariable(t *testing.T) {
 	defer client.Variables().Delete(testPath, nil)
 
 	fn := nomadVariable(client)
-	must.NotNil(t, fn)
 
 	// Test reading the variable we just created
 	result, err := fn(testPath, "default")
@@ -565,4 +555,29 @@ func TestNomadVariable(t *testing.T) {
 		t.Error("Expected error for non-existent variable")
 	}
 	must.Nil(t, resultNone)
+}
+
+func TestNomadVariablesMultiplePrefixesError(t *testing.T) {
+	//start a test Nomad server
+	srv := agent.NewTestAgent(t, t.Name(), nil)
+	defer srv.Shutdown()
+
+	// wait for leader and keyring
+	testutil.WaitForLeader(t, srv.RPC)
+	testutil.WaitForKeyring(t, srv.RPC, srv.Config.Region)
+
+	//Get API client
+	client := srv.APIClient()
+
+	//call function with multiple prefixes (should error)
+	fn := nomadVariables(client)
+
+	//test calling with multiple prefixes (should return error)
+	result, err := fn("default", "prefix1", "prefix2")
+
+	//verify error is returned
+	must.Error(t, err)
+	must.Nil(t, result)
+	must.StrContains(t, err.Error(), "accepts at most one prefix argument")
+	must.StrContains(t, err.Error(), "got 2")
 }

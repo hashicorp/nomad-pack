@@ -147,6 +147,11 @@ func nomadVariables(client *api.Client) func(string, ...string) ([]*api.Variable
 	return func(namespace string, prefix ...string) ([]*api.VariableMetadata, error) {
 		opts := &api.QueryOptions{Namespace: namespace}
 
+		//validate prefix arguments
+		if len(prefix) > 1 {
+			return nil, fmt.Errorf("nomadVariables accepts at most one prefix argument, got %d", len(prefix))
+		}
+
 		// If prefix is provided and not empty, add it to query options
 		if len(prefix) > 0 {
 			opts.Prefix = prefix[0]

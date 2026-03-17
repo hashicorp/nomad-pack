@@ -90,13 +90,22 @@ The `nomadVariables` function retrieves a list of all Nomad Variables stored in 
 
 ##### Example
 
+List all variables in a namespace:
+
 [[ range nomadVariables "production" ]]
 Path: [[ .Path ]]
 Namespace: [[ .Namespace ]]
 Modified: [[ .ModifyTime ]]
 [[ end ]]
 
-Note: To get the actual variable data, use nomadVariable() with path:
+Filter variables by prefix:
+
+[[ range nomadVariables "production" "secret/" ]]
+Path: [[ .Path ]]
+[[ end ]]
+
+Get variable data:
+
 [[ $meta := index (nomadVariables "production") 0 ]]
 [[ $var := nomadVariable $meta.Path "production" ]]
 Password: [[ $var.Items.password ]]
