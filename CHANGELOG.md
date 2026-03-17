@@ -1,5 +1,8 @@
 ## UNRELEASED
 
+IMPROVEMENTS:
+* cli: Add registry now honors default main/master branch [[GH-843](https://github.com/hashicorp/nomad-pack/pull/843)]
+
 ## 0.4.2 (March 16, 2026)
 
 SECURITY:
