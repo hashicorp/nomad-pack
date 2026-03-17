@@ -11,6 +11,9 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser"
 	"github.com/hashicorp/nomad-pack/sdk/pack"
 	"github.com/hashicorp/nomad-pack/sdk/pack/variables"
+	nomadapi "github.com/hashicorp/nomad/api"
+	"github.com/hashicorp/nomad/command/agent"
+	"github.com/hashicorp/nomad/testutil"
 	"github.com/shoenig/test/must"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -371,4 +374,210 @@ func Test_tplFunc_NestedTplWithVar(t *testing.T) {
 	err = tpl.Execute(&buf, ctx)
 	must.NoError(t, err)
 	must.Eq(t, "nested-result", buf.String())
+}
+
+func TestNomadVariables(t *testing.T) {
+	//starts test Nomad server
+	srv := agent.NewTestAgent(t, t.Name(), nil)
+	defer srv.Shutdown()
+	testutil.WaitForLeader(t, srv.RPC)
+	testutil.WaitForKeyring(t, srv.RPC, srv.Config.Region)
+
+	//get client from test server
+	client := srv.APIClient()
+
+	// Create a test variable
+	testPath := "test/nomad-pack/test-var"
+	testVar := &nomadapi.Variable{
+		Namespace: "default",
+		Path:      testPath,
+		Items:     map[string]string{"test_key": "test_value"},
+	}
+
+	_, _, err := client.Variables().Create(testVar, nil)
+	must.NoError(t, err)
+	defer client.Variables().Delete(testPath, nil)
+
+	fn := nomadVariables(client)
+
+	result, err := fn("default")
+	must.NoError(t, err)
+	must.NotNil(t, result)
+
+	if len(result) == 0 {
+		t.Fatal("Expected at least one variable in results")
+	}
+
+	// Verify our test variable is in the results
+	found := false
+	for _, v := range result {
+		if v.Path == testPath {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("Expected to find test variable %s in results", testPath)
+	}
+}
+
+func TestNomadVariablesWithPrefix(t *testing.T) {
+	// Start a test Nomad server
+	srv := agent.NewTestAgent(t, t.Name(), nil)
+	defer srv.Shutdown()
+
+	// Wait for leader election
+	testutil.WaitForLeader(t, srv.RPC)
+	testutil.WaitForKeyring(t, srv.RPC, srv.Config.Region)
+
+	// Get client from test server
+	client := srv.APIClient()
+
+	// Create test variables with different prefixes
+	testVars := []*nomadapi.Variable{
+		{
+			Namespace: "default",
+			Path:      "test/nomad-pack/secret/db",
+			Items:     map[string]string{"key": "value1"},
+		},
+		{
+			Namespace: "default",
+			Path:      "test/nomad-pack/secret/api",
+			Items:     map[string]string{"key": "value2"},
+		},
+		{
+			Namespace: "default",
+			Path:      "test/nomad-pack/config/app",
+			Items:     map[string]string{"key": "value3"},
+		},
+	}
+
+	// Create all test variables
+	for _, v := range testVars {
+		_, _, err := client.Variables().Create(v, nil)
+		must.NoError(t, err)
+		defer client.Variables().Delete(v.Path, nil)
+	}
+
+	fn := nomadVariables(client)
+
+	// Test with "test/nomad-pack/secret/" prefix
+	result, err := fn("default", "test/nomad-pack/secret/")
+	must.NoError(t, err)
+	must.NotNil(t, result)
+
+	must.Eq(t, 2, len(result), must.Sprint("Expected exactly 2 variables with secret/ prefix"))
+
+	// Verify only our expected variables are returned
+	expectedPaths := map[string]bool{
+		"test/nomad-pack/secret/db":  false,
+		"test/nomad-pack/secret/api": false,
+	}
+
+	for _, v := range result {
+		if _, exists := expectedPaths[v.Path]; exists {
+			expectedPaths[v.Path] = true
+		} else {
+			t.Errorf("Unexpected variable returned: %s", v.Path)
+		}
+	}
+
+	//ensure both expected variables were found
+	for path, found := range expectedPaths {
+		must.True(t, found, must.Sprintf("Expected variable not found:%s", path))
+	}
+
+	// Test without prefix - should return all 3 test variables
+	resultAll, err := fn("default")
+	must.NoError(t, err)
+
+	must.Eq(t, 3, len(resultAll), must.Sprint("Expected exactly 3 variables total"))
+
+	//verify all 3 test variables are present
+	allExpectedPaths := map[string]bool{
+		"test/nomad-pack/secret/db":  false,
+		"test/nomad-pack/secret/api": false,
+		"test/nomad-pack/config/app": false,
+	}
+	for _, v := range resultAll {
+		if _, exists := allExpectedPaths[v.Path]; exists {
+			allExpectedPaths[v.Path] = true
+		} else {
+			t.Errorf("Unexpected variable returned: %s", v.Path)
+		}
+	}
+	for path, found := range allExpectedPaths {
+		must.True(t, found, must.Sprintf("Expected variable not found: %s", path))
+	}
+}
+
+func TestNomadVariable(t *testing.T) {
+	// Start a test Nomad server
+	srv := agent.NewTestAgent(t, t.Name(), nil)
+	defer srv.Shutdown()
+
+	// Wait for leader election
+	testutil.WaitForLeader(t, srv.RPC)
+	testutil.WaitForKeyring(t, srv.RPC, srv.Config.Region)
+
+	// Get client from test server
+	client := srv.APIClient()
+
+	// Create a test variable
+	testPath := "test/nomad-pack/test-variable"
+	testVar := &nomadapi.Variable{
+		Namespace: "default",
+		Path:      testPath,
+		Items: map[string]string{
+			"password": "secret123",
+			"host":     "localhost",
+		},
+	}
+
+	_, _, err := client.Variables().Create(testVar, nil)
+	must.NoError(t, err)
+	defer client.Variables().Delete(testPath, nil)
+
+	fn := nomadVariable(client)
+
+	// Test reading the variable we just created
+	result, err := fn(testPath, "default")
+	must.NoError(t, err)
+	must.NotNil(t, result)
+	must.Eq(t, testPath, result.Path)
+	must.Eq(t, "default", result.Namespace)
+	must.Eq(t, "secret123", result.Items["password"])
+	must.Eq(t, "localhost", result.Items["host"])
+
+	// Test reading non-existent variable
+	resultNone, err := fn("nonexistent/path", "default")
+	if err == nil {
+		t.Error("Expected error for non-existent variable")
+	}
+	must.Nil(t, resultNone)
+}
+
+func TestNomadVariablesMultiplePrefixesError(t *testing.T) {
+	//start a test Nomad server
+	srv := agent.NewTestAgent(t, t.Name(), nil)
+	defer srv.Shutdown()
+
+	// wait for leader and keyring
+	testutil.WaitForLeader(t, srv.RPC)
+	testutil.WaitForKeyring(t, srv.RPC, srv.Config.Region)
+
+	//Get API client
+	client := srv.APIClient()
+
+	//call function with multiple prefixes (should error)
+	fn := nomadVariables(client)
+
+	//test calling with multiple prefixes (should return error)
+	result, err := fn("default", "prefix1", "prefix2")
+
+	//verify error is returned
+	must.Error(t, err)
+	must.Nil(t, result)
+	must.StrContains(t, err.Error(), "accepts at most one prefix argument")
+	must.StrContains(t, err.Error(), "got 2")
 }
