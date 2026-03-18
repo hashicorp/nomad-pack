@@ -18,12 +18,12 @@ IMPROVEMENTS:
 * cli: Add registry update command [[GH-811](https://github.com/hashicorp/nomad-pack/pull/811)]
 * cli: Removed .git directories from cache [[GH-808](https://github.com/hashicorp/nomad-pack/pull/808)]
 * cli: Stop nonexistent jobs in a deployed pack during pack version updates [[GH-825](https://github.com/hashicorp/nomad-pack/pull/825)]
-* cli: fixed nomad-pack treats any variables called `region` or `namespace` as Nomad region/namespace settings [[815](https://github.com/hashicorp/nomad-pack/pull/815)]
 * cli: Allow slash in nomad-pack ref [[GH-829](https://github.com/hashicorp/nomad-pack/pull/829)]
 * template: Improve regex parsing for namespace and region fields to support hyphenated values [[GH-757](https://github.com/hashicorp/nomad-pack/pull/757)]
 * template: Add `tpl` function for evaluating template strings stored in variables [[GH-810](https://github.com/hashicorp/nomad-pack/pull/810)]
 * variable: Improve the error message returned when using a variable file with an unsupported file extension [[GH-791](https://github.com/hashicorp/nomad-pack/pull/791)]
 * variable: Add support for `optional()` type constraint modifier in variable definitions [[GH-798](https://github.com/hashicorp/nomad-pack/pull/798)]
+* variable: fixed nomad-pack treats any variables called `region` or `namespace` as Nomad region/namespace settings [[815](https://github.com/hashicorp/nomad-pack/pull/815)]
 * template: Add `nomadVariable()` and `nomadVariables()` functions to access Nomad's native variable storage [[GH-409](https://github.com/hashicorp/nomad-pack/pull/828)]
 
 
