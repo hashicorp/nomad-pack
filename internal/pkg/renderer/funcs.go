@@ -13,6 +13,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser"
 	"github.com/hashicorp/nomad/api"
+	vault "github.com/hashicorp/vault/api"
 	"golang.org/x/exp/maps"
 )
 
@@ -51,6 +52,11 @@ func funcMap(r *Renderer) template.FuncMap {
 		f["nomadRegions"] = nomadRegions(r.Client)
 		f["nomadVariables"] = nomadVariables(r.Client)
 		f["nomadVariable"] = nomadVariable(r.Client)
+	}
+
+	if r != nil && r.VaultClient != nil {
+		f["vaultRead"] = vaultRead(r.VaultClient)
+		f["vaultKV"] = vaultKV(r.VaultClient)
 	}
 
 	if r != nil && r.PackPath != "" {
@@ -237,4 +243,41 @@ func withSortKeys(s *spew.ConfigState) any {
 func withSpewKeys(s *spew.ConfigState) any {
 	s.SpewKeys = true
 	return s
+}
+
+// vaultRead reads a secret from Vault with automatic KV v1/v2 detection.
+// For KV v2, it automatically unwraps nested data structure.
+func vaultRead(client *vault.Client) func(string) (map[string]interface{}, error) {
+	return func(path string) (map[string]interface{}, error) {
+		secret, err := client.Logical().Read(path)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read from Vault path %s: %w", path, err)
+		}
+		if secret == nil {
+			return nil, fmt.Errorf("no secret found at Vault path %s", path)
+		}
+
+		//for KV v2, data is nested under "data" key
+		if data, ok := secret.Data["data"].(map[string]interface{}); ok {
+			return data, nil
+		}
+
+		//for KV v1 or other engines, return data directly
+		return secret.Data, nil
+	}
+}
+
+// vaultKV reads from Vault KV and returns raw data without unwrapping.
+// useful when you need access to metadata or want to handle KV versions yourself.
+func vaultKV(client *vault.Client) func(string) (map[string]interface{}, error) {
+	return func(path string) (map[string]interface{}, error) {
+		secret, err := client.Logical().Read(path)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read from Vault KV path %s: %w", path, err)
+		}
+		if secret == nil {
+			return nil, fmt.Errorf("no secret found at Vault KV path %s", path)
+		}
+		return secret.Data, nil
+	}
 }
