@@ -1,5 +1,8 @@
 ## UNRELEASED
 
+IMPROVEMENTS:
+* cli: Improved error message when pack lacks `.nomad.tpl` files to clearly explain naming requirements, show template naming convention, and list found template files [[GH-510](https://github.com/hashicorp/nomad-pack/pull/831)]
+
 ## 0.4.2 (March 16, 2026)
 
 SECURITY:
@@ -15,8 +18,6 @@ IMPROVEMENTS:
 * cli: Add line and column information to HCL error messages using the standard HCL v2 format (e.g., `variables.hcl:3,3-7`) to help users locate configuration errors more easily [[GH-807](https://github.com/hashicorp/nomad-pack/pull/807)]
 * cli: Add `fmt` command to format pack template (.tpl) and configuration (.hcl) files [[GH-767](https://github.com/hashicorp/nomad-pack/pull/824)]
 * cli: Add path information to metadata to aid file template funcs [[GH-830](https://github.com/hashicorp/nomad-pack/pull/830)]
-* cli: Improved error message when pack lacks `.nomad.tpl` files to clearly explain naming requirements, show template naming convention, and list found template files [[GH-510](https://github.com/hashicorp/nomad-pack/pull/831)]
-* cli: Improved error message when pack lacks `.nomad.tpl` files to clearly explain naming requirements, show template naming convention, and list found template files [[GH-510](https://github.com/hashicorp/nomad-pack/pull/831)]
 * cli: Add path information to metadata to aid file template funcs [[GH-830](https://github.com/hashicorp/nomad-pack/pull/830)]
 * template: Improve regex parsing for namespace and region fields to support hyphenated values [[GH-757](https://github.com/hashicorp/nomad-pack/pull/757)]
 * template: Add `tpl` function for evaluating template strings stored in variables [[GH-810](https://github.com/hashicorp/nomad-pack/pull/810)]
