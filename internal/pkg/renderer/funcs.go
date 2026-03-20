@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2021, 2025
+// Copyright IBM Corp. 2023, 2026
 // SPDX-License-Identifier: MPL-2.0
 
 package renderer
@@ -49,6 +49,8 @@ func funcMap(r *Renderer) template.FuncMap {
 		f["nomadNamespaces"] = nomadNamespaces(r.Client)
 		f["nomadNamespace"] = nomadNamespace(r.Client)
 		f["nomadRegions"] = nomadRegions(r.Client)
+		f["nomadVariables"] = nomadVariables(r.Client)
+		f["nomadVariable"] = nomadVariable(r.Client)
 	}
 
 	if r != nil && r.PackPath != "" {
@@ -138,6 +140,34 @@ func nomadNamespace(client *api.Client) func(string) (*api.Namespace, error) {
 // call.
 func nomadRegions(client *api.Client) func() ([]string, error) {
 	return func() ([]string, error) { return client.Regions().List() }
+}
+
+// nomadVariables lists all variables in the specified namespace, optionally filtered by prefix
+func nomadVariables(client *api.Client) func(string, ...string) ([]*api.VariableMetadata, error) {
+	return func(namespace string, prefix ...string) ([]*api.VariableMetadata, error) {
+		opts := &api.QueryOptions{Namespace: namespace}
+
+		//validate prefix arguments
+		if len(prefix) > 1 {
+			return nil, fmt.Errorf("nomadVariables accepts at most one prefix argument, got %d", len(prefix))
+		}
+
+		// If prefix is provided and not empty, add it to query options
+		if len(prefix) > 0 {
+			opts.Prefix = prefix[0]
+		}
+
+		out, _, err := client.Variables().List(opts)
+		return out, err
+	}
+}
+
+// nomadVariable retrieves a specific variable by path and namespace
+func nomadVariable(client *api.Client) func(string, string) (*api.Variable, error) {
+	return func(path string, namespace string) (*api.Variable, error) {
+		out, _, err := client.Variables().Read(path, &api.QueryOptions{Namespace: namespace})
+		return out, err
+	}
 }
 
 // toStringList takes a list of string and returns the HCL equivalent which is
