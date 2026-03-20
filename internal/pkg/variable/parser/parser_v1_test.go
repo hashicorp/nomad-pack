@@ -5,6 +5,8 @@ package parser
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/hashicorp/hcl/v2"
@@ -151,6 +153,23 @@ func TestParserV1_parseHeredocAtEOF(t *testing.T) {
 	b, diags := inputParser.loadOverrideFile(fixturePath)
 	must.NotNil(t, b)
 	must.SliceEmpty(t, diags)
+}
+
+func TestParserV1_FileOverridesFollowInputOrder(t *testing.T) {
+	tmpDir := t.TempDir()
+	first := filepath.Join(tmpDir, "b-first.hcl")
+	second := filepath.Join(tmpDir, "a-second.hcl")
+
+	must.NoError(t, os.WriteFile(first, []byte("input = \"from-first\"\n"), 0o644))
+	must.NoError(t, os.WriteFile(second, []byte("input = \"from-second\"\n"), 0o644))
+
+	fixturePath := testfixture.AbsPath(t, "v1/variable_test/variable_test")
+	pm := newTestPackManager(t, fixturePath, true)
+	pm.cfg.VariableFiles = []string{first, second}
+
+	pvs := pm.ProcessVariables()
+	must.NotNil(t, pvs)
+	must.Eq(t, "from-second", pvs.v1Vars["variable_test"]["input"].Value.AsString())
 }
 
 func TestParserV1_VariableOverrides(t *testing.T) {
