@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser/config"
 	"github.com/hashicorp/nomad-pack/sdk/pack"
 	"github.com/hashicorp/nomad/api"
+	vault "github.com/hashicorp/vault/api"
 )
 
 // Config contains all the user specified parameters needed to correctly run
@@ -32,18 +33,20 @@ type Config struct {
 // PackManager is responsible for loading, parsing, and rendering a Pack and
 // all dependencies.
 type PackManager struct {
-	cfg      *Config
-	client   *api.Client
-	renderer *renderer.Renderer
+	cfg         *Config
+	client      *api.Client
+	vaultClient *vault.Client
+	renderer    *renderer.Renderer
 
 	// loadedPack is unavailable until the loadAndValidatePacks func is run.
 	loadedPack *pack.Pack
 }
 
-func NewPackManager(cfg *Config, client *api.Client) *PackManager {
+func NewPackManager(cfg *Config, client *api.Client, vaultClient *vault.Client) *PackManager {
 	return &PackManager{
-		cfg:    cfg,
-		client: client,
+		cfg:         cfg,
+		client:      client,
+		vaultClient: vaultClient,
 	}
 }
 
@@ -142,6 +145,7 @@ func (pm *PackManager) ProcessTemplates(renderAux bool, format bool, ignoreMissi
 
 	r := new(renderer.Renderer)
 	r.Client = pm.client
+	r.VaultClient = pm.vaultClient
 	r.PackPath = pm.cfg.Path
 	pm.renderer = r
 

@@ -27,6 +27,7 @@ require (
 	github.com/hashicorp/hcl/v2 v2.23.0
 	github.com/hashicorp/nomad v1.11.3
 	github.com/hashicorp/nomad/api v0.0.0-20260304165455-489f8b9d1054
+	github.com/hashicorp/vault/api v1.22.0
 	github.com/kr/text v0.2.0
 	github.com/lab47/vterm v0.0.0-20211107042118-80c3d2849f9c
 	github.com/mattn/go-isatty v0.0.20
@@ -241,7 +242,6 @@ require (
 	github.com/hashicorp/raft-autopilot v0.3.0 // indirect
 	github.com/hashicorp/raft-boltdb/v2 v2.3.1 // indirect
 	github.com/hashicorp/serf v0.10.2 // indirect
-	github.com/hashicorp/vault/api v1.22.0 // indirect
 	github.com/hashicorp/vault/api/auth/kubernetes v0.10.0 // indirect
 	github.com/hashicorp/vic v1.5.1-0.20241121050025-d1d58fa204f5 // indirect
 	github.com/hashicorp/yamux v0.1.2 // indirect

@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/nomad/api"
+	vault "github.com/hashicorp/vault/api"
 	"github.com/posener/complete"
 
 	"github.com/hashicorp/nomad-pack/internal/pkg/caching"
@@ -47,7 +48,15 @@ func generatePackManager(c *baseCommand, client *api.Client, packCfg *caching.Pa
 		AllowUnsetVars:  c.allowUnsetVars,
 		UseParserV1:     c.useParserV1,
 	}
-	return manager.NewPackManager(&cfg, client)
+
+	//create Vault client if configured
+	vaultClient, err := getVaultClient()
+	if err != nil {
+		c.ui.ErrorWithContext(err, "failed to create Vault client")
+		//continue without Vault - it's optional
+		vaultClient = nil
+	}
+	return manager.NewPackManager(&cfg, client, vaultClient)
 }
 
 // predictPackName is a complete.Predictor that suggests cached pack names.
@@ -556,4 +565,35 @@ func limit(s string, length int) string {
 	}
 
 	return s[:length]
+}
+
+// getVaultClient creates a Vault client from environment variables.
+// Returns nil client if Vault is not configured (VAULT_ADDR not set).
+// This allows Vault integration to be optional - if VAULT_ADDR is not set,
+// the pack will work normally but Vault template functions won't be available.
+func getVaultClient() (*vault.Client, error) {
+	// check if Vault is configured via VAULT_ADDR environment variable
+	vaultAddr := os.Getenv("VAULT_ADDR")
+	if vaultAddr == "" {
+		// Vault not configured - this is OK, return nil without error
+		return nil, nil
+	}
+
+	//Create default Vault configuration with sensible defaults
+	config := vault.DefaultConfig()
+	config.Address = vaultAddr
+
+	//create Vault client
+	client, err := vault.NewClient(config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Vault client: %w", err)
+	}
+
+	//set authentication token if provided via VAULT_TOKEN environment variable
+	vaultToken := os.Getenv("VAULT_TOKEN")
+	if vaultToken != "" {
+		client.SetToken(vaultToken)
+	}
+
+	return client, nil
 }

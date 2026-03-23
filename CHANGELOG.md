@@ -1,6 +1,7 @@
 ## UNRELEASED
 
 IMPROVEMENTS:
+* template: Add `vaultRead()` and `vaultKV()` functions to read secrets from HashiCorp Vault with automatic KV v1/v2 detection [[GH-473](https://github.com/hashicorp/nomad-pack/pull/848)]
 * cli: Add registry now honors default main/master branch [[GH-843](https://github.com/hashicorp/nomad-pack/pull/843)]
 
 ## 0.4.2 (March 16, 2026)
