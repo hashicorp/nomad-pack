@@ -130,6 +130,58 @@ The `nomadVariable` function retrieves a specific Nomad Variable by path and nam
 password = "[[ .Items.password ]]"
 [[ end ]]
 
+### Consul KV functions
+
+#### `consulKey` <a id="consulKey"></a>
+
+Retrieves a single key-value pair from Consul's KV store.
+
+##### Parameters
+
+- 1: `string` - The key path in Consul KV
+
+##### Returns
+
+- `string` - The value stored at the specified key, or empty string if not found
+
+##### Example
+
+[[ $dbPassword := consulKey "config/database/password" ]]
+password = "[[ $dbPassword ]]"
+
+#### `consulKeys` <a id="consulKeys"></a>
+
+Retrieves multiple key-value pairs from Consul's KV store with a given prefix.
+
+##### Parameters
+
+- 1: `string` - The key prefix to search for
+
+##### Returns
+
+- `map[string]string` - A map where keys are the full Consul KV paths and values are the stored values
+
+##### Example
+
+List all configuration values with a prefix:
+
+[[ range $key,$value := consulKeys "config/app/" ]]
+[[ $key ]] = [[ $value ]]
+[[ end ]]
+
+Access specific keys from the result:
+
+[[ $configs := consulKeys "config/app/" ]][[ $appName := index $configs "config/app/name" ]]
+app_version = "[[ index $configs "config/app/version" ]]"
+
+Iterate and filter:
+
+[[ $configs := consulKeys "config/" ]][[ range $key, $value :=$configs ]]
+[[ if hasPrefix $key "config/prod/" ]][[ $key ]]: [[ $value ]]
+[[ end ]]
+[[ end ]]
+
+
 ### Region functions
 
 #### `nomadRegions` <a id="nomadRegions"></a>
@@ -620,6 +672,8 @@ Returns:
 These are the additional functions supplied by Nomad Pack itself.
 
 - [`customSpew`][] - Returns a new `spew.ConfigState` with default configuration; used to build a custom Spew printer.
+- [`consulKey`][] - Retrieves a single key-value pair from Consul's KV store.
+- [`consulKeys`][] - Retrieves multiple key-value pairs from Consul's KV store with a given prefix.
 - [`fileContents`][] - Returns the contents of a file as a string.
 - [`nomadNamespace`][] - Returns the current namespace from the Nomad client.
 - [`nomadNamespaces`][] - Returns a list of namespaces from the Nomad client.
@@ -653,6 +707,8 @@ These are the additional functions supplied by Nomad Pack itself.
 [topicHelpers]: #topicHelpers
 
 [`customSpew`]: #customSpew
+[`consulKey`]: #consulKey
+[`consulKeys`]: #consulKeys
 [`fileContents`]: #fileContents
 [`nomadNamespaces`]: #nomadNamespaces
 [`nomadNamespace`]: #nomadNamespace

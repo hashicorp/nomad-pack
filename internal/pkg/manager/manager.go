@@ -8,6 +8,7 @@ import (
 	"path"
 	"strings"
 
+	consulapi "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/loader"
@@ -32,18 +33,20 @@ type Config struct {
 // PackManager is responsible for loading, parsing, and rendering a Pack and
 // all dependencies.
 type PackManager struct {
-	cfg      *Config
-	client   *api.Client
-	renderer *renderer.Renderer
+	cfg          *Config
+	client       *api.Client
+	consulClient *consulapi.Client
+	renderer     *renderer.Renderer
 
 	// loadedPack is unavailable until the loadAndValidatePacks func is run.
 	loadedPack *pack.Pack
 }
 
-func NewPackManager(cfg *Config, client *api.Client) *PackManager {
+func NewPackManager(cfg *Config, client *api.Client, consulClient *consulapi.Client) *PackManager {
 	return &PackManager{
-		cfg:    cfg,
-		client: client,
+		cfg:          cfg,
+		client:       client,
+		consulClient: consulClient,
 	}
 }
 
@@ -142,6 +145,7 @@ func (pm *PackManager) ProcessTemplates(renderAux bool, format bool, ignoreMissi
 
 	r := new(renderer.Renderer)
 	r.Client = pm.client
+	r.ConsulClient = pm.consulClient
 	r.PackPath = pm.cfg.Path
 	pm.renderer = r
 
