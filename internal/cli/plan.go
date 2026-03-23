@@ -69,10 +69,8 @@ func (c *PlanCommand) Run(args []string) int {
 		return c.exitCodeError
 	}
 
-	// Commands that render templates are required to render at least one
-	// parent template.
 	if r.LenParentRenders() < 1 {
-		c.ui.ErrorWithContext(errors.ErrNoTemplatesRendered, "no templates rendered", errorContext.GetAll()...)
+		displayNoParentTemplatesError(c.ui, c.packConfig.Path, errorContext)
 		return c.exitCodeError
 	}
 

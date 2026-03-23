@@ -1,6 +1,7 @@
 ## UNRELEASED
 
 IMPROVEMENTS:
+* cli: Improved error message when pack lacks `.nomad.tpl` files to clearly explain naming requirements, show template naming convention, and list found template files [[GH-510](https://github.com/hashicorp/nomad-pack/pull/831)]
 * cli: Add registry now honors default main/master branch [[GH-843](https://github.com/hashicorp/nomad-pack/pull/843)]
 
 ## 0.4.2 (March 16, 2026)
