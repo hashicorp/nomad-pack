@@ -11,6 +11,7 @@ import (
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/davecgh/go-spew/spew"
+	consulapi "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser"
 	"github.com/hashicorp/nomad/api"
 	"golang.org/x/exp/maps"
@@ -51,6 +52,11 @@ func funcMap(r *Renderer) template.FuncMap {
 		f["nomadRegions"] = nomadRegions(r.Client)
 		f["nomadVariables"] = nomadVariables(r.Client)
 		f["nomadVariable"] = nomadVariable(r.Client)
+	}
+
+	if r != nil && r.ConsulClient != nil {
+		f["consulKey"] = consulKey(r.ConsulClient)
+		f["consulKeys"] = consulKeys(r.ConsulClient)
 	}
 
 	if r != nil && r.PackPath != "" {
@@ -237,4 +243,49 @@ func withSortKeys(s *spew.ConfigState) any {
 func withSpewKeys(s *spew.ConfigState) any {
 	s.SpewKeys = true
 	return s
+}
+
+// consulKey retrieves single key-value pair from Consul KV store.
+// It returns an error if key doesn't exist or if there's a connection issue.
+func consulKey(client *consulapi.Client) func(string) (string, error) {
+	return func(key string) (string, error) {
+		if client == nil {
+			return "", fmt.Errorf("consul client not initialized")
+		}
+		kv := client.KV()
+		if kv == nil {
+			return "", fmt.Errorf("consul KV store not available")
+		}
+		pair, _, err := kv.Get(key, nil)
+		if err != nil {
+			return "", fmt.Errorf("failed to get consul key %s: %w", key, err)
+		}
+		if pair == nil {
+			return "", fmt.Errorf("consul key not found: %s", key)
+		}
+		return string(pair.Value), nil
+	}
+}
+
+// consulKeys retrieves all key-value pairs with a given prefix from Consul KV store.
+// It returns a map where keys are full Consul KV paths and values are stored values.
+func consulKeys(client *consulapi.Client) func(string) (map[string]string, error) {
+	return func(prefix string) (map[string]string, error) {
+		if client == nil {
+			return nil, fmt.Errorf("consul client not initialized")
+		}
+		kv := client.KV()
+		if kv == nil {
+			return nil, fmt.Errorf("consul KV store not available")
+		}
+		pairs, _, err := kv.List(prefix, nil)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list consul keys with prefix %s: %w", prefix, err)
+		}
+		result := make(map[string]string)
+		for _, pair := range pairs {
+			result[pair.Key] = string(pair.Value)
+		}
+		return result, nil
+	}
 }

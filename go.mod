@@ -21,6 +21,7 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/fatih/color v1.19.0
 	github.com/go-git/go-git/v5 v5.17.0
+	github.com/hashicorp/consul/api v1.33.4
 	github.com/hashicorp/go-getter v1.8.4
 	github.com/hashicorp/go-hclog v1.6.3
 	github.com/hashicorp/go-multierror v1.1.1
@@ -192,7 +193,6 @@ require (
 	github.com/hashicorp/cap v0.12.0 // indirect
 	github.com/hashicorp/cli v1.1.7 // indirect
 	github.com/hashicorp/consul-template v0.41.4 // indirect
-	github.com/hashicorp/consul/api v1.33.4 // indirect
 	github.com/hashicorp/consul/sdk v0.17.2 // indirect
 	github.com/hashicorp/cronexpr v1.1.3 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect

@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	consulapi "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/nomad/api"
 	"github.com/posener/complete"
 
@@ -37,7 +38,7 @@ func initPackCommand(cfg *caching.PackConfig) (errorContext *errors.UIErrorConte
 }
 
 // generatePackManager is used to generate the pack manager for this Nomad Pack run.
-func generatePackManager(c *baseCommand, client *api.Client, packCfg *caching.PackConfig) *manager.PackManager {
+func generatePackManager(c *baseCommand, client *api.Client, packCfg *caching.PackConfig, consulClient *consulapi.Client) *manager.PackManager {
 	// TODO: Refactor to have manager use cache.
 	cfg := manager.Config{
 		Path:            packCfg.Path,
@@ -47,7 +48,7 @@ func generatePackManager(c *baseCommand, client *api.Client, packCfg *caching.Pa
 		AllowUnsetVars:  c.allowUnsetVars,
 		UseParserV1:     c.useParserV1,
 	}
-	return manager.NewPackManager(&cfg, client)
+	return manager.NewPackManager(&cfg, client, consulClient)
 }
 
 // predictPackName is a complete.Predictor that suggests cached pack names.

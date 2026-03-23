@@ -15,6 +15,7 @@ import (
 	"github.com/posener/complete"
 	"golang.org/x/exp/maps"
 
+	consulapi "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/nomad-pack/internal/pkg/caching"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
@@ -47,6 +48,11 @@ type RenderCommand struct {
 
 	// overwriteAll is set to true when someone specifies "a" to the y/n/a
 	overwriteAll bool
+
+	//Consul KV configuration for template functions
+	consulAddress   string
+	consulToken     string
+	consulNamespace string
 }
 
 type Render struct {
@@ -280,7 +286,26 @@ func (c *RenderCommand) Run(args []string) int {
 		c.ui.Error(err.Error())
 		return 1
 	}
-	packManager := generatePackManager(c.baseCommand, client, c.packConfig)
+
+	//initialize Consul client if address is provided
+	var consulClient *consulapi.Client
+	if c.consulAddress != "" {
+		consulConfig := consulapi.DefaultConfig()
+		consulConfig.Address = c.consulAddress
+		if c.consulToken != "" {
+			consulConfig.Token = c.consulToken
+		}
+		if c.consulNamespace != "" {
+			consulConfig.Namespace = c.consulNamespace
+		}
+		var err error
+		consulClient, err = consulapi.NewClient(consulConfig)
+		if err != nil {
+			c.ui.ErrorWithContext(err, "failed to initialize Consul client", errorContext.GetAll()...)
+			return 1
+		}
+	}
+	packManager := generatePackManager(c.baseCommand, client, c.packConfig, consulClient)
 
 	renderOutput, err := renderPack(
 		packManager,
@@ -400,6 +425,33 @@ func (c *RenderCommand) Flags() *flag.Sets {
 			},
 			Shorthand: "o",
 		})
+
+		f.StringVar(&flag.StringVar{
+			Name:    "consul-kv-address",
+			Target:  &c.consulAddress,
+			Default: "",
+			Usage: `Address of the Consul agent for KV template operations. 
+					If not set, Consul KV template functions (consulKey, consulKeys) 
+					will not be available. Example: http://127.0.0.1:8500`,
+		})
+
+		f.StringVar(&flag.StringVar{
+			Name:    "consul-kv-token",
+			Target:  &c.consulToken,
+			Default: "",
+			Usage: `Consul ACL token for KV template operations. If not provided, 
+					uses the token from CONSUL_HTTP_TOKEN environment variable or 
+					anonymous access if ACLs are not enabled.`,
+		})
+
+		f.StringVar(&flag.StringVar{
+			Name:    "consul-kv-namespace",
+			Target:  &c.consulNamespace,
+			Default: "",
+			Usage: `Consul namespace for KV template operations (Consul Enterprise only). 
+					If not provided, uses the default namespace.`,
+		})
+
 	})
 }
 
