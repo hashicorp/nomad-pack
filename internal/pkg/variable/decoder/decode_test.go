@@ -694,3 +694,174 @@ func testGetHCLBlock(t *testing.T, in hcl.Body) *hcl.Block {
 	must.True(t, len(b.Blocks) >= 1)
 	return b.Blocks[0]
 }
+
+func TestDecoder_DecodeVariableBlock_Validation(t *testing.T) {
+	ci.Parallel(t)
+
+	t.Run("parses single validation block", func(t *testing.T) {
+		ci.Parallel(t)
+		input := testGetHCLBlock(t, testLoadPackFile(t, []byte(`
+variable "location_type" {
+  type    = string
+  default = "dc"
+  validation {
+    condition     = contains(["dc", "pop", "stx"], var.location_type)
+    error_message = "Must be dc, pop, or stx."
+  }
+}`)))
+		out, diags := DecodeVariableBlock(input)
+		must.Len(t, 0, diags, must.Sprint(diags.Error()))
+		must.NotNil(t, out)
+		must.Len(t, 1, out.Validations)
+		must.Eq(t, "Must be dc, pop, or stx.", out.Validations[0].ErrorMessage)
+		must.NotNil(t, out.Validations[0].Condition)
+	})
+
+	t.Run("parses multiple validation blocks", func(t *testing.T) {
+		ci.Parallel(t)
+		input := testGetHCLBlock(t, testLoadPackFile(t, []byte(`
+variable "count" {
+  type    = number
+  default = 3
+  validation {
+    condition     = var.count > 0
+    error_message = "Must be positive."
+  }
+  validation {
+    condition     = var.count <= 10
+    error_message = "Must be at most 10."
+  }
+}`)))
+		out, diags := DecodeVariableBlock(input)
+		must.Len(t, 0, diags, must.Sprint(diags.Error()))
+		must.NotNil(t, out)
+		must.Len(t, 2, out.Validations)
+		must.Eq(t, "Must be positive.", out.Validations[0].ErrorMessage)
+		must.Eq(t, "Must be at most 10.", out.Validations[1].ErrorMessage)
+	})
+
+	t.Run("no validation blocks yields empty slice", func(t *testing.T) {
+		ci.Parallel(t)
+		input := testGetHCLBlock(t, testLoadPackFile(t, []byte(`
+variable "simple" {
+  type    = string
+  default = "hello"
+}`)))
+		out, diags := DecodeVariableBlock(input)
+		must.Len(t, 0, diags, must.Sprint(diags.Error()))
+		must.NotNil(t, out)
+		must.Len(t, 0, out.Validations)
+	})
+
+	t.Run("validate passes for valid default", func(t *testing.T) {
+		ci.Parallel(t)
+		input := testGetHCLBlock(t, testLoadPackFile(t, []byte(`
+variable "location_type" {
+  type    = string
+  default = "dc"
+  validation {
+    condition     = contains(["dc", "pop", "stx"], var.location_type)
+    error_message = "Must be dc, pop, or stx."
+  }
+}`)))
+		out, diags := DecodeVariableBlock(input)
+		must.Len(t, 0, diags, must.Sprint(diags.Error()))
+		valDiags := out.Validate()
+		must.Len(t, 0, valDiags)
+	})
+
+	t.Run("validate fails for invalid default", func(t *testing.T) {
+		ci.Parallel(t)
+		input := testGetHCLBlock(t, testLoadPackFile(t, []byte(`
+variable "location_type" {
+  type    = string
+  default = "invalid_value"
+  validation {
+    condition     = contains(["dc", "pop", "stx"], var.location_type)
+    error_message = "Must be dc, pop, or stx."
+  }
+}`)))
+		out, diags := DecodeVariableBlock(input)
+		must.Len(t, 0, diags, must.Sprint(diags.Error()))
+		valDiags := out.Validate()
+		must.True(t, valDiags.HasErrors())
+		must.StrContains(t, valDiags.Error(), "Must be dc, pop, or stx.")
+	})
+
+	t.Run("validate numeric conditions", func(t *testing.T) {
+		ci.Parallel(t)
+		input := testGetHCLBlock(t, testLoadPackFile(t, []byte(`
+variable "count" {
+  type    = number
+  default = 5
+  validation {
+    condition     = var.count > 0
+    error_message = "Must be positive."
+  }
+  validation {
+    condition     = var.count <= 10
+    error_message = "Must be at most 10."
+  }
+}`)))
+		out, diags := DecodeVariableBlock(input)
+		must.Len(t, 0, diags, must.Sprint(diags.Error()))
+		valDiags := out.Validate()
+		must.Len(t, 0, valDiags)
+	})
+
+	t.Run("validate numeric condition fails", func(t *testing.T) {
+		ci.Parallel(t)
+		input := testGetHCLBlock(t, testLoadPackFile(t, []byte(`
+variable "count" {
+  type    = number
+  default = 15
+  validation {
+    condition     = var.count > 0
+    error_message = "Must be positive."
+  }
+  validation {
+    condition     = var.count <= 10
+    error_message = "Must be at most 10."
+  }
+}`)))
+		out, diags := DecodeVariableBlock(input)
+		must.Len(t, 0, diags, must.Sprint(diags.Error()))
+		valDiags := out.Validate()
+		must.True(t, valDiags.HasErrors())
+		must.StrContains(t, valDiags.Error(), "Must be at most 10.")
+	})
+
+	t.Run("validate with regex passes", func(t *testing.T) {
+		ci.Parallel(t)
+		input := testGetHCLBlock(t, testLoadPackFile(t, []byte(`
+variable "name" {
+  type    = string
+  default = "hello-world"
+  validation {
+    condition     = length(regexall("^[a-z][a-z0-9-]+$", var.name)) > 0
+    error_message = "Must be lowercase alphanumeric with hyphens."
+  }
+}`)))
+		out, diags := DecodeVariableBlock(input)
+		must.Len(t, 0, diags, must.Sprint(diags.Error()))
+		valDiags := out.Validate()
+		must.Len(t, 0, valDiags)
+	})
+
+	t.Run("validate skipped when no value set", func(t *testing.T) {
+		ci.Parallel(t)
+		input := testGetHCLBlock(t, testLoadPackFile(t, []byte(`
+variable "required_var" {
+  type = string
+  validation {
+    condition     = length(var.required_var) > 0
+    error_message = "Must not be empty."
+  }
+}`)))
+		out, diags := DecodeVariableBlock(input)
+		must.Len(t, 0, diags, must.Sprint(diags.Error()))
+		// No default set, so Value is NilVal; validation should be skipped.
+		valDiags := out.Validate()
+		must.Len(t, 0, valDiags)
+	})
+}

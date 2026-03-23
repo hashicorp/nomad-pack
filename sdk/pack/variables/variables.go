@@ -57,9 +57,67 @@ type Variable struct {
 	// value into a Go type value.
 	Value cty.Value
 
+	// Validations holds zero or more validation rules declared for this variable.
+	Validations []Validation
+
 	// DeclRange is the position marker of the variable within the file it was
 	// read from. This is used for diagnostics.
 	DeclRange hcl.Range
+}
+
+// Validation represents a single validation rule for a variable.
+type Validation struct {
+	// Condition is the HCL expression that must evaluate to true.
+	Condition hcl.Expression
+	// ErrorMessage is displayed when the condition evaluates to false.
+	ErrorMessage string
+	// DeclRange is the source location of the validation block.
+	DeclRange hcl.Range
+}
+
+// Validate evaluates every validation rule against the variable's current
+// Value. It builds an EvalContext where var.<name> resolves to the value,
+// plus a standard set of HCL functions (contains, length, regex, etc.).
+func (v *Variable) Validate() hcl.Diagnostics {
+	if len(v.Validations) == 0 || v.Value == cty.NilVal {
+		return nil
+	}
+
+	ctx := &hcl.EvalContext{
+		Variables: map[string]cty.Value{
+			"var": cty.ObjectVal(map[string]cty.Value{
+				v.Name.String(): v.Value,
+			}),
+		},
+		Functions: ValidationFunctions(),
+	}
+
+	var diags hcl.Diagnostics
+	for _, rule := range v.Validations {
+		result, condDiags := rule.Condition.Value(ctx)
+		diags = append(diags, condDiags...)
+		if condDiags.HasErrors() {
+			continue
+		}
+		if result.IsNull() || result.Type() != cty.Bool {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid condition result",
+				Detail:   fmt.Sprintf("Validation condition for variable %q must return a boolean.", v.Name),
+				Subject:  rule.Condition.Range().Ptr(),
+			})
+			continue
+		}
+		if result.False() {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid value for variable",
+				Detail:   fmt.Sprintf("Variable %q: %s", v.Name, rule.ErrorMessage),
+				Subject:  rule.DeclRange.Ptr(),
+			})
+		}
+	}
+	return diags
 }
 
 func (v *Variable) SetDescription(d string) { v.Description = d; v.hasDescription = true }
