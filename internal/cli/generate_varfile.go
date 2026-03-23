@@ -142,7 +142,7 @@ func (c *generateVarFileCommand) Run(args []string) int {
 	// until something sets them, like the var file we're trying to create!)
 	c.allowUnsetVars = true
 
-	packManager := generatePackManager(c.baseCommand, nil, c.packConfig)
+	packManager := generatePackManager(c.baseCommand, nil, c.packConfig, nil)
 	renderOutput, err := renderVariableOverrideFile(packManager, c.ui, errorContext)
 	if err != nil {
 		return 1
