@@ -2,6 +2,7 @@
 
 IMPROVEMENTS:
 * cli: Add registry now honors default main/master branch [[GH-843](https://github.com/hashicorp/nomad-pack/pull/843)]
+* template: Add `consulKey()` and `consulKeys()` functions to access Consul KV store for template variables [[GH-473](https://github.com/hashicorp/nomad-pack/pull/850)]
 
 ## 0.4.2 (March 16, 2026)
 
