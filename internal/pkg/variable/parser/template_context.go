@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2021, 2025
+// Copyright IBM Corp. 2023, 2026
 // SPDX-License-Identifier: MPL-2.0
 
 package parser
@@ -6,6 +6,8 @@ package parser
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"text/template"
@@ -157,14 +159,15 @@ func PackTemplateContextFuncsV1() template.FuncMap {
 // Renderer
 func PackTemplateContextFuncsV2() template.FuncMap {
 	return template.FuncMap{
-		"vars":      getPackVars,
-		"var":       getPackVar,
-		"must_var":  mustGetPackVar,
-		"metas":     getPackMetas,
-		"meta":      getPackMeta,
-		"must_meta": mustGetPackMeta,
-		"deps":      getPackDeps,
-		"deps_tree": getPackDepTree,
+		"vars":         getPackVars,
+		"var":          getPackVar,
+		"must_var":     mustGetPackVar,
+		"metas":        getPackMetas,
+		"meta":         getPackMeta,
+		"must_meta":    mustGetPackMeta,
+		"deps":         getPackDeps,
+		"deps_tree":    getPackDepTree,
+		"fileRelative": fileRelativeContents,
 	}
 }
 
@@ -257,6 +260,37 @@ func getPackMeta(k string, p PackContextable) any {
 	} else {
 		return ""
 	}
+}
+
+// fileRelativeContents reads a file whose path is specified relative to the
+// current pack's root directory and returns its contents as a string. This
+// allows pack templates to reference companion files portably across different
+// environments (e.g. developer laptop, CI) without hard-coding absolute paths.
+//
+// The pack's root directory is sourced from the "pack.path" metadata key which
+// is automatically populated by the renderer at render time. Use it in a V2
+// template as follows:
+//
+//	[[ fileRelative "config/defaults.json" . ]]
+func fileRelativeContents(file string, p PackContextable) (string, error) {
+	metas := p.getMetas()
+
+	packMeta, ok := metas["pack"].(map[string]any)
+	if !ok {
+		return "", errors.New("fileRelative: pack metadata not available in context")
+	}
+
+	packPath, ok := packMeta["path"].(string)
+	if !ok || packPath == "" {
+		return "", errors.New("fileRelative: pack path not set in metadata; ensure the pack was loaded from disk")
+	}
+
+	absPath := filepath.Join(packPath, file)
+	content, err := os.ReadFile(absPath)
+	if err != nil {
+		return "", fmt.Errorf("fileRelative: failed to read %s: %w", absPath, err)
+	}
+	return string(content), nil
 }
 
 func getPackDeps(p PackTemplateContext) PackTemplateContext {

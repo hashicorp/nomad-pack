@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2021, 2025
+// Copyright IBM Corp. 2023, 2026
 // SPDX-License-Identifier: MPL-2.0
 
 package pack
@@ -47,6 +47,12 @@ type File struct {
 // Pack is a single nomad-pack package and contains all the required information to
 // successfully interrogate and render the pack.
 type Pack struct {
+
+	// Path is the absolute filesystem path to the root directory of this pack.
+	// It is populated by the loader and is available to templates via the
+	// "pack.path" metadata key, allowing pack-relative file references to be
+	// resolved to absolute paths at render time.
+	Path string
 
 	// Metadata is the contents of the Pack metadata.hcl file. It contains
 	// high-level information about the pack which is useful for operators and

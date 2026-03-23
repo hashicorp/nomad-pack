@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2021, 2025
+// Copyright IBM Corp. 2023, 2026
 // SPDX-License-Identifier: MPL-2.0
 
 package job
@@ -80,11 +80,11 @@ func (r *Runner) hasDeployOverride() bool {
 	if r.cfg == nil {
 		return false
 	}
-	if r.cfg.RunConfig != nil {
-		return r.cfg.RunConfig.DeployOverride
-	}
-	if r.cfg.PlanConfig != nil {
-		return r.cfg.PlanConfig.DeployOverride
+	runOverride := r.cfg.RunConfig != nil && r.cfg.RunConfig.DeployOverride
+	planOverride := r.cfg.PlanConfig != nil && r.cfg.PlanConfig.DeployOverride
+
+	if runOverride || planOverride {
+		return true
 	}
 	return false
 }
