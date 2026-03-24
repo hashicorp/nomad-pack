@@ -377,7 +377,7 @@ func TestParserV2_FileOverridesFollowInputOrder(t *testing.T) {
 
 	pvs := pm.ProcessVariables()
 	must.NotNil(t, pvs)
-	must.Eq(t, "from-second", pvs.v2Vars["variable_test"]["input"].Value.AsString())
+	must.Eq(t, "from-second", pvs.v2Vars["variable_test_pack"]["input"].Value.AsString())
 }
 
 func TestParserV2_VariableOverrides(t *testing.T) {

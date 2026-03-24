@@ -160,8 +160,8 @@ func TestParserV1_FileOverridesFollowInputOrder(t *testing.T) {
 	first := filepath.Join(tmpDir, "b-first.hcl")
 	second := filepath.Join(tmpDir, "a-second.hcl")
 
-	must.NoError(t, os.WriteFile(first, []byte("input = \"from-first\"\n"), 0o644))
-	must.NoError(t, os.WriteFile(second, []byte("input = \"from-second\"\n"), 0o644))
+	must.NoError(t, os.WriteFile(first, []byte("variable_test_pack = { input = \"from-first\" }\n"), 0o644))
+	must.NoError(t, os.WriteFile(second, []byte("variable_test_pack = { input = \"from-second\" }\n"), 0o644))
 
 	fixturePath := testfixture.AbsPath(t, "v1/variable_test/variable_test")
 	pm := newTestPackManager(t, fixturePath, true)
@@ -169,7 +169,7 @@ func TestParserV1_FileOverridesFollowInputOrder(t *testing.T) {
 
 	pvs := pm.ProcessVariables()
 	must.NotNil(t, pvs)
-	must.Eq(t, "from-second", pvs.v1Vars["variable_test"]["input"].Value.AsString())
+	must.Eq(t, "from-second", pvs.v1Vars["variable_test_pack"]["input"].Value.AsString())
 }
 
 func TestParserV1_VariableOverrides(t *testing.T) {
