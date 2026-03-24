@@ -2,6 +2,7 @@
 
 IMPROVEMENTS:
 * cli: Add registry now honors default main/master branch [[GH-843](https://github.com/hashicorp/nomad-pack/pull/843)]
+* variable: Fixed variable file overrides (last supplied wins) [[GH-851](https://github.com/hashicorp/nomad-pack/pull/851)]
 
 ## 0.4.2 (March 16, 2026)
 
