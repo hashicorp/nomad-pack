@@ -1,5 +1,8 @@
 ## UNRELEASED
 
+IMPROVEMENTS:
+* cli: Add registry now honors default main/master branch [[GH-843](https://github.com/hashicorp/nomad-pack/pull/843)]
+
 ## 0.4.2 (March 16, 2026)
 
 SECURITY:
@@ -15,10 +18,15 @@ IMPROVEMENTS:
 * cli: Add line and column information to HCL error messages using the standard HCL v2 format (e.g., `variables.hcl:3,3-7`) to help users locate configuration errors more easily [[GH-807](https://github.com/hashicorp/nomad-pack/pull/807)]
 * cli: Add `fmt` command to format pack template (.tpl) and configuration (.hcl) files [[GH-767](https://github.com/hashicorp/nomad-pack/pull/824)]
 * cli: Add path information to metadata to aid file template funcs [[GH-830](https://github.com/hashicorp/nomad-pack/pull/830)]
+* cli: Add registry update command [[GH-811](https://github.com/hashicorp/nomad-pack/pull/811)]
+* cli: Removed .git directories from cache [[GH-808](https://github.com/hashicorp/nomad-pack/pull/808)]
+* cli: Stop nonexistent jobs in a deployed pack during pack version updates [[GH-825](https://github.com/hashicorp/nomad-pack/pull/825)]
+* cli: Allow slash in nomad-pack ref [[GH-829](https://github.com/hashicorp/nomad-pack/pull/829)]
 * template: Improve regex parsing for namespace and region fields to support hyphenated values [[GH-757](https://github.com/hashicorp/nomad-pack/pull/757)]
 * template: Add `tpl` function for evaluating template strings stored in variables [[GH-810](https://github.com/hashicorp/nomad-pack/pull/810)]
 * variable: Improve the error message returned when using a variable file with an unsupported file extension [[GH-791](https://github.com/hashicorp/nomad-pack/pull/791)]
 * variable: Add support for `optional()` type constraint modifier in variable definitions [[GH-798](https://github.com/hashicorp/nomad-pack/pull/798)]
+* variable: fixed nomad-pack treats any variables called `region` or `namespace` as Nomad region/namespace settings [[815](https://github.com/hashicorp/nomad-pack/pull/815)]
 * template: Add `nomadVariable()` and `nomadVariables()` functions to access Nomad's native variable storage [[GH-409](https://github.com/hashicorp/nomad-pack/pull/828)]
 
 
@@ -27,6 +35,7 @@ BUG FIXES:
 * cli: Fix plan diff output to display `EmbeddedTmpl` content with proper line breaks for improved readability [[GH-799](https://github.com/hashicorp/nomad-pack/pull/799)]
 * cli: Fix render and generate-var-file commands incorrectly treating rendered template content as a printf format string, which corrupted format specifiers (e.g., `%i` → `%!i(MISSING)`) in terminal output [[GH-809](https://github.com/hashicorp/nomad-pack/pull/809)]
 * cli: Fix destroy command not using namespace from job template, requiring explicit `--namespace` flag [[GH-802](https://github.com/hashicorp/nomad-pack/pull/802)]
+* cli: Fix handle packs of mixed casing [[GH-826](https://github.com/hashicorp/nomad-pack/pull/826)]
 
 ## 0.4.1 (November 13, 2025)
 
