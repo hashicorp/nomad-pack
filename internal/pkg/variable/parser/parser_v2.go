@@ -121,6 +121,17 @@ func (p *ParserV2) Parse() (*ParsedVariables, hcl.Diagnostics) {
 		}
 	}
 
+	// After all overrides have been merged, run variable validation rules.
+	if !diags.HasErrors() {
+		for _, packVars := range p.rootVars {
+			for _, v := range packVars {
+				if valDiags := v.Validate(); valDiags.HasErrors() {
+					diags = diags.Extend(valDiags)
+				}
+			}
+		}
+	}
+
 	out := new(ParsedVariables)
 	out.LoadV2Result(p.rootVars)
 
