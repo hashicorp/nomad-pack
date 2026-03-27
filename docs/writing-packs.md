@@ -108,6 +108,30 @@ variable "resources" {
 }
 ```
 
+#### Nomad Variables
+
+In addition to pack variables, you can define Nomad Variables that will be automatically created in Nomad's native variable storage when you deploy your pack. These variables are useful for storing secrets, configuration, and other data that needs to be accessible to your Nomad jobs.
+
+Nomad Variables are defined using `nomad_variable` blocks in your `variables.hcl` file:
+
+```hcl
+nomad_variable "app_secrets" {
+  path      = "nomad/jobs/myapp/secrets"
+  namespace = "default"
+  items = {
+    db_password = "secret123"
+    api_key     = "key456"
+  }
+}
+
+nomad_variable "app_config" {
+  path = "nomad/jobs/myapp/config"
+  items = {
+    log_level    = "info"
+    feature_flag = "enabled"
+  }
+}
+
 #### outputs.tpl
 
 The `outputs.tpl` is an optional file that defines an output to be printed when a pack is deployed.

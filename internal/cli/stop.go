@@ -186,6 +186,14 @@ func (c *StopCommand) Run(args []string) int {
 		stoppedJobs = append(stoppedJobs, *job.Name)
 	}
 
+	// after all jobs are stopped, delete Nomad Variables if purging
+	if c.purge && r.ParsedVariables() != nil {
+		if err := deleteNomadVariables(r.ParsedVariables(), client, c.ui, errorContext); err != nil {
+			c.ui.ErrorWithContext(err, "failed to delete Nomad Variables", errorContext.GetAll()...)
+			// don't return error - jobs are already stopped
+		}
+	}
+
 	monitorExitCode := 0
 	// Monitor all evaluations in parallel unless --detach is specified
 	if !c.detach && len(evalIDs) > 0 {

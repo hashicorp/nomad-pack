@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser/config"
 	"github.com/hashicorp/nomad-pack/sdk/pack"
 	"github.com/hashicorp/nomad-pack/sdk/pack/variables"
+	"github.com/hashicorp/nomad/ci"
 	"github.com/shoenig/test/must"
 	"github.com/spf13/afero"
 	"github.com/zclconf/go-cty/cty"
@@ -488,4 +489,46 @@ func NewStringVariableV2(key, value, kind string) *variables.Variable {
 		Value:     cty.StringVal(value),
 		DeclRange: hcl.Range{Filename: fmt.Sprintf("<value for var %s from %s>", key, kind)},
 	}
+}
+
+func TestParsedVariables_GetNomadVars(t *testing.T) {
+	ci.Parallel(t)
+
+	t.Run("returns empty map when no nomad variables", func(t *testing.T) {
+		pv := &ParsedVariables{
+			nomadVars: make(map[pack.ID][]*variables.NomadVariable),
+		}
+		nvs := pv.GetNomadVars()
+		must.NotNil(t, nvs)
+		must.MapEmpty(t, nvs)
+	})
+
+	t.Run("returns nil when nomadVars is nil", func(t *testing.T) {
+		pv := &ParsedVariables{
+			nomadVars: nil,
+		}
+		nvs := pv.GetNomadVars()
+		must.Nil(t, nvs)
+	})
+
+	t.Run("returns nomad variables map", func(t *testing.T) {
+		nv1 := &variables.NomadVariable{
+			Name: "test1",
+			Path: "nomad/jobs/test1",
+		}
+		nv2 := &variables.NomadVariable{
+			Name: "test2",
+			Path: "nomad/jobs/test2",
+		}
+		pv := &ParsedVariables{
+			nomadVars: map[pack.ID][]*variables.NomadVariable{
+				"example": {nv1, nv2},
+			},
+		}
+		nvs := pv.GetNomadVars()
+		must.Eq(t, 1, len(nvs))
+		must.Eq(t, 2, len(nvs["example"]))
+		must.Eq(t, "test1", nvs["example"][0].Name)
+		must.Eq(t, "test2", nvs["example"][1].Name)
+	})
 }

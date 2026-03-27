@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser"
 	"github.com/hashicorp/nomad-pack/internal/runner"
 	"github.com/hashicorp/nomad-pack/internal/runner/job"
+	"github.com/hashicorp/nomad-pack/sdk/pack/variables"
 	"github.com/hashicorp/nomad-pack/terminal"
 )
 
@@ -197,6 +198,121 @@ func renderPack(
 		return nil, errors.New("failed to render")
 	}
 	return r, nil
+}
+
+// createNomadVariables creates Nomad Variables defined in nomad_variable blocks
+func createNomadVariables(
+	parsedVars *parser.ParsedVariables,
+	client *api.Client,
+	ui terminal.UI,
+	errCtx *errors.UIErrorContext,
+) error {
+	nomadVars := parsedVars.GetNomadVars()
+	if len(nomadVars) == 0 {
+		return nil // No nomad variables to create
+	}
+
+	ui.Output("Creating Nomad Variables...")
+
+	for _, nvList := range nomadVars {
+		for _, nv := range nvList {
+			// Convert cty.Value items to map[string]string for Nomad API
+			items := make(map[string]string)
+			for key, val := range nv.Items {
+				// Convert cty.Value to Go interface
+				goVal, err := variables.ConvertCtyToInterface(val)
+				if err != nil {
+					return fmt.Errorf("failed to convert variable %s.%s: %w", nv.Name, key, err)
+				}
+				items[key] = fmt.Sprintf("%v", goVal)
+			}
+
+			// Create the Nomad Variable
+			variable := &api.Variable{
+				Path:      nv.Path,
+				Namespace: nv.Namespace,
+				Items:     items,
+			}
+
+			// Set default namespace if not specified
+			if variable.Namespace == "" {
+				variable.Namespace = "default"
+			}
+
+			ui.Output(fmt.Sprintf("  Creating variable at path: %s (namespace: %s)",
+				nv.Path, variable.Namespace))
+
+			// Check if variable already exists and warn user
+			existing, _, err := client.Variables().Read(nv.Path, &api.QueryOptions{
+				Namespace: variable.Namespace,
+			})
+			if err == nil && existing != nil {
+				ui.Warning(fmt.Sprintf("  ⚠ Variable at path %s already exists and will be updated", nv.Path))
+			}
+
+			// Create or update the variable
+			_, _, err = client.Variables().Create(variable, nil)
+			if err != nil {
+				// If variable exists, try to update it
+				if strings.Contains(err.Error(), "already exists") {
+					_, _, err = client.Variables().Update(variable, nil)
+					if err != nil {
+						return fmt.Errorf("failed to update variable at path %s: %w", nv.Path, err)
+					}
+					ui.Output(fmt.Sprintf("  ✓ Updated variable: %s", nv.Name))
+				} else {
+					return fmt.Errorf("failed to create variable at path %s: %w", nv.Path, err)
+				}
+			} else {
+				ui.Output(fmt.Sprintf("  ✓ Created variable: %s", nv.Name))
+			}
+		}
+	}
+
+	ui.Success("Nomad Variables created successfully")
+	return nil
+}
+
+// deleteNomadVariables deletes Nomad Variables defined in nomad_variable blocks
+func deleteNomadVariables(
+	parsedVars *parser.ParsedVariables,
+	client *api.Client,
+	ui terminal.UI,
+	errCtx *errors.UIErrorContext,
+) error {
+	nomadVars := parsedVars.GetNomadVars()
+	if len(nomadVars) == 0 {
+		return nil // no nomad variables to delete
+	}
+
+	ui.Output("Deleting Nomad Variables...")
+
+	for _, variables := range nomadVars {
+		for _, nv := range variables {
+			namespace := nv.Namespace
+			if namespace == "" {
+				namespace = "default"
+			}
+
+			ui.Output(fmt.Sprintf("Deleting variable at path: %s (namespace: %s)", nv.Path, namespace))
+
+			//delete the variable
+			_, err := client.Variables().Delete(nv.Path, &api.WriteOptions{Namespace: namespace})
+			if err != nil {
+				// if variable doesn't exist, its not an error
+				if strings.Contains(err.Error(), "not found") {
+					ui.Output(fmt.Sprintf("Variable not found (already deleted): %s", nv.Name))
+				} else {
+					return fmt.Errorf("failed to delete variable at path %s: %w", nv.Path, err)
+				}
+			} else {
+				ui.Output(fmt.Sprintf("Deleted variable: %s", nv.Name))
+			}
+		}
+	}
+
+	ui.Success("Nomad Variables deleted successfully")
+	return nil
 }
 
 // TODO: This needs to be on a domain specific pkg rather than a UI helpers file.
