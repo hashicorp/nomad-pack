@@ -234,15 +234,9 @@ func (p *ParserV2) parseRootFiles() hcl.Diagnostics {
 		for _, block := range content.Blocks {
 			switch block.Type {
 			case "variable":
-				_, diags := p.parseVariableBlocks([]*hcl.Block{block})
-				if diags.HasErrors() {
-					return diags
-				}
+				variableBlocks = append(variableBlocks, block)
 			case "nomad_variable":
-				_, diags := p.parseNomadVariableBlocks([]*hcl.Block{block})
-				if diags.HasErrors() {
-					return diags
-				}
+				nomadVariableBlocks = append(nomadVariableBlocks, block)
 			}
 		}
 
