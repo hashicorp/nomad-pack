@@ -3,6 +3,7 @@
 IMPROVEMENTS:
 * cli: Add registry now honors default main/master branch [[GH-843](https://github.com/hashicorp/nomad-pack/pull/843)]
 * variable: Variables declaration now supports validation stanza [[GH-841](https://github.com/hashicorp/nomad-pack/pull/841)]
+* variable: Add support for `nomad_variable` blocks with automatic lifecycle management during pack deployment and destruction [[GH-409](https://github.com/hashicorp/nomad-pack/pull/853)]
 
 ## 0.4.2 (March 16, 2026)
 
