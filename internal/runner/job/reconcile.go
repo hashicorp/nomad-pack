@@ -5,6 +5,7 @@ package job
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/nomad/api"
 
@@ -100,12 +101,21 @@ func (r *Runner) findStaleJobs(currentJobIDs map[string]struct{}) ([]*api.JobLis
 
 	var staleJobs []*api.JobListStub
 	for _, stub := range jobStubs {
+		if stub == nil {
+			continue
+		}
+
 		// Skip already-stopped jobs — nothing to do.
 		if stub.Status == "dead" {
 			continue
 		}
 
 		if stub.ID == "" {
+			continue
+		}
+
+		// Child jobs should not be treated as pack-managed root jobs that can be stopped.
+		if isChildJobStub(stub) {
 			continue
 		}
 
@@ -116,4 +126,37 @@ func (r *Runner) findStaleJobs(currentJobIDs map[string]struct{}) ([]*api.JobLis
 	}
 
 	return staleJobs, nil
+}
+
+func isChildJobStub(stub *api.JobListStub) bool {
+	if stub == nil {
+		return false
+	}
+
+	// Preferred signal from Nomad.
+	if stub.ParentID != "" {
+		return true
+	}
+
+	// Metadata-based signal from nomad-pack tags. For child jobs, pack.job points
+	// to the parent/root job name, which differs from the child ID.
+	if packJob, ok := stub.Meta[PackJobKey]; ok && packJob != "" {
+		return packJob != stub.ID
+	}
+
+	// Fallback only when pack.job metadata is missing.
+	return isChildStyleJobID(stub.ID)
+}
+
+// isChildStyleJobID is a conservative fallback: child jobs are represented as
+// "<parent>/<child-run-id>", so they always contain a non-leading slash.
+func isChildStyleJobID(jobID string) bool {
+	// Find the last occurrence of "/" to handle job names that might contain slashes
+	idx := strings.LastIndex(jobID, "/")
+	if idx <= 0 {
+		// No slash found, or slash is at the beginning (invalid)
+		return false
+	}
+
+	return idx < len(jobID)-1
 }
