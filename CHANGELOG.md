@@ -4,6 +4,11 @@ IMPROVEMENTS:
 * cli: Add registry now honors default main/master branch [[GH-843](https://github.com/hashicorp/nomad-pack/pull/843)]
 * variable: Variables declaration now supports validation stanza [[GH-841](https://github.com/hashicorp/nomad-pack/pull/841)]
 
+
+BUG FIXES:
+* cli: Fix panic when calling status command with namespace wildcard by adding namespace parameter to QueryOptions [[GH-827](https://github.com/hashicorp/nomad-pack/pull/854)]
+
+
 ## 0.4.2 (March 16, 2026)
 
 SECURITY:
