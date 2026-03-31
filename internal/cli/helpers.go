@@ -360,7 +360,7 @@ func getDeployedPacks(c *api.Client) (map[string]map[string]struct{}, error) {
 			Namespace: jobStub.Namespace,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("error retrieving job %s: %s", jobStub.ID, err)
+			return nil, fmt.Errorf("error retrieving job %s: %w", jobStub.ID, err)
 		}
 
 		if nomadJob.Meta != nil {

@@ -6,7 +6,7 @@ IMPROVEMENTS:
 
 
 BUG FIXES:
-* cli: Fix panic when calling status command with namespace wildcard by adding namespace parameter to QueryOptions [[GH-827](https://github.com/hashicorp/nomad-pack/pull/854)]
+* cli: Fix panic when calling status command with namespace wildcard [[GH-827](https://github.com/hashicorp/nomad-pack/pull/854)]
 
 
 ## 0.4.2 (March 16, 2026)
