@@ -4,6 +4,10 @@
 package cli
 
 import (
+	"os"
+	"path/filepath"
+	"strings"
+
 	"github.com/hashicorp/nomad-pack/internal/pkg/caching"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
@@ -70,8 +74,28 @@ func (c *PlanCommand) Run(args []string) int {
 	}
 
 	if r.LenParentRenders() < 1 {
-		displayNoParentTemplatesError(c.ui, c.packConfig.Path, errorContext)
+		errorContext.Add(errors.UIContextErrorDetail, "No parent templates (*.nomad.tpl files) were found in the pack")
+		errorContext.Add(errors.UIContextErrorSuggestion, "Parent templates must end with .nomad.tpl (e.g., app.nomad.tpl). Helper templates should start with _ (e.g., _helpers.tpl)")
+
+		//List found template files
+		templatesPath := filepath.Join(c.packConfig.Path, "templates")
+		if entries, err := os.ReadDir(templatesPath); err == nil {
+			var templateFiles []string
+			for _, entry := range entries {
+				if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".tpl") {
+					templateFiles = append(templateFiles, entry.Name())
+				}
+			}
+			if len(templateFiles) > 0 {
+				errorContext.Add("Found Templates: ", strings.Join(templateFiles, ", "))
+			} else {
+				errorContext.Add("Found Templates", "none")
+			}
+		}
+
+		c.ui.ErrorWithContext(errors.ErrNoTemplatesRendered, "no parent templates found", errorContext.GetAll()...)
 		return c.exitCodeError
+
 	}
 
 	depConfig := runner.Config{

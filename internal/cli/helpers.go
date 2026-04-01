@@ -6,7 +6,6 @@ package cli
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/hashicorp/nomad/api"
@@ -557,44 +556,4 @@ func limit(s string, length int) string {
 	}
 
 	return s[:length]
-}
-
-// displayNoParentTemplatesError displays a detailed error message when no parent
-// templates (*.nomad.tpl files) are found in a pack. It lists the template files
-// found and provides guidance on proper naming conventions.
-func displayNoParentTemplatesError(ui terminal.UI, packPath string, errorContext *errors.UIErrorContext) {
-	// Try to list actual template files from the pack path
-	templatesPath := filepath.Join(packPath, "templates")
-	templateFiles := []string{}
-
-	if entries, err := os.ReadDir(templatesPath); err == nil {
-		for _, entry := range entries {
-			if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".tpl") {
-				templateFiles = append(templateFiles, entry.Name())
-			}
-		}
-	}
-
-	// Display error message
-	ui.Error("! No parent templates found\n")
-	ui.Error("No parent templates (*.nomad.tpl files) were found in the pack.\n")
-	ui.Error("\nTemplate Naming Convention:")
-	ui.Error("  • Parent templates must end with .nomad.tpl (e.g., app.nomad.tpl)")
-	ui.Error("  • Helper templates should start with _ (e.g., _helpers.tpl)")
-	ui.Error("  • Other .tpl files are treated as auxiliary templates\n")
-
-	if len(templateFiles) > 0 {
-		ui.Error("Found template files in templates/ directory:")
-		for _, tmpl := range templateFiles {
-			ui.Error("  " + tmpl)
-		}
-	} else {
-		ui.Error("No .tpl files found in templates/ directory")
-	}
-
-	ui.Error("\nPlease ensure at least one template follows the *.nomad.tpl naming pattern.\n")
-	ui.Error("\nContext:")
-	for _, ctx := range errorContext.GetAll() {
-		ui.Error("    - " + ctx)
-	}
 }
