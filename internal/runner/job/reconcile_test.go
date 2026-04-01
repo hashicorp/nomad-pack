@@ -10,87 +10,6 @@ import (
 	"github.com/shoenig/test/must"
 )
 
-func TestIsChildJobID(t *testing.T) {
-	testCases := []struct {
-		desc   string
-		jobID  string
-		expect bool
-	}{
-		{
-			desc:   "empty job ID is not a child job",
-			jobID:  "",
-			expect: false,
-		},
-		{
-			desc:   "simple job ID without slash is not a child job",
-			jobID:  "my-job",
-			expect: false,
-		},
-		{
-			desc:   "job ID with slash is treated as child-style fallback",
-			jobID:  "namespace/my-job",
-			expect: true,
-		},
-		{
-			desc:   "periodic child job is detected",
-			jobID:  "job-requester/periodic-1774607280",
-			expect: true,
-		},
-		{
-			desc:   "dispatch child job is detected",
-			jobID:  "nuclei/dispatch-1774607281-093f6605",
-			expect: true,
-		},
-		{
-			desc:   "dispatch child job with longer suffix is detected",
-			jobID:  "my-job/dispatch-1234567890-abcdef123456",
-			expect: true,
-		},
-		{
-			desc:   "job with periodic in name but not as child pattern is not a child job",
-			jobID:  "periodic-backup",
-			expect: false,
-		},
-		{
-			desc:   "job with dispatch in name but not as child pattern is not a child job",
-			jobID:  "dispatch-service",
-			expect: false,
-		},
-		{
-			desc:   "job with slash at the beginning is not a child job",
-			jobID:  "/periodic-123",
-			expect: false,
-		},
-		{
-			desc:   "job with multiple slashes uses last one for pattern matching",
-			jobID:  "namespace/parent/periodic-1234567890",
-			expect: true,
-		},
-		{
-			desc:   "job with multiple slashes is treated as child-style fallback",
-			jobID:  "namespace/parent/my-job",
-			expect: true,
-		},
-		{
-			desc:   "parameterized root job is not a child job",
-			jobID:  "nuclei",
-			expect: false,
-		},
-		{
-			desc:   "periodic root job is not a child job",
-			jobID:  "job-requester",
-			expect: false,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.desc, func(t *testing.T) {
-			actual := isChildStyleJobID(tc.jobID)
-			must.Eq(t, tc.expect, actual)
-		})
-	}
-}
-
 func TestIsChildJobStub_PackJobMetadataPrecedence(t *testing.T) {
 	t.Run("pack.job equal to ID is root even with slash", func(t *testing.T) {
 		stub := &api.JobListStub{
@@ -116,6 +35,17 @@ func TestIsChildJobStub_PackJobMetadataPrecedence(t *testing.T) {
 		}
 
 		must.Eq(t, true, isChildJobStub(stub))
+	})
+
+	t.Run("missing parent and metadata is treated as root", func(t *testing.T) {
+		stub := &api.JobListStub{
+			ID:       "namespace/my-root-job",
+			Status:   "running",
+			ParentID: "",
+			Meta:     map[string]string{},
+		}
+
+		must.Eq(t, false, isChildJobStub(stub))
 	})
 }
 

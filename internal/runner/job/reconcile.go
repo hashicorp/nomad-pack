@@ -5,7 +5,6 @@ package job
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/hashicorp/nomad/api"
 
@@ -140,23 +139,13 @@ func isChildJobStub(stub *api.JobListStub) bool {
 
 	// Metadata-based signal from nomad-pack tags. For child jobs, pack.job points
 	// to the parent/root job name, which differs from the child ID.
-	if packJob, ok := stub.Meta[PackJobKey]; ok && packJob != "" {
-		return packJob != stub.ID
+	if stub.Meta != nil {
+		if packJob, ok := stub.Meta[PackJobKey]; ok && packJob != "" {
+			return packJob != stub.ID
+		}
 	}
 
-	// Fallback only when pack.job metadata is missing.
-	return isChildStyleJobID(stub.ID)
-}
-
-// isChildStyleJobID is a conservative fallback: child jobs are represented as
-// "<parent>/<child-run-id>", so they always contain a non-leading slash.
-func isChildStyleJobID(jobID string) bool {
-	// Find the last occurrence of "/" to handle job names that might contain slashes
-	idx := strings.LastIndex(jobID, "/")
-	if idx <= 0 {
-		// No slash found, or slash is at the beginning (invalid)
-		return false
-	}
-
-	return idx < len(jobID)-1
+	// If neither ParentID nor pack.job metadata indicates a child job,
+	// treat it as a root job to avoid false positives.
+	return false
 }
