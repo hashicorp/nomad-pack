@@ -181,6 +181,43 @@ Iterate and filter:
 [[ end ]]
 [[ end ]]
 
+#### Consul KV Configuration
+
+The Consul KV template functions (`consulKey` and `consulKeys`) require configuration to connect to Consul. Configuration can be provided via CLI flags or environment variables.
+
+##### CLI Flags
+
+Available for `nomad-pack run`, `nomad-pack plan`, and `nomad-pack render` commands:
+
+- `--consul-kv-address` - Consul server address (e.g., `https://consul.example.com:8501`)
+- `--consul-kv-token` - Consul ACL token for authentication
+- `--consul-kv-namespace` - Consul namespace (Consul Enterprise only)
+- `--consul-kv-ca-cert` - Path to CA certificate file for TLS verification
+- `--consul-kv-client-cert` - Path to client certificate file for mutual TLS (mTLS)
+- `--consul-kv-client-key` - Path to client private key file for mutual TLS (mTLS)
+- `--consul-kv-tls-skip-verify` - Skip TLS certificate verification (not recommended for production)
+- `--consul-kv-tls-server-name` - Server name to use for TLS SNI (Server Name Indication)
+
+##### Environment Variables
+
+The following environment variables are supported and follow Consul CLI conventions:
+
+- `CONSUL_HTTP_ADDR` - Consul server address
+- `CONSUL_HTTP_TOKEN` - Consul ACL token
+- `CONSUL_NAMESPACE` - Consul namespace
+- `CONSUL_CACERT` - Path to CA certificate file
+- `CONSUL_CLIENT_CERT` - Path to client certificate file
+- `CONSUL_CLIENT_KEY` - Path to client private key file
+- `CONSUL_HTTP_SSL_VERIFY` - Set to `"false"` to skip TLS verification
+- `CONSUL_TLS_SERVER_NAME` - Server name for TLS SNI
+
+**Priority:** CLI flags take precedence over environment variables.
+
+##### Configuration Examples
+
+**Basic HTTP connection:**
+```bash
+nomad-pack run my-pack --consul-kv-address=http://localhost:8500
 
 ### Region functions
 

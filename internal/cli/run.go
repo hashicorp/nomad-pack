@@ -5,6 +5,7 @@ package cli
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/posener/complete"
 
@@ -26,6 +27,12 @@ type RunCommand struct {
 	consulAddress   string
 	consulToken     string
 	consulNamespace string
+	// TLS fields:
+	consulCACert        string
+	consulClientCert    string
+	consulClientKey     string
+	consulTLSSkipVerify bool
+	consulTLSServerName string
 }
 
 func (c *RunCommand) Run(args []string) int {
@@ -76,12 +83,51 @@ func (c *RunCommand) run() int {
 		consulConfig := consulapi.DefaultConfig()
 		consulConfig.Address = c.consulAddress
 
+		// support environment variables with CLI flag priority
+		if c.consulToken == "" {
+			c.consulToken = os.Getenv("CONSUL_HTTP_TOKEN")
+		}
 		if c.consulToken != "" {
 			consulConfig.Token = c.consulToken
 		}
 
+		if c.consulNamespace == "" {
+			c.consulNamespace = os.Getenv("CONSUL_NAMESPACE")
+		}
 		if c.consulNamespace != "" {
 			consulConfig.Namespace = c.consulNamespace
+		}
+
+		// TLS Configuration with environment variable fallback
+		if c.consulCACert == "" {
+			c.consulCACert = os.Getenv("CONSUL_CACERT")
+		}
+		if c.consulClientCert == "" {
+			c.consulClientCert = os.Getenv("CONSUL_CLIENT_CERT")
+		}
+		if c.consulClientKey == "" {
+			c.consulClientKey = os.Getenv("CONSUL_CLIENT_KEY")
+		}
+		if !c.consulTLSSkipVerify {
+			// check env var for skip verify (inverted logic)
+			if os.Getenv("CONSUL_HTTP_SSL_VERIFY") == "false" {
+				c.consulTLSSkipVerify = true
+			}
+		}
+		if c.consulTLSServerName == "" {
+			c.consulTLSServerName = os.Getenv("CONSUL_TLS_SERVER_NAME")
+		}
+
+		// Apply TLS configuration
+		if c.consulCACert != "" || c.consulClientCert != "" || c.consulClientKey != "" {
+			consulConfig.TLSConfig.CAFile = c.consulCACert
+			consulConfig.TLSConfig.CertFile = c.consulClientCert
+			consulConfig.TLSConfig.KeyFile = c.consulClientKey
+			consulConfig.TLSConfig.InsecureSkipVerify = c.consulTLSSkipVerify
+
+			if c.consulTLSServerName != "" {
+				consulConfig.TLSConfig.Address = c.consulTLSServerName
+			}
 		}
 
 		consulClient, err = consulapi.NewClient(consulConfig)
@@ -309,6 +355,47 @@ func (c *RunCommand) Flags() *flag.Sets {
 			Default: "",
 			Usage: `Consul namespace for KV template operations (Consul Enterprise only). 
 			        If not provided, uses the default namespace.`,
+		})
+
+		f.StringVar(&flag.StringVar{
+			Name:    "consul-kv-ca-cert",
+			Target:  &c.consulCACert,
+			Default: "",
+			Usage: `Path to a PEM encoded CA cert file to verify the Consul server 
+                    SSL certificate. Overrides CONSUL_CACERT environment variable.`,
+		})
+
+		f.StringVar(&flag.StringVar{
+			Name:    "consul-kv-client-cert",
+			Target:  &c.consulClientCert,
+			Default: "",
+			Usage: `Path to a PEM encoded client certificate for TLS authentication 
+                    to Consul. Must also specify --consul-kv-client-key. Overrides 
+                    CONSUL_CLIENT_CERT environment variable.`,
+		})
+
+		f.StringVar(&flag.StringVar{
+			Name:    "consul-kv-client-key",
+			Target:  &c.consulClientKey,
+			Default: "",
+			Usage: `Path to an unencrypted PEM encoded private key matching the 
+                    client certificate. Overrides CONSUL_CLIENT_KEY environment variable.`,
+		})
+
+		f.BoolVar(&flag.BoolVar{
+			Name:    "consul-kv-tls-skip-verify",
+			Target:  &c.consulTLSSkipVerify,
+			Default: false,
+			Usage: `Do not verify TLS certificate. Not recommended for production. 
+                    Overrides CONSUL_HTTP_SSL_VERIFY environment variable.`,
+		})
+
+		f.StringVar(&flag.StringVar{
+			Name:    "consul-kv-tls-server-name",
+			Target:  &c.consulTLSServerName,
+			Default: "",
+			Usage: `Server name to use as SNI host when connecting via TLS. 
+                    Overrides CONSUL_TLS_SERVER_NAME environment variable.`,
 		})
 
 		f.BoolVar(&flag.BoolVar{
