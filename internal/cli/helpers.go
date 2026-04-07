@@ -357,9 +357,11 @@ func getDeployedPacks(c *api.Client) (map[string]map[string]struct{}, error) {
 
 	packRegistryMap := map[string]map[string]struct{}{}
 	for _, jobStub := range jobs {
-		nomadJob, _, err := jobsApi.Info(jobStub.ID, &api.QueryOptions{})
+		nomadJob, _, err := jobsApi.Info(jobStub.ID, &api.QueryOptions{
+			Namespace: jobStub.Namespace,
+		})
 		if err != nil {
-			return nil, fmt.Errorf("error retrieving job %s: %s", *nomadJob.ID, err)
+			return nil, fmt.Errorf("error retrieving job %s: %w", jobStub.ID, err)
 		}
 
 		if nomadJob.Meta != nil {

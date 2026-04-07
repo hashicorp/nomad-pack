@@ -5,6 +5,11 @@ IMPROVEMENTS:
 * variable: Variables declaration now supports validation stanza [[GH-841](https://github.com/hashicorp/nomad-pack/pull/841)]
 * template: Add `consulKey()` and `consulKeys()` functions to access Consul KV store for template variables [[GH-473](https://github.com/hashicorp/nomad-pack/pull/850)]
 
+
+BUG FIXES:
+* cli: Fix panic when calling status command with namespace wildcard [[GH-827](https://github.com/hashicorp/nomad-pack/pull/854)]
+
+
 ## 0.4.2 (March 16, 2026)
 
 SECURITY:
