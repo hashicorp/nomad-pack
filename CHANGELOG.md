@@ -2,6 +2,7 @@
 
 IMPROVEMENTS:
 * cli: Add registry now honors default main/master branch [[GH-843](https://github.com/hashicorp/nomad-pack/pull/843)]
+* cli: Fixed stale-job reconciliation so nomad-pack run no longer stops active parameterized/periodic child jobs [[GH-855](https://github.com/hashicorp/nomad-pack/pull/855)] 
 * variable: Variables declaration now supports validation stanza [[GH-841](https://github.com/hashicorp/nomad-pack/pull/841)]
 
 
