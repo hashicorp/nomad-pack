@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"sort"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -51,9 +50,6 @@ func NewParserV2(cfg *config.ParserConfig) (*ParserV2, error) {
 		return nil, errors.New("nil ParentPack")
 	}
 
-	// Sort the file overrides to ensure variable merging is consistent on
-	// multiple passes.
-	sort.Strings(cfg.FileOverrides)
 	for _, file := range cfg.FileOverrides {
 		_, err := os.Stat(file)
 		if err != nil {
