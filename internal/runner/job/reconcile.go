@@ -100,12 +100,21 @@ func (r *Runner) findStaleJobs(currentJobIDs map[string]struct{}) ([]*api.JobLis
 
 	var staleJobs []*api.JobListStub
 	for _, stub := range jobStubs {
+		if stub == nil {
+			continue
+		}
+
 		// Skip already-stopped jobs — nothing to do.
 		if stub.Status == "dead" {
 			continue
 		}
 
 		if stub.ID == "" {
+			continue
+		}
+
+		// Child jobs should not be treated as pack-managed root jobs that can be stopped.
+		if isChildJobStub(stub) {
 			continue
 		}
 
@@ -116,4 +125,27 @@ func (r *Runner) findStaleJobs(currentJobIDs map[string]struct{}) ([]*api.JobLis
 	}
 
 	return staleJobs, nil
+}
+
+func isChildJobStub(stub *api.JobListStub) bool {
+	if stub == nil {
+		return false
+	}
+
+	// Preferred signal from Nomad.
+	if stub.ParentID != "" {
+		return true
+	}
+
+	// Metadata-based signal from nomad-pack tags. For child jobs, pack.job points
+	// to the parent/root job name, which differs from the child ID.
+	if stub.Meta != nil {
+		if packJob, ok := stub.Meta[PackJobKey]; ok && packJob != "" {
+			return packJob != stub.ID
+		}
+	}
+
+	// If neither ParentID nor pack.job metadata indicates a child job,
+	// treat it as a root job to avoid false positives.
+	return false
 }
