@@ -568,6 +568,9 @@ func addNoParentTemplatesContext(errorContext *errors.UIErrorContext, packPath s
 
 	// list found template files
 	templatesPath := filepath.Join(packPath, "templates")
+	// we silently ignore errors from ReadDir since listing template files is
+	// supplementary information. If the directory doesn't exist or can't be read,
+	// the main error message about missing parent templates is still clear.
 	if entries, err := os.ReadDir(templatesPath); err == nil {
 		var templateFiles []string
 		for _, entry := range entries {

@@ -19,8 +19,6 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/helper/filesystem"
 	"github.com/hashicorp/nomad-pack/internal/pkg/logging"
 	"github.com/hashicorp/nomad-pack/internal/pkg/testfixture"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestExtractFlagValue(t *testing.T) {
@@ -142,29 +140,29 @@ func TestAddNoParentTemplatesContext(t *testing.T) {
 	tmpDir := t.TempDir()
 	templatesDir := filepath.Join(tmpDir, "templates")
 	err := os.MkdirAll(templatesDir, 0755)
-	require.NoError(t, err)
+	must.NoError(t, err)
 
 	//create test template files
 	testFiles := []string{"test.tpl", "_helpers.tpl", "config.tpl"}
 	for _, file := range testFiles {
 		err := os.WriteFile(filepath.Join(templatesDir, file), []byte("test"), 0644)
-		require.NoError(t, err)
+		must.NoError(t, err)
 	}
 
 	// build error context
 	ctx := errors.NewUIErrorContext()
 	addNoParentTemplatesContext(ctx, tmpDir)
-	require.NotNil(t, ctx)
+	must.NotNil(t, ctx)
 
 	// get all context entries
 	entries := ctx.GetAll()
-	require.NotEmpty(t, entries)
+	must.SliceNotEmpty(t, entries)
 
 	//verify expected content
 	contextStr := strings.Join(entries, " ")
-	assert.Contains(t, contextStr, "No parent templates")
-	assert.Contains(t, contextStr, "*.nomad.tpl")
-	assert.Contains(t, contextStr, "test.tpl")
-	assert.Contains(t, contextStr, "_helpers.tpl")
-	assert.Contains(t, contextStr, "config.tpl")
+	must.StrContains(t, contextStr, "No parent templates")
+	must.StrContains(t, contextStr, "*.nomad.tpl")
+	must.StrContains(t, contextStr, "test.tpl")
+	must.StrContains(t, contextStr, "_helpers.tpl")
+	must.StrContains(t, contextStr, "config.tpl")
 }
