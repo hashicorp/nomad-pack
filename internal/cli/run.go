@@ -80,6 +80,12 @@ func (c *RunCommand) run() int {
 		return 255
 	}
 
+	if r.LenParentRenders() < 1 {
+		addNoParentTemplatesContext(errorContext, c.packConfig.Path)
+		c.ui.ErrorWithContext(errors.ErrNoTemplatesRendered, "no parent templates found", errorContext.GetAll()...)
+		return 1
+	}
+
 	renderedParents := r.ParentRenders()
 	renderedDeps := r.DependentRenders()
 
