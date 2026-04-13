@@ -4,8 +4,6 @@
 package cli
 
 import (
-	"os"
-
 	consulapi "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/nomad-pack/internal/pkg/caching"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
@@ -24,15 +22,7 @@ type PlanCommand struct {
 	exitCodeError     int
 
 	// Consul KV configuration for template functions
-	consulAddress   string
-	consulToken     string
-	consulNamespace string
-	// TLS configuration for Consul KV
-	consulCACert        string
-	consulClientCert    string
-	consulClientKey     string
-	consulTLSSkipVerify bool
-	consulTLSServerName string
+	consulKV ConsulKVConfig
 }
 
 func (c *PlanCommand) Run(args []string) int {
@@ -68,59 +58,14 @@ func (c *PlanCommand) Run(args []string) int {
 		return c.exitCodeError
 	}
 
+	// Load Consul config from environment if not set via flags
+	c.consulKV.LoadFromEnv()
+
 	// Initialize Consul client for KV template functions if address is provided
 	var consulClient *consulapi.Client
-	if c.consulAddress != "" {
-		consulConfig := consulapi.DefaultConfig()
-		consulConfig.Address = c.consulAddress
-
-		//support environment variables with CLI flag priority
-		if c.consulToken == "" {
-			c.consulToken = os.Getenv("CONSUL_HTTP_TOKEN")
-		}
-		if c.consulToken != "" {
-			consulConfig.Token = c.consulToken
-		}
-		if c.consulNamespace == "" {
-			c.consulNamespace = os.Getenv("CONSUL_NAMESPACE")
-		}
-		if c.consulNamespace != "" {
-			consulConfig.Namespace = c.consulNamespace
-		}
-
-		// TLS Configuration with environment variable fallback
-		if c.consulCACert == "" {
-			c.consulCACert = os.Getenv("CONSUL_CACERT")
-		}
-		if c.consulClientCert == "" {
-			c.consulClientCert = os.Getenv("CONSUL_CLIENT_CERT")
-		}
-		if c.consulClientKey == "" {
-			c.consulClientKey = os.Getenv("CONSUL_CLIENT_KEY")
-		}
-		if !c.consulTLSSkipVerify {
-			// check env var for skip verify (inverted logic)
-			if os.Getenv("CONSUL_HTTP_SSL_VERIFY") == "false" {
-				c.consulTLSSkipVerify = true
-			}
-		}
-		if c.consulTLSServerName == "" {
-			c.consulTLSServerName = os.Getenv("CONSUL_TLS_SERVER_NAME")
-		}
-
-		// Apply TLS configuration
-		if c.consulCACert != "" || c.consulClientCert != "" || c.consulClientKey != "" {
-			consulConfig.TLSConfig.CAFile = c.consulCACert
-			consulConfig.TLSConfig.CertFile = c.consulClientCert
-			consulConfig.TLSConfig.KeyFile = c.consulClientKey
-			consulConfig.TLSConfig.InsecureSkipVerify = c.consulTLSSkipVerify
-
-			if c.consulTLSServerName != "" {
-				consulConfig.TLSConfig.Address = c.consulTLSServerName
-			}
-		}
-
-		consulClient, err = consulapi.NewClient(consulConfig)
+	if c.consulKV.Address != "" {
+		var err error
+		consulClient, err = c.consulKV.NewConsulClient()
 		if err != nil {
 			c.ui.ErrorWithContext(err, "failed to create Consul client for KV operations", errorContext.GetAll()...)
 			return c.exitCodeError
@@ -299,72 +244,7 @@ func (c *PlanCommand) Flags() *flag.Sets {
 			Usage:   `Override exit code returned when there is an error. Can also be set via NOMAD_PACK_PLAN_EXIT_CODE_ERROR environment variable (flags take precedence).`,
 		})
 
-		f.StringVar(&flag.StringVar{
-			Name:    "consul-kv-address",
-			Target:  &c.consulAddress,
-			Default: "",
-			Usage: `Address of the Consul agent for KV template operations. 
-					If not set, Consul KV template functions (consulKey, consulKeys) 
-					will not be available. Example: http://127.0.0.1:8500`,
-		})
-
-		f.StringVar(&flag.StringVar{
-			Name:    "consul-kv-token",
-			Target:  &c.consulToken,
-			Default: "",
-			Usage: `Consul ACL token for KV template operations. If not provided, 
-					uses the token from CONSUL_HTTP_TOKEN environment variable or 
-					anonymous access if ACLs are not enabled.`,
-		})
-
-		f.StringVar(&flag.StringVar{
-			Name:    "consul-kv-namespace",
-			Target:  &c.consulNamespace,
-			Default: "",
-			Usage: `Consul namespace for KV template operations (Consul Enterprise only). 
-					If not provided, uses the default namespace.`,
-		})
-
-		f.StringVar(&flag.StringVar{
-			Name:    "consul-kv-ca-cert",
-			Target:  &c.consulCACert,
-			Default: "",
-			Usage: `Path to a PEM encoded CA cert file to verify the Consul server 
-                    SSL certificate. Overrides CONSUL_CACERT environment variable.`,
-		})
-
-		f.StringVar(&flag.StringVar{
-			Name:    "consul-kv-client-cert",
-			Target:  &c.consulClientCert,
-			Default: "",
-			Usage: `Path to a PEM encoded client certificate for TLS authentication 
-                    to Consul. Must also specify --consul-kv-client-key. Overrides 
-                    CONSUL_CLIENT_CERT environment variable.`,
-		})
-
-		f.StringVar(&flag.StringVar{
-			Name:    "consul-kv-client-key",
-			Target:  &c.consulClientKey,
-			Default: "",
-			Usage: `Path to an unencrypted PEM encoded private key matching the 
-                    client certificate. Overrides CONSUL_CLIENT_KEY environment variable.`,
-		})
-
-		f.BoolVar(&flag.BoolVar{
-			Name:    "consul-kv-tls-skip-verify",
-			Target:  &c.consulTLSSkipVerify,
-			Default: false,
-			Usage: `Do not verify TLS certificate. Not recommended for production. 
-                    Overrides CONSUL_HTTP_SSL_VERIFY environment variable.`,
-		})
-
-		f.StringVar(&flag.StringVar{
-			Name:    "consul-kv-tls-server-name",
-			Target:  &c.consulTLSServerName,
-			Default: "",
-			Usage: `Server name to use as SNI host when connecting via TLS. 
-                    Overrides CONSUL_TLS_SERVER_NAME environment variable.`,
-		})
+		c.consulKV.AddFlagsToSet(f)
 	})
 }
 

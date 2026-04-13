@@ -4,11 +4,13 @@
 package cli
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"strings"
 
 	consulapi "github.com/hashicorp/consul/api"
+	pkgflag "github.com/hashicorp/nomad-pack/internal/pkg/flag"
 	"github.com/hashicorp/nomad/api"
 	"github.com/posener/complete"
 
@@ -559,4 +561,161 @@ func limit(s string, length int) string {
 	}
 
 	return s[:length]
+}
+
+// ConsulKVConfig holds configuration for connecting to Consul KV with TLS support.
+// This struct is shared across run, plan, and render commands to avoid code duplication.
+type ConsulKVConfig struct {
+	Address       string // Consul server address (e.g., "https://consul.example.com:8501")
+	Token         string // ACL token for authentication
+	Namespace     string // Consul namespace
+	CACert        string // Path to CA certificate file
+	ClientCert    string // Path to client certificate file (for mTLS)
+	ClientKey     string // Path to client key file (for mTLS)
+	TLSSkipVerify bool   // Skip TLS certificate verification (for testing)
+	TLSServerName string // Override TLS server name
+}
+
+// AddFlags adds all Consul KV configuration flags to the provided flag set.
+// This method is called by run, plan, and render commands to register flags.
+func (c *ConsulKVConfig) AddFlags(flags *flag.FlagSet) {
+	flags.StringVar(&c.Address, "consul-address", "",
+		"Address of the Consul instance to use for template variable lookups. "+
+			"Can also be specified via the CONSUL_HTTP_ADDR environment variable.")
+
+	flags.StringVar(&c.Token, "consul-token", "",
+		"ACL token to use when connecting to Consul. "+
+			"Can also be specified via the CONSUL_HTTP_TOKEN environment variable.")
+
+	flags.StringVar(&c.Namespace, "consul-namespace", "",
+		"Consul namespace to use for KV lookups. "+
+			"Can also be specified via the CONSUL_NAMESPACE environment variable.")
+
+	flags.StringVar(&c.CACert, "consul-ca-cert", "",
+		"Path to a CA certificate file to use for TLS when communicating with Consul. "+
+			"Can also be specified via the CONSUL_CACERT environment variable.")
+
+	flags.StringVar(&c.ClientCert, "consul-client-cert", "",
+		"Path to a client certificate file to use for TLS when communicating with Consul. "+
+			"Can also be specified via the CONSUL_CLIENT_CERT environment variable.")
+
+	flags.StringVar(&c.ClientKey, "consul-client-key", "",
+		"Path to a client key file to use for TLS when communicating with Consul. "+
+			"Can also be specified via the CONSUL_CLIENT_KEY environment variable.")
+
+	flags.BoolVar(&c.TLSSkipVerify, "consul-tls-skip-verify", false,
+		"Skip TLS certificate verification when communicating with Consul. "+
+			"Can also be specified via the CONSUL_TLS_SKIP_VERIFY environment variable.")
+
+	flags.StringVar(&c.TLSServerName, "consul-tls-server-name", "",
+		"Server name to use for TLS verification when communicating with Consul. "+
+			"Can also be specified via the CONSUL_TLS_SERVER_NAME environment variable.")
+}
+
+// AddFlagsToSet adds Consul KV configuration flags to a flag.Set (used by run, plan, render commands).
+func (c *ConsulKVConfig) AddFlagsToSet(f *pkgflag.Set) {
+	f.StringVar(&pkgflag.StringVar{
+		Name:    "consul-ca-cert",
+		Target:  &c.CACert,
+		Default: "",
+		Usage: `Path to a CA certificate file to use for TLS when communicating with Consul. 
+		        Can also be specified via the CONSUL_CACERT environment variable.`,
+	})
+
+	f.StringVar(&pkgflag.StringVar{
+		Name:    "consul-client-cert",
+		Target:  &c.ClientCert,
+		Default: "",
+		Usage: `Path to a client certificate file to use for TLS when communicating with Consul. 
+		        Can also be specified via the CONSUL_CLIENT_CERT environment variable.`,
+	})
+
+	f.StringVar(&pkgflag.StringVar{
+		Name:    "consul-client-key",
+		Target:  &c.ClientKey,
+		Default: "",
+		Usage: `Path to a client key file to use for TLS when communicating with Consul. 
+		        Can also be specified via the CONSUL_CLIENT_KEY environment variable.`,
+	})
+
+	f.BoolVar(&pkgflag.BoolVar{
+		Name:    "consul-tls-skip-verify",
+		Target:  &c.TLSSkipVerify,
+		Default: false,
+		Usage: `Skip TLS certificate verification when communicating with Consul. 
+		        Can also be specified via the CONSUL_TLS_SKIP_VERIFY environment variable.`,
+	})
+
+	f.StringVar(&pkgflag.StringVar{
+		Name:    "consul-tls-server-name",
+		Target:  &c.TLSServerName,
+		Default: "",
+		Usage: `Server name to use for TLS verification when communicating with Consul. 
+		        Can also be specified via the CONSUL_TLS_SERVER_NAME environment variable.`,
+	})
+}
+
+// LoadFromEnv loads configuration from environment variables.
+// Only loads values that haven't been set via command-line flags.
+// This implements the priority: CLI flags > environment variables.
+func (c *ConsulKVConfig) LoadFromEnv() {
+	if c.Address == "" {
+		c.Address = os.Getenv("CONSUL_HTTP_ADDR")
+	}
+	if c.Token == "" {
+		c.Token = os.Getenv("CONSUL_HTTP_TOKEN")
+	}
+	if c.Namespace == "" {
+		c.Namespace = os.Getenv("CONSUL_NAMESPACE")
+	}
+	if c.CACert == "" {
+		c.CACert = os.Getenv("CONSUL_CACERT")
+	}
+	if c.ClientCert == "" {
+		c.ClientCert = os.Getenv("CONSUL_CLIENT_CERT")
+	}
+	if c.ClientKey == "" {
+		c.ClientKey = os.Getenv("CONSUL_CLIENT_KEY")
+	}
+	if !c.TLSSkipVerify {
+		c.TLSSkipVerify = os.Getenv("CONSUL_TLS_SKIP_VERIFY") == "true"
+	}
+	if c.TLSServerName == "" {
+		c.TLSServerName = os.Getenv("CONSUL_TLS_SERVER_NAME")
+	}
+}
+
+// NewConsulClient creates a new Consul API client with the configured TLS settings.
+// Returns an error if the client cannot be created.
+func (c *ConsulKVConfig) NewConsulClient() (*consulapi.Client, error) {
+	cfg := consulapi.DefaultConfig()
+
+	// Set basic configuration
+	if c.Address != "" {
+		cfg.Address = c.Address
+	}
+	if c.Token != "" {
+		cfg.Token = c.Token
+	}
+	if c.Namespace != "" {
+		cfg.Namespace = c.Namespace
+	}
+
+	// Configure TLS if any TLS options are set
+	if c.CACert != "" || c.ClientCert != "" || c.ClientKey != "" || c.TLSSkipVerify || c.TLSServerName != "" {
+		tlsConfig := &consulapi.TLSConfig{
+			CAFile:             c.CACert,
+			CertFile:           c.ClientCert,
+			KeyFile:            c.ClientKey,
+			InsecureSkipVerify: c.TLSSkipVerify,
+		}
+
+		if c.TLSServerName != "" {
+			tlsConfig.Address = c.TLSServerName
+		}
+
+		cfg.TLSConfig = *tlsConfig
+	}
+
+	return consulapi.NewClient(cfg)
 }
