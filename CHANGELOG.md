@@ -2,13 +2,14 @@
 
 IMPROVEMENTS:
 * cli: Add registry now honors default main/master branch [[GH-843](https://github.com/hashicorp/nomad-pack/pull/843)]
+* cli: Fixed stale-job reconciliation so nomad-pack run no longer stops active parameterized/periodic child jobs [[GH-855](https://github.com/hashicorp/nomad-pack/pull/855)] 
 * variable: Variables declaration now supports validation stanza [[GH-841](https://github.com/hashicorp/nomad-pack/pull/841)]
 * template: Add `consulKey()` and `consulKeys()` functions to access Consul KV store for template variables [[GH-850](https://github.com/hashicorp/nomad-pack/pull/850)]
 
+* variable: Fixed variable file overrides (last supplied wins) [[GH-851](https://github.com/hashicorp/nomad-pack/pull/851)]
 
 BUG FIXES:
 * cli: Fix panic when calling status command with namespace wildcard [[GH-827](https://github.com/hashicorp/nomad-pack/pull/854)]
-
 
 ## 0.4.2 (March 16, 2026)
 

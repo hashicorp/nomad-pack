@@ -5,7 +5,9 @@ package parser
 
 import (
 	"fmt"
+	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -359,6 +361,23 @@ func TestParserV2_parseHeredocAtEOF(t *testing.T) {
 	must.False(t, diags.HasErrors(), must.Sprintf("diags: %v", diags))
 	must.Len(t, 1, inputParser.fileOverrideVars["variable_test_pack"])
 	must.Eq(t, "heredoc\n", inputParser.fileOverrideVars["variable_test_pack"][0].Value.AsString())
+}
+
+func TestParserV2_FileOverridesFollowInputOrder(t *testing.T) {
+	tmpDir := t.TempDir()
+	first := filepath.Join(tmpDir, "b-first.hcl")
+	second := filepath.Join(tmpDir, "a-second.hcl")
+
+	must.NoError(t, os.WriteFile(first, []byte("input = \"from-first\"\n"), 0o644))
+	must.NoError(t, os.WriteFile(second, []byte("input = \"from-second\"\n"), 0o644))
+
+	fixturePath := testfixture.AbsPath(t, "v2/variable_test/variable_test")
+	pm := newTestPackManager(t, fixturePath, false)
+	pm.cfg.VariableFiles = []string{first, second}
+
+	pvs := pm.ProcessVariables()
+	must.NotNil(t, pvs)
+	must.Eq(t, "from-second", pvs.v2Vars["variable_test_pack"]["input"].Value.AsString())
 }
 
 func TestParserV2_VariableOverrides(t *testing.T) {

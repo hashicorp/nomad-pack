@@ -128,6 +128,12 @@ Values can also be provided by passing in a variables file.
 nomad-pack run hello_world -f ./my-variables.hcl
 ```
 
+You can pass `-f/--var-file` multiple times. Variable files are processed in
+the same order they are provided on the command line.
+
+If the same key is defined in multiple variable files, the value from the last
+file wins.
+
 These files can define overrides to the variables defined in the pack.
 
 ```
