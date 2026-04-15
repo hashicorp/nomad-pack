@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -200,12 +201,19 @@ func renderPack(
 	return r, nil
 }
 
+// getNamespaceOrDefault returns the provided namespace or "default" if empty
+func getNamespaceOrDefault(ns string) string {
+	if ns == "" {
+		return "default"
+	}
+	return ns
+}
+
 // createNomadVariables creates Nomad Variables defined in nomad_variable blocks
 func createNomadVariables(
 	parsedVars *parser.ParsedVariables,
 	client *api.Client,
 	ui terminal.UI,
-	errCtx *errors.UIErrorContext,
 ) error {
 	nomadVars := parsedVars.GetNomadVars()
 	if len(nomadVars) == 0 {
@@ -224,7 +232,23 @@ func createNomadVariables(
 				if err != nil {
 					return fmt.Errorf("failed to convert variable %s.%s: %w", nv.Name, key, err)
 				}
-				items[key] = fmt.Sprintf("%v", goVal)
+
+				// serialize complex types as JSON, simple types as strings
+				var strVal string
+				switch v := goVal.(type) {
+				case string:
+					strVal = v
+				case int, int64, float64, bool:
+					strVal = fmt.Sprintf("%v", v)
+				default:
+					// for maps, slices and other complex types, use JSON
+					jsonBytes, err := json.Marshal(goVal)
+					if err != nil {
+						return fmt.Errorf("failed to serialize variable %s.%s as JSON: %w", nv.Name, key, err)
+					}
+					strVal = string(jsonBytes)
+				}
+				items[key] = strVal
 			}
 
 			// Create the Nomad Variable
@@ -235,25 +259,15 @@ func createNomadVariables(
 			}
 
 			// Set default namespace if not specified
-			if variable.Namespace == "" {
-				variable.Namespace = "default"
-			}
+			variable.Namespace = getNamespaceOrDefault(variable.Namespace)
 
 			ui.Output(fmt.Sprintf("  Creating variable at path: %s (namespace: %s)",
 				nv.Path, variable.Namespace))
 
-			// Check if variable already exists and warn user
-			existing, _, err := client.Variables().Read(nv.Path, &api.QueryOptions{
-				Namespace: variable.Namespace,
-			})
-			if err == nil && existing != nil {
-				ui.Warning(fmt.Sprintf("  ⚠ Variable at path %s already exists and will be updated", nv.Path))
-			}
-
-			// Create or update the variable
-			_, _, err = client.Variables().Create(variable, nil)
+			// Try to create the variable first
+			_, _, err := client.Variables().Create(variable, nil)
 			if err != nil {
-				// If variable exists, try to update it
+				// If variable exists, update it instead
 				if strings.Contains(err.Error(), "already exists") {
 					_, _, err = client.Variables().Update(variable, nil)
 					if err != nil {
@@ -268,7 +282,6 @@ func createNomadVariables(
 			}
 		}
 	}
-
 	ui.Success("Nomad Variables created successfully")
 	return nil
 }
@@ -278,7 +291,6 @@ func deleteNomadVariables(
 	parsedVars *parser.ParsedVariables,
 	client *api.Client,
 	ui terminal.UI,
-	errCtx *errors.UIErrorContext,
 ) error {
 	nomadVars := parsedVars.GetNomadVars()
 	if len(nomadVars) == 0 {
@@ -287,16 +299,13 @@ func deleteNomadVariables(
 
 	ui.Output("Deleting Nomad Variables...")
 
-	for _, variables := range nomadVars {
-		for _, nv := range variables {
-			namespace := nv.Namespace
-			if namespace == "" {
-				namespace = "default"
-			}
+	for _, varList := range nomadVars {
+		for _, nv := range varList {
+			namespace := getNamespaceOrDefault(nv.Namespace)
 
 			ui.Output(fmt.Sprintf("Deleting variable at path: %s (namespace: %s)", nv.Path, namespace))
 
-			//delete the variable
+			// delete the variable
 			_, err := client.Variables().Delete(nv.Path, &api.WriteOptions{Namespace: namespace})
 			if err != nil {
 				// if variable doesn't exist, its not an error

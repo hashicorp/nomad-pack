@@ -145,7 +145,8 @@ func (c *RunCommand) run() int {
 
 	// create nomad variables
 	if r.ParsedVariables() != nil {
-		if err := createNomadVariables(r.ParsedVariables(), client, c.ui, errorContext); err != nil {
+		if err := createNomadVariables(r.ParsedVariables(), client, c.ui); err != nil {
+			c.ui.Warning("Job is running, but variable creation failed")
 			c.ui.ErrorWithContext(err, "failed to create Nomad Variables", errorContext.GetAll()...)
 			return 1
 		}

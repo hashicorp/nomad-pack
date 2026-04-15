@@ -132,6 +132,27 @@ nomad_variable "app_config" {
   }
 }
 
+##### Important: Variable Creation Timing
+
+**Note:** Nomad Variables are created AFTER the job is deployed.
+
+This means:
+- First: Your job starts running
+- Second: Variables are created
+- If variable creation fails: Your job is still running, but the command shows an error
+
+**Example:**
+```bash
+$ nomad-pack run my-app
+Job deployed
+Variable creation failed
+```
+In this case, my-app is running, but variables weren't created.
+
+**What to do if this happens:**
+1. Fix the problem in your variables.hcl
+2. Run `nomad-pack run my-app` again
+
 #### outputs.tpl
 
 The `outputs.tpl` is an optional file that defines an output to be printed when a pack is deployed.

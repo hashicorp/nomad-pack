@@ -188,7 +188,7 @@ func (c *StopCommand) Run(args []string) int {
 
 	// after all jobs are stopped, delete Nomad Variables if purging
 	if c.purge && r.ParsedVariables() != nil {
-		if err := deleteNomadVariables(r.ParsedVariables(), client, c.ui, errorContext); err != nil {
+		if err := deleteNomadVariables(r.ParsedVariables(), client, c.ui); err != nil {
 			c.ui.ErrorWithContext(err, "failed to delete Nomad Variables", errorContext.GetAll()...)
 			// don't return error - jobs are already stopped
 		}
