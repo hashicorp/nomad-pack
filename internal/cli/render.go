@@ -15,7 +15,6 @@ import (
 	"github.com/posener/complete"
 	"golang.org/x/exp/maps"
 
-	consulapi "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/nomad-pack/internal/pkg/caching"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors"
 	"github.com/hashicorp/nomad-pack/internal/pkg/flag"
@@ -285,18 +284,11 @@ func (c *RenderCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Load Consul config from environment if not set via flags
-	c.consulKV.LoadFromEnv()
-
-	// Initialize Consul client if address is provided
-	var consulClient *consulapi.Client
-	if c.consulKV.Address != "" {
-		var err error
-		consulClient, err = c.consulKV.NewConsulClient()
-		if err != nil {
-			c.ui.ErrorWithContext(err, "failed to initialize Consul client", errorContext.GetAll()...)
-			return 1
-		}
+	// Initialize Consul client if configured (via CLI flags or environment variables)
+	consulClient, err := getConsulClient(&c.consulKV, errorContext, c.ui)
+	if err != nil {
+		c.ui.ErrorWithContext(err, "failed to create Consul client", errorContext.GetAll()...)
+		return 1
 	}
 
 	packManager := generatePackManager(c.baseCommand, client, c.packConfig, consulClient)

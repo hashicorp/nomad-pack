@@ -615,6 +615,30 @@ func (c *ConsulKVConfig) AddFlags(flags *flag.FlagSet) {
 // AddFlagsToSet adds Consul KV configuration flags to a flag.Set (used by run, plan, render commands).
 func (c *ConsulKVConfig) AddFlagsToSet(f *pkgflag.Set) {
 	f.StringVar(&pkgflag.StringVar{
+		Name:    "consul-address",
+		Target:  &c.Address,
+		Default: "",
+		Usage: `Consul server address (e.g., https://consul.example.com:8501). 
+		        Can also be specified via the CONSUL_HTTP_ADDR environment variable.`,
+	})
+
+	f.StringVar(&pkgflag.StringVar{
+		Name:    "consul-token",
+		Target:  &c.Token,
+		Default: "",
+		Usage: `Consul ACL token for authentication. 
+		        Can also be specified via the CONSUL_HTTP_TOKEN environment variable.`,
+	})
+
+	f.StringVar(&pkgflag.StringVar{
+		Name:    "consul-namespace",
+		Target:  &c.Namespace,
+		Default: "",
+		Usage: `Consul namespace (Consul Enterprise only). 
+		        Can also be specified via the CONSUL_NAMESPACE environment variable.`,
+	})
+
+	f.StringVar(&pkgflag.StringVar{
 		Name:    "consul-ca-cert",
 		Target:  &c.CACert,
 		Default: "",
@@ -655,36 +679,6 @@ func (c *ConsulKVConfig) AddFlagsToSet(f *pkgflag.Set) {
 	})
 }
 
-// LoadFromEnv loads configuration from environment variables.
-// Only loads values that haven't been set via command-line flags.
-// This implements the priority: CLI flags > environment variables.
-func (c *ConsulKVConfig) LoadFromEnv() {
-	if c.Address == "" {
-		c.Address = os.Getenv("CONSUL_HTTP_ADDR")
-	}
-	if c.Token == "" {
-		c.Token = os.Getenv("CONSUL_HTTP_TOKEN")
-	}
-	if c.Namespace == "" {
-		c.Namespace = os.Getenv("CONSUL_NAMESPACE")
-	}
-	if c.CACert == "" {
-		c.CACert = os.Getenv("CONSUL_CACERT")
-	}
-	if c.ClientCert == "" {
-		c.ClientCert = os.Getenv("CONSUL_CLIENT_CERT")
-	}
-	if c.ClientKey == "" {
-		c.ClientKey = os.Getenv("CONSUL_CLIENT_KEY")
-	}
-	if !c.TLSSkipVerify {
-		c.TLSSkipVerify = os.Getenv("CONSUL_TLS_SKIP_VERIFY") == "true"
-	}
-	if c.TLSServerName == "" {
-		c.TLSServerName = os.Getenv("CONSUL_TLS_SERVER_NAME")
-	}
-}
-
 // NewConsulClient creates a new Consul API client with the configured TLS settings.
 // Returns an error if the client cannot be created.
 func (c *ConsulKVConfig) NewConsulClient() (*consulapi.Client, error) {
@@ -718,4 +712,25 @@ func (c *ConsulKVConfig) NewConsulClient() (*consulapi.Client, error) {
 	}
 
 	return consulapi.NewClient(cfg)
+}
+
+// getConsulClient creates a Consul API client if Consul is configured.
+// Returns nil client if no Consul address is configured (not an error).
+// The presence of a Consul address (via CLI flag or CONSUL_HTTP_ADDR env var)
+// indicates that Nomad Pack should attempt to create a Consul API client.
+func getConsulClient(consulKV *ConsulKVConfig, errorContext *errors.UIErrorContext, ui terminal.UI) (*consulapi.Client, error) {
+	// Check if Consul is configured via CLI flag
+	if consulKV.Address != "" {
+		return consulKV.NewConsulClient()
+	}
+
+	// Check if Consul is configured via environment variable
+	consulAddr := os.Getenv("CONSUL_HTTP_ADDR")
+	if consulAddr == "" {
+		// No Consul configured - this is not an error, just means Consul integration is disabled
+		return nil, nil
+	}
+
+	// Consul is configured via environment, create client
+	return consulKV.NewConsulClient()
 }
