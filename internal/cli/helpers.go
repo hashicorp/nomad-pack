@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	consulapi "github.com/hashicorp/consul/api"
@@ -612,8 +613,16 @@ func (c *ConsulKVConfig) AddFlags(flags *flag.FlagSet) {
 			"Can also be specified via the CONSUL_TLS_SERVER_NAME environment variable.")
 }
 
+// Package-level variable to track if Consul flags have been registered
+var consulFlagsRegistered = false
+
 // AddFlagsToSet adds Consul KV configuration flags to a flag.Set (used by run, plan, render commands).
 func (c *ConsulKVConfig) AddFlagsToSet(f *pkgflag.Set) {
+	// Check if flags are already registered to avoid panic on redefinition
+	if consulFlagsRegistered {
+		return
+	}
+	consulFlagsRegistered = true
 	f.StringVar(&pkgflag.StringVar{
 		Name:    "consul-address",
 		Target:  &c.Address,
@@ -733,4 +742,31 @@ func getConsulClient(consulKV *ConsulKVConfig, errorContext *errors.UIErrorConte
 
 	// Consul is configured via environment, create client
 	return consulKV.NewConsulClient()
+}
+
+// addNoParentTemplatesContext adds error details for missing parent templates
+// to an existing error context. It lists any .tpl files discovered and provides
+// naming guidance.
+func addNoParentTemplatesContext(errorContext *errors.UIErrorContext, packPath string) {
+	errorContext.Add(errors.UIContextErrorDetail, "No parent templates (*.nomad.tpl files) were found in the pack")
+	errorContext.Add(errors.UIContextErrorSuggestion, "Parent templates must end with .nomad.tpl (e.g., app.nomad.tpl). Helper templates should start with _ (e.g., _helpers.tpl)")
+
+	// list found template files
+	templatesPath := filepath.Join(packPath, "templates")
+	// we silently ignore errors from ReadDir since listing template files is
+	// supplementary information. If the directory doesn't exist or can't be read,
+	// the main error message about missing parent templates is still clear.
+	if entries, err := os.ReadDir(templatesPath); err == nil {
+		var templateFiles []string
+		for _, entry := range entries {
+			if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".tpl") {
+				templateFiles = append(templateFiles, entry.Name())
+			}
+		}
+		if len(templateFiles) > 0 {
+			errorContext.Add("Found Templates: ", strings.Join(templateFiles, ", "))
+		} else {
+			errorContext.Add("Found Templates: ", "none")
+		}
+	}
 }
