@@ -153,3 +153,93 @@ func shouldCompareDefaultType(varType, defaultType cty.Type) bool {
 	}
 	return false
 }
+
+// DecodeNomadVariableBlock parses a nomad_variable definition
+func DecodeNomadVariableBlock(block *hcl.Block) (*variables.NomadVariable, hcl.Diagnostics) {
+	if block == nil || block.Body == nil {
+		return nil, hcl.Diagnostics{}
+	}
+
+	content, diags := block.Body.Content(schema.NomadVariableBlockSchema)
+	if content == nil {
+		return nil, diags
+	}
+
+	if diags == nil {
+		diags = hcl.Diagnostics{}
+	}
+
+	nv := &variables.NomadVariable{
+		Name:  block.Labels[0],
+		Items: make(map[string]cty.Value),
+	}
+
+	// Parse "path" attribute (required)
+	if attr, exists := content.Attributes["path"]; exists {
+		val, pathDiags := attr.Expr.Value(nil)
+		diags = packdiags.SafeDiagnosticsExtend(diags, pathDiags)
+		if val.Type() == cty.String {
+			nv.Path = val.AsString()
+		} else {
+			diags = packdiags.SafeDiagnosticsAppend(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid type for path",
+				Detail:   fmt.Sprintf("The path attribute must be a string, got %s", val.Type().FriendlyName()),
+				Subject:  attr.Range.Ptr(),
+			})
+		}
+	} else {
+		diags = packdiags.SafeDiagnosticsAppend(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Missing required attribute",
+			Detail:   "The 'path' attribute is required for nomad_variable blocks",
+			Subject:  &block.DefRange,
+		})
+	}
+
+	// Parse "namespace" attribute (optional)
+	if attr, exists := content.Attributes["namespace"]; exists {
+		val, nsDiags := attr.Expr.Value(nil)
+		diags = packdiags.SafeDiagnosticsExtend(diags, nsDiags)
+		if val.Type() == cty.String {
+			nv.Namespace = val.AsString()
+		} else {
+			diags = packdiags.SafeDiagnosticsAppend(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid type for namespace",
+				Detail:   fmt.Sprintf("The namespace attribute must be a string, got %s", val.Type().FriendlyName()),
+				Subject:  attr.Range.Ptr(),
+			})
+		}
+	}
+
+	// Parse "items" attribute (required)
+	if attr, exists := content.Attributes["items"]; exists {
+		val, itemsDiags := attr.Expr.Value(nil)
+		diags = packdiags.SafeDiagnosticsExtend(diags, itemsDiags)
+
+		if val.Type().IsObjectType() || val.Type().IsMapType() {
+			nv.Items = val.AsValueMap()
+		} else {
+			diags = packdiags.SafeDiagnosticsAppend(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid type for items",
+				Detail:   fmt.Sprintf("The items attribute must be an object or map, got %s", val.Type().FriendlyName()),
+				Subject:  attr.Range.Ptr(),
+			})
+		}
+	} else {
+		diags = packdiags.SafeDiagnosticsAppend(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Missing required attribute",
+			Detail:   "The 'items' attribute is required for nomad_variable blocks",
+			Subject:  &block.DefRange,
+		})
+	}
+
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	return nv, diags
+}

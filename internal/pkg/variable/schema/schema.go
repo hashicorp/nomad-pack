@@ -23,6 +23,10 @@ var VariableFileSchema = &hcl.BodySchema{
 			Type:       "variable",
 			LabelNames: []string{"name"},
 		},
+		{
+			Type:       "nomad_variable",
+			LabelNames: []string{"name"},
+		},
 	},
 }
 
@@ -45,5 +49,14 @@ var ValidationBlockSchema = &hcl.BodySchema{
 	Attributes: []hcl.AttributeSchema{
 		{Name: ValidationAttributeCondition, Required: true},
 		{Name: ValidationAttributeErrorMessage, Required: true},
+	},
+}
+
+// NomadVariableBlockSchema defines attributes inside a nomad_variable block
+var NomadVariableBlockSchema = &hcl.BodySchema{
+	Attributes: []hcl.AttributeSchema{
+		{Name: "path"},
+		{Name: "namespace"},
+		{Name: "items"},
 	},
 }

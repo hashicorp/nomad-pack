@@ -643,6 +643,140 @@ variable "optional_list" {
 	}
 }
 
+func TestDecoder_DecodeNomadVariableBlock(t *testing.T) {
+	ci.Parallel(t)
+
+	testCases := []struct {
+		name        string
+		input       *hcl.Block
+		expectOut   *variables.NomadVariable
+		expectDiags hcl.Diagnostics
+		shouldErr   bool
+	}{
+		{
+			name:        "passes/on nil block",
+			input:       &hcl.Block{},
+			expectOut:   nil,
+			expectDiags: hcl.Diagnostics{},
+		},
+		{
+			name:  "passes/on valid block with all attributes",
+			input: testGetNomadVariableHCLBlock(t, testLoadPackFile(t, []byte(goodCompleteNomadVariableHCL))),
+			expectOut: &variables.NomadVariable{
+				Name:      "test",
+				Path:      "nomad/jobs/test",
+				Namespace: "default",
+				Items: map[string]cty.Value{
+					"key1": cty.StringVal("value1"),
+					"key2": cty.StringVal("value2"),
+				},
+			},
+			expectDiags: hcl.Diagnostics{},
+		},
+		{
+			name:  "passes/on valid block without optional namespace",
+			input: testGetNomadVariableHCLBlock(t, testLoadPackFile(t, []byte(goodMinimalNomadVariableHCL))),
+			expectOut: &variables.NomadVariable{
+				Name:      "test",
+				Path:      "nomad/jobs/test",
+				Namespace: "",
+				Items: map[string]cty.Value{
+					"key1": cty.StringVal("value1"),
+				},
+			},
+			expectDiags: hcl.Diagnostics{},
+		},
+		{
+			name:      "fails/on missing required path attribute",
+			input:     testGetNomadVariableHCLBlock(t, testLoadPackFile(t, []byte(badNomadVariableMissingPath))),
+			expectOut: nil,
+			expectDiags: hcl.Diagnostics{&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Missing required attribute",
+				Detail:   "The attribute \"path\" is required, but no definition was found.",
+			}},
+			shouldErr: true,
+		},
+		{
+			name:      "fails/on missing required items attribute",
+			input:     testGetNomadVariableHCLBlock(t, testLoadPackFile(t, []byte(badNomadVariableMissingItems))),
+			expectOut: nil,
+			expectDiags: hcl.Diagnostics{&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Missing required attribute",
+				Detail:   "The attribute \"items\" is required, but no definition was found.",
+			}},
+			shouldErr: true,
+		},
+		{
+			name:  "passes/on empty items map",
+			input: testGetNomadVariableHCLBlock(t, testLoadPackFile(t, []byte(goodNomadVariableEmptyItems))),
+			expectOut: &variables.NomadVariable{
+				Name:      "test",
+				Path:      "nomad/jobs/test",
+				Namespace: "",
+				Items:     nil,
+			},
+			expectDiags: hcl.Diagnostics{},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ci.Parallel(t)
+			out, diags := DecodeNomadVariableBlock(tc.input)
+
+			if tc.shouldErr {
+				must.True(t, diags.HasErrors())
+				must.Nil(t, out)
+			} else {
+				must.Len(t, 0, diags, must.Sprint(diags.Error()))
+				must.Eq(t, tc.expectOut, out)
+			}
+		})
+	}
+
+}
+
+func testGetNomadVariableHCLBlock(t *testing.T, in hcl.Body) *hcl.Block {
+	t.Helper()
+	b, diags := in.Content(schema.VariableFileSchema)
+	must.Len(t, 0, diags, must.Sprint(diags.Error()))
+	must.True(t, len(b.Blocks) >= 1)
+	return b.Blocks[0]
+}
+
+const goodCompleteNomadVariableHCL = `nomad_variable "test" {
+	path = "nomad/jobs/test"
+	namespace = "default"
+	items = {
+		key1 = "value1"
+		key2 = "value2"
+	}
+}`
+
+const goodMinimalNomadVariableHCL = `nomad_variable "test" {
+	path = "nomad/jobs/test"
+	items = {
+		key1 = "value1"
+	}
+}`
+
+const goodNomadVariableEmptyItems = `nomad_variable "test" {
+	path = "nomad/jobs/test"
+	items = {}
+}`
+
+const badNomadVariableMissingPath = `nomad_variable "test" {
+	items = {
+		key1 = "value1"
+	}
+}`
+
+const badNomadVariableMissingItems = `nomad_variable "test" {
+	path = "nomad/jobs/test"
+}`
+
 const goodMinimalVariableHCL = `variable "good" {}`
 
 const goodCompleteVariableHCL = `variable "example" {

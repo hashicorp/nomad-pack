@@ -120,6 +120,7 @@ func (r *Renderer) Render(p *pack.Pack, variables *parser.ParsedVariables) (*Ren
 	rendered := &Rendered{
 		parentRenders:     make(map[string]string),
 		dependencyRenders: make(map[string]string),
+		parsedVariables:   variables,
 	}
 
 	for name, src := range filesToRender {
@@ -313,6 +314,7 @@ func prepareFilesV1(p *pack.Pack,
 type Rendered struct {
 	parentRenders     map[string]string
 	dependencyRenders map[string]string
+	parsedVariables   *parser.ParsedVariables
 }
 
 // ParentRenders returns a map of rendered templates belonging to the parent
@@ -331,3 +333,8 @@ func (r *Rendered) DependentRenders() map[string]string { return r.dependencyRen
 // LenDependentRenders returns the number of dependent rendered templates that
 // are stored.
 func (r *Rendered) LenDependentRenders() int { return len(r.dependencyRenders) }
+
+// ParsedVariables returns parsed variables used during rendering
+func (r *Rendered) ParsedVariables() *parser.ParsedVariables {
+	return r.parsedVariables
+}
