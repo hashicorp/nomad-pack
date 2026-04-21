@@ -6,7 +6,7 @@ IMPROVEMENTS:
 * cli: Fixed stale-job reconciliation so nomad-pack run no longer stops active parameterized/periodic child jobs [[GH-855](https://github.com/hashicorp/nomad-pack/pull/855)] 
 * variable: Variables declaration now supports validation stanza [[GH-841](https://github.com/hashicorp/nomad-pack/pull/841)]
 * template: Add `consulKey()` and `consulKeys()` functions to access Consul KV store for template variables [[GH-850](https://github.com/hashicorp/nomad-pack/pull/850)]
-
+* variable: Add support for `nomad_variable` blocks with automatic lifecycle management during pack deployment and destruction [[GH-409](https://github.com/hashicorp/nomad-pack/pull/853)]
 * variable: Fixed variable file overrides (last supplied wins) [[GH-851](https://github.com/hashicorp/nomad-pack/pull/851)]
 
 BUG FIXES:
