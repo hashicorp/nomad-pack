@@ -48,8 +48,8 @@ type ParserConfig struct {
 	EnvOverrides map[string]string
 
 	// FileOverrides is a list of files which contain variable overrides in the
-	// form key=value. The files will be stored before processing to ensure a
-	// consistent processing experience. Overrides here will replace any
+	// form key=value. Files are processed in the provided order. If the same
+	// key is supplied in multiple files, the last file wins. Overrides here will replace any
 	// default root declarations.
 	FileOverrides []string
 

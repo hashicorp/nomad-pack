@@ -87,6 +87,9 @@ nomad-pack run hello_world --var message=hola
 Values can also be provided by passing in a variables file. See the variables section of the
 [Detailed usage guide](/docs/detailed-usage.md) for details.
 
+When using multiple `-f/--var-file` flags, files are applied in the provided
+order and the last file wins for duplicate keys.
+
 ```shell
 tee -a ./my-variables.hcl << END
 message="bonjour"

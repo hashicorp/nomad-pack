@@ -4,8 +4,10 @@
 package cli
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/hashicorp/nomad/api"
@@ -20,6 +22,7 @@ import (
 	parserconfig "github.com/hashicorp/nomad-pack/internal/pkg/variable/parser/config"
 	"github.com/hashicorp/nomad-pack/internal/runner"
 	"github.com/hashicorp/nomad-pack/internal/runner/job"
+	"github.com/hashicorp/nomad-pack/sdk/pack/variables"
 	"github.com/hashicorp/nomad-pack/terminal"
 )
 
@@ -229,6 +232,129 @@ func renderPack(
 	return r, nil
 }
 
+// getNamespaceOrDefault returns the provided namespace or "default" if empty
+func getNamespaceOrDefault(ns string) string {
+	if ns == "" {
+		return "default"
+	}
+	return ns
+}
+
+// createNomadVariables creates Nomad Variables defined in nomad_variable blocks
+func createNomadVariables(
+	parsedVars *parser.ParsedVariables,
+	client *api.Client,
+	ui terminal.UI,
+) error {
+	nomadVars := parsedVars.GetNomadVars()
+	if len(nomadVars) == 0 {
+		return nil // No nomad variables to create
+	}
+
+	ui.Output("Creating Nomad Variables...")
+
+	for _, nvList := range nomadVars {
+		for _, nv := range nvList {
+			// Convert cty.Value items to map[string]string for Nomad API
+			items := make(map[string]string)
+			for key, val := range nv.Items {
+				// Convert cty.Value to Go interface
+				goVal, err := variables.ConvertCtyToInterface(val)
+				if err != nil {
+					return fmt.Errorf("failed to convert variable %s.%s: %w", nv.Name, key, err)
+				}
+
+				// serialize complex types as JSON, simple types as strings
+				var strVal string
+				switch v := goVal.(type) {
+				case string:
+					strVal = v
+				case int, int64, float64, bool:
+					strVal = fmt.Sprintf("%v", v)
+				default:
+					// for maps, slices and other complex types, use JSON
+					jsonBytes, err := json.Marshal(goVal)
+					if err != nil {
+						return fmt.Errorf("failed to serialize variable %s.%s as JSON: %w", nv.Name, key, err)
+					}
+					strVal = string(jsonBytes)
+				}
+				items[key] = strVal
+			}
+
+			// Create the Nomad Variable
+			variable := &api.Variable{
+				Path:      nv.Path,
+				Namespace: nv.Namespace,
+				Items:     items,
+			}
+
+			// Set default namespace if not specified
+			variable.Namespace = getNamespaceOrDefault(variable.Namespace)
+
+			ui.Output(fmt.Sprintf("  Creating variable at path: %s (namespace: %s)",
+				nv.Path, variable.Namespace))
+
+			// Try to create the variable first
+			_, _, err := client.Variables().Create(variable, nil)
+			if err != nil {
+				// If variable exists, update it instead
+				if strings.Contains(err.Error(), "already exists") {
+					_, _, err = client.Variables().Update(variable, nil)
+					if err != nil {
+						return fmt.Errorf("failed to update variable at path %s: %w", nv.Path, err)
+					}
+					ui.Output(fmt.Sprintf("  ✓ Updated variable: %s", nv.Name))
+				} else {
+					return fmt.Errorf("failed to create variable at path %s: %w", nv.Path, err)
+				}
+			} else {
+				ui.Output(fmt.Sprintf("  ✓ Created variable: %s", nv.Name))
+			}
+		}
+	}
+	ui.Success("Nomad Variables created successfully")
+	return nil
+}
+
+// deleteNomadVariables deletes Nomad Variables defined in nomad_variable blocks
+func deleteNomadVariables(
+	parsedVars *parser.ParsedVariables,
+	client *api.Client,
+	ui terminal.UI,
+) error {
+	nomadVars := parsedVars.GetNomadVars()
+	if len(nomadVars) == 0 {
+		return nil // no nomad variables to delete
+	}
+
+	ui.Output("Deleting Nomad Variables...")
+
+	for _, varList := range nomadVars {
+		for _, nv := range varList {
+			namespace := getNamespaceOrDefault(nv.Namespace)
+
+			ui.Output(fmt.Sprintf("Deleting variable at path: %s (namespace: %s)", nv.Path, namespace))
+
+			// delete the variable
+			_, err := client.Variables().Delete(nv.Path, &api.WriteOptions{Namespace: namespace})
+			if err != nil {
+				// if variable doesn't exist, its not an error
+				if strings.Contains(err.Error(), "not found") {
+					ui.Output(fmt.Sprintf("Variable not found (already deleted): %s", nv.Name))
+				} else {
+					return fmt.Errorf("failed to delete variable at path %s: %w", nv.Path, err)
+				}
+			} else {
+				ui.Output(fmt.Sprintf("Deleted variable: %s", nv.Name))
+			}
+		}
+	}
+
+	ui.Success("Nomad Variables deleted successfully")
+	return nil
+}
+
 // TODO: This needs to be on a domain specific pkg rather than a UI helpers file.
 // This will be possible once we create a logger interface that can be passed
 // between layers.
@@ -386,9 +512,11 @@ func getDeployedPacks(c *api.Client) (map[string]map[string]struct{}, error) {
 
 	packRegistryMap := map[string]map[string]struct{}{}
 	for _, jobStub := range jobs {
-		nomadJob, _, err := jobsApi.Info(jobStub.ID, &api.QueryOptions{})
+		nomadJob, _, err := jobsApi.Info(jobStub.ID, &api.QueryOptions{
+			Namespace: jobStub.Namespace,
+		})
 		if err != nil {
-			return nil, fmt.Errorf("error retrieving job %s: %s", *nomadJob.ID, err)
+			return nil, fmt.Errorf("error retrieving job %s: %w", jobStub.ID, err)
 		}
 
 		if nomadJob.Meta != nil {
@@ -617,4 +745,31 @@ func getVaultClient() (*vault.Client, error) {
 	}
 
 	return client, nil
+}
+
+// addNoParentTemplatesContext adds error details for missing parent templates
+// to an existing error context. It lists any .tpl files discovered and provides
+// naming guidance.
+func addNoParentTemplatesContext(errorContext *errors.UIErrorContext, packPath string) {
+	errorContext.Add(errors.UIContextErrorDetail, "No parent templates (*.nomad.tpl files) were found in the pack")
+	errorContext.Add(errors.UIContextErrorSuggestion, "Parent templates must end with .nomad.tpl (e.g., app.nomad.tpl). Helper templates should start with _ (e.g., _helpers.tpl)")
+
+	// list found template files
+	templatesPath := filepath.Join(packPath, "templates")
+	// we silently ignore errors from ReadDir since listing template files is
+	// supplementary information. If the directory doesn't exist or can't be read,
+	// the main error message about missing parent templates is still clear.
+	if entries, err := os.ReadDir(templatesPath); err == nil {
+		var templateFiles []string
+		for _, entry := range entries {
+			if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".tpl") {
+				templateFiles = append(templateFiles, entry.Name())
+			}
+		}
+		if len(templateFiles) > 0 {
+			errorContext.Add("Found Templates: ", strings.Join(templateFiles, ", "))
+		} else {
+			errorContext.Add("Found Templates: ", "none")
+		}
+	}
 }

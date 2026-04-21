@@ -2,7 +2,15 @@
 
 IMPROVEMENTS:
 * template: Add `vaultRead()` and `vaultKV()` functions to read secrets from HashiCorp Vault with automatic KV v1/v2 detection [[GH-473](https://github.com/hashicorp/nomad-pack/pull/848)]
+* cli: Improved error message when pack lacks `.nomad.tpl` files to clearly explain naming requirements, show template naming convention, and list found template files [[GH-831](https://github.com/hashicorp/nomad-pack/pull/831)]
 * cli: Add registry now honors default main/master branch [[GH-843](https://github.com/hashicorp/nomad-pack/pull/843)]
+* cli: Fixed stale-job reconciliation so nomad-pack run no longer stops active parameterized/periodic child jobs [[GH-855](https://github.com/hashicorp/nomad-pack/pull/855)] 
+* variable: Variables declaration now supports validation stanza [[GH-841](https://github.com/hashicorp/nomad-pack/pull/841)]
+* variable: Add support for `nomad_variable` blocks with automatic lifecycle management during pack deployment and destruction [[GH-409](https://github.com/hashicorp/nomad-pack/pull/853)]
+* variable: Fixed variable file overrides (last supplied wins) [[GH-851](https://github.com/hashicorp/nomad-pack/pull/851)]
+
+BUG FIXES:
+* cli: Fix panic when calling status command with namespace wildcard [[GH-827](https://github.com/hashicorp/nomad-pack/pull/854)]
 
 ## 0.4.2 (March 16, 2026)
 

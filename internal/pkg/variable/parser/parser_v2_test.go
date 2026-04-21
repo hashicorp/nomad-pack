@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -20,6 +21,7 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser/config"
 	"github.com/hashicorp/nomad-pack/sdk/pack"
 	"github.com/hashicorp/nomad-pack/sdk/pack/variables"
+	"github.com/hashicorp/nomad/ci"
 	vault "github.com/hashicorp/vault/api"
 	"github.com/shoenig/test/must"
 	"github.com/spf13/afero"
@@ -790,6 +792,23 @@ func TestParserV2_parseHeredocAtEOF(t *testing.T) {
 	must.Eq(t, "heredoc\n", inputParser.fileOverrideVars["variable_test_pack"][0].Value.AsString())
 }
 
+func TestParserV2_FileOverridesFollowInputOrder(t *testing.T) {
+	tmpDir := t.TempDir()
+	first := filepath.Join(tmpDir, "b-first.hcl")
+	second := filepath.Join(tmpDir, "a-second.hcl")
+
+	must.NoError(t, os.WriteFile(first, []byte("input = \"from-first\"\n"), 0o644))
+	must.NoError(t, os.WriteFile(second, []byte("input = \"from-second\"\n"), 0o644))
+
+	fixturePath := testfixture.AbsPath(t, "v2/variable_test/variable_test")
+	pm := newTestPackManager(t, fixturePath, false)
+	pm.cfg.VariableFiles = []string{first, second}
+
+	pvs := pm.ProcessVariables()
+	must.NotNil(t, pvs)
+	must.Eq(t, "from-second", pvs.v2Vars["variable_test_pack"]["input"].Value.AsString())
+}
+
 func TestParserV2_VariableOverrides(t *testing.T) {
 	testcases := []struct {
 		Name   string
@@ -917,4 +936,46 @@ func NewStringVariableV2(key, value, kind string) *variables.Variable {
 		Value:     cty.StringVal(value),
 		DeclRange: hcl.Range{Filename: fmt.Sprintf("<value for var %s from %s>", key, kind)},
 	}
+}
+
+func TestParsedVariables_GetNomadVars(t *testing.T) {
+	ci.Parallel(t)
+
+	t.Run("returns empty map when no nomad variables", func(t *testing.T) {
+		pv := &ParsedVariables{
+			nomadVars: make(map[pack.ID][]*variables.NomadVariable),
+		}
+		nvs := pv.GetNomadVars()
+		must.NotNil(t, nvs)
+		must.MapEmpty(t, nvs)
+	})
+
+	t.Run("returns nil when nomadVars is nil", func(t *testing.T) {
+		pv := &ParsedVariables{
+			nomadVars: nil,
+		}
+		nvs := pv.GetNomadVars()
+		must.Nil(t, nvs)
+	})
+
+	t.Run("returns nomad variables map", func(t *testing.T) {
+		nv1 := &variables.NomadVariable{
+			Name: "test1",
+			Path: "nomad/jobs/test1",
+		}
+		nv2 := &variables.NomadVariable{
+			Name: "test2",
+			Path: "nomad/jobs/test2",
+		}
+		pv := &ParsedVariables{
+			nomadVars: map[pack.ID][]*variables.NomadVariable{
+				"example": {nv1, nv2},
+			},
+		}
+		nvs := pv.GetNomadVars()
+		must.Eq(t, 1, len(nvs))
+		must.Eq(t, 2, len(nvs["example"]))
+		must.Eq(t, "test1", nvs["example"][0].Name)
+		must.Eq(t, "test2", nvs["example"][1].Name)
+	})
 }

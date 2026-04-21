@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -37,6 +36,8 @@ type ParserV2 struct {
 	// the second is by the variable name.
 	rootVars map[pack.ID]map[variables.ID]*variables.Variable
 
+	nomadVars map[pack.ID][]*variables.NomadVariable // stores parsed nomad_variable blocks
+
 	// envOverrideVars, fileOverrideVars, cliOverrideVars are the override
 	// variables. The maps are keyed by the pack name they are associated to.
 	sourceOverrideVars variables.PackIDKeyedVarMap
@@ -55,9 +56,6 @@ func NewParserV2(cfg *config.ParserConfig) (*ParserV2, error) {
 		return nil, errors.New("nil ParentPack")
 	}
 
-	// Sort the file overrides to ensure variable merging is consistent on
-	// multiple passes.
-	sort.Strings(cfg.FileOverrides)
 	for _, file := range cfg.FileOverrides {
 		_, err := os.Stat(file)
 		if err != nil {
@@ -75,6 +73,7 @@ func NewParserV2(cfg *config.ParserConfig) (*ParserV2, error) {
 		envOverrideVars:    make(variables.PackIDKeyedVarMap),
 		fileOverrideVars:   make(variables.PackIDKeyedVarMap),
 		flagOverrideVars:   make(variables.PackIDKeyedVarMap),
+		nomadVars:          make(map[pack.ID][]*variables.NomadVariable),
 	}, nil
 }
 
@@ -134,8 +133,20 @@ func (p *ParserV2) Parse() (*ParsedVariables, hcl.Diagnostics) {
 		}
 	}
 
+	// After all overrides have been merged, run variable validation rules.
+	if !diags.HasErrors() {
+		for _, packVars := range p.rootVars {
+			for _, v := range packVars {
+				if valDiags := v.Validate(); valDiags.HasErrors() {
+					diags = diags.Extend(valDiags)
+				}
+			}
+		}
+	}
+
 	out := new(ParsedVariables)
 	out.LoadV2Result(p.rootVars)
+	out.nomadVars = p.nomadVars
 
 	return out, diags
 }
@@ -214,42 +225,54 @@ func (p *ParserV2) loadPackFile(file *pack.File) (hcl.Body, hcl.Diagnostics) {
 }
 
 func (p *ParserV2) parseRootFiles() hcl.Diagnostics {
-
 	var diags hcl.Diagnostics
 
 	// Iterate all our root variable files.
 	for name, file := range p.cfg.RootVariableFiles {
-
 		hclBody, loadDiags := p.loadPackFile(file)
 		diags = packdiags.SafeDiagnosticsExtend(diags, loadDiags)
 
+		// Parse BOTH variable and nomad_variable blocks in one call
 		content, contentDiags := hclBody.Content(schema.VariableFileSchema)
 		diags = packdiags.SafeDiagnosticsExtend(diags, contentDiags)
 
-		rootVars, parseDiags := p.parseRootBodyContent(content)
+		// Separate the blocks by type
+		var variableBlocks []*hcl.Block
+		var nomadVariableBlocks []*hcl.Block
+
+		for _, block := range content.Blocks {
+			switch block.Type {
+			case "variable":
+				variableBlocks = append(variableBlocks, block)
+			case "nomad_variable":
+				nomadVariableBlocks = append(nomadVariableBlocks, block)
+			}
+		}
+
+		// Parse regular variable blocks
+		rootVars, parseDiags := p.parseVariableBlocks(variableBlocks)
 		diags = packdiags.SafeDiagnosticsExtend(diags, parseDiags)
 
-		// If we don't have any errors processing the file, and its content,
-		// add an entry.
+		// Parse nomad_variable blocks
+		nomadVars, nomadParseDiags := p.parseNomadVariableBlocks(nomadVariableBlocks)
+		diags = packdiags.SafeDiagnosticsExtend(diags, nomadParseDiags)
+
+		// If we don't have any errors processing the file, add entries
 		if !diags.HasErrors() {
 			p.rootVars[name] = rootVars
+			p.nomadVars[name] = nomadVars
 		}
 	}
 
 	return diags
 }
 
-// parseRootBodyContent process the body of a root variables file, parsing
-// each variable block found.
-func (p *ParserV2) parseRootBodyContent(body *hcl.BodyContent) (map[variables.ID]*variables.Variable, hcl.Diagnostics) {
-
+// parseVariableBlocks processes variable blocks
+func (p *ParserV2) parseVariableBlocks(blocks []*hcl.Block) (map[variables.ID]*variables.Variable, hcl.Diagnostics) {
 	packRootVars := map[variables.ID]*variables.Variable{}
-
 	var diags hcl.Diagnostics
 
-	// Due to the parsing that uses variableFileSchema, it is safe to assume
-	// every block has a type "variable".
-	for _, block := range body.Blocks {
+	for _, block := range blocks {
 		cfg, cfgDiags := decoder.DecodeVariableBlock(block)
 		diags = packdiags.SafeDiagnosticsExtend(diags, cfgDiags)
 		if cfg != nil {
@@ -257,6 +280,21 @@ func (p *ParserV2) parseRootBodyContent(body *hcl.BodyContent) (map[variables.ID
 		}
 	}
 	return packRootVars, diags
+}
+
+// parseNomadVariableBlocks processes nomad_variable blocks
+func (p *ParserV2) parseNomadVariableBlocks(blocks []*hcl.Block) ([]*variables.NomadVariable, hcl.Diagnostics) {
+	var nomadVars []*variables.NomadVariable
+	var diags hcl.Diagnostics
+
+	for _, block := range blocks {
+		nv, nvDiags := decoder.DecodeNomadVariableBlock(block)
+		diags = packdiags.SafeDiagnosticsExtend(diags, nvDiags)
+		if nv != nil {
+			nomadVars = append(nomadVars, nv)
+		}
+	}
+	return nomadVars, diags
 }
 
 func (p *ParserV2) parseEnvVariable(name string, rawVal string) hcl.Diagnostics {

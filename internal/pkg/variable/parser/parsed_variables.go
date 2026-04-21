@@ -19,10 +19,11 @@ import (
 // ParsedVariables wraps the parsed variables returned by parser.Parse and
 // provides functionality to access them.
 type ParsedVariables struct {
-	v1Vars   map[string]map[string]*variables.Variable
-	v2Vars   map[pack.ID]map[variables.ID]*variables.Variable
-	Metadata *pack.Metadata
-	version  *config.ParserVersion
+	v1Vars    map[string]map[string]*variables.Variable
+	v2Vars    map[pack.ID]map[variables.ID]*variables.Variable
+	nomadVars map[pack.ID][]*variables.NomadVariable
+	Metadata  *pack.Metadata
+	version   *config.ParserVersion
 }
 
 func (pv *ParsedVariables) IsV2() bool {
@@ -72,6 +73,11 @@ func (pv *ParsedVariables) GetVars() map[pack.ID]map[variables.ID]*variables.Var
 		return asV2Vars(pv.v1Vars)
 	}
 	return pv.v2Vars
+}
+
+// GetNomadVars returns parsed nomad_variable blocks
+func (pv *ParsedVariables) GetNomadVars() map[pack.ID][]*variables.NomadVariable {
+	return pv.nomadVars
 }
 
 // asV2Vars traverses the v1-style and converts it into an equivalent single

@@ -643,6 +643,140 @@ variable "optional_list" {
 	}
 }
 
+func TestDecoder_DecodeNomadVariableBlock(t *testing.T) {
+	ci.Parallel(t)
+
+	testCases := []struct {
+		name        string
+		input       *hcl.Block
+		expectOut   *variables.NomadVariable
+		expectDiags hcl.Diagnostics
+		shouldErr   bool
+	}{
+		{
+			name:        "passes/on nil block",
+			input:       &hcl.Block{},
+			expectOut:   nil,
+			expectDiags: hcl.Diagnostics{},
+		},
+		{
+			name:  "passes/on valid block with all attributes",
+			input: testGetNomadVariableHCLBlock(t, testLoadPackFile(t, []byte(goodCompleteNomadVariableHCL))),
+			expectOut: &variables.NomadVariable{
+				Name:      "test",
+				Path:      "nomad/jobs/test",
+				Namespace: "default",
+				Items: map[string]cty.Value{
+					"key1": cty.StringVal("value1"),
+					"key2": cty.StringVal("value2"),
+				},
+			},
+			expectDiags: hcl.Diagnostics{},
+		},
+		{
+			name:  "passes/on valid block without optional namespace",
+			input: testGetNomadVariableHCLBlock(t, testLoadPackFile(t, []byte(goodMinimalNomadVariableHCL))),
+			expectOut: &variables.NomadVariable{
+				Name:      "test",
+				Path:      "nomad/jobs/test",
+				Namespace: "",
+				Items: map[string]cty.Value{
+					"key1": cty.StringVal("value1"),
+				},
+			},
+			expectDiags: hcl.Diagnostics{},
+		},
+		{
+			name:      "fails/on missing required path attribute",
+			input:     testGetNomadVariableHCLBlock(t, testLoadPackFile(t, []byte(badNomadVariableMissingPath))),
+			expectOut: nil,
+			expectDiags: hcl.Diagnostics{&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Missing required attribute",
+				Detail:   "The attribute \"path\" is required, but no definition was found.",
+			}},
+			shouldErr: true,
+		},
+		{
+			name:      "fails/on missing required items attribute",
+			input:     testGetNomadVariableHCLBlock(t, testLoadPackFile(t, []byte(badNomadVariableMissingItems))),
+			expectOut: nil,
+			expectDiags: hcl.Diagnostics{&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Missing required attribute",
+				Detail:   "The attribute \"items\" is required, but no definition was found.",
+			}},
+			shouldErr: true,
+		},
+		{
+			name:  "passes/on empty items map",
+			input: testGetNomadVariableHCLBlock(t, testLoadPackFile(t, []byte(goodNomadVariableEmptyItems))),
+			expectOut: &variables.NomadVariable{
+				Name:      "test",
+				Path:      "nomad/jobs/test",
+				Namespace: "",
+				Items:     nil,
+			},
+			expectDiags: hcl.Diagnostics{},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ci.Parallel(t)
+			out, diags := DecodeNomadVariableBlock(tc.input)
+
+			if tc.shouldErr {
+				must.True(t, diags.HasErrors())
+				must.Nil(t, out)
+			} else {
+				must.Len(t, 0, diags, must.Sprint(diags.Error()))
+				must.Eq(t, tc.expectOut, out)
+			}
+		})
+	}
+
+}
+
+func testGetNomadVariableHCLBlock(t *testing.T, in hcl.Body) *hcl.Block {
+	t.Helper()
+	b, diags := in.Content(schema.VariableFileSchema)
+	must.Len(t, 0, diags, must.Sprint(diags.Error()))
+	must.True(t, len(b.Blocks) >= 1)
+	return b.Blocks[0]
+}
+
+const goodCompleteNomadVariableHCL = `nomad_variable "test" {
+	path = "nomad/jobs/test"
+	namespace = "default"
+	items = {
+		key1 = "value1"
+		key2 = "value2"
+	}
+}`
+
+const goodMinimalNomadVariableHCL = `nomad_variable "test" {
+	path = "nomad/jobs/test"
+	items = {
+		key1 = "value1"
+	}
+}`
+
+const goodNomadVariableEmptyItems = `nomad_variable "test" {
+	path = "nomad/jobs/test"
+	items = {}
+}`
+
+const badNomadVariableMissingPath = `nomad_variable "test" {
+	items = {
+		key1 = "value1"
+	}
+}`
+
+const badNomadVariableMissingItems = `nomad_variable "test" {
+	path = "nomad/jobs/test"
+}`
+
 const goodMinimalVariableHCL = `variable "good" {}`
 
 const goodCompleteVariableHCL = `variable "example" {
@@ -693,4 +827,175 @@ func testGetHCLBlock(t *testing.T, in hcl.Body) *hcl.Block {
 	must.Len(t, 0, diags, must.Sprint(diags.Error()))
 	must.True(t, len(b.Blocks) >= 1)
 	return b.Blocks[0]
+}
+
+func TestDecoder_DecodeVariableBlock_Validation(t *testing.T) {
+	ci.Parallel(t)
+
+	t.Run("parses single validation block", func(t *testing.T) {
+		ci.Parallel(t)
+		input := testGetHCLBlock(t, testLoadPackFile(t, []byte(`
+variable "location_type" {
+  type    = string
+  default = "dc"
+  validation {
+    condition     = contains(["dc", "pop", "stx"], var.location_type)
+    error_message = "Must be dc, pop, or stx."
+  }
+}`)))
+		out, diags := DecodeVariableBlock(input)
+		must.Len(t, 0, diags, must.Sprint(diags.Error()))
+		must.NotNil(t, out)
+		must.Len(t, 1, out.Validations)
+		must.Eq(t, "Must be dc, pop, or stx.", out.Validations[0].ErrorMessage)
+		must.NotNil(t, out.Validations[0].Condition)
+	})
+
+	t.Run("parses multiple validation blocks", func(t *testing.T) {
+		ci.Parallel(t)
+		input := testGetHCLBlock(t, testLoadPackFile(t, []byte(`
+variable "count" {
+  type    = number
+  default = 3
+  validation {
+    condition     = var.count > 0
+    error_message = "Must be positive."
+  }
+  validation {
+    condition     = var.count <= 10
+    error_message = "Must be at most 10."
+  }
+}`)))
+		out, diags := DecodeVariableBlock(input)
+		must.Len(t, 0, diags, must.Sprint(diags.Error()))
+		must.NotNil(t, out)
+		must.Len(t, 2, out.Validations)
+		must.Eq(t, "Must be positive.", out.Validations[0].ErrorMessage)
+		must.Eq(t, "Must be at most 10.", out.Validations[1].ErrorMessage)
+	})
+
+	t.Run("no validation blocks yields empty slice", func(t *testing.T) {
+		ci.Parallel(t)
+		input := testGetHCLBlock(t, testLoadPackFile(t, []byte(`
+variable "simple" {
+  type    = string
+  default = "hello"
+}`)))
+		out, diags := DecodeVariableBlock(input)
+		must.Len(t, 0, diags, must.Sprint(diags.Error()))
+		must.NotNil(t, out)
+		must.Len(t, 0, out.Validations)
+	})
+
+	t.Run("validate passes for valid default", func(t *testing.T) {
+		ci.Parallel(t)
+		input := testGetHCLBlock(t, testLoadPackFile(t, []byte(`
+variable "location_type" {
+  type    = string
+  default = "dc"
+  validation {
+    condition     = contains(["dc", "pop", "stx"], var.location_type)
+    error_message = "Must be dc, pop, or stx."
+  }
+}`)))
+		out, diags := DecodeVariableBlock(input)
+		must.Len(t, 0, diags, must.Sprint(diags.Error()))
+		valDiags := out.Validate()
+		must.Len(t, 0, valDiags)
+	})
+
+	t.Run("validate fails for invalid default", func(t *testing.T) {
+		ci.Parallel(t)
+		input := testGetHCLBlock(t, testLoadPackFile(t, []byte(`
+variable "location_type" {
+  type    = string
+  default = "invalid_value"
+  validation {
+    condition     = contains(["dc", "pop", "stx"], var.location_type)
+    error_message = "Must be dc, pop, or stx."
+  }
+}`)))
+		out, diags := DecodeVariableBlock(input)
+		must.Len(t, 0, diags, must.Sprint(diags.Error()))
+		valDiags := out.Validate()
+		must.True(t, valDiags.HasErrors())
+		must.StrContains(t, valDiags.Error(), "Must be dc, pop, or stx.")
+	})
+
+	t.Run("validate numeric conditions", func(t *testing.T) {
+		ci.Parallel(t)
+		input := testGetHCLBlock(t, testLoadPackFile(t, []byte(`
+variable "count" {
+  type    = number
+  default = 5
+  validation {
+    condition     = var.count > 0
+    error_message = "Must be positive."
+  }
+  validation {
+    condition     = var.count <= 10
+    error_message = "Must be at most 10."
+  }
+}`)))
+		out, diags := DecodeVariableBlock(input)
+		must.Len(t, 0, diags, must.Sprint(diags.Error()))
+		valDiags := out.Validate()
+		must.Len(t, 0, valDiags)
+	})
+
+	t.Run("validate numeric condition fails", func(t *testing.T) {
+		ci.Parallel(t)
+		input := testGetHCLBlock(t, testLoadPackFile(t, []byte(`
+variable "count" {
+  type    = number
+  default = 15
+  validation {
+    condition     = var.count > 0
+    error_message = "Must be positive."
+  }
+  validation {
+    condition     = var.count <= 10
+    error_message = "Must be at most 10."
+  }
+}`)))
+		out, diags := DecodeVariableBlock(input)
+		must.Len(t, 0, diags, must.Sprint(diags.Error()))
+		valDiags := out.Validate()
+		must.True(t, valDiags.HasErrors())
+		must.StrContains(t, valDiags.Error(), "Must be at most 10.")
+	})
+
+	t.Run("validate with regex passes", func(t *testing.T) {
+		ci.Parallel(t)
+		input := testGetHCLBlock(t, testLoadPackFile(t, []byte(`
+variable "name" {
+  type    = string
+  default = "hello-world"
+  validation {
+    condition     = length(regexall("^[a-z][a-z0-9-]+$", var.name)) > 0
+    error_message = "Must be lowercase alphanumeric with hyphens."
+  }
+}`)))
+		out, diags := DecodeVariableBlock(input)
+		must.Len(t, 0, diags, must.Sprint(diags.Error()))
+		valDiags := out.Validate()
+		must.Len(t, 0, valDiags)
+	})
+
+	t.Run("validate skipped when no value set", func(t *testing.T) {
+		ci.Parallel(t)
+		input := testGetHCLBlock(t, testLoadPackFile(t, []byte(`
+variable "required_var" {
+  type = string
+  validation {
+    condition     = length(var.required_var) > 0
+    error_message = "Must not be empty."
+  }
+}`)))
+		out, diags := DecodeVariableBlock(input)
+		must.Len(t, 0, diags, must.Sprint(diags.Error()))
+		// No default set, so Value is NilVal; validation should be skipped.
+		valDiags := out.Validate()
+		must.Len(t, 0, valDiags)
+	})
 }

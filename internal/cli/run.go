@@ -80,6 +80,12 @@ func (c *RunCommand) run() int {
 		return 255
 	}
 
+	if r.LenParentRenders() < 1 {
+		addNoParentTemplatesContext(errorContext, c.packConfig.Path)
+		c.ui.ErrorWithContext(errors.ErrNoTemplatesRendered, "no parent templates found", errorContext.GetAll()...)
+		return 1
+	}
+
 	renderedParents := r.ParentRenders()
 	renderedDeps := r.DependentRenders()
 
@@ -141,6 +147,15 @@ func (c *RunCommand) run() int {
 	if deployErr := runDeployer.Deploy(c.ui, errorContext); deployErr != nil {
 		c.ui.ErrorWithContext(deployErr.Err, deployErr.Subject, deployErr.Context.GetAll()...)
 		return 1
+	}
+
+	// create nomad variables
+	if r.ParsedVariables() != nil {
+		if err := createNomadVariables(r.ParsedVariables(), client, c.ui); err != nil {
+			c.ui.Warning("Job is running, but variable creation failed")
+			c.ui.ErrorWithContext(err, "failed to create Nomad Variables", errorContext.GetAll()...)
+			return 1
+		}
 	}
 
 	// Monitor deployments unless detach flag is set
