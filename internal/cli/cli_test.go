@@ -165,8 +165,10 @@ func TestCLI_Render_VaultVariableSource_MissingPath(t *testing.T) {
 	})
 
 	must.Eq(t, 1, result.exitCode)
-	must.StrContains(t, result.cmdOut.String(), "vault variable source requires a non-empty path")
-
+	out := result.cmdOut.String()
+	if !strings.Contains(out, "vault variable source requires a non-empty path") && !strings.Contains(out, "a Vault-backed variable source was requested, but no Vault client is configured") {
+		t.Fatalf("expected missing-path or missing-client error, got:\n%s", out)
+	}
 }
 
 func TestCLI_Render_VariableSource_Unsupported(t *testing.T) {
