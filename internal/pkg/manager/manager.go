@@ -28,6 +28,7 @@ type Config struct {
 	VariableEnvVars map[string]string
 	UseParserV1     bool
 	AllowUnsetVars  bool
+	VariableSource  *config.VariableSourceConfig
 }
 
 // PackManager is responsible for loading, parsing, and rendering a Pack and
@@ -76,6 +77,8 @@ func (pm *PackManager) ProcessVariableFiles() (*parser.ParsedVariables, []*error
 		EnvOverrides:      pm.cfg.VariableEnvVars,
 		FileOverrides:     pm.cfg.VariableFiles,
 		FlagOverrides:     pm.cfg.VariableCLIArgs,
+		VaultClient:       pm.vaultClient,
+		VariableSource:    pm.cfg.VariableSource,
 	}
 
 	if pm.cfg.UseParserV1 {

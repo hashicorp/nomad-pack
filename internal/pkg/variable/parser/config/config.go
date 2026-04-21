@@ -5,6 +5,7 @@ package config
 
 import (
 	"github.com/hashicorp/nomad-pack/sdk/pack"
+	vault "github.com/hashicorp/vault/api"
 )
 
 type ParserVersion int
@@ -14,6 +15,15 @@ const (
 	V1
 	V2
 )
+
+type VariableSourceConfig struct {
+	Type  string
+	Vault *VaultVariableSourceConfig
+}
+
+type VaultVariableSourceConfig struct {
+	Path string
+}
 
 // ParserConfig contains details of the numerous sources of variables which
 // should be parsed and merged according to the expected strategy.
@@ -50,4 +60,10 @@ type ParserConfig struct {
 	// IgnoreMissingVars determines whether we error or not on variable overrides
 	// that don't have corresponding vars in the pack.
 	IgnoreMissingVars bool
+
+	// VaultClient is used for Vault-backed template and variable-source access.
+	VaultClient *vault.Client
+
+	// VariableSource configures an optional external variable source.
+	VariableSource *VariableSourceConfig
 }

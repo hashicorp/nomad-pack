@@ -71,6 +71,12 @@ type baseCommand struct {
 	// for defined input variables
 	varFiles []string
 
+	// varSourceType configures an optional external variable source.
+	varSourceType string
+
+	// vaultVarPath is the Vault path used for external variable sourcing.
+	vaultVarPath string
+
 	// allowUnsetVars suppresses errors from variables with nil values,
 	// i.e. those that are not set and have no default
 	allowUnsetVars bool
@@ -288,6 +294,20 @@ func (c *baseCommand) flagSet(bit flagSetBit, f func(*flag.Sets)) *flag.Sets {
 			Default: make(map[string]string),
 			Usage: `Specifies single override variables in the form of HCL
 					syntax and can be specified multiple times per command.`,
+		})
+
+		f.StringVar(&flag.StringVar{
+			Name:    "var-source",
+			Target:  &c.varSourceType,
+			Default: "",
+			Usage:   `Configures an external variable source. Currently only "vault" is supported.`,
+		})
+
+		f.StringVar(&flag.StringVar{
+			Name:    "vault-var-path",
+			Target:  &c.vaultVarPath,
+			Default: "",
+			Usage:   `Vault path used to populate declared pack variables from an external variable source.`,
 		})
 
 		f.StringVar(&flag.StringVar{

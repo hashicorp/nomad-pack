@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/manager"
 	"github.com/hashicorp/nomad-pack/internal/pkg/renderer"
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser"
+	parserconfig "github.com/hashicorp/nomad-pack/internal/pkg/variable/parser/config"
 	"github.com/hashicorp/nomad-pack/internal/runner"
 	"github.com/hashicorp/nomad-pack/internal/runner/job"
 	"github.com/hashicorp/nomad-pack/terminal"
@@ -40,6 +41,25 @@ func initPackCommand(cfg *caching.PackConfig) (errorContext *errors.UIErrorConte
 // generatePackManager is used to generate the pack manager for this Nomad Pack run.
 func generatePackManager(c *baseCommand, client *api.Client, packCfg *caching.PackConfig) *manager.PackManager {
 	// TODO: Refactor to have manager use cache.
+
+	var variableSource *parserconfig.VariableSourceConfig
+
+	switch c.varSourceType {
+	case "":
+		// no external variable source configured
+	case "vault":
+		variableSource = &parserconfig.VariableSourceConfig{
+			Type: "vault",
+			Vault: &parserconfig.VaultVariableSourceConfig{
+				Path: c.vaultVarPath,
+			},
+		}
+	default:
+		variableSource = &parserconfig.VariableSourceConfig{
+			Type: c.varSourceType,
+		}
+	}
+
 	cfg := manager.Config{
 		Path:            packCfg.Path,
 		VariableFiles:   c.varFiles,
@@ -47,13 +67,14 @@ func generatePackManager(c *baseCommand, client *api.Client, packCfg *caching.Pa
 		VariableEnvVars: c.envVars,
 		AllowUnsetVars:  c.allowUnsetVars,
 		UseParserV1:     c.useParserV1,
+		VariableSource:  variableSource,
 	}
 
-	//create Vault client if configured
+	// Create Vault client if configured
 	vaultClient, err := getVaultClient()
 	if err != nil {
 		c.ui.ErrorWithContext(err, "failed to create Vault client")
-		//continue without Vault - it's optional
+		// Continue without Vault; it's optional
 		vaultClient = nil
 	}
 	return manager.NewPackManager(&cfg, client, vaultClient)

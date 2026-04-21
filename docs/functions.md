@@ -182,6 +182,36 @@ Read raw secret data:
 [[ $key ]]: [[ $value ]]
 [[ end ]]
 
+### Vault-backed variable source
+
+Nomad Pack can populate declared pack variables from Vault KV during command execution.
+
+Use the following flags:
+
+- `--var-source=vault`
+- `--vault-var-path=<path>`
+
+Example:
+
+```bash
+nomad-pack render \
+  --no-format=true \
+  --var-source=vault \
+  --vault-var-path=secret/data/myapp \
+  ./fixtures/v2/simple_raw_exec_v2
+```
+
+When using --var-source=vault, --vault-var-path is required.
+
+Currently only vault is supported as a variable source.
+
+Variable precedence is:
+
+1. external variable source
+2. environment variables
+3. variable files
+4. CLI --var
+This means CLI --var values override Vault-sourced values.
 
 ### Region functions
 
