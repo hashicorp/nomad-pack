@@ -4,7 +4,10 @@
 package parser
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path"
 	"path/filepath"
@@ -19,6 +22,7 @@ import (
 	"github.com/hashicorp/nomad-pack/sdk/pack"
 	"github.com/hashicorp/nomad-pack/sdk/pack/variables"
 	"github.com/hashicorp/nomad/ci"
+	vault "github.com/hashicorp/vault/api"
 	"github.com/shoenig/test/must"
 	"github.com/spf13/afero"
 	"github.com/zclconf/go-cty/cty"
@@ -37,6 +41,21 @@ func testpack(p ...string) *pack.Pack {
 			},
 		},
 	}
+}
+
+func testVaultClient(t *testing.T, handler http.HandlerFunc) *vault.Client {
+	t.Helper()
+
+	server := httptest.NewServer(handler)
+	t.Cleanup(server.Close)
+
+	cfg := vault.DefaultConfig()
+	cfg.Address = server.URL
+
+	client, err := vault.NewClient(cfg)
+	must.NoError(t, err)
+
+	return client
 }
 
 func TestParserV2_NewParserV2(t *testing.T) {
@@ -68,6 +87,415 @@ func TestParserV2_NewParserV2(t *testing.T) {
 		must.NotNil(t, p)
 		must.NoError(t, err)
 	})
+}
+
+func TestParserV2_Parse_VaultVariableSource(t *testing.T) {
+	vaultClient := testVaultClient(t, func(w http.ResponseWriter, r *http.Request) {
+		must.Eq(t, "/v1/secret/data/myapp", r.URL.Path)
+
+		w.Header().Set("Content-Type", "application/json")
+		must.NoError(t, json.NewEncoder(w).Encode(map[string]any{
+			"data": map[string]any{
+				"data": map[string]any{
+					"region": "us-east-1",
+				},
+			},
+		}))
+	})
+
+	rootVar := &variables.Variable{
+		Name:           "region",
+		Type:           cty.String,
+		ConstraintType: cty.String,
+		Value:          cty.StringVal(""),
+		DeclRange:      hcl.Range{Filename: "variables.hcl"},
+	}
+
+	p := &ParserV2{
+		fs: afero.Afero{Fs: afero.OsFs{}},
+		cfg: &config.ParserConfig{
+			ParentPack:  testpack("example"),
+			VaultClient: vaultClient,
+			VariableSource: &config.VariableSourceConfig{
+				Type: "vault",
+				Vault: &config.VaultVariableSourceConfig{
+					Path: "secret/data/myapp",
+				},
+			},
+		},
+		rootVars: map[pack.ID]map[variables.ID]*variables.Variable{
+			"example": {
+				"region": rootVar,
+			},
+		},
+		sourceOverrideVars: make(variables.PackIDKeyedVarMap),
+		envOverrideVars:    make(variables.PackIDKeyedVarMap),
+		fileOverrideVars:   make(variables.PackIDKeyedVarMap),
+		flagOverrideVars:   make(variables.PackIDKeyedVarMap),
+	}
+
+	diags := p.parseVariableSourceOverrides()
+	must.False(t, diags.HasErrors(), must.Sprintf("unexpected diagnostics: %v", diags))
+
+	sourceVars := p.sourceOverrideVars["example"]
+	must.Len(t, 1, sourceVars)
+
+	must.Eq(t, variables.ID("region"), sourceVars[0].Name)
+	must.Eq(t, cty.StringVal("us-east-1"), sourceVars[0].Value)
+}
+
+func TestParserV2_Parse_EnvOverridesVaultVariableSource(t *testing.T) {
+	vaultClient := testVaultClient(t, func(w http.ResponseWriter, r *http.Request) {
+		must.Eq(t, "/v1/secret/data/myapp", r.URL.Path)
+
+		w.Header().Set("Content-Type", "application/json")
+		must.NoError(t, json.NewEncoder(w).Encode(map[string]any{
+			"data": map[string]any{
+				"data": map[string]any{
+					"region": "vault-region",
+				},
+			},
+		}))
+	})
+
+	rootVarFile := &pack.File{
+		Name: "variables.hcl",
+		Path: "variables.hcl",
+		Content: []byte(`
+variable "region" {
+  type    = string
+  default = ""
+}
+`),
+	}
+
+	p, err := NewParserV2(&config.ParserConfig{
+		ParentPack: testpack("example"),
+		RootVariableFiles: map[pack.ID]*pack.File{
+			"example": rootVarFile,
+		},
+		EnvOverrides: map[string]string{
+			"NOMAD_PACK_VAR_region": "env-region",
+		},
+		VaultClient: vaultClient,
+		VariableSource: &config.VariableSourceConfig{
+			Type: "vault",
+			Vault: &config.VaultVariableSourceConfig{
+				Path: "secret/data/myapp",
+			},
+		},
+	})
+	must.NoError(t, err)
+
+	parsed, diags := p.Parse()
+	must.False(t, diags.HasErrors(), must.Sprintf("unexpected diagnostics: %v", diags))
+	must.NotNil(t, parsed)
+
+	got := parsed.GetVars()["example"]["region"]
+	must.NotNil(t, got)
+	must.Eq(t, cty.StringVal("env-region"), got.Value)
+}
+
+func TestParserV2_Parse_FileOverridesVaultVariableSource(t *testing.T) {
+	vaultClient := testVaultClient(t, func(w http.ResponseWriter, r *http.Request) {
+		must.Eq(t, "/v1/secret/data/myapp", r.URL.Path)
+
+		w.Header().Set("Content-Type", "application/json")
+		must.NoError(t, json.NewEncoder(w).Encode(map[string]any{
+			"data": map[string]any{
+				"data": map[string]any{
+					"region": "vault-region",
+				},
+			},
+		}))
+	})
+
+	rootVarFile := &pack.File{
+		Name: "variables.hcl",
+		Path: "variables.hcl",
+		Content: []byte(`
+variable "region" {
+  type    = string
+  default = ""
+}
+`),
+	}
+
+	tmpDir := t.TempDir()
+	overrideFilePath := path.Join(tmpDir, "region.override.hcl")
+	must.NoError(t, os.WriteFile(overrideFilePath, []byte(`
+region = "file-region"
+`), 0o644))
+
+	p, err := NewParserV2(&config.ParserConfig{
+		ParentPack: testpack("example"),
+		RootVariableFiles: map[pack.ID]*pack.File{
+			"example": rootVarFile,
+		},
+		FileOverrides: []string{overrideFilePath},
+		VaultClient:   vaultClient,
+		VariableSource: &config.VariableSourceConfig{
+			Type: "vault",
+			Vault: &config.VaultVariableSourceConfig{
+				Path: "secret/data/myapp",
+			},
+		},
+	})
+	must.NoError(t, err)
+
+	parsed, diags := p.Parse()
+	must.False(t, diags.HasErrors(), must.Sprintf("unexpected diagnostics: %v", diags))
+	must.NotNil(t, parsed)
+
+	got := parsed.GetVars()["example"]["region"]
+	must.NotNil(t, got)
+	must.Eq(t, cty.StringVal("file-region"), got.Value)
+}
+
+func TestParserV2_Parse_FlagOverridesVaultVariableSource(t *testing.T) {
+	vaultClient := testVaultClient(t, func(w http.ResponseWriter, r *http.Request) {
+		must.Eq(t, "/v1/secret/data/myapp", r.URL.Path)
+
+		w.Header().Set("Content-Type", "application/json")
+		must.NoError(t, json.NewEncoder(w).Encode(map[string]any{
+			"data": map[string]any{
+				"data": map[string]any{
+					"region": "vault-region",
+				},
+			},
+		}))
+	})
+
+	rootVarFile := &pack.File{
+		Name: "variables.hcl",
+		Path: "variables.hcl",
+		Content: []byte(`
+variable "region" {
+  type    = string
+  default = ""
+}
+`),
+	}
+
+	p, err := NewParserV2(&config.ParserConfig{
+		ParentPack: testpack("example"),
+		RootVariableFiles: map[pack.ID]*pack.File{
+			"example": rootVarFile,
+		},
+		FlagOverrides: map[string]string{
+			"region": "flag-region",
+		},
+		VaultClient: vaultClient,
+		VariableSource: &config.VariableSourceConfig{
+			Type: "vault",
+			Vault: &config.VaultVariableSourceConfig{
+				Path: "secret/data/myapp",
+			},
+		},
+	})
+	must.NoError(t, err)
+
+	parsed, diags := p.Parse()
+	must.False(t, diags.HasErrors(), must.Sprintf("unexpected diagnostics: %v", diags))
+	must.NotNil(t, parsed)
+
+	got := parsed.GetVars()["example"]["region"]
+	must.NotNil(t, got)
+	must.Eq(t, cty.StringVal("flag-region"), got.Value)
+}
+
+func TestParserV2_Parse_VaultVariableSource_IgnoresUndeclaredFields(t *testing.T) {
+	vaultClient := testVaultClient(t, func(w http.ResponseWriter, r *http.Request) {
+		must.Eq(t, "/v1/secret/data/myapp", r.URL.Path)
+
+		w.Header().Set("Content-Type", "application/json")
+		must.NoError(t, json.NewEncoder(w).Encode(map[string]any{
+			"data": map[string]any{
+				"data": map[string]any{
+					"region":   "us-east-1",
+					"ignored":  "value",
+					"ignored2": 123,
+				},
+			},
+		}))
+	})
+
+	rootVarFile := &pack.File{
+		Name: "variables.hcl",
+		Path: "variables.hcl",
+		Content: []byte(`
+variable "region" {
+  type    = string
+  default = ""
+}
+`),
+	}
+
+	p, err := NewParserV2(&config.ParserConfig{
+		ParentPack: testpack("example"),
+		RootVariableFiles: map[pack.ID]*pack.File{
+			"example": rootVarFile,
+		},
+		VaultClient: vaultClient,
+		VariableSource: &config.VariableSourceConfig{
+			Type: "vault",
+			Vault: &config.VaultVariableSourceConfig{
+				Path: "secret/data/myapp",
+			},
+		},
+	})
+	must.NoError(t, err)
+
+	parsed, diags := p.Parse()
+	must.False(t, diags.HasErrors(), must.Sprintf("unexpected diagnostics: %v", diags))
+	must.NotNil(t, parsed)
+
+	got := parsed.GetVars()["example"]["region"]
+	must.NotNil(t, got)
+	must.Eq(t, cty.StringVal("us-east-1"), got.Value)
+}
+
+func TestParserV2_Parse_VaultVariableSource_TypeMismatch(t *testing.T) {
+	vaultClient := testVaultClient(t, func(w http.ResponseWriter, r *http.Request) {
+		must.Eq(t, "/v1/secret/data/myapp", r.URL.Path)
+
+		w.Header().Set("Content-Type", "application/json")
+		must.NoError(t, json.NewEncoder(w).Encode(map[string]any{
+			"data": map[string]any{
+				"data": map[string]any{
+					"count": "not-a-number",
+				},
+			},
+		}))
+	})
+
+	rootVarFile := &pack.File{
+		Name: "variables.hcl",
+		Path: "variables.hcl",
+		Content: []byte(`
+variable "count" {
+  type    = number
+  default = 1
+}
+`),
+	}
+
+	p, err := NewParserV2(&config.ParserConfig{
+		ParentPack: testpack("example"),
+		RootVariableFiles: map[pack.ID]*pack.File{
+			"example": rootVarFile,
+		},
+		VaultClient: vaultClient,
+		VariableSource: &config.VariableSourceConfig{
+			Type: "vault",
+			Vault: &config.VaultVariableSourceConfig{
+				Path: "secret/data/myapp",
+			},
+		},
+	})
+	must.NoError(t, err)
+
+	parsed, diags := p.Parse()
+	must.True(t, diags.HasErrors())
+	must.Nil(t, parsed)
+}
+
+func TestParserV2_Parse_VaultVariableSource_StringNumberToNumber(t *testing.T) {
+	vaultClient := testVaultClient(t, func(w http.ResponseWriter, r *http.Request) {
+		must.Eq(t, "/v1/secret/data/myapp", r.URL.Path)
+
+		w.Header().Set("Content-Type", "application/json")
+		must.NoError(t, json.NewEncoder(w).Encode(map[string]any{
+			"data": map[string]any{
+				"data": map[string]any{
+					"count": "3",
+				},
+			},
+		}))
+	})
+
+	rootVarFile := &pack.File{
+		Name: "variables.hcl",
+		Path: "variables.hcl",
+		Content: []byte(`
+variable "count" {
+  type    = number
+  default = 1
+}
+`),
+	}
+
+	p, err := NewParserV2(&config.ParserConfig{
+		ParentPack: testpack("example"),
+		RootVariableFiles: map[pack.ID]*pack.File{
+			"example": rootVarFile,
+		},
+		VaultClient: vaultClient,
+		VariableSource: &config.VariableSourceConfig{
+			Type: "vault",
+			Vault: &config.VaultVariableSourceConfig{
+				Path: "secret/data/myapp",
+			},
+		},
+	})
+	must.NoError(t, err)
+
+	parsed, diags := p.Parse()
+	must.False(t, diags.HasErrors(), must.Sprintf("unexpected diagnostics: %v", diags))
+	must.NotNil(t, parsed)
+
+	got := parsed.GetVars()["example"]["count"]
+	must.NotNil(t, got)
+	must.True(t, got.Value.RawEquals(cty.NumberIntVal(3)))
+}
+
+func TestParserV2_Parse_VaultVariableSource_FloatNumberToNumber(t *testing.T) {
+	vaultClient := testVaultClient(t, func(w http.ResponseWriter, r *http.Request) {
+		must.Eq(t, "/v1/secret/data/myapp", r.URL.Path)
+
+		w.Header().Set("Content-Type", "application/json")
+		must.NoError(t, json.NewEncoder(w).Encode(map[string]any{
+			"data": map[string]any{
+				"data": map[string]any{
+					"count": float64(3),
+				},
+			},
+		}))
+	})
+
+	rootVarFile := &pack.File{
+		Name: "variables.hcl",
+		Path: "variables.hcl",
+		Content: []byte(`
+variable "count" {
+  type    = number
+  default = 1
+}
+`),
+	}
+
+	p, err := NewParserV2(&config.ParserConfig{
+		ParentPack: testpack("example"),
+		RootVariableFiles: map[pack.ID]*pack.File{
+			"example": rootVarFile,
+		},
+		VaultClient: vaultClient,
+		VariableSource: &config.VariableSourceConfig{
+			Type: "vault",
+			Vault: &config.VaultVariableSourceConfig{
+				Path: "secret/data/myapp",
+			},
+		},
+	})
+	must.NoError(t, err)
+
+	parsed, diags := p.Parse()
+	must.False(t, diags.HasErrors(), must.Sprintf("unexpected diagnostics: %v", diags))
+	must.NotNil(t, parsed)
+
+	got := parsed.GetVars()["example"]["count"]
+	must.NotNil(t, got)
+	must.True(t, got.Value.RawEquals(cty.NumberIntVal(3)))
 }
 
 func TestParserV2_parseFlagVariable(t *testing.T) {

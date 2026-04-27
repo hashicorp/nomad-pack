@@ -8,6 +8,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path"
 	"path/filepath"
@@ -18,6 +20,7 @@ import (
 
 	"github.com/hashicorp/nomad/api"
 	"github.com/hashicorp/nomad/command/agent"
+	vault "github.com/hashicorp/vault/api"
 	"github.com/mitchellh/cli"
 	"github.com/shoenig/test/must"
 	"github.com/shoenig/test/wait"
@@ -51,6 +54,36 @@ const (
 
 	testPlanCmdString = "plan --exit-code-no-changes=90 --exit-code-makes-changes=91 --exit-code-error=92"
 )
+
+func testVaultClientForCLI(t *testing.T, handler http.HandlerFunc) *vault.Client {
+	t.Helper()
+
+	server := httptest.NewServer(handler)
+	t.Cleanup(server.Close)
+
+	cfg := vault.DefaultConfig()
+	cfg.Address = server.URL
+
+	client, err := vault.NewClient(cfg)
+	must.NoError(t, err)
+
+	return client
+}
+
+func withEnv(t *testing.T, key, value string) {
+	t.Helper()
+
+	prev, ok := os.LookupEnv(key)
+	must.NoError(t, os.Setenv(key, value))
+
+	t.Cleanup(func() {
+		if ok {
+			_ = os.Setenv(key, prev)
+			return
+		}
+		_ = os.Unsetenv(key)
+	})
+}
 
 func TestCLI_CreateTestRegistry(t *testing.T) {
 	// This test is here to help setup the pack registry cache. It needs to be
@@ -86,6 +119,71 @@ func TestCLI_Version(t *testing.T) {
 	// This test doesn't require a Nomad cluster.
 	exitCode := Main([]string{"nomad-pack", "-v"})
 	must.Zero(t, exitCode)
+}
+
+func TestCLI_Render_VaultVariableSource(t *testing.T) {
+	t.Parallel()
+
+	vaultClient := testVaultClientForCLI(t, func(w http.ResponseWriter, r *http.Request) {
+		must.Eq(t, "/v1/secret/data/myapp", r.URL.Path)
+
+		w.Header().Set("Content-Type", "application/json")
+		must.NoError(t, json.NewEncoder(w).Encode(map[string]any{
+			"data": map[string]any{
+				"data": map[string]any{
+					"region": "us-east-1",
+					"count":  float64(3),
+				},
+			},
+		}))
+	})
+
+	withEnv(t, "VAULT_ADDR", vaultClient.Address())
+
+	result := runPackCmd(t, []string{
+		"render",
+		"--no-format=true",
+		"--var-source=vault",
+		"--vault-var-path=secret/data/myapp",
+		testfixture.AbsPath(t, "v2/simple_raw_exec_v2"),
+	})
+
+	must.Zero(t, result.exitCode, must.Sprintf("stdout:\n%s\n\nstderr:\n%s\n", result.cmdOut.String(), result.cmdErr.String()))
+	must.Eq(t, "", result.cmdErr.String(), must.Sprintf("cmdErr should be empty, but was %q", result.cmdErr.String()))
+	must.StrContains(t, result.cmdOut.String(), `region = "us-east-1"`)
+	must.StrContains(t, result.cmdOut.String(), `count = 3`)
+}
+
+func TestCLI_Render_VaultVariableSource_MissingPath(t *testing.T) {
+	t.Parallel()
+
+	result := runPackCmd(t, []string{
+		"render",
+		"--no-format=true",
+		"--var-source=vault",
+		testfixture.AbsPath(t, "v2/simple_raw_exec_v2"),
+	})
+
+	must.Eq(t, 1, result.exitCode)
+	out := result.cmdOut.String()
+	if !strings.Contains(out, "vault variable source requires a non-empty path") && !strings.Contains(out, "a Vault-backed variable source was requested, but no Vault client is configured") {
+		t.Fatalf("expected missing-path or missing-client error, got:\n%s", out)
+	}
+}
+
+func TestCLI_Render_VariableSource_Unsupported(t *testing.T) {
+	t.Parallel()
+
+	result := runPackCmd(t, []string{
+		"render",
+		"--no-format=true",
+		"--var-source=consul",
+		testfixture.AbsPath(t, "v2/simple_raw_exec_v2"),
+	})
+
+	must.Eq(t, 1, result.exitCode)
+	must.StrContains(t, result.cmdOut.String(), `unsupported variable source type "consul"`)
+
 }
 
 func TestCLI_JobRun(t *testing.T) {

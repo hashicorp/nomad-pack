@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/nomad/api"
+	vault "github.com/hashicorp/vault/api"
 	"github.com/posener/complete"
 
 	"github.com/hashicorp/nomad-pack/internal/pkg/caching"
@@ -18,6 +19,7 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/manager"
 	"github.com/hashicorp/nomad-pack/internal/pkg/renderer"
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser"
+	parserconfig "github.com/hashicorp/nomad-pack/internal/pkg/variable/parser/config"
 	"github.com/hashicorp/nomad-pack/internal/runner"
 	"github.com/hashicorp/nomad-pack/internal/runner/job"
 	"github.com/hashicorp/nomad-pack/sdk/pack/variables"
@@ -42,6 +44,25 @@ func initPackCommand(cfg *caching.PackConfig) (errorContext *errors.UIErrorConte
 // generatePackManager is used to generate the pack manager for this Nomad Pack run.
 func generatePackManager(c *baseCommand, client *api.Client, packCfg *caching.PackConfig) *manager.PackManager {
 	// TODO: Refactor to have manager use cache.
+
+	var variableSource *parserconfig.VariableSourceConfig
+
+	switch c.varSourceType {
+	case "":
+		// no external variable source configured
+	case "vault":
+		variableSource = &parserconfig.VariableSourceConfig{
+			Type: "vault",
+			Vault: &parserconfig.VaultVariableSourceConfig{
+				Path: c.vaultVarPath,
+			},
+		}
+	default:
+		variableSource = &parserconfig.VariableSourceConfig{
+			Type: c.varSourceType,
+		}
+	}
+
 	cfg := manager.Config{
 		Path:            packCfg.Path,
 		VariableFiles:   c.varFiles,
@@ -49,8 +70,17 @@ func generatePackManager(c *baseCommand, client *api.Client, packCfg *caching.Pa
 		VariableEnvVars: c.envVars,
 		AllowUnsetVars:  c.allowUnsetVars,
 		UseParserV1:     c.useParserV1,
+		VariableSource:  variableSource,
 	}
-	return manager.NewPackManager(&cfg, client)
+
+	// Create Vault client if configured
+	vaultClient, err := getVaultClient()
+	if err != nil {
+		c.ui.ErrorWithContext(err, "failed to create Vault client")
+		// Continue without Vault; it's optional
+		vaultClient = nil
+	}
+	return manager.NewPackManager(&cfg, client, vaultClient)
 }
 
 // predictPackName is a complete.Predictor that suggests cached pack names.
@@ -684,6 +714,37 @@ func limit(s string, length int) string {
 	}
 
 	return s[:length]
+}
+
+// getVaultClient creates a Vault client from environment variables.
+// Returns nil client if Vault is not configured (VAULT_ADDR not set).
+// This allows Vault integration to be optional - if VAULT_ADDR is not set,
+// the pack will work normally but Vault template functions won't be available.
+func getVaultClient() (*vault.Client, error) {
+	// check if Vault is configured via VAULT_ADDR environment variable
+	vaultAddr := os.Getenv("VAULT_ADDR")
+	if vaultAddr == "" {
+		// Vault not configured - this is OK, return nil without error
+		return nil, nil
+	}
+
+	//Create default Vault configuration with sensible defaults
+	config := vault.DefaultConfig()
+	config.Address = vaultAddr
+
+	//create Vault client
+	client, err := vault.NewClient(config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Vault client: %w", err)
+	}
+
+	//set authentication token if provided via VAULT_TOKEN environment variable
+	vaultToken := os.Getenv("VAULT_TOKEN")
+	if vaultToken != "" {
+		client.SetToken(vaultToken)
+	}
+
+	return client, nil
 }
 
 // addNoParentTemplatesContext adds error details for missing parent templates

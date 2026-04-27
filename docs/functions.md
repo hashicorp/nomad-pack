@@ -130,6 +130,89 @@ The `nomadVariable` function retrieves a specific Nomad Variable by path and nam
 password = "[[ .Items.password ]]"
 [[ end ]]
 
+### Vault functions
+
+#### `vaultRead` <a id="vaultRead"></a>
+
+The `vaultRead` function retrieves secrets from HashiCorp Vault with automatic detection of KV v1 and KV v2 secret engines. This function intelligently handles both versions and returns the secret data directly.
+
+**NOTE:** This function requires Vault to be configured via the `VAULT_ADDR` and `VAULT_TOKEN` environment variables. If Vault is not configured, the function will not be available in templates.
+
+##### Parameters
+
+- 1: `string` - The path to the secret in Vault
+
+##### Returns
+
+- `error` or `map[string]interface{}` - The secret data
+
+##### Example
+
+Read a secret from Vault KV v2:
+
+[[ with vaultRead "secret/data/database" ]]
+DB_PASSWORD = "[[ .password ]]"
+DB_USERNAME = "[[ .username ]]"
+[[ end ]]
+
+Use with fallback values:
+
+DB_PASSWORD = "[[ try (vaultRead "secret/data/db" | get "password") "default-password" ]]"
+
+#### `vaultKV` <a id="vaultKV"></a>
+
+The `vaultKV` function retrieves raw secret data from HashiCorp Vault without any automatic version detection or data extraction. This is useful for advanced use cases where you need access to the complete Vault response including metadata.
+
+**NOTE:** This function requires Vault to be configured via the `VAULT_ADDR` and `VAULT_TOKEN` environment variables. If Vault is not configured, the function will not be available in templates.
+
+##### Parameters
+
+- 1: `string` - The path to the secret in Vault
+
+##### Returns
+
+- `error` or `map[string]interface{}` - The raw Vault response
+
+##### Example
+
+Read raw secret data:
+
+[[ $secret := vaultKV "secret/data/app" ]]
+[[ range $key, $value := $secret ]]
+[[ $key ]]: [[ $value ]]
+[[ end ]]
+
+### Vault-backed variable source
+
+Nomad Pack can populate declared pack variables from Vault KV during command execution.
+
+Use the following flags:
+
+- `--var-source=vault`
+- `--vault-var-path=<path>`
+
+Example:
+
+```bash
+nomad-pack render \
+  --no-format=true \
+  --var-source=vault \
+  --vault-var-path=secret/data/myapp \
+  ./fixtures/v2/simple_raw_exec_v2
+```
+
+When using --var-source=vault, --vault-var-path is required.
+
+Currently only vault is supported as a variable source.
+
+Variable precedence is:
+
+1. external variable source
+2. environment variables
+3. variable files
+4. CLI --var
+This means CLI --var values override Vault-sourced values.
+
 ### Region functions
 
 #### `nomadRegions` <a id="nomadRegions"></a>
@@ -629,6 +712,8 @@ These are the additional functions supplied by Nomad Pack itself.
 - [`spewDump`][] - Returns a string representation of a value using `spew.Sdump`.
 - [`spewPrintf`][] - Returns a formatted string representation of a value using `spew.Sprintf`.
 - [`toStringList`][] - Converts a value to a string list.
+- [`vaultKV`][] - Retrieves raw secret data from HashiCorp Vault.
+- [`vaultRead`][] - Retrieves secrets from HashiCorp Vault with automatic KV version detection.
 - [`tpl`][] - Renders a template string using the current template context.
 - [`withContinueOnMethod`][] - Sets the `ContinueOnMethod` flag for a `customSpew`.
 - [`withDisableCapacities`][] - Sets the `DisableCapacities` flag for a `customSpew`.
@@ -670,3 +755,6 @@ These are the additional functions supplied by Nomad Pack itself.
 [`withContinueOnMethod`]: #withContinueOnMethod
 [`withSortKeys`]: #withSortKeys
 [`withSpewKeys`]: #withSpewKeys
+[`vaultKV`]: #vaultKV
+[`vaultRead`]: #vaultRead
+
