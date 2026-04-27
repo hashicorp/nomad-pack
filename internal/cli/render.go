@@ -47,6 +47,9 @@ type RenderCommand struct {
 
 	// overwriteAll is set to true when someone specifies "a" to the y/n/a
 	overwriteAll bool
+
+	// Consul KV configuration for template functions
+	consulKV ConsulKVConfig
 }
 
 type Render struct {
@@ -280,7 +283,15 @@ func (c *RenderCommand) Run(args []string) int {
 		c.ui.Error(err.Error())
 		return 1
 	}
-	packManager := generatePackManager(c.baseCommand, client, c.packConfig)
+
+	// Initialize Consul client if configured (via CLI flags or environment variables)
+	consulClient, err := getConsulClient(&c.consulKV, errorContext, c.ui)
+	if err != nil {
+		c.ui.ErrorWithContext(err, "failed to create Consul client", errorContext.GetAll()...)
+		return 1
+	}
+
+	packManager := generatePackManager(c.baseCommand, client, c.packConfig, consulClient)
 
 	renderOutput, err := renderPack(
 		packManager,
@@ -400,6 +411,8 @@ func (c *RenderCommand) Flags() *flag.Sets {
 			},
 			Shorthand: "o",
 		})
+
+		c.consulKV.AddFlagsToSet(f)
 	})
 }
 

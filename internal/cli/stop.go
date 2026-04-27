@@ -81,7 +81,7 @@ func (c *StopCommand) Run(args []string) int {
 
 	var jobs []*api.Job
 
-	packManager := generatePackManager(c.baseCommand, client, c.packConfig)
+	packManager := generatePackManager(c.baseCommand, client, c.packConfig, nil)
 
 	var r *renderer.Rendered
 

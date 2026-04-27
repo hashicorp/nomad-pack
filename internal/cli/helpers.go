@@ -5,11 +5,14 @@ package cli
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
+	consulapi "github.com/hashicorp/consul/api"
+	pkgflag "github.com/hashicorp/nomad-pack/internal/pkg/flag"
 	"github.com/hashicorp/nomad/api"
 	"github.com/posener/complete"
 
@@ -40,7 +43,7 @@ func initPackCommand(cfg *caching.PackConfig) (errorContext *errors.UIErrorConte
 }
 
 // generatePackManager is used to generate the pack manager for this Nomad Pack run.
-func generatePackManager(c *baseCommand, client *api.Client, packCfg *caching.PackConfig) *manager.PackManager {
+func generatePackManager(c *baseCommand, client *api.Client, packCfg *caching.PackConfig, consulClient *consulapi.Client) *manager.PackManager {
 	// TODO: Refactor to have manager use cache.
 	cfg := manager.Config{
 		Path:            packCfg.Path,
@@ -50,7 +53,7 @@ func generatePackManager(c *baseCommand, client *api.Client, packCfg *caching.Pa
 		AllowUnsetVars:  c.allowUnsetVars,
 		UseParserV1:     c.useParserV1,
 	}
-	return manager.NewPackManager(&cfg, client)
+	return manager.NewPackManager(&cfg, client, consulClient)
 }
 
 // predictPackName is a complete.Predictor that suggests cached pack names.
@@ -684,6 +687,186 @@ func limit(s string, length int) string {
 	}
 
 	return s[:length]
+}
+
+// ConsulKVConfig holds configuration for connecting to Consul KV with TLS support.
+// This struct is shared across run, plan, and render commands to avoid code duplication.
+type ConsulKVConfig struct {
+	Address       string // Consul server address (e.g., "https://consul.example.com:8501")
+	Token         string // ACL token for authentication
+	Namespace     string // Consul namespace
+	CACert        string // Path to CA certificate file
+	ClientCert    string // Path to client certificate file (for mTLS)
+	ClientKey     string // Path to client key file (for mTLS)
+	TLSSkipVerify bool   // Skip TLS certificate verification (for testing)
+	TLSServerName string // Override TLS server name
+}
+
+// AddFlags adds all Consul KV configuration flags to the provided flag set.
+// This method is called by run, plan, and render commands to register flags.
+func (c *ConsulKVConfig) AddFlags(flags *flag.FlagSet) {
+	flags.StringVar(&c.Address, "consul-address", "",
+		"Address of the Consul instance to use for template variable lookups. "+
+			"Can also be specified via the CONSUL_HTTP_ADDR environment variable.")
+
+	flags.StringVar(&c.Token, "consul-token", "",
+		"ACL token to use when connecting to Consul. "+
+			"Can also be specified via the CONSUL_HTTP_TOKEN environment variable.")
+
+	flags.StringVar(&c.Namespace, "consul-namespace", "",
+		"Consul namespace to use for KV lookups. "+
+			"Can also be specified via the CONSUL_NAMESPACE environment variable.")
+
+	flags.StringVar(&c.CACert, "consul-ca-cert", "",
+		"Path to a CA certificate file to use for TLS when communicating with Consul. "+
+			"Can also be specified via the CONSUL_CACERT environment variable.")
+
+	flags.StringVar(&c.ClientCert, "consul-client-cert", "",
+		"Path to a client certificate file to use for TLS when communicating with Consul. "+
+			"Can also be specified via the CONSUL_CLIENT_CERT environment variable.")
+
+	flags.StringVar(&c.ClientKey, "consul-client-key", "",
+		"Path to a client key file to use for TLS when communicating with Consul. "+
+			"Can also be specified via the CONSUL_CLIENT_KEY environment variable.")
+
+	flags.BoolVar(&c.TLSSkipVerify, "consul-tls-skip-verify", false,
+		"Skip TLS certificate verification when communicating with Consul. "+
+			"Can also be specified via the CONSUL_TLS_SKIP_VERIFY environment variable.")
+
+	flags.StringVar(&c.TLSServerName, "consul-tls-server-name", "",
+		"Server name to use for TLS verification when communicating with Consul. "+
+			"Can also be specified via the CONSUL_TLS_SERVER_NAME environment variable.")
+}
+
+// Package-level variable to track if Consul flags have been registered
+var consulFlagsRegistered = false
+
+// AddFlagsToSet adds Consul KV configuration flags to a flag.Set (used by run, plan, render commands).
+func (c *ConsulKVConfig) AddFlagsToSet(f *pkgflag.Set) {
+	// Check if flags are already registered to avoid panic on redefinition
+	if consulFlagsRegistered {
+		return
+	}
+	consulFlagsRegistered = true
+	f.StringVar(&pkgflag.StringVar{
+		Name:    "consul-address",
+		Target:  &c.Address,
+		Default: "",
+		Usage: `Consul server address (e.g., https://consul.example.com:8501). 
+		        Can also be specified via the CONSUL_HTTP_ADDR environment variable.`,
+	})
+
+	f.StringVar(&pkgflag.StringVar{
+		Name:    "consul-token",
+		Target:  &c.Token,
+		Default: "",
+		Usage: `Consul ACL token for authentication. 
+		        Can also be specified via the CONSUL_HTTP_TOKEN environment variable.`,
+	})
+
+	f.StringVar(&pkgflag.StringVar{
+		Name:    "consul-namespace",
+		Target:  &c.Namespace,
+		Default: "",
+		Usage: `Consul namespace (Consul Enterprise only). 
+		        Can also be specified via the CONSUL_NAMESPACE environment variable.`,
+	})
+
+	f.StringVar(&pkgflag.StringVar{
+		Name:    "consul-ca-cert",
+		Target:  &c.CACert,
+		Default: "",
+		Usage: `Path to a CA certificate file to use for TLS when communicating with Consul. 
+		        Can also be specified via the CONSUL_CACERT environment variable.`,
+	})
+
+	f.StringVar(&pkgflag.StringVar{
+		Name:    "consul-client-cert",
+		Target:  &c.ClientCert,
+		Default: "",
+		Usage: `Path to a client certificate file to use for TLS when communicating with Consul. 
+		        Can also be specified via the CONSUL_CLIENT_CERT environment variable.`,
+	})
+
+	f.StringVar(&pkgflag.StringVar{
+		Name:    "consul-client-key",
+		Target:  &c.ClientKey,
+		Default: "",
+		Usage: `Path to a client key file to use for TLS when communicating with Consul. 
+		        Can also be specified via the CONSUL_CLIENT_KEY environment variable.`,
+	})
+
+	f.BoolVar(&pkgflag.BoolVar{
+		Name:    "consul-tls-skip-verify",
+		Target:  &c.TLSSkipVerify,
+		Default: false,
+		Usage: `Skip TLS certificate verification when communicating with Consul. 
+		        Can also be specified via the CONSUL_TLS_SKIP_VERIFY environment variable.`,
+	})
+
+	f.StringVar(&pkgflag.StringVar{
+		Name:    "consul-tls-server-name",
+		Target:  &c.TLSServerName,
+		Default: "",
+		Usage: `Server name to use for TLS verification when communicating with Consul. 
+		        Can also be specified via the CONSUL_TLS_SERVER_NAME environment variable.`,
+	})
+}
+
+// NewConsulClient creates a new Consul API client with the configured TLS settings.
+// Returns an error if the client cannot be created.
+func (c *ConsulKVConfig) NewConsulClient() (*consulapi.Client, error) {
+	cfg := consulapi.DefaultConfig()
+
+	// Set basic configuration
+	if c.Address != "" {
+		cfg.Address = c.Address
+	}
+	if c.Token != "" {
+		cfg.Token = c.Token
+	}
+	if c.Namespace != "" {
+		cfg.Namespace = c.Namespace
+	}
+
+	// Configure TLS if any TLS options are set
+	if c.CACert != "" || c.ClientCert != "" || c.ClientKey != "" || c.TLSSkipVerify || c.TLSServerName != "" {
+		tlsConfig := &consulapi.TLSConfig{
+			CAFile:             c.CACert,
+			CertFile:           c.ClientCert,
+			KeyFile:            c.ClientKey,
+			InsecureSkipVerify: c.TLSSkipVerify,
+		}
+
+		if c.TLSServerName != "" {
+			tlsConfig.Address = c.TLSServerName
+		}
+
+		cfg.TLSConfig = *tlsConfig
+	}
+
+	return consulapi.NewClient(cfg)
+}
+
+// getConsulClient creates a Consul API client if Consul is configured.
+// Returns nil client if no Consul address is configured (not an error).
+// The presence of a Consul address (via CLI flag or CONSUL_HTTP_ADDR env var)
+// indicates that Nomad Pack should attempt to create a Consul API client.
+func getConsulClient(consulKV *ConsulKVConfig, errorContext *errors.UIErrorContext, ui terminal.UI) (*consulapi.Client, error) {
+	// Check if Consul is configured via CLI flag
+	if consulKV.Address != "" {
+		return consulKV.NewConsulClient()
+	}
+
+	// Check if Consul is configured via environment variable
+	consulAddr := os.Getenv("CONSUL_HTTP_ADDR")
+	if consulAddr == "" {
+		// No Consul configured - this is not an error, just means Consul integration is disabled
+		return nil, nil
+	}
+
+	// Consul is configured via environment, create client
+	return consulKV.NewConsulClient()
 }
 
 // addNoParentTemplatesContext adds error details for missing parent templates

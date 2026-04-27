@@ -20,6 +20,9 @@ type RunCommand struct {
 	packConfig *caching.PackConfig
 	jobConfig  *job.CLIConfig
 	Validation ValidationFn
+
+	// Consul KV configuration for template functions
+	consulKV ConsulKVConfig
 }
 
 func (c *RunCommand) Run(args []string) int {
@@ -64,7 +67,14 @@ func (c *RunCommand) run() int {
 		return 1
 	}
 
-	packManager := generatePackManager(c.baseCommand, client, c.packConfig)
+	// Initialize Consul client if configured (via CLI flags or environment variables)
+	consulClient, err := getConsulClient(&c.consulKV, errorContext, c.ui)
+	if err != nil {
+		c.ui.ErrorWithContext(err, "failed to create Consul client", errorContext.GetAll()...)
+		return 1
+	}
+
+	packManager := generatePackManager(c.baseCommand, client, c.packConfig, consulClient)
 
 	// Render the pack now, before creating the deployer. If we get an error
 	// we won't make it to the deployer.
@@ -273,6 +283,8 @@ func (c *RunCommand) Flags() *flag.Sets {
 			Usage: `If set, the passed Vault namespace is stored in the job
 					before sending to the Nomad servers.`,
 		})
+
+		c.consulKV.AddFlagsToSet(f)
 
 		f.BoolVar(&flag.BoolVar{
 			Name:    "deploy-override",

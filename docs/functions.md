@@ -130,6 +130,134 @@ The `nomadVariable` function retrieves a specific Nomad Variable by path and nam
 password = "[[ .Items.password ]]"
 [[ end ]]
 
+### Consul KV functions
+
+#### `consulKey` <a id="consulKey"></a>
+
+Retrieves a single key-value pair from Consul's KV store.
+
+##### Parameters
+
+- 1: `string` - The key path in Consul KV
+
+##### Returns
+
+- `string` - The value stored at the specified key, or empty string if not found
+
+##### Example
+
+[[ $dbPassword := consulKey "config/database/password" ]]
+password = "[[ $dbPassword ]]"
+
+#### `consulKeys` <a id="consulKeys"></a>
+
+Retrieves multiple key-value pairs from Consul's KV store with a given prefix.
+
+##### Parameters
+
+- 1: `string` - The key prefix to search for
+
+##### Returns
+
+- `map[string]string` - A map where keys are the full Consul KV paths and values are the stored values
+
+##### Example
+
+List all configuration values with a prefix:
+
+[[ range $key,$value := consulKeys "config/app/" ]]
+[[ $key ]] = [[ $value ]]
+[[ end ]]
+
+Access specific keys from the result:
+
+[[ $configs := consulKeys "config/app/" ]][[ $appName := index $configs "config/app/name" ]]
+app_version = "[[ index $configs "config/app/version" ]]"
+
+Iterate and filter:
+
+[[ $configs := consulKeys "config/" ]][[ range $key, $value :=$configs ]]
+[[ if hasPrefix $key "config/prod/" ]][[ $key ]]: [[ $value ]]
+[[ end ]]
+[[ end ]]
+
+#### Consul KV Configuration
+
+The Consul KV template functions (`consulKey` and `consulKeys`) require configuration to connect to Consul. Configuration is provided via environment variables, with optional TLS settings available via CLI flags.
+
+**Client Creation:** Nomad Pack will attempt to create a Consul API client when:
+- The `CONSUL_HTTP_ADDR` environment variable is set
+
+The Consul client uses `consulapi.DefaultConfig()` which automatically loads all standard `CONSUL_*` environment variables.
+
+##### CLI Flags
+
+The following flags are available for `nomad-pack run`, `nomad-pack plan`, and `nomad-pack render` commands:
+
+- `--consul-address` - Consul server address (e.g., `https://consul.example.com:8501`)
+- `--consul-token` - Consul ACL token for authentication
+- `--consul-namespace` - Consul namespace (Consul Enterprise only)
+- `--consul-ca-cert` - Path to CA certificate file for TLS verification
+- `--consul-client-cert` - Path to client certificate file for mutual TLS (mTLS)
+- `--consul-client-key` - Path to client private key file for mutual TLS (mTLS)
+- `--consul-tls-skip-verify` - Skip TLS certificate verification (not recommended for production)
+- `--consul-tls-server-name` - Server name to use for TLS SNI (Server Name Indication)
+
+##### Environment Variables
+
+The Consul Go SDK automatically loads the following standard environment variables via `consulapi.DefaultConfig()`:
+
+- `CONSUL_HTTP_ADDR` - Consul server address (default: `127.0.0.1:8500`)
+- `CONSUL_HTTP_TOKEN` - Consul ACL token
+- `CONSUL_NAMESPACE` - Consul namespace (Enterprise)
+- `CONSUL_CACERT` - Path to CA certificate file
+- `CONSUL_CLIENT_CERT` - Path to client certificate file
+- `CONSUL_CLIENT_KEY` - Path to client private key file
+- `CONSUL_HTTP_SSL` - Enable HTTPS (set to `true`)
+- `CONSUL_HTTP_SSL_VERIFY` - Enable TLS verification (default: `true`)
+- `CONSUL_TLS_SERVER_NAME` - Server name for TLS SNI
+
+**Note on ACL Tokens:** If your Consul cluster has ACLs enabled, you must provide a token with appropriate permissions via the `CONSUL_HTTP_TOKEN` environment variable or `--consul-token` flag. Without a valid token, `consulKey()` and `consulKeys()` functions will fail with permission denied errors.
+
+**Priority:** CLI flags take precedence over environment variables.
+
+##### Configuration Examples
+
+**Basic HTTP connection using CLI flags:**
+```bash
+nomad-pack run my-pack --consul-address=http://localhost:8500
+``` 
+
+**Basic HTTP connection using environment variables:**
+```bash
+export CONSUL_HTTP_ADDR=http://localhost:8500
+nomad-pack run my-pack
+``` 
+
+**HTTPS with authentication:**
+```bash
+nomad-pack run my-pack \
+  --consul-address=https://consul.example.com:8501 \
+  --consul-token=my-secret-token
+```
+
+**HTTPS with TLS verification:**
+```bash
+nomad-pack run my-pack \
+  --consul-address=https://consul.example.com:8501 \
+  --consul-token=my-secret-token \
+  --consul-ca-cert=/path/to/ca.pem
+```
+
+**Mutual TLS (mTLS):**
+```bash
+nomad-pack run my-pack \
+  --consul-address=https://consul.example.com:8501 \
+  --consul-ca-cert=/path/to/ca.pem \
+  --consul-client-cert=/path/to/client.pem \
+  --consul-client-key=/path/to/client-key.pem
+```
+
 ### Region functions
 
 #### `nomadRegions` <a id="nomadRegions"></a>
@@ -620,6 +748,8 @@ Returns:
 These are the additional functions supplied by Nomad Pack itself.
 
 - [`customSpew`][] - Returns a new `spew.ConfigState` with default configuration; used to build a custom Spew printer.
+- [`consulKey`][] - Retrieves a single key-value pair from Consul's KV store.
+- [`consulKeys`][] - Retrieves multiple key-value pairs from Consul's KV store with a given prefix.
 - [`fileContents`][] - Returns the contents of a file as a string.
 - [`nomadNamespace`][] - Returns the current namespace from the Nomad client.
 - [`nomadNamespaces`][] - Returns a list of namespaces from the Nomad client.
@@ -653,6 +783,8 @@ These are the additional functions supplied by Nomad Pack itself.
 [topicHelpers]: #topicHelpers
 
 [`customSpew`]: #customSpew
+[`consulKey`]: #consulKey
+[`consulKeys`]: #consulKeys
 [`fileContents`]: #fileContents
 [`nomadNamespaces`]: #nomadNamespaces
 [`nomadNamespace`]: #nomadNamespace

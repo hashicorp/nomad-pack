@@ -9,6 +9,7 @@ import (
 	"strings"
 	"text/template"
 
+	consulapi "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/hashicorp/nomad/api"
@@ -34,6 +35,8 @@ type Renderer struct {
 	// functions. It can potentially be nil, therefore care should be taken
 	// when accessing it.
 	Client *api.Client
+
+	ConsulClient *consulapi.Client
 
 	// RenderAuxFiles determines whether we should render auxiliary files found
 	// in template/ or not

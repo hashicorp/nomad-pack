@@ -19,6 +19,9 @@ type PlanCommand struct {
 	exitCodeNoChanges int
 	exitCodeChanges   int
 	exitCodeError     int
+
+	// Consul KV configuration for template functions
+	consulKV ConsulKVConfig
 }
 
 func (c *PlanCommand) Run(args []string) int {
@@ -54,7 +57,14 @@ func (c *PlanCommand) Run(args []string) int {
 		return c.exitCodeError
 	}
 
-	packManager := generatePackManager(c.baseCommand, client, c.packConfig)
+	// Initialize Consul client if configured (via CLI flags or environment variables)
+	consulClient, err := getConsulClient(&c.consulKV, errorContext, c.ui)
+	if err != nil {
+		c.ui.ErrorWithContext(err, "failed to create Consul client", errorContext.GetAll()...)
+		return c.exitCodeError
+	}
+
+	packManager := generatePackManager(c.baseCommand, client, c.packConfig, consulClient)
 
 	// load pack
 	r, err := renderPack(
@@ -224,6 +234,8 @@ func (c *PlanCommand) Flags() *flag.Sets {
 			EnvVar:  EnvPlanExitCodeError,
 			Usage:   `Override exit code returned when there is an error. Can also be set via NOMAD_PACK_PLAN_EXIT_CODE_ERROR environment variable (flags take precedence).`,
 		})
+
+		c.consulKV.AddFlagsToSet(f)
 	})
 }
 
