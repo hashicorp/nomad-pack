@@ -29,7 +29,7 @@ require (
 	github.com/hashicorp/nomad/api v0.0.0-20260304165455-489f8b9d1054
 	github.com/kr/text v0.2.0
 	github.com/lab47/vterm v0.0.0-20211107042118-80c3d2849f9c
-	github.com/mattn/go-isatty v0.0.20
+	github.com/mattn/go-isatty v0.0.21
 	github.com/mitchellh/cli v1.1.5
 	github.com/mitchellh/go-glint v0.0.0-20210722152315-6515ceb4a127
 	github.com/mitchellh/go-wordwrap v1.0.1
