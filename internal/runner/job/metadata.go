@@ -30,7 +30,7 @@ func (r *Runner) setHCLMeta(job string) string {
 	if diags.HasErrors() {
 		return job
 	}
-	content, diags := file.Body.Content(&hcl.BodySchema{
+	content, _, diags := file.Body.PartialContent(&hcl.BodySchema{
 		Blocks: []hcl.BlockHeaderSchema{
 			{Type: "job", LabelNames: []string{""}},
 		},

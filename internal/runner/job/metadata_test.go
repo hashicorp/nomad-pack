@@ -86,6 +86,28 @@ func TestDeployer_setHCLMeta(t *testing.T) {
 }`,
 		},
 		{
+			desc: "top-level locals are preserved while job meta is merged",
+			inputRunner: &Runner{
+				runnerCfg: defaultConfig,
+			},
+			inputJob: "locals {\n thing = \"baz\"\n}\n\njob \"foobar\" {\n meta {\n other = \"foobar\" \n}\n }",
+			expectedJob: `locals {
+  thing = "baz"
+}
+
+job "foobar" {
+  meta = {
+    other                  = "foobar"
+    "pack.deployment_name" = "foobar@123456"
+    "pack.job"             = "foobar"
+    "pack.name"            = "foobar"
+    "pack.path"            = "/opt/src/foobar"
+    "pack.registry"        = "default"
+    "pack.version"         = "123456"
+  }
+}`,
+		},
+		{
 			desc: "nested meta block is untouched",
 			inputRunner: &Runner{
 				runnerCfg: defaultConfig,

@@ -10,6 +10,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 * cli: Fix panic when calling status command with namespace wildcard [[GH-827](https://github.com/hashicorp/nomad-pack/pull/854)]
+* pack: Preserve pack metadata injection for job templates with top-level HCL blocks such as `locals`
 
 ## 0.4.2 (March 16, 2026)
 
