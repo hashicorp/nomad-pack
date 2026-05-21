@@ -10,54 +10,9 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser"
 	"github.com/hashicorp/nomad-pack/sdk/pack"
 	"github.com/hashicorp/nomad-pack/sdk/pack/variables"
-	"github.com/stretchr/testify/require"
+	"github.com/shoenig/test/must"
 	"github.com/zclconf/go-cty/cty"
 )
-
-// TestRenderOutput_V1Parser_Success tests that output template rendering
-// works correctly with V1 parser. This is the fix for issue #525.
-func TestRenderOutput_V1Parser_Success(t *testing.T) {
-	// Create a pack with output template using V1 syntax
-	p := &pack.Pack{
-		Metadata: &pack.Metadata{
-			Pack: &pack.MetadataPack{
-				Name: "testpack",
-			},
-			App: &pack.MetadataApp{},
-		},
-		OutputTemplateFile: &pack.File{
-			Name:    "outputs.tpl",
-			Content: []byte("Job: {{ .testpack.job_name }}"),
-		},
-	}
-
-	// Create V1 parsed variables
-	pv := &parser.ParsedVariables{}
-	v1Vars := map[string]map[string]*variables.Variable{
-		"testpack": {
-			"job_name": {
-				Name:  "job_name",
-				Value: cty.StringVal("my-job"),
-			},
-		},
-	}
-	err := pv.LoadV1Result(v1Vars)
-	require.NoError(t, err)
-
-	// Create renderer with proper template setup
-	r := &Renderer{
-		pack: p,
-		pv:   pv,
-	}
-
-	// Initialize template with funcMap
-	r.tpl = template.New("test").Funcs(funcMap(r))
-
-	// Render output - should work with V1 parser
-	output, err := r.RenderOutput()
-	require.NoError(t, err)
-	require.Equal(t, "Job: my-job", output)
-}
 
 // TestRenderOutput_V2Parser_Success tests that output template rendering
 // continues to work with V2 parser (no regression).
@@ -81,19 +36,19 @@ func TestRenderOutput_V2Parser_Success(t *testing.T) {
 	pv := &parser.ParsedVariables{}
 	v2Vars := map[pack.ID]map[variables.ID]*variables.Variable{}
 	err := pv.LoadV2Result(v2Vars)
-	require.NoError(t, err)
+	must.NoError(t, err)
 
 	// Create renderer
 	r := &Renderer{
 		pack: p,
 		pv:   pv,
 	}
-	r.tpl = template.New("test").Funcs(funcMap(r))
+	r.tpl = template.New("test").Delims("[[", "]]").Funcs(funcMap(r))
 
-	// Render output - should work without error
+	// Render output
 	output, err := r.RenderOutput()
-	require.NoError(t, err)
-	require.Equal(t, "Deployment successful!", output)
+	must.NoError(t, err)
+	must.Eq(t, "Deployment successful!", output)
 }
 
 // TestRenderOutput_NoOutputTemplate tests that when pack has no output
@@ -114,7 +69,7 @@ func TestRenderOutput_NoOutputTemplate(t *testing.T) {
 	pv := &parser.ParsedVariables{}
 	v2Vars := map[pack.ID]map[variables.ID]*variables.Variable{}
 	err := pv.LoadV2Result(v2Vars)
-	require.NoError(t, err)
+	must.NoError(t, err)
 
 	// Create renderer
 	r := &Renderer{
@@ -125,8 +80,8 @@ func TestRenderOutput_NoOutputTemplate(t *testing.T) {
 
 	// Render output - should return empty string
 	output, err := r.RenderOutput()
-	require.NoError(t, err)
-	require.Equal(t, "", output)
+	must.NoError(t, err)
+	must.Eq(t, "", output)
 }
 
 // TestRenderOutput_EmptyOutputTemplate tests that empty output template
@@ -150,19 +105,19 @@ func TestRenderOutput_EmptyOutputTemplate(t *testing.T) {
 	pv := &parser.ParsedVariables{}
 	v2Vars := map[pack.ID]map[variables.ID]*variables.Variable{}
 	err := pv.LoadV2Result(v2Vars)
-	require.NoError(t, err)
+	must.NoError(t, err)
 
 	// Create renderer
 	r := &Renderer{
 		pack: p,
 		pv:   pv,
 	}
-	r.tpl = template.New("test").Funcs(funcMap(r))
+	r.tpl = template.New("test").Delims("[[", "]]").Funcs(funcMap(r))
 
 	// Render output - should return empty string
 	output, err := r.RenderOutput()
-	require.NoError(t, err)
-	require.Equal(t, "", output)
+	must.NoError(t, err)
+	must.Eq(t, "", output)
 }
 
 // TestRenderOutput_InvalidTemplateSyntax tests that malformed template
@@ -178,7 +133,7 @@ func TestRenderOutput_InvalidTemplateSyntax(t *testing.T) {
 		},
 		OutputTemplateFile: &pack.File{
 			Name:    "outputs.tpl",
-			Content: []byte("{{ .my.job_name "), // Missing closing braces
+			Content: []byte("[[ .my.job_name "), // Missing closing braces
 		},
 	}
 
@@ -186,17 +141,105 @@ func TestRenderOutput_InvalidTemplateSyntax(t *testing.T) {
 	pv := &parser.ParsedVariables{}
 	v2Vars := map[pack.ID]map[variables.ID]*variables.Variable{}
 	err := pv.LoadV2Result(v2Vars)
-	require.NoError(t, err)
+	must.NoError(t, err)
 
 	// Create renderer
 	r := &Renderer{
 		pack: p,
 		pv:   pv,
 	}
-	r.tpl = template.New("test").Funcs(funcMap(r))
+	r.tpl = template.New("test").Delims("[[", "]]").Funcs(funcMap(r))
 
 	// Render output - should return error
 	output, err := r.RenderOutput()
-	require.Error(t, err)
-	require.Equal(t, "", output)
+	must.Error(t, err)
+	must.Eq(t, "", output)
+}
+
+// TestRenderOutput_V1Parser_Success tests that output template rendering
+// works correctly with V1 parser.
+func TestRenderOutput_V1Parser_Success(t *testing.T) {
+	// Create a pack with output template using V1 syntax
+	p := &pack.Pack{
+		Metadata: &pack.Metadata{
+			Pack: &pack.MetadataPack{
+				Name: "simple_raw_exec",
+			},
+			App: &pack.MetadataApp{},
+		},
+		OutputTemplateFile: &pack.File{
+			Name:    "outputs.tpl",
+			Content: []byte("Deployed: [[ .simple_raw_exec.job_name ]]"),
+		},
+	}
+
+	// Create V1 parsed variables
+	pv := &parser.ParsedVariables{}
+	v1Vars := map[string]map[string]*variables.Variable{
+		"simple_raw_exec": {
+			"job_name": {
+				Name:  "job_name",
+				Value: cty.StringVal("my-test-job"),
+			},
+		},
+	}
+	err := pv.LoadV1Result(v1Vars)
+	must.NoError(t, err)
+
+	// Create renderer
+	r := &Renderer{
+		pack: p,
+		pv:   pv,
+	}
+	r.tpl = template.New("test").Delims("[[", "]]").Funcs(funcMap(r))
+
+	// Before fix: This would panic with "nil pointer evaluating parser.PackContextable.job_name"
+	// After fix: Should render successfully
+	output, err := r.RenderOutput()
+	must.NoError(t, err)
+	must.Eq(t, "Deployed: my-test-job", output)
+}
+
+// TestRenderOutput_V1Parser_UndefinedVariable tests that referencing a
+// non-existent variable in V1 parser renders as "<no value>" gracefully.
+func TestRenderOutput_V1Parser_UndefinedVariable(t *testing.T) {
+	// Create a pack with template referencing a variable that doesn't exist
+	p := &pack.Pack{
+		Metadata: &pack.Metadata{
+			Pack: &pack.MetadataPack{
+				Name: "testpack",
+			},
+			App: &pack.MetadataApp{},
+		},
+		OutputTemplateFile: &pack.File{
+			Name:    "outputs.tpl",
+			Content: []byte("Job: [[ .testpack.missing_var ]]"),
+		},
+	}
+
+	// Create V1 parsed variables - but without the referenced variable
+	pv := &parser.ParsedVariables{}
+	v1Vars := map[string]map[string]*variables.Variable{
+		"testpack": {
+			"job_name": {
+				Name:  "job_name",
+				Value: cty.StringVal("my-job"),
+			},
+			// Note: missing_var is NOT defined
+		},
+	}
+	err := pv.LoadV1Result(v1Vars)
+	must.NoError(t, err)
+
+	// Create renderer
+	r := &Renderer{
+		pack: p,
+		pv:   pv,
+	}
+	r.tpl = template.New("test").Delims("[[", "]]").Funcs(funcMap(r))
+
+	// Render output
+	output, err := r.RenderOutput()
+	must.NoError(t, err)
+	must.Eq(t, "Job: <no value>", output)
 }
