@@ -189,9 +189,28 @@ func (r *Renderer) RenderOutput() (string, error) {
 		return "", err
 	}
 
-	ptc, _ := r.pv.ToPackTemplateContext(r.pack)
+	// Choose the appropriate template context based on parser version
+	// V1 parser uses flat map structure(e.g., .packname.variable)
+	// V2 parser uses nested structure with pack metadata (e.g., .my.variable)
+	var templateData interface{}
+	var diags hcl.Diagnostics
+
+	if r.pv.IsV1() {
+		// Use V1 conversion for --parser-v1 flag
+		templateData, diags = r.pv.ConvertVariablesToMapInterface()
+	} else {
+		// Use V2 conversion for default parser (current behavior)
+		templateData, diags = r.pv.ToPackTemplateContext(r.pack)
+	}
+
+	// Check for conversion errors
+	if diags.HasErrors() {
+		return "", fmt.Errorf("failed to create template context: %v", diags)
+	}
+
+	// Execute the template with the correct context
 	var buf strings.Builder
-	if err := r.tpl.ExecuteTemplate(&buf, r.pack.OutputTemplateFile.Name, ptc); err != nil {
+	if err := r.tpl.ExecuteTemplate(&buf, r.pack.OutputTemplateFile.Name, templateData); err != nil {
 		return "", fmt.Errorf("failed to render %s: %w", r.pack.OutputTemplateFile.Name, err)
 	}
 
