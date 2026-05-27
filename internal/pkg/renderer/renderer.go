@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/hashicorp/nomad/api"
+	vault "github.com/hashicorp/vault/api"
 
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser"
 	"github.com/hashicorp/nomad-pack/sdk/pack"
@@ -34,6 +35,10 @@ type Renderer struct {
 	// functions. It can potentially be nil, therefore care should be taken
 	// when accessing it.
 	Client *api.Client
+
+	//VaultClient is the Vault API client used when running Vault template functions.
+	//It can potentially be nil, therefore care should be taken when accessing it.
+	VaultClient *vault.Client
 
 	// RenderAuxFiles determines whether we should render auxiliary files found
 	// in template/ or not

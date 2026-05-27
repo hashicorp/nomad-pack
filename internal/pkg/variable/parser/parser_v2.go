@@ -4,9 +4,11 @@
 package parser
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -22,6 +24,7 @@ import (
 	"github.com/hashicorp/nomad-pack/sdk/pack/variables"
 	"github.com/spf13/afero"
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/gocty"
 )
 
 type ParserV2 struct {
@@ -37,9 +40,10 @@ type ParserV2 struct {
 
 	// envOverrideVars, fileOverrideVars, cliOverrideVars are the override
 	// variables. The maps are keyed by the pack name they are associated to.
-	envOverrideVars  variables.PackIDKeyedVarMap
-	fileOverrideVars variables.PackIDKeyedVarMap
-	flagOverrideVars variables.PackIDKeyedVarMap
+	sourceOverrideVars variables.PackIDKeyedVarMap
+	envOverrideVars    variables.PackIDKeyedVarMap
+	fileOverrideVars   variables.PackIDKeyedVarMap
+	flagOverrideVars   variables.PackIDKeyedVarMap
 }
 
 func NewParserV2(cfg *config.ParserConfig) (*ParserV2, error) {
@@ -63,12 +67,13 @@ func NewParserV2(cfg *config.ParserConfig) (*ParserV2, error) {
 		fs: afero.Afero{
 			Fs: afero.OsFs{},
 		},
-		cfg:              cfg,
-		rootVars:         make(map[pack.ID]map[variables.ID]*variables.Variable),
-		nomadVars:        make(map[pack.ID][]*variables.NomadVariable),
-		envOverrideVars:  make(variables.PackIDKeyedVarMap),
-		fileOverrideVars: make(variables.PackIDKeyedVarMap),
-		flagOverrideVars: make(variables.PackIDKeyedVarMap),
+		cfg:                cfg,
+		rootVars:           make(map[pack.ID]map[variables.ID]*variables.Variable),
+		sourceOverrideVars: make(variables.PackIDKeyedVarMap),
+		envOverrideVars:    make(variables.PackIDKeyedVarMap),
+		fileOverrideVars:   make(variables.PackIDKeyedVarMap),
+		flagOverrideVars:   make(variables.PackIDKeyedVarMap),
+		nomadVars:          make(map[pack.ID][]*variables.NomadVariable),
 	}, nil
 }
 
@@ -80,6 +85,9 @@ func (p *ParserV2) Parse() (*ParsedVariables, hcl.Diagnostics) {
 	if diags.HasErrors() {
 		return nil, diags
 	}
+
+	sourceDiags := p.parseVariableSourceOverrides()
+	diags = packdiags.SafeDiagnosticsExtend(diags, sourceDiags)
 
 	// Parse env, file, and CLI overrides.
 	for k, v := range p.cfg.EnvOverrides {
@@ -103,7 +111,12 @@ func (p *ParserV2) Parse() (*ParsedVariables, hcl.Diagnostics) {
 
 	// Iterate all our override variables and merge these into our root
 	// variables with the CLI taking highest priority.
-	for _, override := range []variables.PackIDKeyedVarMap{p.envOverrideVars, p.fileOverrideVars, p.flagOverrideVars} {
+	for _, override := range []variables.PackIDKeyedVarMap{
+		p.sourceOverrideVars,
+		p.envOverrideVars,
+		p.fileOverrideVars,
+		p.flagOverrideVars,
+	} {
 		for packName, variables := range override {
 			for _, v := range variables {
 				existing, exists := p.rootVars[packName][v.Name]
@@ -351,7 +364,7 @@ func (p *ParserV2) parseVariableImpl(name, rawVal string, tgt variables.PackIDKe
 		return diags
 	}
 
-	// If our stored type isn't cty.NilType then attempt to covert the override
+	// If our stored type isn't cty.NilType then attempt to convert the override
 	// variable, so we know they are compatible.
 	if existing.Type != cty.NilType {
 		var err *hcl.Diagnostic
@@ -371,4 +384,176 @@ func (p *ParserV2) parseVariableImpl(name, rawVal string, tgt variables.PackIDKe
 	tgt[varPID] = append(tgt[varPID], &v)
 
 	return nil
+}
+
+func (p *ParserV2) parseVariableSourceOverrides() hcl.Diagnostics {
+	var diags hcl.Diagnostics
+
+	if p.cfg == nil || p.cfg.VariableSource == nil {
+		return diags
+	}
+
+	switch p.cfg.VariableSource.Type {
+	case "":
+		return diags
+	case "vault":
+		if p.cfg.VaultClient == nil {
+			return diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "missing Vault client",
+				Detail:   "a Vault-backed variable source was requested, but no Vault client is configured",
+			})
+		}
+		if p.cfg.VariableSource.Vault == nil || p.cfg.VariableSource.Vault.Path == "" {
+			return diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "missing Vault variable source path",
+				Detail:   "vault variable source requires a non-empty path",
+			})
+		}
+		return p.parseVaultVariableSource(p.cfg.VariableSource.Vault.Path)
+	default:
+		return diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "unsupported variable source",
+			Detail:   fmt.Sprintf("unsupported variable source type %q", p.cfg.VariableSource.Type),
+		})
+	}
+}
+
+func (p *ParserV2) parseVaultVariableSource(path string) hcl.Diagnostics {
+	var diags hcl.Diagnostics
+
+	secret, err := p.cfg.VaultClient.Logical().Read(path)
+	if err != nil {
+		return diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "failed to read Vault variable source",
+			Detail:   fmt.Sprintf("failed reading Vault path %q: %v", path, err),
+		})
+	}
+	if secret == nil || secret.Data == nil {
+		return diags
+	}
+
+	data := secret.Data
+	if nested, ok := data["data"].(map[string]interface{}); ok {
+		data = nested
+	}
+
+	for packName, rootVars := range p.rootVars {
+		for _, rootVar := range rootVars {
+			raw, ok := data[rootVar.Name.String()]
+			if !ok {
+				continue
+			}
+
+			val, convDiags := p.convertSourceValue(rootVar, raw)
+			diags = packdiags.SafeDiagnosticsExtend(diags, convDiags)
+			if convDiags.HasErrors() {
+				continue
+			}
+
+			v := &variables.Variable{
+				Name:           rootVar.Name,
+				Type:           rootVar.Type,
+				ConstraintType: rootVar.ConstraintType,
+				TypeDefaults:   rootVar.TypeDefaults,
+				Value:          val,
+				DeclRange:      rootVar.DeclRange,
+			}
+			p.sourceOverrideVars[packName] = append(p.sourceOverrideVars[packName], v)
+		}
+	}
+
+	return diags
+}
+
+func (p *ParserV2) convertSourceValue(rootVar *variables.Variable, raw interface{}) (cty.Value, hcl.Diagnostics) {
+	var diags hcl.Diagnostics
+
+	targetType := rootVar.ConstraintType
+	if targetType == cty.NilType {
+		targetType = rootVar.Type
+	}
+
+	if targetType == cty.Number {
+		switch n := raw.(type) {
+		case json.Number:
+			f, err := n.Float64()
+			if err != nil {
+				return cty.NilVal, diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "failed to convert sourced value",
+					Detail:   fmt.Sprintf("failed to convert sourced value for variable %q: %v", rootVar.Name, err),
+					Subject:  rootVar.DeclRange.Ptr(),
+				})
+			}
+			return cty.NumberFloatVal(f), diags
+		case float64:
+			return cty.NumberFloatVal(n), diags
+		case float32:
+			return cty.NumberFloatVal(float64(n)), diags
+		case int:
+			return cty.NumberIntVal(int64(n)), diags
+		case int64:
+			return cty.NumberIntVal(n), diags
+		case int32:
+			return cty.NumberIntVal(int64(n)), diags
+		case int16:
+			return cty.NumberIntVal(int64(n)), diags
+		case int8:
+			return cty.NumberIntVal(int64(n)), diags
+		case uint:
+			return cty.NumberUIntVal(uint64(n)), diags
+		case uint64:
+			return cty.NumberUIntVal(n), diags
+		case uint32:
+			return cty.NumberUIntVal(uint64(n)), diags
+		case uint16:
+			return cty.NumberUIntVal(uint64(n)), diags
+		case uint8:
+			return cty.NumberUIntVal(uint64(n)), diags
+		}
+	}
+
+	if s, ok := raw.(string); ok {
+		switch targetType {
+		case cty.Number:
+			f, err := strconv.ParseFloat(s, 64)
+			if err != nil {
+				return cty.NilVal, diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "failed to convert sourced value",
+					Detail:   fmt.Sprintf("failed to convert sourced value for variable %q: %v", rootVar.Name, err),
+					Subject:  rootVar.DeclRange.Ptr(),
+				})
+			}
+			return cty.NumberFloatVal(f), diags
+
+		case cty.Bool:
+			b, err := strconv.ParseBool(s)
+			if err != nil {
+				return cty.NilVal, diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "failed to convert sourced value",
+					Detail:   fmt.Sprintf("failed to convert sourced value for variable %q: %v", rootVar.Name, err),
+					Subject:  rootVar.DeclRange.Ptr(),
+				})
+			}
+			return cty.BoolVal(b), diags
+		}
+	}
+
+	val, err := gocty.ToCtyValue(raw, targetType)
+	if err != nil {
+		return cty.NilVal, diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "failed to convert sourced value",
+			Detail:   fmt.Sprintf("failed to convert sourced value for variable %q: %v", rootVar.Name, err),
+			Subject:  rootVar.DeclRange.Ptr(),
+		})
+	}
+
+	return val, diags
 }
