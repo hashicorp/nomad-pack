@@ -7,6 +7,7 @@ IMPROVEMENTS:
 * variable: Variables declaration now supports validation stanza [[GH-841](https://github.com/hashicorp/nomad-pack/pull/841)]
 * variable: Add support for `nomad_variable` blocks with automatic lifecycle management during pack deployment and destruction [[GH-409](https://github.com/hashicorp/nomad-pack/pull/853)]
 * variable: Fixed variable file overrides (last supplied wins) [[GH-851](https://github.com/hashicorp/nomad-pack/pull/851)]
+* variable: Add pluggable variable source architecture for multi-source support [[GH-894](https://github.com/hashicorp/nomad-pack/pull/894)]
 
 BUG FIXES:
 * cli: Fix panic when calling status command with namespace wildcard [[GH-827](https://github.com/hashicorp/nomad-pack/pull/854)]
