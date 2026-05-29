@@ -4,10 +4,12 @@
 package parser
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclparse"
@@ -18,6 +20,7 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable/internal/hclhelp"
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser/config"
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable/schema"
+	"github.com/hashicorp/nomad-pack/internal/pkg/variable/source"
 	"github.com/hashicorp/nomad-pack/sdk/pack"
 	"github.com/hashicorp/nomad-pack/sdk/pack/variables"
 	"github.com/spf13/afero"
@@ -34,6 +37,9 @@ type ParserV2 struct {
 	rootVars map[pack.ID]map[variables.ID]*variables.Variable
 
 	nomadVars map[pack.ID][]*variables.NomadVariable // stores parsed nomad_variable blocks
+
+	// Source registry for pluggable variable sources
+	sourceRegistry *source.Registry
 
 	// envOverrideVars, fileOverrideVars, cliOverrideVars are the override
 	// variables. The maps are keyed by the pack name they are associated to.
@@ -66,6 +72,7 @@ func NewParserV2(cfg *config.ParserConfig) (*ParserV2, error) {
 		cfg:              cfg,
 		rootVars:         make(map[pack.ID]map[variables.ID]*variables.Variable),
 		nomadVars:        make(map[pack.ID][]*variables.NomadVariable),
+		sourceRegistry:   source.NewRegistry(),
 		envOverrideVars:  make(variables.PackIDKeyedVarMap),
 		fileOverrideVars: make(variables.PackIDKeyedVarMap),
 		flagOverrideVars: make(variables.PackIDKeyedVarMap),
@@ -101,21 +108,57 @@ func (p *ParserV2) Parse() (*ParsedVariables, hcl.Diagnostics) {
 		return nil, diags
 	}
 
-	// Iterate all our override variables and merge these into our root
-	// variables with the CLI taking highest priority.
-	for _, override := range []variables.PackIDKeyedVarMap{p.envOverrideVars, p.fileOverrideVars, p.flagOverrideVars} {
-		for packName, variables := range override {
-			for _, v := range variables {
-				existing, exists := p.rootVars[packName][v.Name]
-				if !exists {
-					if !p.cfg.IgnoreMissingVars {
-						diags = diags.Append(packdiags.DiagMissingRootVar(v.Name.String(), v.DeclRange.Ptr()))
-					}
-					continue
+	// Reset and register sources with the registry (priority: env=10, file=20, cli=30)
+	p.sourceRegistry = source.NewRegistry()
+	if err := p.sourceRegistry.Register(source.NewEnvSource(10, p.envOverrideVars)); err != nil {
+		return nil, diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Failed to register environment source",
+			Detail:   err.Error(),
+		})
+	}
+	if err := p.sourceRegistry.Register(source.NewFileSource(20, p.fileOverrideVars)); err != nil {
+		return nil, diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Failed to register file source",
+			Detail:   err.Error(),
+		})
+	}
+	if err := p.sourceRegistry.Register(source.NewCLISource(30, p.flagOverrideVars)); err != nil {
+		return nil, diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Failed to register CLI source",
+			Detail:   err.Error(),
+		})
+	}
+
+	// Resolve and merge variables from all sources using the registry
+	for packName := range p.rootVars {
+		// Use context with timeout to prevent hanging on external sources
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		resolvedVars, resolveErr := p.sourceRegistry.Resolve(ctx, packName)
+		if resolveErr != nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Failed to resolve variables",
+				Detail:   resolveErr.Error(),
+			})
+			continue
+		}
+
+		// Merge resolved variables into root variables
+		for _, v := range resolvedVars {
+			existing, exists := p.rootVars[packName][v.Name]
+			if !exists {
+				if !p.cfg.IgnoreMissingVars {
+					diags = diags.Append(packdiags.DiagMissingRootVar(v.Name.String(), v.DeclRange.Ptr()))
 				}
-				if mergeDiags := existing.Merge(v); mergeDiags.HasErrors() {
-					diags = diags.Extend(mergeDiags)
-				}
+				continue
+			}
+			if mergeDiags := existing.Merge(v); mergeDiags.HasErrors() {
+				diags = diags.Extend(mergeDiags)
 			}
 		}
 	}
