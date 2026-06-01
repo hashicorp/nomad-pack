@@ -1,10 +1,6 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2023, 2026
 // SPDX-License-Identifier: MPL-2.0
 
-// Package source provides a pluggable architecture for variable sources in nomad-pack.
-// The source package enables nomad-pack to fetch variables from multiple sources
-// (environment, files, CLI flags, and future external sources like Consul KV, Vault,
-// or Nomad Variables) with priority-based resolution.
 package source
 
 import (

@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2023, 2026
 // SPDX-License-Identifier: MPL-2.0
 
 package source
@@ -7,6 +7,7 @@ import (
 	"cmp"
 	"context"
 	"fmt"
+	"maps"
 	"slices"
 
 	"github.com/hashicorp/nomad-pack/sdk/pack"
@@ -97,11 +98,7 @@ func (r *Registry) Resolve(ctx context.Context, packID pack.ID) ([]*variables.Va
 		}
 	}
 
-	// Convert map back to slice
-	result := make([]*variables.Variable, 0, len(varMap))
-	for _, v := range varMap {
-		result = append(result, v)
-	}
+	result := slices.Collect(maps.Values(varMap))
 
 	return result, nil
 }

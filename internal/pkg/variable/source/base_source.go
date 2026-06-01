@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2023, 2026
 // SPDX-License-Identifier: MPL-2.0
 
 package source
@@ -40,7 +40,6 @@ func (b *BaseSource) Priority() int {
 // Fetch retrieves variables for the given pack from the wrapped map.
 // Returns an empty slice if the pack is not found or vars is nil.
 func (b *BaseSource) Fetch(ctx context.Context, packID pack.ID) ([]*variables.Variable, error) {
-	// Check context before processing
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
