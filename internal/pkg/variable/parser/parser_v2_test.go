@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/testfixture"
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable/envloader"
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser/config"
+	"github.com/hashicorp/nomad-pack/internal/pkg/variable/source"
 	"github.com/hashicorp/nomad-pack/sdk/pack"
 	"github.com/hashicorp/nomad-pack/sdk/pack/variables"
 	"github.com/hashicorp/nomad/ci"
@@ -491,6 +492,7 @@ func NewTestInputParserV2(opts ...testParserV2Option) *ParserV2 {
 		envOverrideVars:  make(variables.PackIDKeyedVarMap),
 		fileOverrideVars: make(variables.PackIDKeyedVarMap),
 		flagOverrideVars: make(variables.PackIDKeyedVarMap),
+		sourceRegistry:   source.NewRegistry(),
 	}
 
 	// Loop through each option

@@ -41,7 +41,7 @@ type ParserV2 struct {
 	// Source registry for pluggable variable sources
 	sourceRegistry *source.Registry
 
-	// envOverrideVars, fileOverrideVars, cliOverrideVars are the override
+	// envOverrideVars, fileOverrideVars, flagOverrideVars are the override
 	// variables. The maps are keyed by the pack name they are associated to.
 	envOverrideVars  variables.PackIDKeyedVarMap
 	fileOverrideVars variables.PackIDKeyedVarMap
@@ -108,8 +108,7 @@ func (p *ParserV2) Parse() (*ParsedVariables, hcl.Diagnostics) {
 		return nil, diags
 	}
 
-	// Reset and register sources with the registry (priority: env=10, file=20, cli=30)
-	p.sourceRegistry = source.NewRegistry()
+	// Register sources with the registry (priority: env=10, file=20, cli=30)
 	if err := p.sourceRegistry.Register(source.NewEnvSource(10, p.envOverrideVars)); err != nil {
 		return nil, diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
@@ -132,12 +131,12 @@ func (p *ParserV2) Parse() (*ParsedVariables, hcl.Diagnostics) {
 		})
 	}
 
+	// Use context with timeout to prevent hanging on external sources
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
 	// Resolve and merge variables from all sources using the registry
 	for packName := range p.rootVars {
-		// Use context with timeout to prevent hanging on external sources
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-
 		resolvedVars, resolveErr := p.sourceRegistry.Resolve(ctx, packName)
 		if resolveErr != nil {
 			diags = diags.Append(&hcl.Diagnostic{
