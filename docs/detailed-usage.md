@@ -67,6 +67,72 @@ To download single pack or an entire registry at a specific version/SHA, use the
 nomad-pack registry add community github.com/hashicorp/nomad-pack-community-registry --ref=v0.0.1
 ```
 
+### Using Git References with --ref
+
+The `--ref` flag supports multiple reference types for precise version control:
+
+#### Branch Names
+
+You can specify any branch name to use templates from that branch:
+
+```
+# Use the main branch
+nomad-pack registry add myregistry github.com/org/repo --ref=main
+
+# Use a development branch
+nomad-pack registry add myregistry github.com/org/repo --ref=develop
+
+# Use a feature branch (no slashes)
+nomad-pack registry add myregistry github.com/org/repo --ref=feature-branch
+
+# Branch names with underscores or hyphens work fine
+nomad-pack registry add myregistry github.com/org/repo --ref=feature_new_templates
+nomad-pack registry add myregistry github.com/org/repo --ref=hotfix-123
+```
+
+#### Tags
+
+Use semantic version tags for stable releases:
+
+```
+nomad-pack registry add myregistry github.com/org/repo --ref=v1.0.0
+nomad-pack registry add myregistry github.com/org/repo --ref=v2.1.3
+```
+
+#### Commit SHAs
+
+Point to a specific commit for exact reproducibility:
+
+```
+nomad-pack registry add myregistry github.com/org/repo --ref=abc123def456
+```
+
+#### Known Limitations
+
+**Branch Names with Slashes:**
+
+Branch names containing slashes (e.g., `feature/add-templates`, `bugfix/issue-123`) are not supported due to go-getter URL parsing limitations. The tool will fail with an error like: `invalid ref: "feature"`.
+
+**Workaround:** Use the commit SHA of the branch instead:
+
+```bash
+# Step 1: Find the commit SHA of your branch
+git ls-remote https://github.com/org/repo refs/heads/feature/add-templates
+# Output: abc123def456...  refs/heads/feature/add-templates
+
+# Step 2: Use the SHA with --ref
+nomad-pack registry add myregistry github.com/org/repo --ref=abc123def456
+```
+
+Alternatively, you can clone the repository locally and use a file path:
+
+```bash
+git clone https://github.com/org/repo
+cd repo
+git checkout feature/add-templates
+nomad-pack registry add myregistry /path/to/local/repo
+```
+
 To remove a registry or pack from your local cache. Use the `registry delete` command.
 This command also supports the `--target` and `--ref` flags.
 
