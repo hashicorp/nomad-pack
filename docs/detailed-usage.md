@@ -108,32 +108,6 @@ Point to a specific commit for exact reproducibility:
 nomad-pack registry add myregistry github.com/org/repo --ref=abc123def456
 ```
 
-#### Known Limitations
-
-**Branch Names with Slashes:**
-
-Branch names containing slashes (e.g., `feature/add-templates`, `bugfix/issue-123`) are not supported due to go-getter URL parsing limitations. The tool will fail with an error like: `invalid ref: "feature"`.
-
-**Workaround:** Use the commit SHA of the branch instead:
-
-```bash
-# Step 1: Find the commit SHA of your branch
-git ls-remote https://github.com/org/repo refs/heads/feature/add-templates
-# Output: abc123def456...  refs/heads/feature/add-templates
-
-# Step 2: Use the SHA with --ref
-nomad-pack registry add myregistry github.com/org/repo --ref=abc123def456
-```
-
-Alternatively, you can clone the repository locally and use a file path:
-
-```bash
-git clone https://github.com/org/repo
-cd repo
-git checkout feature/add-templates
-nomad-pack registry add myregistry /path/to/local/repo
-```
-
 To remove a registry or pack from your local cache. Use the `registry delete` command.
 This command also supports the `--target` and `--ref` flags.
 
