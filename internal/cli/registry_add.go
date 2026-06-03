@@ -136,10 +136,6 @@ func (c *RegistryAddCommand) Flags() *flag.Sets {
 			        @latest, is destructive, and will overwrite current @latest in the
 			        global cache.
 
-			        Note: Branch names containing slashes (e.g., feature/add-templates) are
-			        not supported due to go-getter URL parsing limitations. Use the commit
-			        SHA of the branch as a workaround.
-
 			        Using ref with a file path is not supported.`,
 		})
 	})
@@ -168,15 +164,13 @@ func (c *RegistryAddCommand) Help() string {
     # Download packs from a registry at a specific tag/release/SHA.
     nomad-pack registry add community github.com/hashicorp/nomad-pack-community-registry --ref=v0.1.0
 
-    # Download packs from a specific branch using --ref.
+    # Download packs from a specific branch using --ref (slashes are supported).
     nomad-pack registry add community github.com/hashicorp/nomad-pack-community-registry --ref=main
     nomad-pack registry add community github.com/hashicorp/nomad-pack-community-registry --ref=develop
+    nomad-pack registry add community github.com/hashicorp/nomad-pack-community-registry --ref=feature/add-templates
 
-    # Download packs using a commit SHA (useful for branches with slashes).
+    # Download packs using a commit SHA.
     nomad-pack registry add community github.com/hashicorp/nomad-pack-community-registry --ref=abc123def456
-
-    # Note: Branch names with slashes (e.g., feature/add-templates) are not supported.
-    # Use the commit SHA instead: git ls-remote <repo-url> refs/heads/<branch-name>
     `
 	return formatHelp(`
     Usage: nomad-pack registry add <name> <source> [options]

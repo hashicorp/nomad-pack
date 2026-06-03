@@ -82,12 +82,13 @@ nomad-pack registry add myregistry github.com/org/repo --ref=main
 # Use a development branch
 nomad-pack registry add myregistry github.com/org/repo --ref=develop
 
-# Use a feature branch (no slashes)
-nomad-pack registry add myregistry github.com/org/repo --ref=feature-branch
+# Use a feature branch (slashes are supported)
+nomad-pack registry add myregistry github.com/org/repo --ref=feature/add-templates
 
-# Branch names with underscores or hyphens work fine
+# Branch names with underscores, hyphens, or slashes all work
 nomad-pack registry add myregistry github.com/org/repo --ref=feature_new_templates
 nomad-pack registry add myregistry github.com/org/repo --ref=hotfix-123
+nomad-pack registry add myregistry github.com/org/repo --ref=compliance/update-headers
 ```
 
 #### Tags
