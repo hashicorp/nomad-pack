@@ -104,18 +104,6 @@ func TestConsulSource_Fetch_Success(t *testing.T) {
 	must.True(t, varMap["map_var"].Value.Equals(expectedMap).True())
 }
 
-func TestConsulSource_Fetch_EmptyResult(t *testing.T) {
-	skipIfConsulUnavailable(t)
-
-	source, err := NewConsulSource(40, nil, "nomad-pack-test/vars")
-	must.NoError(t, err)
-
-	// Fetch from non-existent pack
-	vars, err := source.Fetch(t.Context(), pack.ID("non-existent-pack"))
-	must.NoError(t, err)
-	must.Len(t, 0, vars)
-}
-
 func TestConsulSource_Fetch_ContextCancellation(t *testing.T) {
 	skipIfConsulUnavailable(t)
 

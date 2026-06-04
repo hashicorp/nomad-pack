@@ -39,10 +39,6 @@ func NewConsulSource(priority int, config *api.Config, prefix string) (*ConsulSo
 		return nil, fmt.Errorf("failed to create Consul client: %w", err)
 	}
 
-	if prefix == "" {
-		prefix = "nomad-pack/vars"
-	}
-
 	return &ConsulSource{
 		name:     "consul",
 		priority: priority,
@@ -177,7 +173,6 @@ func convertJSONToCty(v interface{}) (cty.Value, error) {
 		return cty.ObjectVal(attrs), nil
 
 	default:
-		// Fallback: try to use gocty to convert
 		ty, err := gocty.ImpliedType(v)
 		if err != nil {
 			return cty.NilVal, fmt.Errorf("unsupported type %T: %w", v, err)
