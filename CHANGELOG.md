@@ -11,6 +11,7 @@ IMPROVEMENTS:
 BUG FIXES:
 * cli: Fix panic when calling status command with namespace wildcard [[GH-827](https://github.com/hashicorp/nomad-pack/pull/854)]
 * cli: Fix `--ref` flag to support branch names with slashes and added documentation [[GH-891](https://github.com/hashicorp/nomad-pack/pull/891)]
+* renderer: Fixed output template rendering to respect --parser-v1 flag [[GH-875](https://github.com/hashicorp/nomad-pack/pull/875)]
 
 ## 0.4.2 (March 16, 2026)
 
