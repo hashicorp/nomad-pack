@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/nomad-pack/sdk/pack"
 	"github.com/hashicorp/nomad-pack/sdk/pack/variables"
 	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/gocty"
 )
 
 // ConsulSource fetches variables from Consul KV store.
@@ -120,69 +119,4 @@ func (c *ConsulSource) convertValue(data []byte) (cty.Value, error) {
 
 	// Convert JSON to cty.Value
 	return convertJSONToCty(v)
-}
-
-// convertJSONToCty converts a Go interface{} (from JSON) to a cty.Value.
-func convertJSONToCty(v interface{}) (cty.Value, error) {
-	switch val := v.(type) {
-	case nil:
-		return cty.NullVal(cty.DynamicPseudoType), nil
-
-	case string:
-		return cty.StringVal(val), nil
-
-	case float64:
-		return cty.NumberFloatVal(val), nil
-
-	case bool:
-		return cty.BoolVal(val), nil
-
-	case []interface{}:
-		if len(val) == 0 {
-			return cty.ListValEmpty(cty.DynamicPseudoType), nil
-		}
-
-		// Convert each element
-		elements := make([]cty.Value, len(val))
-		for i, elem := range val {
-			elemVal, err := convertJSONToCty(elem)
-			if err != nil {
-				return cty.NilVal, fmt.Errorf("failed to convert list element %d: %w", i, err)
-			}
-			elements[i] = elemVal
-		}
-
-		// Try to create a list with a unified type
-		return cty.ListVal(elements), nil
-
-	case map[string]interface{}:
-		if len(val) == 0 {
-			return cty.EmptyObjectVal, nil
-		}
-
-		// Convert each value
-		attrs := make(map[string]cty.Value)
-		for k, v := range val {
-			attrVal, err := convertJSONToCty(v)
-			if err != nil {
-				return cty.NilVal, fmt.Errorf("failed to convert object attribute %s: %w", k, err)
-			}
-			attrs[k] = attrVal
-		}
-
-		return cty.ObjectVal(attrs), nil
-
-	default:
-		ty, err := gocty.ImpliedType(v)
-		if err != nil {
-			return cty.NilVal, fmt.Errorf("unsupported type %T: %w", v, err)
-		}
-
-		ctyVal, err := gocty.ToCtyValue(v, ty)
-		if err != nil {
-			return cty.NilVal, fmt.Errorf("failed to convert %T to cty.Value: %w", v, err)
-		}
-
-		return ctyVal, nil
-	}
 }

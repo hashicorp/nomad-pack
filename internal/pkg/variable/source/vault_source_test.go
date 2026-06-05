@@ -49,18 +49,21 @@ func TestVaultSource_Fetch_Success_KVv2(t *testing.T) {
 	packID := pack.ID("test-pack")
 
 	// Setup test data in Vault KV v2
-	testData := map[string]map[string]interface{}{
-		"string_var": {"value": "hello world"},
-		"number_var": {"value": 42.0},
-		"bool_var":   {"value": true},
-		"list_var":   {"value": []interface{}{"a", "b", "c"}},
-		"map_var":    {"value": map[string]interface{}{"key1": "value1", "key2": "value2"}},
+	// Store values as JSON strings so they can be properly parsed
+	testData := map[string]string{
+		"string_var": `"hello world"`,
+		"number_var": `42`,
+		"bool_var":   `true`,
+		"list_var":   `["a", "b", "c"]`,
+		"map_var":    `{"key1": "value1", "key2": "value2"}`,
 	}
 
-	for key, data := range testData {
+	for key, jsonValue := range testData {
 		path := "secret/data/nomad-pack-test/vars/test-pack/" + key
 		_, err := client.Logical().Write(path, map[string]interface{}{
-			"data": data,
+			"data": map[string]interface{}{
+				"value": jsonValue,
+			},
 		})
 		must.NoError(t, err)
 	}
@@ -88,7 +91,7 @@ func TestVaultSource_Fetch_Success_KVv2(t *testing.T) {
 	must.True(t, varMap["string_var"].Value.Equals(cty.StringVal("hello world")).True())
 
 	// Check number_var
-	must.True(t, varMap["number_var"].Value.Equals(cty.NumberFloatVal(42.0)).True())
+	must.True(t, varMap["number_var"].Value.Equals(cty.NumberIntVal(42)).True())
 
 	// Check bool_var
 	must.True(t, varMap["bool_var"].Value.Equals(cty.BoolVal(true)).True())
@@ -190,5 +193,3 @@ func TestVaultSource_WithRegistry(t *testing.T) {
 	must.Eq(t, "vault_var", string(vars[0].Name))
 	must.True(t, vars[0].Value.Equals(cty.StringVal("from-vault")).True())
 }
-
-// Made with Bob

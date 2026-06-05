@@ -231,5 +231,3 @@ func (v *VaultSource) convertValue(data interface{}) (cty.Value, error) {
 	// For other types, convert directly
 	return convertJSONToCty(data)
 }
-
-// Made with Bob
