@@ -40,9 +40,7 @@ func (c *RegistryAddCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Generate our UI error context.
 	errorContext := errors.NewUIErrorContext()
-
 	c.name = args[0]
 	c.source = args[1]
 
@@ -126,15 +124,19 @@ func (c *RegistryAddCommand) Flags() *flag.Sets {
 			Name:    "ref",
 			Target:  &c.ref,
 			Default: "",
-			Usage: `Specific git ref of the registry or pack to be added.
-					Supports tags, SHA, and latest. If no ref is specified,
-					defaults to latest. Running "nomad registry add" multiple
-					times for the same ref is idempotent, however running
-					"nomad-pack registry add" without specifying a ref, or when
-					specifying @latest, is destructive, and will overwrite
-					current @latest in the global cache.
+			Usage: `Specific git ref of the registry or pack to be added. Supports:
+			        - Branch names (e.g., main, develop, feature-branch, fix-123)
+			        - Tags (e.g., v1.0.0)
+			        - Commit SHAs (e.g., abc123...)
+			        - "latest" (default if --ref not specified)
 
-					Using ref with a file path is not supported.`,
+			        If no ref is specified, defaults to latest. Running "nomad registry add"
+			        multiple times for the same ref is idempotent, however running
+			        "nomad-pack registry add" without specifying a ref, or when specifying
+			        @latest, is destructive, and will overwrite current @latest in the
+			        global cache.
+
+			        Using ref with a file path is not supported.`,
 		})
 	})
 }
@@ -153,19 +155,27 @@ func (c *RegistryAddCommand) Synopsis() string {
 
 func (c *RegistryAddCommand) Help() string {
 	c.Example = `
-	# Download latest ref of the pack registry to the global cache.
-	nomad-pack registry add community github.com/hashicorp/nomad-pack-community-registry
+    # Download latest ref of the pack registry to the global cache.
+    nomad-pack registry add community github.com/hashicorp/nomad-pack-community-registry
 
-	# Download latest ref of a specific pack from the registry to the global cache.
-	nomad-pack registry add community github.com/hashicorp/nomad-pack-community-registry --target=nomad_example
+    # Download latest ref of a specific pack from the registry to the global cache.
+    nomad-pack registry add community github.com/hashicorp/nomad-pack-community-registry --target=nomad_example
 
-	# Download packs from a registry at a specific tag/release/SHA.
-	nomad-pack registry add community github.com/hashicorp/nomad-pack-community-registry  --ref=v0.1.0
-	`
+    # Download packs from a registry at a specific tag/release/SHA.
+    nomad-pack registry add community github.com/hashicorp/nomad-pack-community-registry --ref=v0.1.0
+
+    # Download packs from a specific branch using --ref (slashes are supported).
+    nomad-pack registry add community github.com/hashicorp/nomad-pack-community-registry --ref=main
+    nomad-pack registry add community github.com/hashicorp/nomad-pack-community-registry --ref=develop
+    nomad-pack registry add community github.com/hashicorp/nomad-pack-community-registry --ref=feature/add-templates
+
+    # Download packs using a commit SHA.
+    nomad-pack registry add community github.com/hashicorp/nomad-pack-community-registry --ref=abc123def456
+    `
 	return formatHelp(`
-	Usage: nomad-pack registry add <name> <source> [options]
+    Usage: nomad-pack registry add <name> <source> [options]
 
-	Add nomad pack registries.
+    Add nomad pack registries.
 
 ` + c.GetExample() + c.Flags().Help())
 }

@@ -61,6 +61,47 @@ func TestBuildGoGetterGitURL(t *testing.T) {
 			},
 			expected: "ssh://gitea@gitea.internal/nomad_pack_templates.git//packs/simple?ref=main",
 		},
+		{
+			name: "ref with slash gets URL encoded",
+			opts: &AddOpts{
+				Source: "https://github.com/hashicorp/nomad-pack-community-registry",
+				Ref:    "feature/add-templates",
+			},
+			expected: "https://github.com/hashicorp/nomad-pack-community-registry?ref=feature%2Fadd-templates",
+		},
+		{
+			name: "ref with multiple slashes gets URL encoded",
+			opts: &AddOpts{
+				Source: "https://github.com/hashicorp/nomad-pack-community-registry",
+				Ref:    "compliance/update-headers/batch-1",
+			},
+			expected: "https://github.com/hashicorp/nomad-pack-community-registry?ref=compliance%2Fupdate-headers%2Fbatch-1",
+		},
+		{
+			name: "ref with slash and pack name",
+			opts: &AddOpts{
+				Source:   "ssh://gitea@gitea.internal/nomad_pack_templates",
+				PackName: "simple",
+				Ref:      "feature/new-pack",
+			},
+			expected: "ssh://gitea@gitea.internal/nomad_pack_templates.git//packs/simple?ref=feature%2Fnew-pack",
+		},
+		{
+			name: "SHA ref not encoded",
+			opts: &AddOpts{
+				Source: "https://github.com/hashicorp/nomad-pack-community-registry",
+				Ref:    "5d96571d5600366597a44cf86f1a2f8f7e2959d9",
+			},
+			expected: "https://github.com/hashicorp/nomad-pack-community-registry?ref=5d96571d5600366597a44cf86f1a2f8f7e2959d9",
+		},
+		{
+			name: "ref with underscore and dash not encoded",
+			opts: &AddOpts{
+				Source: "https://github.com/hashicorp/nomad-pack-community-registry",
+				Ref:    "feature_branch-v2",
+			},
+			expected: "https://github.com/hashicorp/nomad-pack-community-registry?ref=feature_branch-v2",
+		},
 	}
 
 	for _, tc := range testCases {
