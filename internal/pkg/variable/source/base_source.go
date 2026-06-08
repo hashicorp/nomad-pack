@@ -38,19 +38,19 @@ func (b *BaseSource) Priority() int {
 }
 
 // Fetch retrieves variables for the given pack from the wrapped map.
-// Returns an empty slice if the pack is not found or vars is nil.
+// Returns nil if the pack is not found or vars is nil.
 func (b *BaseSource) Fetch(ctx context.Context, packID pack.ID) ([]*variables.Variable, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 
 	if b.vars == nil {
-		return make([]*variables.Variable, 0), nil
+		return nil, nil
 	}
 
 	packVars, exists := b.vars[packID]
 	if !exists {
-		return make([]*variables.Variable, 0), nil
+		return nil, nil
 	}
 
 	return packVars, nil

@@ -42,7 +42,7 @@ func NewConsulSource(priority int, config *api.Config, prefix string) (*ConsulSo
 		name:     "consul",
 		priority: priority,
 		client:   client,
-		prefix:   strings.TrimSuffix(prefix, "/"),
+		prefix:   strings.Trim(prefix, "/"),
 	}, nil
 }
 
@@ -76,9 +76,9 @@ func (c *ConsulSource) Fetch(ctx context.Context, packID pack.ID) ([]*variables.
 		return nil, fmt.Errorf("failed to list Consul KV at %s: %w", path, err)
 	}
 
-	// If no keys found, return empty slice (not an error)
+	// If no keys found, return nil (not an error)
 	if len(pairs) == 0 {
-		return make([]*variables.Variable, 0), nil
+		return nil, nil
 	}
 
 	vars := make([]*variables.Variable, 0, len(pairs))

@@ -80,9 +80,9 @@ func (v *VaultSource) Fetch(ctx context.Context, packID pack.ID) ([]*variables.V
 		return nil, fmt.Errorf("failed to list Vault secrets at %s: %w", basePath, err)
 	}
 
-	// If no secrets found, return empty slice (not an error)
+	// If no secrets found, return nil (not an error)
 	if len(secrets) == 0 {
-		return make([]*variables.Variable, 0), nil
+		return nil, nil
 	}
 
 	// Fetch each secret and convert to variables
@@ -141,7 +141,7 @@ func (v *VaultSource) listSecrets(ctx context.Context, path string) ([]string, e
 	}
 
 	if secret == nil || secret.Data == nil {
-		return []string{}, nil
+		return nil, nil
 	}
 
 	return v.extractKeys(secret.Data)
@@ -151,7 +151,7 @@ func (v *VaultSource) listSecrets(ctx context.Context, path string) ([]string, e
 func (v *VaultSource) extractKeys(data map[string]interface{}) ([]string, error) {
 	keysRaw, ok := data["keys"]
 	if !ok {
-		return []string{}, nil
+		return nil, nil
 	}
 
 	keysSlice, ok := keysRaw.([]interface{})

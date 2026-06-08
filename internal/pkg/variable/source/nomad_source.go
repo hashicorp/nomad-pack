@@ -87,13 +87,14 @@ func (n *NomadSource) Fetch(ctx context.Context, packID pack.ID) ([]*variables.V
 		return nil, fmt.Errorf("failed to list Nomad variables with prefix %s: %w", pathPrefix, err)
 	}
 
-	// If no variables found, return empty slice (not an error)
+	// If no variables found, return nil (not an error)
 	if len(varList) == 0 {
-		return make([]*variables.Variable, 0), nil
+		return nil, nil
 	}
 
 	// Fetch each variable and convert to pack variables
-	packVars := make([]*variables.Variable, 0)
+	// Pre-allocate with estimated capacity (at least one variable per path)
+	packVars := make([]*variables.Variable, 0, len(varList))
 	for _, varMeta := range varList {
 		// Read the full variable
 		readOpts := &api.QueryOptions{
