@@ -23,13 +23,13 @@ func skipIfConsulUnavailable(t *testing.T) *api.Client {
 	config := api.DefaultConfig()
 	client, err := api.NewClient(config)
 	if err != nil {
-		t.Skipf("Consul client creation failed: %v", err)
+		t.Fatalf("Consul client creation failed: %v", err)
 	}
 
 	// Verify Consul is reachable
 	_, err = client.Status().Leader()
 	if err != nil {
-		t.Skipf("Consul not reachable: %v", err)
+		t.Fatalf("Consul not reachable: %v", err)
 	}
 
 	return client
@@ -63,10 +63,10 @@ func TestConsulSource_Fetch_Success(t *testing.T) {
 	}
 
 	// Cleanup
-	defer func() {
+	t.Cleanup(func() {
 		_, err := kv.DeleteTree("nomad-pack-test/vars/test-pack/", nil)
 		must.NoError(t, err)
-	}()
+	})
 
 	// Fetch variables
 	vars, err := source.Fetch(t.Context(), packID)
@@ -136,10 +136,10 @@ func TestConsulSource_Fetch_NonJSONValue(t *testing.T) {
 	must.NoError(t, err)
 
 	// Cleanup
-	defer func() {
+	t.Cleanup(func() {
 		_, err := kv.DeleteTree("nomad-pack-test/vars/test-pack-plain/", nil)
 		must.NoError(t, err)
-	}()
+	})
 
 	// Fetch should succeed and treat as string
 	vars, err := source.Fetch(t.Context(), packID)
@@ -162,10 +162,10 @@ func TestConsulSource_WithRegistry(t *testing.T) {
 	must.NoError(t, err)
 
 	// Cleanup
-	defer func() {
+	t.Cleanup(func() {
 		_, err := kv.DeleteTree("nomad-pack-test/vars/test-pack-registry/", nil)
 		must.NoError(t, err)
-	}()
+	})
 
 	// Create registry with Consul source
 	registry := NewRegistry()

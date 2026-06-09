@@ -76,11 +76,11 @@ func TestNomadSource_Fetch_Success(t *testing.T) {
 	}
 
 	// Cleanup
-	defer func() {
+	t.Cleanup(func() {
 		for _, v := range testVars {
 			_, _ = client.Variables().Delete(v.Path, nil)
 		}
-	}()
+	})
 
 	// Fetch variables
 	vars, err := source.Fetch(context.Background(), packID)
@@ -157,9 +157,9 @@ func TestNomadSource_Fetch_StringValue(t *testing.T) {
 	_, _, err = client.Variables().Create(testVar, nil)
 	must.NoError(t, err)
 
-	defer func() {
+	t.Cleanup(func() {
 		_, _ = client.Variables().Delete(testVar.Path, nil)
-	}()
+	})
 
 	// Fetch variables
 	vars, err := source.Fetch(context.Background(), packID)

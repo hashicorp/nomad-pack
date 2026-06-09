@@ -23,13 +23,13 @@ func skipIfVaultUnavailable(t *testing.T) *vault.Client {
 	config := vault.DefaultConfig()
 	client, err := vault.NewClient(config)
 	if err != nil {
-		t.Skipf("Vault client creation failed: %v", err)
+		t.Fatalf("Vault client creation failed: %v", err)
 	}
 
 	// Verify Vault is reachable and unsealed
 	health, err := client.Sys().Health()
 	if err != nil {
-		t.Skipf("Vault not reachable: %v", err)
+		t.Fatalf("Vault not reachable: %v", err)
 	}
 
 	if health.Sealed {
@@ -69,12 +69,12 @@ func TestVaultSource_Fetch_Success_KVv2(t *testing.T) {
 	}
 
 	// Cleanup
-	defer func() {
+	t.Cleanup(func() {
 		for key := range testData {
 			path := "secret/metadata/nomad-pack-test/vars/test-pack/" + key
 			_, _ = client.Logical().Delete(path)
 		}
-	}()
+	})
 
 	// Fetch variables
 	vars, err := source.Fetch(context.Background(), packID)
@@ -145,10 +145,10 @@ func TestVaultSource_Fetch_StringValue(t *testing.T) {
 	must.NoError(t, err)
 
 	// Cleanup
-	defer func() {
+	t.Cleanup(func() {
 		path := "secret/metadata/nomad-pack-test/vars/test-pack-string/plain_text"
 		_, _ = client.Logical().Delete(path)
-	}()
+	})
 
 	// Fetch should succeed and treat as string
 	vars, err := source.Fetch(context.Background(), packID)
@@ -172,10 +172,10 @@ func TestVaultSource_WithRegistry(t *testing.T) {
 	must.NoError(t, err)
 
 	// Cleanup
-	defer func() {
+	t.Cleanup(func() {
 		path := "secret/metadata/nomad-pack-test/vars/test-pack-registry/vault_var"
 		_, _ = client.Logical().Delete(path)
-	}()
+	})
 
 	// Create registry with Vault source
 	registry := NewRegistry()

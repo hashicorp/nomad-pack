@@ -10,10 +10,10 @@ import (
 	"github.com/zclconf/go-cty/cty/gocty"
 )
 
-// convertJSONToCty converts a Go interface{} (from JSON) to a cty.Value.
+// convertJSONToCty converts a Go any (from JSON) to a cty.Value.
 // This is shared by multiple source implementations that need to convert
 // JSON data to HCL types.
-func convertJSONToCty(v interface{}) (cty.Value, error) {
+func convertJSONToCty(v any) (cty.Value, error) {
 	switch val := v.(type) {
 	case nil:
 		return cty.NullVal(cty.DynamicPseudoType), nil
@@ -27,7 +27,7 @@ func convertJSONToCty(v interface{}) (cty.Value, error) {
 	case bool:
 		return cty.BoolVal(val), nil
 
-	case []interface{}:
+	case []any:
 		if len(val) == 0 {
 			return cty.ListValEmpty(cty.DynamicPseudoType), nil
 		}
@@ -45,7 +45,7 @@ func convertJSONToCty(v interface{}) (cty.Value, error) {
 		// Create a list with a unified type
 		return cty.ListVal(elements), nil
 
-	case map[string]interface{}:
+	case map[string]any:
 		if len(val) == 0 {
 			return cty.EmptyObjectVal, nil
 		}
