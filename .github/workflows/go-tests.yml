@@ -30,10 +30,10 @@ jobs:
           VAULT_DEV_ROOT_TOKEN_ID: root
           VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
         options: >-
-          --health-cmd "vault status"
+          --health-cmd "wget --no-verbose --tries=1 --spider http://localhost:8200/v1/sys/health || exit 1"
           --health-interval 10s
           --health-timeout 5s
-          --health-retries 5
+          --health-retries 10
           --cap-add=IPC_LOCK
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
