@@ -27,6 +27,13 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
+const (
+	// externalSourceTimeout is the maximum time allowed for fetching variables
+	// from external sources (Consul, Vault, Nomad). This prevents hanging on
+	// slow or unresponsive external services.
+	externalSourceTimeout = 30 * time.Second
+)
+
 type ParserV2 struct {
 	fs  afero.Afero
 	cfg *config.ParserConfig
@@ -108,22 +115,38 @@ func (p *ParserV2) Parse() (*ParsedVariables, hcl.Diagnostics) {
 		return nil, diags
 	}
 
-	// Register sources with the registry (priority: env=10, file=20, cli=30)
-	if err := p.sourceRegistry.Register(source.NewEnvSource(10, p.envOverrideVars)); err != nil {
+	// Register sources with the registry in priority order
+	if err := p.sourceRegistry.Register(source.NewEnvSource(source.PriorityEnv, p.envOverrideVars)); err != nil {
 		return nil, diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Failed to register environment source",
 			Detail:   err.Error(),
 		})
 	}
-	if err := p.sourceRegistry.Register(source.NewFileSource(20, p.fileOverrideVars)); err != nil {
+	if err := p.sourceRegistry.Register(source.NewFileSource(source.PriorityFile, p.fileOverrideVars)); err != nil {
 		return nil, diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Failed to register file source",
 			Detail:   err.Error(),
 		})
 	}
-	if err := p.sourceRegistry.Register(source.NewCLISource(30, p.flagOverrideVars)); err != nil {
+
+	// Register external sources (Consul, Vault, Nomad) if provided
+	if len(p.cfg.ExternalSources) > 0 {
+		for _, extSrc := range p.cfg.ExternalSources {
+			if src, ok := extSrc.(source.VariableSource); ok {
+				if err := p.sourceRegistry.Register(src); err != nil {
+					return nil, diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  fmt.Sprintf("Failed to register external source %q", src.Name()),
+						Detail:   err.Error(),
+					})
+				}
+			}
+		}
+	}
+
+	if err := p.sourceRegistry.Register(source.NewCLISource(source.PriorityCLI, p.flagOverrideVars)); err != nil {
 		return nil, diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Failed to register CLI source",
@@ -132,7 +155,7 @@ func (p *ParserV2) Parse() (*ParsedVariables, hcl.Diagnostics) {
 	}
 
 	// Use context with timeout to prevent hanging on external sources
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), externalSourceTimeout)
 	defer cancel()
 
 	// Resolve and merge variables from all sources using the registry

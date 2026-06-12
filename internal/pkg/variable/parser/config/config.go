@@ -47,6 +47,11 @@ type ParserConfig struct {
 	// all sources. If the same key is supplied twice, the last wins.
 	FlagOverrides map[string]string
 
+	// ExternalSources are external variable sources (Consul, Vault, Nomad) that
+	// will be queried for variables. These sources are integrated into the
+	// precedence chain between file and flag overrides.
+	ExternalSources []any // []source.VariableSource - using any to avoid import cycle
+
 	// IgnoreMissingVars determines whether we error or not on variable overrides
 	// that don't have corresponding vars in the pack.
 	IgnoreMissingVars bool

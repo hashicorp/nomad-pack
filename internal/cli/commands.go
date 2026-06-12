@@ -71,6 +71,10 @@ type baseCommand struct {
 	// for defined input variables
 	varFiles []string
 
+	// varSources is a list of external variable source URLs
+	// (e.g., consul://prefix)
+	varSources []string
+
 	// allowUnsetVars suppresses errors from variables with nil values,
 	// i.e. those that are not set and have no default
 	allowUnsetVars bool
@@ -265,6 +269,20 @@ func (c *baseCommand) flagSet(bit flagSetBit, f func(*flag.Sets)) *flag.Sets {
 				Completion: complete.PredictOr(complete.PredictFiles("*.var"), complete.PredictFiles("*.hcl")),
 			},
 			Shorthand: "f",
+		})
+
+		f.StringSliceVar(&flag.StringSliceVar{
+			Name:    "var-source",
+			Target:  &c.varSources,
+			Default: make([]string, 0),
+			Usage: `Specifies an external variable source URL. Currently supported:
+					consul:// (Consul KV)
+					
+					Can be specified multiple times. Variables from external sources
+					are merged with file and CLI variables according to precedence rules.
+					
+					Example:
+					  --var-source=consul://nomad-pack`,
 		})
 
 		f.BoolVar(&flag.BoolVar{

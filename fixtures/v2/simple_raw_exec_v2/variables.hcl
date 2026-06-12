@@ -46,8 +46,8 @@ nomad_variable "app_config" {
   path = "nomad/jobs/simple_raw_exec/config"
   items = {
     database_url = "postgres://localhost:5432/mydb"
-    api_key = "secret-api-key-123"
-    environment = "production"
+    api_key      = "secret-api-key-123"
+    environment  = "production"
   }
 }
 
@@ -55,6 +55,6 @@ nomad_variable "secrets" {
   path = "nomad/jobs/simple_raw_exec/secrets"
   items = {
     admin_password = "super-secret-password"
-    jwt_secret = "jwt-signing-key-xyz"
+    jwt_secret     = "jwt-signing-key-xyz"
   }
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/renderer"
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser"
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser/config"
+	"github.com/hashicorp/nomad-pack/internal/pkg/variable/source"
 	"github.com/hashicorp/nomad-pack/sdk/pack"
 	"github.com/hashicorp/nomad/api"
 )
@@ -27,6 +28,7 @@ type Config struct {
 	VariableEnvVars map[string]string
 	UseParserV1     bool
 	AllowUnsetVars  bool
+	ExternalSources []source.VariableSource // External variable sources (Consul, Vault, Nomad)
 }
 
 // PackManager is responsible for loading, parsing, and rendering a Pack and
@@ -66,6 +68,15 @@ func (pm *PackManager) ProcessVariableFiles() (*parser.ParsedVariables, []*error
 	// without the version.
 	parentName, _, _ := strings.Cut(path.Base(pm.cfg.Path), "@")
 
+	// Convert external sources to any slice to avoid import cycle
+	var externalSources []any
+	if len(pm.cfg.ExternalSources) > 0 {
+		externalSources = make([]any, len(pm.cfg.ExternalSources))
+		for i, src := range pm.cfg.ExternalSources {
+			externalSources[i] = src
+		}
+	}
+
 	pCfg := &config.ParserConfig{
 		Version:           config.V2,
 		ParentPack:        pm.loadedPack,
@@ -73,6 +84,7 @@ func (pm *PackManager) ProcessVariableFiles() (*parser.ParsedVariables, []*error
 		EnvOverrides:      pm.cfg.VariableEnvVars,
 		FileOverrides:     pm.cfg.VariableFiles,
 		FlagOverrides:     pm.cfg.VariableCLIArgs,
+		ExternalSources:   externalSources,
 	}
 
 	if pm.cfg.UseParserV1 {

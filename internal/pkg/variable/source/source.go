@@ -10,6 +10,25 @@ import (
 	"github.com/hashicorp/nomad-pack/sdk/pack/variables"
 )
 
+// Priority constants define the precedence order for variable sources.
+// Higher values take precedence over lower values when variables conflict.
+//
+// Priority Order (lowest to highest):
+//   - Environment variables (10)
+//   - Variable files (20)
+//   - Nomad Variables (23)
+//   - Vault KV (24)
+//   - Consul KV (25)
+//   - CLI flags (30)
+const (
+	PriorityEnv    = 10
+	PriorityFile   = 20
+	PriorityNomad  = 23
+	PriorityVault  = 24
+	PriorityConsul = 25
+	PriorityCLI    = 30
+)
+
 // VariableSource represents a source of variables (CLI, file, env, external)
 type VariableSource interface {
 	// Name returns the unique identifier for this source

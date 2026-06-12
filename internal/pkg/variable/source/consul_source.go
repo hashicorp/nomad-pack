@@ -60,9 +60,21 @@ func (c *ConsulSource) Priority() int {
 // Variables are expected to be stored as JSON values that can be
 // converted to cty.Value types. If a value is not valid JSON,
 // it will be treated as a string.
+//
+// Edge Cases:
+//   - Returns nil (not error) if no keys found at path
+//   - Skips directory entries (keys ending with /)
+//   - Invalid JSON values are treated as strings
+//
+// The parser automatically provides a 30-second timeout context.
 func (c *ConsulSource) Fetch(ctx context.Context, packID pack.ID) ([]*variables.Variable, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
+	}
+
+	// Validate pack ID
+	if packID == "" {
+		return nil, fmt.Errorf("pack ID cannot be empty")
 	}
 
 	// Build KV path: prefix/packID/
@@ -111,7 +123,7 @@ func (c *ConsulSource) Fetch(ctx context.Context, packID pack.ID) ([]*variables.
 // It first attempts to parse as JSON. If that fails, it treats the value as a string.
 func (c *ConsulSource) convertValue(data []byte) (cty.Value, error) {
 	// Try to parse as JSON first
-	var v interface{}
+	var v any
 	if err := json.Unmarshal(data, &v); err != nil {
 		// If not valid JSON, treat as string
 		return cty.StringVal(string(data)), nil
