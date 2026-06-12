@@ -63,7 +63,8 @@ func TestRegistry_Resolve(t *testing.T) {
 		})
 		must.NoError(t, registry.Register(s))
 
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
+		t.Cleanup(cancel)
 		cancel()
 
 		_, err := registry.Resolve(ctx, pack.ID("test"))

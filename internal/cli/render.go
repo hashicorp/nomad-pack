@@ -280,7 +280,11 @@ func (c *RenderCommand) Run(args []string) int {
 		c.ui.Error(err.Error())
 		return 1
 	}
-	packManager := generatePackManager(c.baseCommand, client, c.packConfig)
+	packManager, err := generatePackManager(c.baseCommand, client, c.packConfig)
+	if err != nil {
+		c.ui.ErrorWithContext(err, "failed to generate pack manager", errorContext.GetAll()...)
+		return 1
+	}
 
 	renderOutput, err := renderPack(
 		packManager,

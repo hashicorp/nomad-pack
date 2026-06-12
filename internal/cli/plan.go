@@ -54,7 +54,11 @@ func (c *PlanCommand) Run(args []string) int {
 		return c.exitCodeError
 	}
 
-	packManager := generatePackManager(c.baseCommand, client, c.packConfig)
+	packManager, err := generatePackManager(c.baseCommand, client, c.packConfig)
+	if err != nil {
+		c.ui.ErrorWithContext(err, "failed to generate pack manager", errorContext.GetAll()...)
+		return c.exitCodeError
+	}
 
 	// load pack
 	r, err := renderPack(
