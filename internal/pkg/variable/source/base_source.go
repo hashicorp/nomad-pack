@@ -38,12 +38,9 @@ func (b *BaseSource) Priority() int {
 }
 
 // Fetch retrieves variables for the given pack from the wrapped map.
+// Only returns variables that exist in the schema to avoid unexpected variables.
 // Returns an empty slice if the pack is not found or vars is nil.
-func (b *BaseSource) Fetch(ctx context.Context, packID pack.ID) ([]*variables.Variable, error) {
-	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
-
+func (b *BaseSource) Fetch(ctx context.Context, packID pack.ID, schema map[variables.ID]*variables.Variable) ([]*variables.Variable, error) {
 	if b.vars == nil {
 		return make([]*variables.Variable, 0), nil
 	}
@@ -53,7 +50,15 @@ func (b *BaseSource) Fetch(ctx context.Context, packID pack.ID) ([]*variables.Va
 		return make([]*variables.Variable, 0), nil
 	}
 
-	return packVars, nil
+	// Filter to only include variables that exist in the schema
+	result := make([]*variables.Variable, 0, len(packVars))
+	for _, v := range packVars {
+		if _, inSchema := schema[v.Name]; inSchema {
+			result = append(result, v)
+		}
+	}
+
+	return result, nil
 }
 
 // NewEnvSource creates a new environment variable source.

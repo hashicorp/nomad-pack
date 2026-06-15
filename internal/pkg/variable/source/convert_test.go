@@ -14,145 +14,114 @@ import (
 func TestConvertJSONToCty(t *testing.T) {
 	ci.Parallel(t)
 
-	// Test basic types
-	testCases := []struct {
-		name  string
-		input any
-		want  cty.Type
-	}{
-		{"string", "hello", cty.String},
-		{"number", float64(42), cty.Number},
-		{"bool true", true, cty.Bool},
-		{"bool false", false, cty.Bool},
-		{"null", nil, cty.DynamicPseudoType},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			ci.Parallel(t)
-			result, err := convertJSONToCty(tc.input)
-			must.NoError(t, err)
-			must.True(t, result.Type().Equals(tc.want))
-		})
-	}
-
-	// Test string value
-	t.Run("string value", func(t *testing.T) {
+	t.Run("strings", func(t *testing.T) {
 		ci.Parallel(t)
-		result, err := convertJSONToCty("test")
+		val, err := convertJSONToCty("webapp")
 		must.NoError(t, err)
-		must.Eq(t, "test", result.AsString())
+		must.Eq(t, cty.String, val.Type())
+		must.Eq(t, "webapp", val.AsString())
 	})
 
-	// Test number value
-	t.Run("number value", func(t *testing.T) {
+	t.Run("numbers", func(t *testing.T) {
 		ci.Parallel(t)
-		result, err := convertJSONToCty(float64(42))
+		val, err := convertJSONToCty(float64(42))
 		must.NoError(t, err)
-		f, _ := result.AsBigFloat().Float64()
+		must.Eq(t, cty.Number, val.Type())
+		f, _ := val.AsBigFloat().Float64()
 		must.Eq(t, 42.0, f)
 	})
 
-	// Test empty list
-	t.Run("empty list", func(t *testing.T) {
+	t.Run("booleans", func(t *testing.T) {
 		ci.Parallel(t)
-		result, err := convertJSONToCty([]any{})
+
+		trueVal, err := convertJSONToCty(true)
 		must.NoError(t, err)
-		must.True(t, result.Type().Equals(cty.List(cty.DynamicPseudoType)))
+		must.True(t, trueVal.True())
+
+		falseVal, err := convertJSONToCty(false)
+		must.NoError(t, err)
+		must.True(t, falseVal.False())
 	})
 
-	// Test list of numbers
-	t.Run("list of numbers", func(t *testing.T) {
+	t.Run("null becomes dynamic", func(t *testing.T) {
 		ci.Parallel(t)
-		input := []any{float64(1), float64(2), float64(3)}
-		result, err := convertJSONToCty(input)
+		val, err := convertJSONToCty(nil)
 		must.NoError(t, err)
-		must.True(t, result.Type().Equals(cty.List(cty.Number)))
-		must.Eq(t, 3, result.LengthInt())
+		must.Eq(t, cty.DynamicPseudoType, val.Type())
 	})
 
-	// Test list of strings
-	t.Run("list of strings", func(t *testing.T) {
+	t.Run("port list from consul", func(t *testing.T) {
 		ci.Parallel(t)
-		input := []any{"a", "b", "c"}
-		result, err := convertJSONToCty(input)
+		// Simulates JSON array from Consul: [8080, 8443, 9090]
+		ports := []any{float64(8080), float64(8443), float64(9090)}
+		val, err := convertJSONToCty(ports)
 		must.NoError(t, err)
-		must.True(t, result.Type().Equals(cty.List(cty.String)))
+		must.Eq(t, cty.List(cty.Number), val.Type())
+		must.Eq(t, 3, val.LengthInt())
 	})
 
-	// Test empty object
-	t.Run("empty object", func(t *testing.T) {
+	t.Run("datacenter list", func(t *testing.T) {
 		ci.Parallel(t)
-		result, err := convertJSONToCty(map[string]any{})
+		dcs := []any{"dc1", "dc2", "dc3"}
+		val, err := convertJSONToCty(dcs)
 		must.NoError(t, err)
-		must.True(t, result.Type().Equals(cty.EmptyObject))
+		must.Eq(t, cty.List(cty.String), val.Type())
+		must.Eq(t, 3, val.LengthInt())
 	})
 
-	// Test object with mixed types
-	t.Run("object with mixed types", func(t *testing.T) {
+	t.Run("empty list defaults to dynamic", func(t *testing.T) {
 		ci.Parallel(t)
-		input := map[string]any{
-			"name":    "test",
-			"count":   float64(5),
-			"enabled": true,
+		val, err := convertJSONToCty([]any{})
+		must.NoError(t, err)
+		must.Eq(t, cty.List(cty.DynamicPseudoType), val.Type())
+	})
+
+	t.Run("service config object", func(t *testing.T) {
+		ci.Parallel(t)
+		// Typical service configuration from Consul
+		config := map[string]any{
+			"service_name": "api",
+			"port":         float64(8080),
+			"health_check": true,
 		}
-		result, err := convertJSONToCty(input)
+		val, err := convertJSONToCty(config)
 		must.NoError(t, err)
 
-		objMap := result.AsValueMap()
-		must.Eq(t, "test", objMap["name"].AsString())
+		m := val.AsValueMap()
+		must.Eq(t, "api", m["service_name"].AsString())
 
-		count, _ := objMap["count"].AsBigFloat().Float64()
-		must.Eq(t, 5.0, count)
+		port, _ := m["port"].AsBigFloat().Float64()
+		must.Eq(t, 8080.0, port)
 
-		must.True(t, objMap["enabled"].True())
+		must.True(t, m["health_check"].True())
 	})
 
-	// Test nested object
-	t.Run("nested object", func(t *testing.T) {
+	t.Run("nested resource limits", func(t *testing.T) {
 		ci.Parallel(t)
-		input := map[string]any{
-			"config": map[string]any{
-				"timeout": float64(30),
-				"debug":   false,
+		// Resource configuration with nested structure
+		resources := map[string]any{
+			"cpu": float64(500),
+			"memory": map[string]any{
+				"limit":   float64(256),
+				"reserve": float64(128),
 			},
 		}
-		result, err := convertJSONToCty(input)
+		val, err := convertJSONToCty(resources)
 		must.NoError(t, err)
 
-		objMap := result.AsValueMap()
-		configMap := objMap["config"].AsValueMap()
+		m := val.AsValueMap()
+		cpu, _ := m["cpu"].AsBigFloat().Float64()
+		must.Eq(t, 500.0, cpu)
 
-		timeout, _ := configMap["timeout"].AsBigFloat().Float64()
-		must.Eq(t, 30.0, timeout)
-		must.True(t, configMap["debug"].False())
+		memMap := m["memory"].AsValueMap()
+		limit, _ := memMap["limit"].AsBigFloat().Float64()
+		must.Eq(t, 256.0, limit)
 	})
 
-	// Test real-world pack variable examples
-	t.Run("pack replicas", func(t *testing.T) {
+	t.Run("empty object", func(t *testing.T) {
 		ci.Parallel(t)
-		result, err := convertJSONToCty(float64(3))
+		val, err := convertJSONToCty(map[string]any{})
 		must.NoError(t, err)
-		must.True(t, result.Type().Equals(cty.Number))
-	})
-
-	t.Run("pack ports", func(t *testing.T) {
-		ci.Parallel(t)
-		input := []any{float64(8080), float64(8443)}
-		result, err := convertJSONToCty(input)
-		must.NoError(t, err)
-		must.True(t, result.Type().Equals(cty.List(cty.Number)))
-	})
-
-	t.Run("pack config", func(t *testing.T) {
-		ci.Parallel(t)
-		input := map[string]any{
-			"timeout": float64(30),
-			"debug":   false,
-			"region":  "us-west-2",
-		}
-		result, err := convertJSONToCty(input)
-		must.NoError(t, err)
-		must.True(t, result.Type().IsObjectType())
+		must.Eq(t, cty.EmptyObject, val.Type())
 	})
 }

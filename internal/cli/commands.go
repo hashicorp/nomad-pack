@@ -276,13 +276,49 @@ func (c *baseCommand) flagSet(bit flagSetBit, f func(*flag.Sets)) *flag.Sets {
 			Target:  &c.varSources,
 			Default: make([]string, 0),
 			Usage: `Specifies an external variable source URL. Currently supported:
-					consul:// (Consul KV)
+					  • Consul KV - Fetch variables from Consul
 					
-					Can be specified multiple times. Variables from external sources
-					are merged with file and CLI variables according to precedence rules.
+					URL Structure:
+					  consul://<host>:<port>/<prefix>
+					  
+					  Where:
+					    <host>:<port> - Consul server address (optional, uses CONSUL_HTTP_ADDR if omitted)
+					    <prefix>      - Base path in Consul KV where variables are stored
+					  
+					  Variables are fetched from: <prefix>/<pack-name>/<variable-name>
+					  The <pack-name> is automatically determined from the pack you're running.
 					
-					Example:
-					  --var-source=consul://nomad-pack`,
+					Examples:
+					  consul:///config                    - Uses CONSUL_HTTP_ADDR, prefix "config"
+					  consul://localhost:8500/config      - Explicit Consul address, prefix "config"
+					  consul://consul.service.dc1:8500/app/prod - Custom address and nested prefix
+					
+					Environment Variables (required for consul:/// format):
+					  CONSUL_HTTP_ADDR, CONSUL_HTTP_TOKEN, CONSUL_HTTP_SSL, etc.
+					  See: https://developer.hashicorp.com/consul/commands#environment-variables
+					
+					Variable Precedence (highest to lowest):
+					  1. CLI flags (--var)
+					  2. External sources (--var-source)
+					  3. Variable files (--var-file)
+					  4. Environment variables
+					
+					Values can be JSON (objects, arrays, numbers, booleans) or plain strings.
+					Can be specified multiple times to use multiple sources.
+					
+					Complete Example - Pack named "webapp":
+					  # 1. Store variables in Consul KV at: config/webapp/*
+					  consul kv put config/webapp/replicas 3
+					  consul kv put config/webapp/region "us-west-2"
+					  
+					  # 2. Run pack with Consul variables (uses CONSUL_HTTP_ADDR from env)
+					  nomad-pack run webapp --var-source=consul:///config
+					  
+					  # 3. Or specify Consul address explicitly
+					  nomad-pack run webapp --var-source=consul://localhost:8500/config
+					  
+					  # 4. Override specific variables via CLI (highest precedence)
+					  nomad-pack run webapp --var-source=consul:///config --var replicas=5`,
 		})
 
 		f.BoolVar(&flag.BoolVar{

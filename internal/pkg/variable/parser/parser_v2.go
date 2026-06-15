@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	consulapi "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/hashicorp/nomad-pack/internal/pkg/errors/packdiags"
@@ -116,51 +117,40 @@ func (p *ParserV2) Parse() (*ParsedVariables, hcl.Diagnostics) {
 	}
 
 	// Register sources with the registry in priority order
-	if err := p.sourceRegistry.Register(source.NewEnvSource(source.PriorityEnv, p.envOverrideVars)); err != nil {
-		return nil, diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Failed to register environment source",
-			Detail:   err.Error(),
-		})
-	}
-	if err := p.sourceRegistry.Register(source.NewFileSource(source.PriorityFile, p.fileOverrideVars)); err != nil {
-		return nil, diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Failed to register file source",
-			Detail:   err.Error(),
-		})
-	}
+	p.sourceRegistry.Register(source.NewEnvSource(source.PriorityEnv, p.envOverrideVars))
+	p.sourceRegistry.Register(source.NewFileSource(source.PriorityFile, p.fileOverrideVars))
 
-	// Register external sources (Consul, Vault, Nomad) if provided
-	if len(p.cfg.ExternalSources) > 0 {
-		for _, extSrc := range p.cfg.ExternalSources {
-			if src, ok := extSrc.(source.VariableSource); ok {
-				if err := p.sourceRegistry.Register(src); err != nil {
-					return nil, diags.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  fmt.Sprintf("Failed to register external source %q", src.Name()),
-						Detail:   err.Error(),
-					})
-				}
+	// Create and register external sources (Consul, Vault, Nomad) from configs if provided.
+	// This is where we lazily create the actual sources from lightweight configs,
+	// avoiding unnecessary API connections for commands that don't need variables.
+	if len(p.cfg.ExternalSourceConfigs) > 0 {
+		// Get the parent pack ID for constructing KV paths
+		parentPackID := p.cfg.ParentPack.ID()
+
+		for _, cfgAny := range p.cfg.ExternalSourceConfigs {
+			src, err := p.createSourceFromConfig(cfgAny, parentPackID)
+			if err != nil {
+				return nil, diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Failed to create external source",
+					Detail:   err.Error(),
+				})
 			}
+
+			p.sourceRegistry.Register(src)
 		}
 	}
 
-	if err := p.sourceRegistry.Register(source.NewCLISource(source.PriorityCLI, p.flagOverrideVars)); err != nil {
-		return nil, diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Failed to register CLI source",
-			Detail:   err.Error(),
-		})
-	}
+	p.sourceRegistry.Register(source.NewCLISource(source.PriorityCLI, p.flagOverrideVars))
 
 	// Use context with timeout to prevent hanging on external sources
 	ctx, cancel := context.WithTimeout(context.Background(), externalSourceTimeout)
 	defer cancel()
 
 	// Resolve and merge variables from all sources using the registry
-	for packName := range p.rootVars {
-		resolvedVars, resolveErr := p.sourceRegistry.Resolve(ctx, packName)
+	for packName, packSchema := range p.rootVars {
+		// Pass the pack's schema to enable schema-aware type conversion
+		resolvedVars, resolveErr := p.sourceRegistry.Resolve(ctx, packName, packSchema)
 		if resolveErr != nil {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
@@ -436,4 +426,68 @@ func (p *ParserV2) parseVariableImpl(name, rawVal string, tgt variables.PackIDKe
 	tgt[varPID] = append(tgt[varPID], &v)
 
 	return nil
+}
+
+// createSourceFromConfig creates an actual variable source from a configuration struct.
+func (p *ParserV2) createSourceFromConfig(cfgAny any, packID pack.ID) (source.VariableSource, error) {
+	cfgMap, ok := cfgAny.(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("invalid config type: expected map[string]any, got %T", cfgAny)
+	}
+
+	sourceType, ok := cfgMap["Type"].(string)
+	if !ok {
+		return nil, fmt.Errorf("missing or invalid 'Type' field in config")
+	}
+
+	switch sourceType {
+	case "consul":
+		return p.createConsulSourceFromConfig(cfgMap["Config"])
+	default:
+		return nil, fmt.Errorf("unsupported source type: %s", sourceType)
+	}
+}
+
+// createConsulSourceFromConfig creates a Consul variable source from config.
+func (p *ParserV2) createConsulSourceFromConfig(cfgAny any) (source.VariableSource, error) {
+	// Extract Consul config fields
+	cfgMap, ok := cfgAny.(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("invalid Consul config type: expected map[string]any, got %T", cfgAny)
+	}
+
+	address, _ := cfgMap["Address"].(string)
+	token, _ := cfgMap["Token"].(string)
+	path, _ := cfgMap["Path"].(string)
+	includePackID, _ := cfgMap["IncludePackID"].(bool)
+
+	if path == "" {
+		return nil, fmt.Errorf("consul path cannot be empty")
+	}
+
+	// Build the full path based on configuration
+	fullPath := path
+	if includePackID {
+		// Append pack-id to path
+		parentPackID := p.cfg.ParentPack.ID()
+		fullPath = fmt.Sprintf("%s/%s", path, parentPackID)
+	}
+
+	// Create Consul API config
+	apiCfg := consulapi.DefaultConfig()
+	if address != "" {
+		apiCfg.Address = address
+	}
+	if token != "" {
+		apiCfg.Token = token
+	}
+
+	// Create the Consul source with appropriate priority
+	// Consul sources have priority 25 (between Nomad Variables and File overrides)
+	src, err := source.NewConsulSource(source.PriorityConsul, apiCfg, fullPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Consul source: %w", err)
+	}
+
+	return src, nil
 }

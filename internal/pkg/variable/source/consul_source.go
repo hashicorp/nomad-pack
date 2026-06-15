@@ -16,19 +16,20 @@ import (
 )
 
 // ConsulSource fetches variables from Consul KV store.
-// Variables are stored under a configurable prefix with the structure:
-// {prefix}/{pack-id}/{variable-name}
+// Variables are stored at the specified path.
+// The path can be configured to include or exclude the pack-id.
 type ConsulSource struct {
 	name     string
 	priority int
 	client   *api.Client
-	prefix   string
+	path     string // Full KV path (may or may not include pack-id)
 }
 
 // NewConsulSource creates a new Consul KV variable source.
 // The config parameter can be nil to use default Consul configuration
 // (which reads from CONSUL_HTTP_ADDR and CONSUL_HTTP_TOKEN env vars).
-func NewConsulSource(priority int, config *api.Config, prefix string) (*ConsulSource, error) {
+// The path parameter is the full KV path where variables are stored.
+func NewConsulSource(priority int, config *api.Config, path string) (*ConsulSource, error) {
 	if config == nil {
 		config = api.DefaultConfig()
 	}
@@ -38,11 +39,17 @@ func NewConsulSource(priority int, config *api.Config, prefix string) (*ConsulSo
 		return nil, fmt.Errorf("failed to create Consul client: %w", err)
 	}
 
+	// Make the name unique by including the address and path.
+	// This allows multiple Consul sources with different configurations
+	// and eliminates the possibility of duplicate names.
+	trimmedPath := strings.Trim(path, "/")
+	name := fmt.Sprintf("consul(%s:%s)", config.Address, trimmedPath)
+
 	return &ConsulSource{
-		name:     "consul",
+		name:     name,
 		priority: priority,
 		client:   client,
-		prefix:   strings.Trim(prefix, "/"),
+		path:     trimmedPath,
 	}, nil
 }
 
@@ -57,28 +64,26 @@ func (c *ConsulSource) Priority() int {
 }
 
 // Fetch retrieves variables for the given pack from Consul KV.
-// Variables are expected to be stored as JSON values that can be
-// converted to cty.Value types. If a value is not valid JSON,
-// it will be treated as a string.
+// Uses the schema to determine the expected type for each variable,
+// performing schema-aware type conversion instead of guessing.
+//
+// Type Conversion Rules:
+//   - If schema expects string: always return as string (even if valid JSON)
+//   - If schema expects number: parse as JSON number
+//   - If schema expects bool: parse as JSON boolean
+//   - If schema expects object/list: parse as JSON and convert
+//   - Variables not in schema are skipped (not returned)
 //
 // Edge Cases:
 //   - Returns nil (not error) if no keys found at path
 //   - Skips directory entries (keys ending with /)
-//   - Invalid JSON values are treated as strings
+//   - Skips variables not defined in the pack schema
 //
 // The parser automatically provides a 30-second timeout context.
-func (c *ConsulSource) Fetch(ctx context.Context, packID pack.ID) ([]*variables.Variable, error) {
-	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
-
-	// Validate pack ID
-	if packID == "" {
-		return nil, fmt.Errorf("pack ID cannot be empty")
-	}
-
-	// Build KV path: prefix/packID/
-	path := fmt.Sprintf("%s/%s/", c.prefix, packID)
+func (c *ConsulSource) Fetch(ctx context.Context, packID pack.ID, schema map[variables.ID]*variables.Variable) ([]*variables.Variable, error) {
+	// Use the configured path as-is (pack-id may or may not be included)
+	// The path is already constructed in the parser layer based on user preferences
+	path := c.path + "/"
 
 	// List all keys under this path
 	opts := api.QueryOptions{RequireConsistent: true}
@@ -103,8 +108,15 @@ func (c *ConsulSource) Fetch(ctx context.Context, packID pack.ID) ([]*variables.
 			continue
 		}
 
-		// Convert value to cty.Value
-		value, err := c.convertValue(pair.Value)
+		// Check if this variable exists in the schema
+		schemaVar, inSchema := schema[variables.ID(varName)]
+		if !inSchema {
+			// Skip variables not defined in the pack schema
+			continue
+		}
+
+		// Convert value using schema-aware conversion
+		value, err := c.convertValueWithSchema(pair.Value, schemaVar.Type)
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert value for %s: %w", varName, err)
 		}
@@ -119,16 +131,30 @@ func (c *ConsulSource) Fetch(ctx context.Context, packID pack.ID) ([]*variables.
 	return vars, nil
 }
 
-// convertValue converts a byte slice to a cty.Value.
-// It first attempts to parse as JSON. If that fails, it treats the value as a string.
-func (c *ConsulSource) convertValue(data []byte) (cty.Value, error) {
-	// Try to parse as JSON first
-	var v any
-	if err := json.Unmarshal(data, &v); err != nil {
-		// If not valid JSON, treat as string
+// convertValueWithSchema converts a byte slice to a cty.Value using the expected type from the schema.
+// This prevents guessing and ensures the value matches what the pack expects.
+func (c *ConsulSource) convertValueWithSchema(data []byte, expectedType cty.Type) (cty.Value, error) {
+	// If the schema expects a string, always return as string (even if it's valid JSON)
+	if expectedType == cty.String {
 		return cty.StringVal(string(data)), nil
 	}
 
+	// For non-string types, parse as JSON
+	var v any
+	if err := json.Unmarshal(data, &v); err != nil {
+		return cty.NilVal, fmt.Errorf("expected %s but value is not valid JSON: %w", expectedType.FriendlyName(), err)
+	}
+
 	// Convert JSON to cty.Value
-	return convertJSONToCty(v)
+	ctyVal, err := convertJSONToCty(v)
+	if err != nil {
+		return cty.NilVal, err
+	}
+
+	// Verify the converted value matches the expected type
+	if !ctyVal.Type().Equals(expectedType) {
+		return cty.NilVal, fmt.Errorf("type mismatch: expected %s but got %s", expectedType.FriendlyName(), ctyVal.Type().FriendlyName())
+	}
+
+	return ctyVal, nil
 }

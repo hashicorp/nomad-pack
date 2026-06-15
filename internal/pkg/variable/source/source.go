@@ -37,6 +37,7 @@ type VariableSource interface {
 	// Priority returns the precedence level (higher = higher priority)
 	Priority() int
 
-	// Fetch retrieves variables for the given pack
-	Fetch(ctx context.Context, packID pack.ID) ([]*variables.Variable, error)
+	// Fetch retrieves variables for the given pack.
+	// If a variable is not in the schema, it will be skipped (not returned).
+	Fetch(ctx context.Context, packID pack.ID, schema map[variables.ID]*variables.Variable) ([]*variables.Variable, error)
 }
