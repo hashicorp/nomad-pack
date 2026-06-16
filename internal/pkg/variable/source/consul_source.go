@@ -91,9 +91,9 @@ func (c *ConsulSource) Fetch(ctx context.Context, packID pack.ID, schema map[var
 	// single prefix without colliding.
 	path := c.prefix
 	if c.includePackID {
-		path = path + "/" + string(packID)
+		path += "/" + string(packID)
 	}
-	path = path + "/"
+	path += "/"
 
 	// List all keys under this path
 	opts := api.QueryOptions{RequireConsistent: true}
