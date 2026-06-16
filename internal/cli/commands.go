@@ -271,29 +271,48 @@ func (c *baseCommand) flagSet(bit flagSetBit, f func(*flag.Sets)) *flag.Sets {
 			Shorthand: "f",
 		})
 
-		f.StringSliceVar(&flag.StringSliceVar{
-			Name:    "var-source",
-			Target:  &c.varSources,
-			Default: make([]string, 0),
-			Usage: `Specifies an external variable source URL. Currently supported:
+		// --var-source performs remote reads (e.g. Consul KV) at render time, so
+		// it is only offered by commands that compute a fresh deployment
+		// (run/plan/render). Commands like stop operate on an already-deployed
+		// job and must not depend on a remote source still being reachable or
+		// its keys still existing.
+		if bit&flagSetExternalVarSources != 0 {
+			f.StringSliceVar(&flag.StringSliceVar{
+				Name:    "var-source",
+				Target:  &c.varSources,
+				Default: make([]string, 0),
+				Usage: `Specifies an external variable source URL. Currently supported:
 					  • Consul KV - Fetch variables from Consul
 					
-					URL Structure:
-					  consul://<host>:<port>/<prefix>
-					  
-					  Where:
-					    <host>:<port> - Consul server address (optional, uses CONSUL_HTTP_ADDR if omitted)
-					    <prefix>      - Base path in Consul KV where variables are stored
-					  
-					  Variables are fetched from: <prefix>/<pack-name>/<variable-name>
-					  The <pack-name> is automatically determined from the pack you're running.
+					The value is a standard URL and follows the usual URL rules,
+					including an optional host. Use the consul:// scheme:
+
+					  consul://<host>:<port>/<prefix>[?options]
+
+					  <host>:<port>  Consul HTTP address. Optional: leave it out
+					                 (note the three slashes, consul:///<prefix>) to
+					                 use the Consul environment configuration instead.
+					  <prefix>       Base Consul KV path under which variables live.
+
+					By default the pack's name (or alias) is appended to the prefix,
+					so each variable is read from:
+
+					  <prefix>/<pack-name>/<variable-name>
+
+					Query options (quote the URL in your shell when using them):
+					  full-path=true  Use <prefix> verbatim; do NOT append the pack
+					                  name. Variables are read from
+					                  <prefix>/<variable-name>.
+					  token=<token>   Consul ACL token. Prefer CONSUL_HTTP_TOKEN so the
+					                  token is not leaked into your shell history.
 					
 					Examples:
 					  consul:///config                    - Uses CONSUL_HTTP_ADDR, prefix "config"
 					  consul://localhost:8500/config      - Explicit Consul address, prefix "config"
 					  consul://consul.service.dc1:8500/app/prod - Custom address and nested prefix
+					  'consul:///app/prod?full-path=true' - Use the prefix as-is (no pack name appended)
 					
-					Environment Variables (required for consul:/// format):
+					Environment Variables (used when the host is omitted):
 					  CONSUL_HTTP_ADDR, CONSUL_HTTP_TOKEN, CONSUL_HTTP_SSL, etc.
 					  See: https://developer.hashicorp.com/consul/commands#environment-variables
 					
@@ -319,7 +338,8 @@ func (c *baseCommand) flagSet(bit flagSetBit, f func(*flag.Sets)) *flag.Sets {
 					  
 					  # 4. Override specific variables via CLI (highest precedence)
 					  nomad-pack run webapp --var-source=consul:///config --var replicas=5`,
-		})
+			})
+		}
 
 		f.BoolVar(&flag.BoolVar{
 			Name:    "allow-unset-vars",
@@ -489,10 +509,11 @@ func (c *baseCommand) helpUsageMessage() string {
 type flagSetBit uint
 
 const (
-	flagSetNone          flagSetBit = 1 << iota // nolint:deadcode,varcheck,unused
-	flagSetOperation                            // shared flags for operations (run, plan, etc)
-	flagSetNeedsApproval                        // adds the -y flag for commands that require approval to run
-	flagSetNomadClient                          // adds client config flags
+	flagSetNone               flagSetBit = 1 << iota // nolint:deadcode,varcheck,unused
+	flagSetOperation                                 // shared flags for operations (run, plan, etc)
+	flagSetNeedsApproval                             // adds the -y flag for commands that require approval to run
+	flagSetNomadClient                               // adds client config flags
+	flagSetExternalVarSources                        // adds --var-source; only for commands that compute a fresh deployment (run, plan, render)
 )
 
 var (

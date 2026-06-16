@@ -13,23 +13,27 @@ import (
 	"github.com/hashicorp/nomad-pack/sdk/pack"
 	"github.com/hashicorp/nomad-pack/sdk/pack/variables"
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/convert"
 )
 
 // ConsulSource fetches variables from Consul KV store.
-// Variables are stored at the specified path.
-// The path can be configured to include or exclude the pack-id.
+// Variables are stored under the configured prefix. When includePackID is set,
+// the pack ID is inserted between the prefix and the variable name at fetch
+// time (<prefix>/<pack-id>/<var-name>); otherwise the prefix is used
 type ConsulSource struct {
-	name     string
-	priority int
-	client   *api.Client
-	path     string // Full KV path (may or may not include pack-id)
+	name          string
+	priority      int
+	client        *api.Client
+	prefix        string // KV prefix where variables are stored
+	includePackID bool   // whether to append the pack ID to the prefix
 }
 
 // NewConsulSource creates a new Consul KV variable source.
 // The config parameter can be nil to use default Consul configuration
 // (which reads from CONSUL_HTTP_ADDR and CONSUL_HTTP_TOKEN env vars).
-// The path parameter is the full KV path where variables are stored.
-func NewConsulSource(priority int, config *api.Config, path string) (*ConsulSource, error) {
+// The prefix parameter is the KV prefix where variables are stored. When
+// includePackID is true, the pack ID is appended to the prefix at fetch time.
+func NewConsulSource(priority int, config *api.Config, prefix string, includePackID bool) (*ConsulSource, error) {
 	if config == nil {
 		config = api.DefaultConfig()
 	}
@@ -39,17 +43,18 @@ func NewConsulSource(priority int, config *api.Config, path string) (*ConsulSour
 		return nil, fmt.Errorf("failed to create Consul client: %w", err)
 	}
 
-	// Make the name unique by including the address and path.
+	// Make the name unique by including the address and prefix.
 	// This allows multiple Consul sources with different configurations
 	// and eliminates the possibility of duplicate names.
-	trimmedPath := strings.Trim(path, "/")
-	name := fmt.Sprintf("consul(%s:%s)", config.Address, trimmedPath)
+	trimmedPrefix := strings.Trim(prefix, "/")
+	name := fmt.Sprintf("consul(%s:%s)", config.Address, trimmedPrefix)
 
 	return &ConsulSource{
-		name:     name,
-		priority: priority,
-		client:   client,
-		path:     trimmedPath,
+		name:          name,
+		priority:      priority,
+		client:        client,
+		prefix:        trimmedPrefix,
+		includePackID: includePackID,
 	}, nil
 }
 
@@ -81,9 +86,14 @@ func (c *ConsulSource) Priority() int {
 //
 // The parser automatically provides a 30-second timeout context.
 func (c *ConsulSource) Fetch(ctx context.Context, packID pack.ID, schema map[variables.ID]*variables.Variable) ([]*variables.Variable, error) {
-	// Use the configured path as-is (pack-id may or may not be included)
-	// The path is already constructed in the parser layer based on user preferences
-	path := c.path + "/"
+	// Build the lookup path. When configured, the pack ID is inserted between
+	// the prefix and the variable name so that multiple packs can share a
+	// single prefix without colliding.
+	path := c.prefix
+	if c.includePackID {
+		path = path + "/" + string(packID)
+	}
+	path = path + "/"
 
 	// List all keys under this path
 	opts := api.QueryOptions{RequireConsistent: true}
@@ -151,10 +161,12 @@ func (c *ConsulSource) convertValueWithSchema(data []byte, expectedType cty.Type
 		return cty.NilVal, err
 	}
 
-	// Verify the converted value matches the expected type
-	if !ctyVal.Type().Equals(expectedType) {
-		return cty.NilVal, fmt.Errorf("type mismatch: expected %s but got %s", expectedType.FriendlyName(), ctyVal.Type().FriendlyName())
+	// Using convert.Convert lets compatible shapes succeed: empty collections, JSON objects into
+	// map(...), and homogeneous arrays into list(...)/set(...).
+	converted, err := convert.Convert(ctyVal, expectedType)
+	if err != nil {
+		return cty.NilVal, fmt.Errorf("type mismatch: expected %s: %w", expectedType.FriendlyName(), err)
 	}
 
-	return ctyVal, nil
+	return converted, nil
 }

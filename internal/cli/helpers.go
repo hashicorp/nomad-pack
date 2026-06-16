@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/manager"
 	"github.com/hashicorp/nomad-pack/internal/pkg/renderer"
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser"
+	"github.com/hashicorp/nomad-pack/internal/pkg/variable/source"
 	"github.com/hashicorp/nomad-pack/internal/runner"
 	"github.com/hashicorp/nomad-pack/internal/runner/job"
 	"github.com/hashicorp/nomad-pack/sdk/pack/variables"
@@ -42,37 +43,13 @@ func initPackCommand(cfg *caching.PackConfig) (errorContext *errors.UIErrorConte
 // generatePackManager is used to generate the pack manager for this Nomad Pack run.
 func generatePackManager(c *baseCommand, client *api.Client, packCfg *caching.PackConfig) (*manager.PackManager, error) {
 	// Parse external variable source configurations if provided.
-	// Note: We only parse the configuration here, not create
-	// the actual sources.
-	var externalSourceConfigs []any
+	var externalSourceConfigs []source.SourceConfig
 	if len(c.varSources) > 0 {
 		configs, err := parseVarSourceConfigs(c.varSources)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse variable source configs: %w", err)
 		}
-		// Convert []VarSourceConfig to []any as maps for the parser
-		externalSourceConfigs = make([]any, len(configs))
-		for i, cfg := range configs {
-			// Convert struct to map to avoid import cycles
-			cfgMap := map[string]any{
-				"Type":   cfg.Type,
-				"Config": nil,
-			}
-
-			// Convert type-specific config to map
-			if cfg.Type == "consul" {
-				if consulCfg, ok := cfg.Config.(ConsulSourceConfig); ok {
-					cfgMap["Config"] = map[string]any{
-						"Address":       consulCfg.Address,
-						"Token":         consulCfg.Token,
-						"Path":          consulCfg.Path,
-						"IncludePackID": consulCfg.IncludePackID,
-					}
-				}
-			}
-
-			externalSourceConfigs[i] = cfgMap
-		}
+		externalSourceConfigs = configs
 	}
 
 	// TODO: Refactor to have manager use cache.

@@ -9,38 +9,25 @@ import (
 	"strings"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/nomad-pack/internal/pkg/variable/source"
 )
 
-// VarSourceConfig represents parsed configuration for an external variable source.
-// This is a lightweight struct that only holds configuration, not actual connections.
-type VarSourceConfig struct {
-	Type   string // "consul", "vault", "nomad"
-	Config any    // Type-specific configuration
-}
-
-// ConsulSourceConfig holds configuration for a Consul KV variable source.
-type ConsulSourceConfig struct {
-	Address       string // Consul address (from URL or env)
-	Token         string // Consul token (from URL query or env)
-	Path          string // KV path (can include pack-id or be full path)
-	IncludePackID bool   // If true, append /{pack-id}/ to path
-}
-
-// parseVarSourceConfigs parses variable source URLs into configuration structs.
-// Supported URL formats:
-//   - consul:///prefix  (uses default Consul address from env)
-//   - consul://host:port/prefix  (uses specified Consul address)
+// parseVarSourceConfigs parses variable source URLs into typed source configs.
+// Only the configuration is parsed here; no remote connections are made. The
+// returned configs are built into live sources lazily, at render time, by the
+// variable parser.
 //
-// Examples:
-//   - consul:///nomad-pack
-//   - consul:///config
-//   - consul://localhost:8500/config
-func parseVarSourceConfigs(urls []string) ([]VarSourceConfig, error) {
+// Supported URL formats:
+//   - consul:///prefix              (uses default Consul address from env)
+//   - consul://host:port/prefix     (uses the specified Consul address)
+//
+// See parseConsulSourceConfig for the full set of Consul options.
+func parseVarSourceConfigs(urls []string) ([]source.SourceConfig, error) {
 	if len(urls) == 0 {
 		return nil, nil
 	}
 
-	configs := make([]VarSourceConfig, 0, len(urls))
+	configs := make([]source.SourceConfig, 0, len(urls))
 
 	for _, urlStr := range urls {
 		cfg, err := parseVarSourceConfig(urlStr)
@@ -53,76 +40,57 @@ func parseVarSourceConfigs(urls []string) ([]VarSourceConfig, error) {
 	return configs, nil
 }
 
-// parseVarSourceConfig parses a single variable source URL into configuration.
-func parseVarSourceConfig(urlStr string) (VarSourceConfig, error) {
-	// Parse the URL
+// parseVarSourceConfig parses a single variable source URL into a typed config.
+func parseVarSourceConfig(urlStr string) (source.SourceConfig, error) {
 	u, err := url.Parse(urlStr)
 	if err != nil {
-		return VarSourceConfig{}, fmt.Errorf("invalid URL: %w", err)
+		return nil, fmt.Errorf("invalid URL: %w", err)
 	}
 
-	// Determine source type from scheme
 	switch u.Scheme {
 	case "consul":
-		cfg, err := parseConsulSourceConfig(u)
-		if err != nil {
-			return VarSourceConfig{}, err
-		}
-		return VarSourceConfig{
-			Type:   "consul",
-			Config: cfg,
-		}, nil
+		return parseConsulSourceConfig(u)
 	default:
-		return VarSourceConfig{}, fmt.Errorf("unsupported scheme %q (supported: consul)", u.Scheme)
+		return nil, fmt.Errorf("unsupported scheme %q (supported: consul)", u.Scheme)
 	}
 }
 
 // parseConsulSourceConfig creates configuration from a consul:// URL.
 //
-// URL format follows standard URL rules:
-//   - consul:///path/to/vars        -> path="/path/to/vars", address=from env (note 3 slashes)
-//   - consul://localhost:8500/path  -> path="/path", address="localhost:8500"
+// The URL follows standard URL rules.
+//   - consul:///path/to/vars        -> path="path/to/vars", address from env
+//   - consul://localhost:8500/path  -> path="path", address="localhost:8500"
 //
-// By default, pack-id is appended to the path: <path>/<pack-id>/<variable-name>
-// Use ?full-path=true to use the path as-is without appending pack-id.
+// By default the pack ID is appended to the path at fetch time:
+// <path>/<pack-id>/<variable-name>. Pass ?full-path=true to use the path as-is
+// without appending the pack ID. An optional ?token= overrides the ACL token.
 //
 // Examples:
 //   - consul:///nomad-pack                    -> nomad-pack/{pack-id}/{var-name}
 //   - consul:///my/custom/path?full-path=true -> my/custom/path/{var-name}
-func parseConsulSourceConfig(u *url.URL) (ConsulSourceConfig, error) {
-	cfg := ConsulSourceConfig{}
-
-	// Get default address from environment
+func parseConsulSourceConfig(u *url.URL) (source.SourceConfig, error) {
+	cfg := source.ConsulSourceConfig{Priority: source.PriorityConsul}
 	defaultConfig := api.DefaultConfig()
 	cfg.Address = defaultConfig.Address
 	cfg.Token = defaultConfig.Token
 
-	// If host is specified, use it as the Consul address
+	// An explicit host in the URL overrides the environment address.
 	if u.Host != "" {
 		cfg.Address = u.Host
 	}
 
-	// The path is the KV path
 	path := strings.Trim(u.Path, "/")
 	if path == "" {
-		return cfg, fmt.Errorf("consul URL must include a path (e.g., consul:///nomad-pack)")
+		return nil, fmt.Errorf("consul URL must include a path (e.g., consul:///nomad-pack)")
 	}
-
 	cfg.Path = path
 
-	// Parse query parameters for additional config
 	query := u.Query()
 	if token := query.Get("token"); token != "" {
 		cfg.Token = token
 	}
 
-	// Check if user wants full path control (no pack-id appended)
-	if query.Get("full-path") == "true" {
-		cfg.IncludePackID = false
-	} else {
-		// Default: append pack-id to path
-		cfg.IncludePackID = true
-	}
+	cfg.IncludePackID = query.Get("full-path") != "true"
 
 	return cfg, nil
 }

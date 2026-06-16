@@ -4,6 +4,7 @@
 package config
 
 import (
+	"github.com/hashicorp/nomad-pack/internal/pkg/variable/source"
 	"github.com/hashicorp/nomad-pack/sdk/pack"
 )
 
@@ -47,9 +48,9 @@ type ParserConfig struct {
 	// all sources. If the same key is supplied twice, the last wins.
 	FlagOverrides map[string]string
 
-	// ExternalSourceConfigs are lightweight configurations for external variable
-	// sources (Consul, Vault, Nomad).
-	ExternalSourceConfigs []any // []VarSourceConfig - using any to avoid import cycle
+	// ExternalSourceConfigs are parsed, lazily-built configurations for
+	// external variable sources (Consul, Vault, Nomad).
+	ExternalSourceConfigs []source.SourceConfig
 
 	// IgnoreMissingVars determines whether we error or not on variable overrides
 	// that don't have corresponding vars in the pack.

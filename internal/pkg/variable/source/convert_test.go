@@ -52,11 +52,11 @@ func TestConvertJSONToCty(t *testing.T) {
 
 	t.Run("port list from consul", func(t *testing.T) {
 		ci.Parallel(t)
-		// Simulates JSON array from Consul: [8080, 8443, 9090]
+		// Simulates JSON array from Consul: [8080, 8443, 9090].
 		ports := []any{float64(8080), float64(8443), float64(9090)}
 		val, err := convertJSONToCty(ports)
 		must.NoError(t, err)
-		must.Eq(t, cty.List(cty.Number), val.Type())
+		must.Eq(t, cty.Tuple([]cty.Type{cty.Number, cty.Number, cty.Number}), val.Type())
 		must.Eq(t, 3, val.LengthInt())
 	})
 
@@ -65,7 +65,17 @@ func TestConvertJSONToCty(t *testing.T) {
 		dcs := []any{"dc1", "dc2", "dc3"}
 		val, err := convertJSONToCty(dcs)
 		must.NoError(t, err)
-		must.Eq(t, cty.List(cty.String), val.Type())
+		must.Eq(t, cty.Tuple([]cty.Type{cty.String, cty.String, cty.String}), val.Type())
+		must.Eq(t, 3, val.LengthInt())
+	})
+
+	t.Run("heterogeneous array does not panic", func(t *testing.T) {
+		ci.Parallel(t)
+		// A mixed-type JSON array would panic with cty.ListVal; tuples handle it.
+		mixed := []any{float64(1), "two", true}
+		val, err := convertJSONToCty(mixed)
+		must.NoError(t, err)
+		must.Eq(t, cty.Tuple([]cty.Type{cty.Number, cty.String, cty.Bool}), val.Type())
 		must.Eq(t, 3, val.LengthInt())
 	})
 
@@ -73,7 +83,7 @@ func TestConvertJSONToCty(t *testing.T) {
 		ci.Parallel(t)
 		val, err := convertJSONToCty([]any{})
 		must.NoError(t, err)
-		must.Eq(t, cty.List(cty.DynamicPseudoType), val.Type())
+		must.Eq(t, cty.EmptyTuple, val.Type())
 	})
 
 	t.Run("service config object", func(t *testing.T) {

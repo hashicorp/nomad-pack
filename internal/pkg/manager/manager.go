@@ -4,7 +4,6 @@
 package manager
 
 import (
-	"context"
 	"fmt"
 	"path"
 	"strings"
@@ -15,29 +14,10 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/renderer"
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser"
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser/config"
+	"github.com/hashicorp/nomad-pack/internal/pkg/variable/source"
 	"github.com/hashicorp/nomad-pack/sdk/pack"
-	"github.com/hashicorp/nomad-pack/sdk/pack/variables"
 	"github.com/hashicorp/nomad/api"
 )
-
-// VariableSource defines the interface for external variable sources.
-// This interface is defined in the manager package to avoid import cycles
-// between cli and parser packages, while providing type safety.
-//
-// The source package's types (ConsulSource, VaultSource, etc.) satisfy this
-// interface without importing manager, avoiding circular dependencies.
-type VariableSource interface {
-	// Name returns the unique identifier for this source (e.g., "consul", "vault")
-	Name() string
-
-	// Priority returns the precedence level for this source.
-	// Higher values take precedence over lower values.
-	Priority() int
-
-	// Fetch retrieves variables for the given pack from the external source.
-	// The context may have a timeout to prevent hanging on slow sources.
-	Fetch(ctx context.Context, packID pack.ID) ([]*variables.Variable, error)
-}
 
 // Config contains all the user specified parameters needed to correctly run
 // the pack manager.
@@ -48,7 +28,7 @@ type Config struct {
 	VariableEnvVars       map[string]string
 	UseParserV1           bool
 	AllowUnsetVars        bool
-	ExternalSourceConfigs []any // Lightweight configs for external sources (Consul, Vault, Nomad)
+	ExternalSourceConfigs []source.SourceConfig // Lazily-built configs for external sources (Consul, Vault, Nomad)
 }
 
 // PackManager is responsible for loading, parsing, and rendering a Pack and

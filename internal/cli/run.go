@@ -195,7 +195,7 @@ func (c *RunCommand) run() int {
 
 // Flags defines the flag.Sets for the operation.
 func (c *RunCommand) Flags() *flag.Sets {
-	return c.flagSet(flagSetOperation|flagSetNomadClient, func(set *flag.Sets) {
+	return c.flagSet(flagSetOperation|flagSetNomadClient|flagSetExternalVarSources, func(set *flag.Sets) {
 		f := set.NewSet("Run Options")
 
 		c.packConfig = &caching.PackConfig{}

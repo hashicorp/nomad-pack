@@ -348,7 +348,7 @@ func (c *RenderCommand) Run(args []string) int {
 }
 
 func (c *RenderCommand) Flags() *flag.Sets {
-	return c.flagSet(flagSetOperation|flagSetNeedsApproval, func(set *flag.Sets) {
+	return c.flagSet(flagSetOperation|flagSetNeedsApproval|flagSetExternalVarSources, func(set *flag.Sets) {
 		c.packConfig = &caching.PackConfig{}
 
 		f := set.NewSet("Render Options")

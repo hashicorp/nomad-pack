@@ -146,7 +146,7 @@ func (c *PlanCommand) Run(args []string) int {
 func (c *PlanCommand) Flags() *flag.Sets {
 	c.packConfig = &caching.PackConfig{}
 
-	return c.flagSet(flagSetOperation|flagSetNomadClient, func(set *flag.Sets) {
+	return c.flagSet(flagSetOperation|flagSetNomadClient|flagSetExternalVarSources, func(set *flag.Sets) {
 		f := set.NewSet("Plan Options")
 
 		c.jobConfig = &job.CLIConfig{

@@ -29,7 +29,7 @@ func convertJSONToCty(v any) (cty.Value, error) {
 
 	case []any:
 		if len(val) == 0 {
-			return cty.ListValEmpty(cty.DynamicPseudoType), nil
+			return cty.EmptyTupleVal, nil
 		}
 
 		// Convert each element
@@ -42,8 +42,9 @@ func convertJSONToCty(v any) (cty.Value, error) {
 			elements[i] = elemVal
 		}
 
-		// Create a list with a unified type
-		return cty.ListVal(elements), nil
+		// Use a tuple rather than a list: cty.ListVal panics when elements
+		// don't share a single type (e.g. [1, "two", true]).
+		return cty.TupleVal(elements), nil
 
 	case map[string]any:
 		if len(val) == 0 {
