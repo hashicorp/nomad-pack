@@ -125,8 +125,23 @@ func (c *ConsulSource) Fetch(ctx context.Context, packID pack.ID, schema map[var
 			continue
 		}
 
+		// An empty Consul value can't be decoded into a non-string type. Skip it
+		// so the variable falls back to its default instead of failing the entire
+		// resolve (which would also drop the other variables from this source).
+		// Empty values for string variables are intentionally kept as "".
+		if len(pair.Value) == 0 && schemaVar.Type != cty.String {
+			continue
+		}
+
+		// Convert using the variable's constraint type. ConstraintType preserves
+		// optional() attributes.
+		expectedType := schemaVar.ConstraintType
+		if expectedType == cty.NilType {
+			expectedType = schemaVar.Type
+		}
+
 		// Convert value using schema-aware conversion
-		value, err := c.convertValueWithSchema(pair.Value, schemaVar.Type)
+		value, err := c.convertValueWithSchema(pair.Value, expectedType)
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert value for %s: %w", varName, err)
 		}
