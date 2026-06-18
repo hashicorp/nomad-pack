@@ -47,7 +47,7 @@ func generatePackManager(c *baseCommand, client *api.Client, packCfg *caching.Pa
 	if len(c.varSources) > 0 {
 		configs, err := parseVarSourceConfigs(c.varSources)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse variable source configs: %w", err)
+			return nil, err
 		}
 		externalSourceConfigs = configs
 	}

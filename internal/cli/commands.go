@@ -72,7 +72,7 @@ type baseCommand struct {
 	varFiles []string
 
 	// varSources is a list of external variable source URLs
-	// (e.g., consul://prefix)
+	// (e.g., consul:///path)
 	varSources []string
 
 	// allowUnsetVars suppresses errors from variables with nil values,
@@ -281,63 +281,23 @@ func (c *baseCommand) flagSet(bit flagSetBit, f func(*flag.Sets)) *flag.Sets {
 				Name:    "var-source",
 				Target:  &c.varSources,
 				Default: make([]string, 0),
-				Usage: `Specifies an external variable source URL. Currently supported:
-					  • Consul KV - Fetch variables from Consul
-					
-					The value is a standard URL and follows the usual URL rules,
-					including an optional host. Use the consul:// scheme:
+				Usage: `Specifies an external variable source as a URL. May be given
+					more than once to read from several sources. Consul KV is the only
+					source currently supported, using the consul:// scheme:
 
-					  consul://<host>:<port>/<prefix>[?options]
+					  consul://<host>:<port>/<path>
 
-					  <host>:<port>  Consul HTTP address. Optional: leave it out
-					                 (note the three slashes, consul:///<prefix>) to
-					                 use the Consul environment configuration instead.
-					  <prefix>       Base Consul KV path under which variables live.
+					The host is optional; omit it (consul:///<path>) to use the standard
+					Consul environment configuration (CONSUL_HTTP_ADDR, CONSUL_HTTP_TOKEN,
+					and so on). Each variable is read from <path>/<variable-name>, so
+					include any per-pack grouping in the path yourself.
 
-					By default the pack's name (or alias) is appended to the prefix,
-					so each variable is read from:
+					Higher-priority sources win on conflict: --var overrides --var-source,
+					which overrides --var-file and the environment.
 
-					  <prefix>/<pack-name>/<variable-name>
-
-					Query options (quote the URL in your shell when using them):
-					  full-path=true  Use <prefix> verbatim; do NOT append the pack
-					                  name. Variables are read from
-					                  <prefix>/<variable-name>.
-					  token=<token>   Consul ACL token. Prefer CONSUL_HTTP_TOKEN so the
-					                  token is not leaked into your shell history.
-					
 					Examples:
-					  consul:///config                    - Uses CONSUL_HTTP_ADDR, prefix "config"
-					  consul://localhost:8500/config      - Explicit Consul address, prefix "config"
-					  consul://consul.service.dc1:8500/app/prod - Custom address and nested prefix
-					  'consul:///app/prod?full-path=true' - Use the prefix as-is (no pack name appended)
-					
-					Environment Variables (used when the host is omitted):
-					  CONSUL_HTTP_ADDR, CONSUL_HTTP_TOKEN, CONSUL_HTTP_SSL, etc.
-					  See: https://developer.hashicorp.com/consul/commands#environment-variables
-					
-					Variable Precedence (highest to lowest):
-					  1. CLI flags (--var)
-					  2. External sources (--var-source)
-					  3. Variable files (--var-file)
-					  4. Environment variables
-					
-					Values can be JSON (objects, arrays, numbers, booleans) or plain strings.
-					Can be specified multiple times to use multiple sources.
-					
-					Complete Example - Pack named "webapp":
-					  # 1. Store variables in Consul KV at: config/webapp/*
-					  consul kv put config/webapp/replicas 3
-					  consul kv put config/webapp/region "us-west-2"
-					  
-					  # 2. Run pack with Consul variables (uses CONSUL_HTTP_ADDR from env)
-					  nomad-pack run webapp --var-source=consul:///config
-					  
-					  # 3. Or specify Consul address explicitly
-					  nomad-pack run webapp --var-source=consul://localhost:8500/config
-					  
-					  # 4. Override specific variables via CLI (highest precedence)
-					  nomad-pack run webapp --var-source=consul:///config --var replicas=5`,
+					  consul:///config
+					  consul://localhost:8500/config`,
 			})
 		}
 

@@ -8,7 +8,6 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable/source"
 )
 
@@ -18,10 +17,8 @@ import (
 // variable parser.
 //
 // Supported URL formats:
-//   - consul:///prefix              (uses default Consul address from env)
-//   - consul://host:port/prefix     (uses the specified Consul address)
-//
-// See parseConsulSourceConfig for the full set of Consul options.
+//   - consul:///path              (uses the Consul environment address)
+//   - consul://host:port/path     (uses the specified Consul address)
 func parseVarSourceConfigs(urls []string) ([]source.SourceConfig, error) {
 	if len(urls) == 0 {
 		return nil, nil
@@ -32,7 +29,7 @@ func parseVarSourceConfigs(urls []string) ([]source.SourceConfig, error) {
 	for _, urlStr := range urls {
 		cfg, err := parseVarSourceConfig(urlStr)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse var-source %q: %w", urlStr, err)
+			return nil, fmt.Errorf("var-source %q: %w", urlStr, err)
 		}
 		configs = append(configs, cfg)
 	}
@@ -49,7 +46,9 @@ func parseVarSourceConfig(urlStr string) (source.SourceConfig, error) {
 
 	switch u.Scheme {
 	case "consul":
-		return parseConsulSourceConfig(u)
+		// Pass the URL by value so the parser works on its own copy and never
+		// mutates a shared *url.URL.
+		return parseConsulSourceConfig(*u)
 	default:
 		return nil, fmt.Errorf("unsupported scheme %q (supported: consul)", u.Scheme)
 	}
@@ -57,24 +56,20 @@ func parseVarSourceConfig(urlStr string) (source.SourceConfig, error) {
 
 // parseConsulSourceConfig creates configuration from a consul:// URL.
 //
-// The URL follows standard URL rules.
+// The URL follows standard URL rules. Each variable is read from
+// <path>/<variable-name>. Only the host and path are taken from the URL; the
+// rest of the Consul configuration, including the ACL token, comes from the
+// standard Consul environment configuration (CONSUL_HTTP_ADDR,
+// CONSUL_HTTP_TOKEN, and so on) when the source is built.
 //   - consul:///path/to/vars        -> path="path/to/vars", address from env
 //   - consul://localhost:8500/path  -> path="path", address="localhost:8500"
 //
-// By default the pack ID is appended to the path at fetch time:
-// <path>/<pack-id>/<variable-name>. Pass ?full-path=true to use the path as-is
-// without appending the pack ID. An optional ?token= overrides the ACL token.
-//
-// Examples:
-//   - consul:///nomad-pack                    -> nomad-pack/{pack-id}/{var-name}
-//   - consul:///my/custom/path?full-path=true -> my/custom/path/{var-name}
-func parseConsulSourceConfig(u *url.URL) (source.SourceConfig, error) {
+// The URL is taken by value: callers parse it into a *url.URL,
+// but this function only reads from it
+func parseConsulSourceConfig(u url.URL) (source.SourceConfig, error) {
 	cfg := source.ConsulSourceConfig{Priority: source.PriorityConsul}
-	defaultConfig := api.DefaultConfig()
-	cfg.Address = defaultConfig.Address
-	cfg.Token = defaultConfig.Token
 
-	// An explicit host in the URL overrides the environment address.
+	// An explicit host in the URL overrides the Consul environment address.
 	if u.Host != "" {
 		cfg.Address = u.Host
 	}
@@ -84,13 +79,6 @@ func parseConsulSourceConfig(u *url.URL) (source.SourceConfig, error) {
 		return nil, fmt.Errorf("consul URL must include a path (e.g., consul:///nomad-pack)")
 	}
 	cfg.Path = path
-
-	query := u.Query()
-	if token := query.Get("token"); token != "" {
-		cfg.Token = token
-	}
-
-	cfg.IncludePackID = query.Get("full-path") != "true"
 
 	return cfg, nil
 }

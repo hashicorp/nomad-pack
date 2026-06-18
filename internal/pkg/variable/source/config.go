@@ -9,20 +9,21 @@ import (
 
 // SourceConfig is a parsed, lazily-evaluated configuration for a variable
 // source. Parsing a config (for example from a --var-source URL) is kept
-// separate from Build, which constructs the concrete VariableSource and may
-// open remote clients. This separation lets callers parse and validate source
-// configuration without performing any network I/O until variables are
-// actually needed for rendering.
+// separate from Build, which constructs the concrete VariableSource. Build does
+// only local work, such as building API client structs; it opens no connection.
+// No network I/O happens until variables are actually fetched for rendering, so
+// callers can parse and validate source configuration up front for free.
 type SourceConfig interface {
 	// Build constructs the concrete VariableSource described by this config.
-	// Implementations may create API clients here, but must not perform
-	// remote reads; reads happen in VariableSource.Fetch.
+	// Implementations may construct API clients here, but constructing a client
+	// does not open a connection; no remote reads happen until
+	// VariableSource.Fetch.
 	Build() (VariableSource, error)
 }
 
 // ConsulSourceConfig holds the parsed configuration for a Consul KV variable
 // source. It is a plain value type with no live connections, making it safe to
-// pass across package boundaries without import cycles or guessing.
+// pass across package boundaries without import cycles.
 type ConsulSourceConfig struct {
 	// Priority is the precedence level applied to the built source.
 	Priority int
@@ -31,29 +32,19 @@ type ConsulSourceConfig struct {
 	// standard Consul environment configuration is used.
 	Address string
 
-	// Token is the Consul ACL token. When empty, the token from the standard
-	// Consul environment configuration is used.
-	Token string
-
-	// Path is the Consul KV prefix under which variables are stored.
+	// Path is the Consul KV path under which variables are stored. Each
+	// variable is read from <Path>/<var-name>.
 	Path string
-
-	// IncludePackID controls whether the pack ID is appended to Path when
-	// building the lookup key (<Path>/<pack-id>/<var-name>). When false, the
-	// user-supplied Path is used verbatim (<Path>/<var-name>).
-	IncludePackID bool
 }
 
-// Build implements SourceConfig by constructing a ConsulSource. It creates the
-// Consul API client but performs no remote reads.
+// Build implements SourceConfig by constructing a ConsulSource. It builds the
+// Consul API client struct but opens no connection and performs no remote
+// reads; those happen later in Fetch.
 func (c ConsulSourceConfig) Build() (VariableSource, error) {
 	apiCfg := api.DefaultConfig()
 	if c.Address != "" {
 		apiCfg.Address = c.Address
 	}
-	if c.Token != "" {
-		apiCfg.Token = c.Token
-	}
 
-	return NewConsulSource(c.Priority, apiCfg, c.Path, c.IncludePackID)
+	return NewConsulSource(c.Priority, apiCfg, c.Path)
 }
