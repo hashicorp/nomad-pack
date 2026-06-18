@@ -44,41 +44,33 @@ func parseVarSourceConfig(urlStr string) (source.SourceConfig, error) {
 		return nil, fmt.Errorf("invalid URL: %w", err)
 	}
 
+	host := u.Host
+	path := strings.Trim(u.Path, "/")
+
 	switch u.Scheme {
 	case "consul":
-		// Pass the URL by value so the parser works on its own copy and never
-		// mutates a shared *url.URL.
-		return parseConsulSourceConfig(*u)
+		return parseConsulSourceConfig(host, path)
 	default:
 		return nil, fmt.Errorf("unsupported scheme %q (supported: consul)", u.Scheme)
 	}
 }
 
-// parseConsulSourceConfig creates configuration from a consul:// URL.
-//
-// The URL follows standard URL rules. Each variable is read from
-// <path>/<variable-name>. Only the host and path are taken from the URL; the
-// rest of the Consul configuration, including the ACL token, comes from the
-// standard Consul environment configuration (CONSUL_HTTP_ADDR,
-// CONSUL_HTTP_TOKEN, and so on) when the source is built.
-//   - consul:///path/to/vars        -> path="path/to/vars", address from env
-//   - consul://localhost:8500/path  -> path="path", address="localhost:8500"
-//
-// The URL is taken by value: callers parse it into a *url.URL,
-// but this function only reads from it
-func parseConsulSourceConfig(u url.URL) (source.SourceConfig, error) {
-	cfg := source.ConsulSourceConfig{Priority: source.PriorityConsul}
-
-	// An explicit host in the URL overrides the Consul environment address.
-	if u.Host != "" {
-		cfg.Address = u.Host
-	}
-
-	path := strings.Trim(u.Path, "/")
+// parseConsulSourceConfig builds a Consul KV source config from the host and
+// path of a consul:// URL. Each variable is read from <path>/<variable-name>.
+// A non-empty host overrides the Consul environment address; the rest of the
+// Consul configuration, including the ACL token, comes from the standard Consul
+// environment configuration (CONSUL_HTTP_ADDR, CONSUL_HTTP_TOKEN, and so on)
+// when the source is built.
+//   - consul:///path/to/vars        -> host="",              path="path/to/vars"
+//   - consul://localhost:8500/path  -> host="localhost:8500", path="path"
+func parseConsulSourceConfig(host, path string) (source.SourceConfig, error) {
 	if path == "" {
 		return nil, fmt.Errorf("consul URL must include a path (e.g., consul:///nomad-pack)")
 	}
-	cfg.Path = path
 
-	return cfg, nil
+	return source.ConsulSourceConfig{
+		Priority: source.PriorityConsul,
+		Address:  host,
+		Path:     path,
+	}, nil
 }

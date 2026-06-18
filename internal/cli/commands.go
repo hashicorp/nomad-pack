@@ -281,23 +281,18 @@ func (c *baseCommand) flagSet(bit flagSetBit, f func(*flag.Sets)) *flag.Sets {
 				Name:    "var-source",
 				Target:  &c.varSources,
 				Default: make([]string, 0),
-				Usage: `Specifies an external variable source as a URL. May be given
-					more than once to read from several sources. Consul KV is the only
-					source currently supported, using the consul:// scheme:
-
-					  consul://<host>:<port>/<path>
-
-					The host is optional; omit it (consul:///<path>) to use the standard
-					Consul environment configuration (CONSUL_HTTP_ADDR, CONSUL_HTTP_TOKEN,
-					and so on). Each variable is read from <path>/<variable-name>, so
-					include any per-pack grouping in the path yourself.
-
-					Higher-priority sources win on conflict: --var overrides --var-source,
-					which overrides --var-file and the environment.
-
-					Examples:
-					  consul:///config
-					  consul://localhost:8500/config`,
+				Usage: `Specifies an external variable source as a URL, and may be
+						given more than once to read from several sources. Consul KV
+						is the only source currently supported, using the form
+						consul://<host>:<port>/<path>; for example,
+						consul://localhost:8500/nomad-pack. The host is optional: omit
+						it (consul:///<path>) to use the standard Consul environment
+						configuration, such as CONSUL_HTTP_ADDR and CONSUL_HTTP_TOKEN.
+						Each variable is read from <path>/<variable-name>, so include
+						any per-pack grouping in the path yourself. Variable sources
+						are applied in order of precedence, highest first: --var, then
+						--var-source, then --var-file, then environment variables. A
+						higher-precedence source overrides any lower one.`,
 			})
 		}
 

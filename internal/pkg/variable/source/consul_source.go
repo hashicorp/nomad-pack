@@ -86,12 +86,16 @@ func (c *ConsulSource) Priority() int {
 //   - Returns nil (not error) if no keys found at path
 //   - Skips directory entries (keys ending with /)
 //   - Skips variables not defined in the pack schema
+//   - Returns an error for an empty value on a non-string variable; empty
+//     values for string variables are kept as ""
 //
 // The parser wraps Fetch in a timeout context, so a slow or unreachable Consul
 // fails the resolve instead of hanging.
-func (c *ConsulSource) Fetch(ctx context.Context, packID pack.ID, schema map[variables.ID]*variables.Variable) ([]*variables.Variable, error) {
-	// Variables are read from <path>/<variable-name>. Any per-pack namespacing is
-	// part of the path itself, so the packID parameter is intentionally unused here.
+func (c *ConsulSource) Fetch(ctx context.Context, _ pack.ID, schema map[variables.ID]*variables.Variable) ([]*variables.Variable, error) {
+	// c.path was trimmed of slashes when the source was built; re-add a single
+	// trailing slash to scope the KV list to keys under this path and to strip
+	// each key down to its variable name. The pack ID is intentionally unused —
+	// any per-pack grouping lives in the path itself.
 	path := c.path + "/"
 
 	// List all keys under this path
@@ -109,12 +113,12 @@ func (c *ConsulSource) Fetch(ctx context.Context, packID pack.ID, schema map[var
 
 	vars := make([]*variables.Variable, 0, len(pairs))
 	for _, pair := range pairs {
-		varName := strings.TrimPrefix(pair.Key, path)
-
-		// Skip if this is a directory (ends with /)
-		if strings.HasSuffix(varName, "/") {
+		// Skip directory entries (keys ending in /) before stripping the prefix
+		if strings.HasSuffix(pair.Key, "/") {
 			continue
 		}
+
+		varName := strings.TrimPrefix(pair.Key, path)
 
 		// Check if this variable exists in the schema
 		schemaVar, inSchema := schema[variables.ID(varName)]
@@ -123,12 +127,11 @@ func (c *ConsulSource) Fetch(ctx context.Context, packID pack.ID, schema map[var
 			continue
 		}
 
-		// An empty Consul value can't be decoded into a non-string type. Skip it
-		// so the variable falls back to its default instead of failing the entire
-		// resolve (which would also drop the other variables from this source).
-		// Empty values for string variables are intentionally kept as "".
+		// A non-string variable has no meaningful empty form (there is no "empty"
+		// number or bool), so an empty value almost always means the Consul key
+		// was misconfigured. Empty values for string variables are valid and kept as "".
 		if len(pair.Value) == 0 && schemaVar.Type != cty.String {
-			continue
+			return nil, fmt.Errorf("empty Consul value for %s at %s: a %s value is required", varName, pair.Key, schemaVar.Type.FriendlyName())
 		}
 
 		// Convert using the variable's constraint type. ConstraintType preserves

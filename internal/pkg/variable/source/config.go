@@ -16,7 +16,7 @@ import (
 type SourceConfig interface {
 	// Build constructs the concrete VariableSource described by this config.
 	// Implementations may construct API clients here, but constructing a client
-	// does not open a connection; no remote reads happen until
+	// must not open a connection; no remote reads happen until
 	// VariableSource.Fetch.
 	Build() (VariableSource, error)
 }
