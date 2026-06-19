@@ -71,6 +71,10 @@ type baseCommand struct {
 	// for defined input variables
 	varFiles []string
 
+	// varSources is a list of external variable source URLs
+	// (e.g., consul:///path)
+	varSources []string
+
 	// allowUnsetVars suppresses errors from variables with nil values,
 	// i.e. those that are not set and have no default
 	allowUnsetVars bool
@@ -267,6 +271,31 @@ func (c *baseCommand) flagSet(bit flagSetBit, f func(*flag.Sets)) *flag.Sets {
 			Shorthand: "f",
 		})
 
+		// --var-source performs remote reads (e.g. Consul KV) at render time, so
+		// it is only offered by commands that compute a fresh deployment
+		// (run/plan/render). Commands like stop operate on an already-deployed
+		// job and must not depend on a remote source still being reachable or
+		// its keys still existing.
+		if bit&flagSetExternalVarSources != 0 {
+			f.StringSliceVar(&flag.StringSliceVar{
+				Name:    "var-source",
+				Target:  &c.varSources,
+				Default: make([]string, 0),
+				Usage: `Specifies an external variable source as a URL, and may be
+						given more than once to read from several sources. Consul KV
+						is the only source currently supported, using the form
+						consul://<host>:<port>/<path>; for example,
+						consul://localhost:8500/nomad-pack. The host is optional: omit
+						it (consul:///<path>) to use the standard Consul environment
+						configuration, such as CONSUL_HTTP_ADDR and CONSUL_HTTP_TOKEN.
+						Each variable is read from <path>/<variable-name>, so include
+						any per-pack grouping in the path yourself. Variable sources
+						are applied in order of precedence, highest first: --var, then
+						--var-source, then --var-file, then environment variables. A
+						higher-precedence source overrides any lower one.`,
+			})
+		}
+
 		f.BoolVar(&flag.BoolVar{
 			Name:    "allow-unset-vars",
 			Target:  &c.allowUnsetVars,
@@ -435,10 +464,11 @@ func (c *baseCommand) helpUsageMessage() string {
 type flagSetBit uint
 
 const (
-	flagSetNone          flagSetBit = 1 << iota // nolint:deadcode,varcheck,unused
-	flagSetOperation                            // shared flags for operations (run, plan, etc)
-	flagSetNeedsApproval                        // adds the -y flag for commands that require approval to run
-	flagSetNomadClient                          // adds client config flags
+	flagSetNone               flagSetBit = 1 << iota // nolint:deadcode,varcheck,unused
+	flagSetOperation                                 // shared flags for operations (run, plan, etc)
+	flagSetNeedsApproval                             // adds the -y flag for commands that require approval to run
+	flagSetNomadClient                               // adds client config flags
+	flagSetExternalVarSources                        // adds --var-source; only for commands that compute a fresh deployment (run, plan, render)
 )
 
 var (

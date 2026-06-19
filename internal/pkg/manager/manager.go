@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/renderer"
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser"
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser/config"
+	"github.com/hashicorp/nomad-pack/internal/pkg/variable/source"
 	"github.com/hashicorp/nomad-pack/sdk/pack"
 	"github.com/hashicorp/nomad/api"
 )
@@ -21,12 +22,13 @@ import (
 // Config contains all the user specified parameters needed to correctly run
 // the pack manager.
 type Config struct {
-	Path            string
-	VariableFiles   []string
-	VariableCLIArgs map[string]string
-	VariableEnvVars map[string]string
-	UseParserV1     bool
-	AllowUnsetVars  bool
+	Path                  string
+	VariableFiles         []string
+	VariableCLIArgs       map[string]string
+	VariableEnvVars       map[string]string
+	UseParserV1           bool
+	AllowUnsetVars        bool
+	ExternalSourceConfigs []source.SourceConfig // Lazily-built configs for external sources (Consul, Vault, Nomad)
 }
 
 // PackManager is responsible for loading, parsing, and rendering a Pack and
@@ -67,12 +69,13 @@ func (pm *PackManager) ProcessVariableFiles() (*parser.ParsedVariables, []*error
 	parentName, _, _ := strings.Cut(path.Base(pm.cfg.Path), "@")
 
 	pCfg := &config.ParserConfig{
-		Version:           config.V2,
-		ParentPack:        pm.loadedPack,
-		RootVariableFiles: loadedPack.RootVariableFiles(),
-		EnvOverrides:      pm.cfg.VariableEnvVars,
-		FileOverrides:     pm.cfg.VariableFiles,
-		FlagOverrides:     pm.cfg.VariableCLIArgs,
+		Version:               config.V2,
+		ParentPack:            pm.loadedPack,
+		RootVariableFiles:     loadedPack.RootVariableFiles(),
+		EnvOverrides:          pm.cfg.VariableEnvVars,
+		FileOverrides:         pm.cfg.VariableFiles,
+		FlagOverrides:         pm.cfg.VariableCLIArgs,
+		ExternalSourceConfigs: pm.cfg.ExternalSourceConfigs,
 	}
 
 	if pm.cfg.UseParserV1 {

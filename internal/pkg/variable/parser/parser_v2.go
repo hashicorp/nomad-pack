@@ -27,6 +27,13 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
+const (
+	// externalSourceTimeout is the maximum time allowed for fetching variables
+	// from external sources (Consul, Vault, Nomad). This prevents hanging on
+	// slow or unresponsive external services.
+	externalSourceTimeout = 30 * time.Second
+)
+
 type ParserV2 struct {
 	fs  afero.Afero
 	cfg *config.ParserConfig
@@ -108,36 +115,36 @@ func (p *ParserV2) Parse() (*ParsedVariables, hcl.Diagnostics) {
 		return nil, diags
 	}
 
-	// Register sources with the registry (priority: env=10, file=20, cli=30)
-	if err := p.sourceRegistry.Register(source.NewEnvSource(10, p.envOverrideVars)); err != nil {
-		return nil, diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Failed to register environment source",
-			Detail:   err.Error(),
-		})
-	}
-	if err := p.sourceRegistry.Register(source.NewFileSource(20, p.fileOverrideVars)); err != nil {
-		return nil, diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Failed to register file source",
-			Detail:   err.Error(),
-		})
-	}
-	if err := p.sourceRegistry.Register(source.NewCLISource(30, p.flagOverrideVars)); err != nil {
-		return nil, diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Failed to register CLI source",
-			Detail:   err.Error(),
-		})
+	// Register sources with the registry in priority order
+	p.sourceRegistry.Register(source.NewEnvSource(source.PriorityEnv, p.envOverrideVars))
+	p.sourceRegistry.Register(source.NewFileSource(source.PriorityFile, p.fileOverrideVars))
+
+	// Create and register external sources (Consul, Vault, Nomad) from configs if provided.
+	// This is where we lazily build the actual sources from their parsed
+	// configs, avoiding remote connections for commands that never resolve.
+	for _, sc := range p.cfg.ExternalSourceConfigs {
+		src, err := sc.Build()
+		if err != nil {
+			return nil, diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Failed to create external source",
+				Detail:   err.Error(),
+			})
+		}
+
+		p.sourceRegistry.Register(src)
 	}
 
+	p.sourceRegistry.Register(source.NewCLISource(source.PriorityCLI, p.flagOverrideVars))
+
 	// Use context with timeout to prevent hanging on external sources
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), externalSourceTimeout)
 	defer cancel()
 
 	// Resolve and merge variables from all sources using the registry
-	for packName := range p.rootVars {
-		resolvedVars, resolveErr := p.sourceRegistry.Resolve(ctx, packName)
+	for packName, packSchema := range p.rootVars {
+		// Pass the pack's schema to enable schema-aware type conversion
+		resolvedVars, resolveErr := p.sourceRegistry.Resolve(ctx, packName, packSchema)
 		if resolveErr != nil {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
