@@ -25,7 +25,7 @@ jobs:
           make test-certs
 
       # install nomad and consul. consul is required by the Consul KV variable
-      # source integration tests; without it on $PATH those tests skip.
+      # source integration tests; the tests fail hard if consul is not on $PATH.
       - name: Install Nomad and Consul
         run : |
           sudo apt -y install wget gpg coreutils

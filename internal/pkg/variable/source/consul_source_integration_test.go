@@ -4,7 +4,6 @@
 package source
 
 import (
-	"io"
 	"testing"
 
 	"github.com/hashicorp/consul/api"
@@ -16,29 +15,14 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-// startTestConsul starts an in-process Consul dev agent for integration tests.
-//
-// It skips the test (rather than failing) when the consul binary is not on
-// PATH, so the suite stays green on developer machines without Consul installed
-// while still exercising real Consul in CI, where the binary is installed. This
-// mirrors the pattern Nomad core uses for its Consul compatibility tests.
 func startTestConsul(t *testing.T) *consultest.TestServer {
 	t.Helper()
 
-	if testing.Short() {
-		t.Skip("-short set; skipping Consul integration test")
-	}
-
 	srv, err := consultest.NewTestServerConfigT(t, func(c *consultest.TestServerConfig) {
-		c.Peering = nil // older Consul versions don't support peering
-		if !testing.Verbose() {
-			// Squelch Consul's logs unless the test run is verbose.
-			c.Stdout = io.Discard
-			c.Stderr = io.Discard
-		}
+		c.Peering = nil
 	})
 	if err != nil {
-		t.Skipf("consul not available, skipping integration test: %v", err)
+		t.Fatalf("failed to start Consul test server: %v", err)
 	}
 	t.Cleanup(func() { _ = srv.Stop() })
 
@@ -46,17 +30,15 @@ func startTestConsul(t *testing.T) *consultest.TestServer {
 	return srv
 }
 
-// newSourceForServer builds a ConsulSource pointed at the test server's address.
-func newSourceForServer(t *testing.T, srv *consultest.TestServer, prefix string, includePackID bool) *ConsulSource {
+func newSourceForServer(t *testing.T, srv *consultest.TestServer, path string) *ConsulSource {
 	t.Helper()
 	cfg := api.DefaultConfig()
 	cfg.Address = srv.HTTPAddr
-	src, err := NewConsulSource(PriorityConsul, cfg, prefix, includePackID)
+	src, err := NewConsulSource(PriorityConsul, cfg, path)
 	must.NoError(t, err)
 	return src
 }
 
-// varsByName indexes a slice of variables by name for convenient assertions.
 func varsByName(vars []*variables.Variable) map[string]*variables.Variable {
 	out := make(map[string]*variables.Variable, len(vars))
 	for _, v := range vars {
@@ -65,9 +47,6 @@ func varsByName(vars []*variables.Variable) map[string]*variables.Variable {
 	return out
 }
 
-// TestConsulSource_Fetch_Integration exercises ConsulSource.Fetch against a real
-// Consul KV store. A single Consul agent is shared across subtests, and each
-// subtest uses a unique KV prefix to stay isolated.
 func TestConsulSource_Fetch_Integration(t *testing.T) {
 	ci.Parallel(t)
 
@@ -80,11 +59,11 @@ func TestConsulSource_Fetch_Integration(t *testing.T) {
 		"name":     {Name: "name", Type: cty.String},
 	}
 
-	t.Run("reads vars under prefix/pack-id", func(t *testing.T) {
-		srv.SetKVString(t, "p1/webapp/replicas", "3")
-		srv.SetKVString(t, "p1/webapp/region", "us-west-2")
+	t.Run("fetches typed variables from KV path", func(t *testing.T) {
+		srv.SetKVString(t, "deploy/webapp/replicas", "3")
+		srv.SetKVString(t, "deploy/webapp/region", "us-west-2")
 
-		src := newSourceForServer(t, srv, "p1", true)
+		src := newSourceForServer(t, srv, "deploy/webapp")
 		vars, err := src.Fetch(t.Context(), packID, schema)
 		must.NoError(t, err)
 		must.Len(t, 2, vars)
@@ -95,44 +74,37 @@ func TestConsulSource_Fetch_Integration(t *testing.T) {
 		must.Eq(t, "us-west-2", got["region"].Value.AsString())
 	})
 
-	t.Run("full-path mode does not append pack id", func(t *testing.T) {
-		srv.SetKVString(t, "p2/path/region", "eu-central-1")
+	t.Run("path is not modified", func(t *testing.T) {
+		srv.SetKVString(t, "ops/webapp/region", "eu-central-1")
 
-		src := newSourceForServer(t, srv, "p2/path", false)
+		src := newSourceForServer(t, srv, "ops/webapp")
 		vars, err := src.Fetch(t.Context(), packID, schema)
 		must.NoError(t, err)
 		must.Len(t, 1, vars)
 		must.Eq(t, "eu-central-1", varsByName(vars)["region"].Value.AsString())
 	})
 
-	t.Run("variables not in schema are skipped", func(t *testing.T) {
-		srv.SetKVString(t, "p3/webapp/region", "us-east-1")
-		srv.SetKVString(t, "p3/webapp/not_in_pack", "ignored")
+	t.Run("keys not in pack schema are ignored", func(t *testing.T) {
+		srv.SetKVString(t, "staging/webapp/region", "us-east-1")
+		srv.SetKVString(t, "staging/webapp/not_in_pack", "ignored")
 
-		src := newSourceForServer(t, srv, "p3", true)
+		src := newSourceForServer(t, srv, "staging/webapp")
 		vars, err := src.Fetch(t.Context(), packID, schema)
 		must.NoError(t, err)
 		must.Len(t, 1, vars)
 		must.Eq(t, "region", string(vars[0].Name))
 	})
 
-	t.Run("empty value for non-string var is skipped so default applies", func(t *testing.T) {
-		srv.SetKVString(t, "p4/webapp/replicas", "") // empty: can't decode into a number
-		srv.SetKVString(t, "p4/webapp/region", "us-west-1")
+	t.Run("empty value for non-string variable is an error", func(t *testing.T) {
+		srv.SetKVString(t, "prod/webapp/replicas", "")
+		srv.SetKVString(t, "prod/webapp/region", "us-west-1")
 
-		src := newSourceForServer(t, srv, "p4", true)
-		vars, err := src.Fetch(t.Context(), packID, schema)
-		must.NoError(t, err)
-		// replicas (number) with an empty value is skipped so the pack default
-		// applies; region (string) is still returned. The whole fetch must not
-		// fail just because one key is empty.
-		must.Len(t, 1, vars)
-		must.Eq(t, "region", string(vars[0].Name))
+		src := newSourceForServer(t, srv, "prod/webapp")
+		_, err := src.Fetch(t.Context(), packID, schema)
+		must.ErrorContains(t, err, "empty Consul value")
 	})
 
-	t.Run("object var with optional attribute resolves via constraint type", func(t *testing.T) {
-		// object({name=string, port=optional(number)}) stored as a partial JSON
-		// document. Type has optional() stripped; ConstraintType preserves it.
+	t.Run("object with optional field missing is valid", func(t *testing.T) {
 		objSchema := map[variables.ID]*variables.Variable{
 			"svc": {
 				Name: "svc",
@@ -146,9 +118,9 @@ func TestConsulSource_Fetch_Integration(t *testing.T) {
 				),
 			},
 		}
-		srv.SetKVString(t, "p5/webapp/svc", `{"name":"api"}`)
+		srv.SetKVString(t, "services/webapp/svc", `{"name":"api"}`)
 
-		src := newSourceForServer(t, srv, "p5", true)
+		src := newSourceForServer(t, srv, "services/webapp")
 		vars, err := src.Fetch(t.Context(), packID, objSchema)
 		must.NoError(t, err)
 		must.Len(t, 1, vars)
@@ -156,9 +128,40 @@ func TestConsulSource_Fetch_Integration(t *testing.T) {
 		must.True(t, vars[0].Value.GetAttr("port").IsNull())
 	})
 
-	t.Run("no keys under prefix returns no variables", func(t *testing.T) {
-		src := newSourceForServer(t, srv, "p6-empty", true)
-		vars, err := src.Fetch(t.Context(), pack.ID("absent"), schema)
+	t.Run("bool variable is decoded from JSON", func(t *testing.T) {
+		boolSchema := map[variables.ID]*variables.Variable{
+			"enabled": {Name: "enabled", Type: cty.Bool},
+		}
+		srv.SetKVString(t, "config/webapp/enabled", "true")
+
+		src := newSourceForServer(t, srv, "config/webapp")
+		vars, err := src.Fetch(t.Context(), packID, boolSchema)
+		must.NoError(t, err)
+		must.Len(t, 1, vars)
+		must.True(t, vars[0].Value.True())
+	})
+
+	t.Run("malformed JSON for non-string variable is an error", func(t *testing.T) {
+		srv.SetKVString(t, "broken/webapp/replicas", "not-a-number")
+
+		src := newSourceForServer(t, srv, "broken/webapp")
+		_, err := src.Fetch(t.Context(), packID, schema)
+		must.ErrorContains(t, err, "decoding Consul value")
+	})
+
+	t.Run("empty string value is kept for string variable", func(t *testing.T) {
+		srv.SetKVString(t, "defaults/webapp/name", "")
+
+		src := newSourceForServer(t, srv, "defaults/webapp")
+		vars, err := src.Fetch(t.Context(), packID, schema)
+		must.NoError(t, err)
+		must.Len(t, 1, vars)
+		must.Eq(t, "", vars[0].Value.AsString())
+	})
+
+	t.Run("path with no keys returns empty result", func(t *testing.T) {
+		src := newSourceForServer(t, srv, "empty/webapp")
+		vars, err := src.Fetch(t.Context(), packID, schema)
 		must.NoError(t, err)
 		must.Len(t, 0, vars)
 	})
