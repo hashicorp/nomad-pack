@@ -4,6 +4,7 @@
 package source
 
 import (
+	"io"
 	"testing"
 
 	"github.com/hashicorp/consul/api"
@@ -20,6 +21,10 @@ func startTestConsul(t *testing.T) *consultest.TestServer {
 
 	srv, err := consultest.NewTestServerConfigT(t, func(c *consultest.TestServerConfig) {
 		c.Peering = nil
+		if !testing.Verbose() {
+			c.Stdout = io.Discard
+			c.Stderr = io.Discard
+		}
 	})
 	if err != nil {
 		t.Fatalf("failed to start Consul test server: %v", err)
