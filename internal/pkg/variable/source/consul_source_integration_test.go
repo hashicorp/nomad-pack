@@ -52,7 +52,7 @@ func varsByName(vars []*variables.Variable) map[string]*variables.Variable {
 	return out
 }
 
-func TestConsulSource_Fetch_Integration(t *testing.T) {
+func TestConsulSource_Fetch(t *testing.T) {
 	ci.Parallel(t)
 
 	srv := startTestConsul(t)
@@ -77,16 +77,6 @@ func TestConsulSource_Fetch_Integration(t *testing.T) {
 		replicas, _ := got["replicas"].Value.AsBigFloat().Int64()
 		must.Eq(t, int64(3), replicas)
 		must.Eq(t, "us-west-2", got["region"].Value.AsString())
-	})
-
-	t.Run("path is not modified", func(t *testing.T) {
-		srv.SetKVString(t, "ops/webapp/region", "eu-central-1")
-
-		src := newSourceForServer(t, srv, "ops/webapp")
-		vars, err := src.Fetch(t.Context(), packID, schema)
-		must.NoError(t, err)
-		must.Len(t, 1, vars)
-		must.Eq(t, "eu-central-1", varsByName(vars)["region"].Value.AsString())
 	})
 
 	t.Run("keys not in pack schema are ignored", func(t *testing.T) {
@@ -169,5 +159,35 @@ func TestConsulSource_Fetch_Integration(t *testing.T) {
 		vars, err := src.Fetch(t.Context(), packID, schema)
 		must.NoError(t, err)
 		must.Len(t, 0, vars)
+	})
+
+	t.Run("consul unavailable returns list error", func(t *testing.T) {
+		cfg := api.DefaultConfig()
+		cfg.Address = "127.0.0.1:19998"
+		src, err := NewConsulSource(PriorityConsul, cfg, "any/path")
+		must.NoError(t, err)
+		_, err = src.Fetch(t.Context(), packID, schema)
+		must.ErrorContains(t, err, "failed to list Consul KV")
+	})
+
+	t.Run("path with surrounding slashes fetches correctly", func(t *testing.T) {
+		srv.SetKVString(t, "norm/webapp/region", "ap-southeast-1")
+
+		src := newSourceForServer(t, srv, "/norm/webapp/")
+		vars, err := src.Fetch(t.Context(), packID, schema)
+		must.NoError(t, err)
+		must.Len(t, 1, vars)
+		must.Eq(t, "ap-southeast-1", varsByName(vars)["region"].Value.AsString())
+	})
+
+	t.Run("keys with trailing slash are skipped", func(t *testing.T) {
+		srv.SetKVString(t, "nested/webapp/region", "us-east-1")
+		srv.SetKVString(t, "nested/webapp/subdir/", "ignored")
+
+		src := newSourceForServer(t, srv, "nested/webapp")
+		vars, err := src.Fetch(t.Context(), packID, schema)
+		must.NoError(t, err)
+		must.Len(t, 1, vars)
+		must.Eq(t, "region", string(vars[0].Name))
 	})
 }
