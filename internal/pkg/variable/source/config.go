@@ -4,7 +4,10 @@
 package source
 
 import (
+	"strings"
+
 	"github.com/hashicorp/consul/api"
+	vaultapi "github.com/hashicorp/vault/api"
 )
 
 // SourceConfig is a parsed, lazily-evaluated configuration for a variable
@@ -47,4 +50,38 @@ func (c ConsulSourceConfig) Build() (VariableSource, error) {
 	}
 
 	return NewConsulSource(c.Priority, apiCfg, c.Path)
+}
+
+// VaultSourceConfig holds the parsed configuration for a Vault KV v2 variable
+// source.
+type VaultSourceConfig struct {
+	// Priority is the precedence level applied to the built source.
+	Priority int
+
+	// Address is the Vault HTTP address. When empty, the address from the
+	// standard Vault environment configuration is used.
+	Address string
+
+	// Mount is the KV v2 engine mount point under which the secret lives.
+	Mount string
+
+	// Path is the secret path within the mount. All variables for the pack are
+	// stored as fields of the single secret at <Mount>/<Path>.
+	Path string
+}
+
+// Build implements SourceConfig by constructing a VaultSource.
+func (v VaultSourceConfig) Build() (VariableSource, error) {
+	apiCfg := vaultapi.DefaultConfig()
+	if v.Address != "" {
+		// Vault's API address must be a full URL (unlike Consul's host:port),
+		// so default to https when the URL omits a scheme.
+		addr := v.Address
+		if !strings.Contains(addr, "://") {
+			addr = "https://" + addr
+		}
+		apiCfg.Address = addr
+	}
+
+	return NewVaultSource(v.Priority, apiCfg, v.Mount, v.Path)
 }

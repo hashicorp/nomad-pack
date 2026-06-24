@@ -82,6 +82,7 @@ func (v *VaultSource) Priority() int {
 // is an error; empty strings are valid for string variables.
 //
 // Returns nil (not an error) when the secret does not exist at the given path
+// or when the latest version has been deleted.
 func (v *VaultSource) Fetch(ctx context.Context, _ pack.ID, schema map[variables.ID]*variables.Variable) ([]*variables.Variable, error) {
 	secret, err := v.client.KVv2(v.mount).Get(ctx, v.path)
 	if err != nil {
@@ -106,16 +107,16 @@ func (v *VaultSource) Fetch(ctx context.Context, _ pack.ID, schema map[variables
 		// Vault KV stores all values as strings.
 		str, ok := rawVal.(string)
 		if !ok {
-			return nil, fmt.Errorf("vault value for %s is not a string (got %T)", rawKey, rawVal)
+			return nil, fmt.Errorf("field %s is not a string (got %T)", rawKey, rawVal)
 		}
 
-		// A non-string variable has no meaningful empty form (there is no "empty"
-		// number or bool), so an empty value almost always means the Vault field
-		// was misconfigured. Empty values for string variables are valid and kept as "".
+		// Empty values for string variables are valid and kept as "".
 		if str == "" && schemaVar.Type != cty.String {
 			return nil, fmt.Errorf("empty Vault value for %s: a %s value is required", rawKey, schemaVar.Type.FriendlyName())
 		}
 
+		// Convert using the variable's constraint type. ConstraintType preserves
+		// optional() attributes.
 		expectedType := schemaVar.ConstraintType
 		if expectedType == cty.NilType {
 			expectedType = schemaVar.Type
@@ -137,12 +138,13 @@ func (v *VaultSource) Fetch(ctx context.Context, _ pack.ID, schema map[variables
 }
 
 // convertValue converts a raw Vault string value into a cty.Value of the
-// expected type using the same schema-aware rule as ConsulSource.
+// expected type.
 func (v *VaultSource) convertValue(data []byte, expectedType cty.Type) (cty.Value, error) {
 	if expectedType == cty.String {
 		return cty.StringVal(string(data)), nil
 	}
 
+	// For every other type, let cty decode the JSON directly into the expected type.
 	val, err := ctyjson.Unmarshal(data, expectedType)
 	if err != nil {
 		return cty.NilVal, fmt.Errorf("decoding Vault value as %s: %w", expectedType.FriendlyName(), err)
