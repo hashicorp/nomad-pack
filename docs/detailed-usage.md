@@ -67,6 +67,47 @@ To download single pack or an entire registry at a specific version/SHA, use the
 nomad-pack registry add community github.com/hashicorp/nomad-pack-community-registry --ref=v0.0.1
 ```
 
+### Using Git References with --ref
+
+The `--ref` flag supports multiple reference types for precise version control:
+
+#### Branch Names
+
+You can specify any branch name to use templates from that branch:
+
+```
+# Use the main branch
+nomad-pack registry add myregistry github.com/org/repo --ref=main
+
+# Use a development branch
+nomad-pack registry add myregistry github.com/org/repo --ref=develop
+
+# Use a feature branch (slashes are supported)
+nomad-pack registry add myregistry github.com/org/repo --ref=feature/add-templates
+
+# Branch names with underscores, hyphens, or slashes all work
+nomad-pack registry add myregistry github.com/org/repo --ref=feature_new_templates
+nomad-pack registry add myregistry github.com/org/repo --ref=hotfix-123
+nomad-pack registry add myregistry github.com/org/repo --ref=compliance/update-headers
+```
+
+#### Tags
+
+Use semantic version tags for stable releases:
+
+```
+nomad-pack registry add myregistry github.com/org/repo --ref=v1.0.0
+nomad-pack registry add myregistry github.com/org/repo --ref=v2.1.3
+```
+
+#### Commit SHAs
+
+Point to a specific commit for exact reproducibility:
+
+```
+nomad-pack registry add myregistry github.com/org/repo --ref=abc123def456
+```
+
 To remove a registry or pack from your local cache. Use the `registry delete` command.
 This command also supports the `--target` and `--ref` flags.
 

@@ -162,15 +162,19 @@ func (c *RegistryUpdateCommand) Flags() *flag.Sets {
 			Name:    "ref",
 			Target:  &c.ref,
 			Default: "",
-			Usage: `Specific git ref of the registry or pack to be updated.
-					Supports tags, SHA, and latest. If no ref is specified,
-					defaults to latest. Running "nomad registry update"
-					multiple times for the same ref is idempotent, however
-					running "nomad-pack registry update" without specifying a
-					ref, or when specifying @latest, is destructive, and will
-					overwrite current @latest in the global cache.
+			Usage: `Specific git ref of the registry or pack to be updated. Supports:
+			        - Branch names (e.g., main, develop, feature/add-templates)
+			        - Tags (e.g., v1.0.0)
+			        - Commit SHAs (e.g., abc123...)
+			        - "latest" (default if --ref not specified)
 
-					Using ref with a file path is not supported.`,
+			        If no ref is specified, defaults to latest. Running "nomad registry update"
+			        multiple times for the same ref is idempotent, however running
+			        "nomad-pack registry update" without specifying a ref, or when specifying
+			        @latest, is destructive, and will overwrite current @latest in the
+			        global cache.
+
+			        Using ref with a file path is not supported.`,
 		})
 	})
 }
@@ -197,6 +201,10 @@ func (c *RegistryUpdateCommand) Help() string {
 
 	# Update a previously added registry at a specific tag/release/SHA.
 	nomad-pack registry update community --ref=v0.1.0
+
+	# Update to a specific branch (slashes are supported).
+	nomad-pack registry update community --ref=main
+	nomad-pack registry update community --ref=feature/add-templates
 	`
 	return formatHelp(`
 	Usage: nomad-pack registry update <name> [options]

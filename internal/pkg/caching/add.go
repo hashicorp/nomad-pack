@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -145,7 +146,10 @@ func (c *Cache) cloneRemoteGitRegistry(opts *AddOpts) (string, error) {
 	logger := c.cfg.Logger
 	url := buildGoGetterGitURL(opts)
 
-	logger.Debug(fmt.Sprintf("go-getter URL is %s", url))
+	// Escape % signs in URL to prevent fmt.Sprintf interpretation in terminal layer
+	// %2F (URL-encoded slash) would be interpreted as format verb %2F otherwise
+	escapedURL := strings.ReplaceAll(url, "%", "%%")
+	logger.Debug("go-getter URL is " + escapedURL)
 
 	clonePath := c.clonePath()
 	// If pack name is set, add an intermediary "packs" and pack dir manually.
@@ -169,18 +173,21 @@ func (c *Cache) cloneRemoteGitRegistry(opts *AddOpts) (string, error) {
 }
 
 func buildGoGetterGitURL(opts *AddOpts) string {
-	url := opts.Source
+	urlStr := opts.Source
 
 	if opts.PackName != "" {
 		src := strings.TrimSuffix(opts.Source, ".git")
-		url = fmt.Sprintf("%s.git//packs/%s", src, opts.PackName)
+		urlStr = fmt.Sprintf("%s.git//packs/%s", src, opts.PackName)
 	}
 
 	if !opts.IsLatest() {
-		url = fmt.Sprintf("%s?ref=%s", url, opts.Ref)
+		// URL-encode the ref to handle branch names with special characters like slashes
+		// e.g., "feature/add-templates" becomes "feature%2Fadd-templates"
+		encodedRef := url.QueryEscape(opts.Ref)
+		urlStr = fmt.Sprintf("%s?ref=%s", urlStr, encodedRef)
 	}
 
-	return url
+	return urlStr
 }
 
 func (c *Cache) processPackEntry(opts *AddOpts, packEntry os.DirEntry) error {
