@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/consul/api"
+	nomadapi "github.com/hashicorp/nomad/api"
 	vaultapi "github.com/hashicorp/vault/api"
 )
 
@@ -84,4 +85,36 @@ func (v VaultSourceConfig) Build() (VariableSource, error) {
 	}
 
 	return NewVaultSource(v.Priority, apiCfg, v.Mount, v.Path)
+}
+
+// NomadSourceConfig holds the parsed configuration for a Nomad Variables
+// variable source.
+type NomadSourceConfig struct {
+	// Priority is the precedence level applied to the built source.
+	Priority int
+
+	// Address is the Nomad HTTP address. When empty, the address from the
+	// standard Nomad environment configuration is used.
+	Address string
+
+	// Path is the Nomad Variable path. All variables for the pack are stored as
+	// items of the single Nomad Variable at this path.
+	Path string
+}
+
+// Build implements SourceConfig by constructing a NomadSource.
+func (n NomadSourceConfig) Build() (VariableSource, error) {
+	apiCfg := nomadapi.DefaultConfig()
+	if n.Address != "" {
+		// Nomad's API address must be a full URL (unlike Consul's host:port), so
+		// default to http when the URL omits a scheme — matching Nomad's own
+		// default address (http://127.0.0.1:4646).
+		addr := n.Address
+		if !strings.Contains(addr, "://") {
+			addr = "http://" + addr
+		}
+		apiCfg.Address = addr
+	}
+
+	return NewNomadSource(n.Priority, apiCfg, n.Path)
 }

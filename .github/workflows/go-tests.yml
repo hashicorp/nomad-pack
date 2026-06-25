@@ -24,8 +24,9 @@ jobs:
           go install gotest.tools/gotestsum@latest
           make test-certs
 
-      # install nomad, consul, and vault. consul is required by the Consul KV
-      # variable source integration tests and vault by the Vault KV variable
+      # install nomad, consul, and vault. nomad is required by the Nomad
+      # Variables variable source integration tests, consul by the Consul KV
+      # variable source integration tests, and vault by the Vault KV variable
       # source integration tests; the tests fail hard if they are not on $PATH.
       - name: Install Nomad, Consul, and Vault
         run : |

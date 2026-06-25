@@ -21,6 +21,8 @@ import (
 //   - consul://host:port/path         (uses the specified Consul address)
 //   - vault:///mount/path             (uses the Vault environment address)
 //   - vault://host:port/mount/path    (uses the specified Vault address)
+//   - nomad:///path                   (uses the Nomad environment address)
+//   - nomad://host:port/path          (uses the specified Nomad address)
 func parseVarSourceConfigs(urls []string) ([]source.SourceConfig, error) {
 	if len(urls) == 0 {
 		return nil, nil
@@ -54,8 +56,10 @@ func parseVarSourceConfig(urlStr string) (source.SourceConfig, error) {
 		return parseConsulSourceConfig(host, path)
 	case "vault":
 		return parseVaultSourceConfig(host, path)
+	case "nomad":
+		return parseNomadSourceConfig(host, path)
 	default:
-		return nil, fmt.Errorf("unsupported scheme %q (supported: consul, vault)", u.Scheme)
+		return nil, fmt.Errorf("unsupported scheme %q (supported: consul, vault, nomad)", u.Scheme)
 	}
 }
 
@@ -99,5 +103,26 @@ func parseVaultSourceConfig(host, path string) (source.SourceConfig, error) {
 		Address:  host,
 		Mount:    mount,
 		Path:     secretPath,
+	}, nil
+}
+
+// parseNomadSourceConfig builds a Nomad Variables source config from the host
+// and path of a nomad:// URL. The path is the Nomad Variable path; all variables
+// for the pack are stored as items of the single Nomad Variable at <path>. A
+// non-empty host overrides the Nomad environment address; the rest of the Nomad
+// configuration, including the token and namespace, comes from the standard
+// Nomad environment configuration (NOMAD_ADDR, NOMAD_TOKEN, NOMAD_NAMESPACE, and
+// so on) when the source is built.
+//   - nomad:///path/to/vars        -> host="",               path="path/to/vars"
+//   - nomad://localhost:4646/path  -> host="localhost:4646", path="path"
+func parseNomadSourceConfig(host, path string) (source.SourceConfig, error) {
+	if path == "" {
+		return nil, fmt.Errorf("nomad URL must include a path (e.g., nomad:///nomad-pack)")
+	}
+
+	return source.NomadSourceConfig{
+		Priority: source.PriorityNomad,
+		Address:  host,
+		Path:     path,
 	}, nil
 }
