@@ -282,17 +282,22 @@ func (c *baseCommand) flagSet(bit flagSetBit, f func(*flag.Sets)) *flag.Sets {
 				Target:  &c.varSources,
 				Default: make([]string, 0),
 				Usage: `Specifies an external variable source as a URL, and may be
-						given more than once to read from several sources. Consul KV
-						is the only source currently supported, using the form
+						given more than once to read from several sources. Two source
+						types are supported. Consul KV uses the form
 						consul://<host>:<port>/<path>; for example,
-						consul://localhost:8500/nomad-pack. The host is optional: omit
-						it (consul:///<path>) to use the standard Consul environment
-						configuration, such as CONSUL_HTTP_ADDR and CONSUL_HTTP_TOKEN.
-						Each variable is read from <path>/<variable-name>, so include
-						any per-pack grouping in the path yourself. Variable sources
-						are applied in order of precedence, highest first: --var, then
-						--var-source, then --var-file, then environment variables. A
-						higher-precedence source overrides any lower one.`,
+						consul://localhost:8500/nomad-pack. Vault KV v2 uses the form
+						vault://<host>:<port>/<mount>/<path>; for example,
+						vault://localhost:8200/secret/nomad-pack. The host is
+						optional: omit it (consul:///<path> or vault:///<mount>/<path>)
+						to use the standard Consul or Vault environment configuration,
+						such as CONSUL_HTTP_ADDR and CONSUL_HTTP_TOKEN, or VAULT_ADDR
+						and VAULT_TOKEN. For Consul each variable is read from
+						<path>/<variable-name>; for Vault each variable is a field of
+						the secret at <mount>/<path>. Include any per-pack grouping in
+						the path yourself. Variable sources are applied in order of
+						precedence, highest first: --var, then --var-source, then
+						--var-file, then environment variables. A higher-precedence
+						source overrides any lower one.`,
 			})
 		}
 
