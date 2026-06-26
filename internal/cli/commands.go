@@ -282,22 +282,27 @@ func (c *baseCommand) flagSet(bit flagSetBit, f func(*flag.Sets)) *flag.Sets {
 				Target:  &c.varSources,
 				Default: make([]string, 0),
 				Usage: `Specifies an external variable source as a URL, and may be
-						given more than once to read from several sources. Two source
+						given more than once to read from several sources. Three source
 						types are supported. Consul KV uses the form
 						consul://<host>:<port>/<path>; for example,
 						consul://localhost:8500/nomad-pack. Vault KV v2 uses the form
 						vault://<host>:<port>/<mount>/<path>; for example,
-						vault://localhost:8200/secret/nomad-pack. The host is
-						optional: omit it (consul:///<path> or vault:///<mount>/<path>)
-						to use the standard Consul or Vault environment configuration,
-						such as CONSUL_HTTP_ADDR and CONSUL_HTTP_TOKEN, or VAULT_ADDR
-						and VAULT_TOKEN. For Consul each variable is read from
-						<path>/<variable-name>; for Vault each variable is a field of
-						the secret at <mount>/<path>. Include any per-pack grouping in
-						the path yourself. Variable sources are applied in order of
-						precedence, highest first: --var, then --var-source, then
-						--var-file, then environment variables. A higher-precedence
-						source overrides any lower one.`,
+						vault://localhost:8200/secret/nomad-pack. Nomad Variables use
+						the form nomad://<host>:<port>/<path>; for example,
+						nomad://localhost:4646/nomad-pack. The host is optional: omit it
+						(consul:///<path>, vault:///<mount>/<path>, or nomad:///<path>)
+						to use the standard environment configuration for that tool,
+						such as CONSUL_HTTP_ADDR and CONSUL_HTTP_TOKEN, VAULT_ADDR and
+						VAULT_TOKEN, or NOMAD_ADDR and NOMAD_TOKEN. NOMAD_ADDR may point
+						at a unix:// socket, so Pack can run as a Nomad job and read
+						variables over the task's API socket. For Consul each variable
+						is read from <path>/<variable-name>; for Vault each variable is
+						a field of the secret at <mount>/<path>; for Nomad each variable
+						is an item of the Nomad Variable at <path>. Include
+						any per-pack grouping in the path yourself. Variable sources are
+						applied in order of precedence, highest first: --var, then
+						--var-source, then --var-file, then environment variables. A
+						higher-precedence source overrides any lower one.`,
 			})
 		}
 
