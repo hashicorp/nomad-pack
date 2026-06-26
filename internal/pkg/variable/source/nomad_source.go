@@ -9,10 +9,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/nomad/api"
-
 	"github.com/hashicorp/nomad-pack/sdk/pack"
 	"github.com/hashicorp/nomad-pack/sdk/pack/variables"
+	"github.com/hashicorp/nomad/api"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
