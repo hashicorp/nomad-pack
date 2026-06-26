@@ -102,22 +102,16 @@ type NomadSourceConfig struct {
 	Path string
 }
 
-// Build implements SourceConfig by constructing a NomadSource.
-//
-// When no host is supplied (the nomad:///path form), the address and every
-// other client setting come entirely from the standard Nomad environment via
-// nomadapi.DefaultConfig() — NOMAD_ADDR, NOMAD_TOKEN, NOMAD_NAMESPACE, and so
-// on flow through unchanged. NOMAD_ADDR may point at a unix socket (unix://…),
-// so running Pack inside a Nomad task and aiming it at the task's API socket
-// needs no special handling here: the nomad/api client dials the socket
-// natively and the workload's token authenticates as usual.
+// Build implements SourceConfig by constructing a NomadSource. When no host is
+// supplied (the nomad:///path form), the address and the rest of the client
+// settings come from nomadapi.DefaultConfig(), so NOMAD_ADDR is honored as-is —
+// including a unix:// socket such as the Task API socket.
 func (n NomadSourceConfig) Build() (VariableSource, error) {
 	apiCfg := nomadapi.DefaultConfig()
 	if n.Address != "" {
 		// A host taken from the URL is always a TCP host:port. Nomad's API
 		// address must be a full URL, so default to http when it omits a scheme —
-		// matching Nomad's own default address (http://127.0.0.1:4646). Use the
-		// nomad:///path form with NOMAD_ADDR for a unix socket or https.
+		// matching Nomad's own default address (http://127.0.0.1:4646).
 		addr := n.Address
 		if !strings.Contains(addr, "://") {
 			addr = "http://" + addr
