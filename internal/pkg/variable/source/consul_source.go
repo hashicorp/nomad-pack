@@ -15,9 +15,7 @@ import (
 )
 
 // ConsulSource fetches variables from Consul KV store. Each variable is read
-// from <path>/<variable-name>, where <path> is the user-supplied KV path.
-// Callers that want per-pack namespacing include it in the path
-// themselves (for example, consul:///myapp/config).
+// from <path>/<variable-name>, where <path> is the user-supplied KV path (for example, consul:///myapp/config).
 type ConsulSource struct {
 	name     string
 	priority int
@@ -94,7 +92,7 @@ func (c *ConsulSource) Fetch(ctx context.Context, _ pack.ID, schema map[variable
 	// c.path was trimmed of slashes when the source was built; re-add a single
 	// trailing slash to scope the KV list to keys under this path and to strip
 	// each key down to its variable name. The pack ID is intentionally unused —
-	// any per-pack grouping lives in the path itself.
+	// the KV path is taken as-is from the source URL.
 	path := c.path + "/"
 
 	// List all keys under this path

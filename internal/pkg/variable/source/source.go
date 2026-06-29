@@ -13,20 +13,23 @@ import (
 // Priority constants define the precedence order for variable sources.
 // Higher values take precedence over lower values when variables conflict.
 //
-// Priority Order (lowest to highest):
-//   - Environment variables (10)
-//   - Variable files (20)
-//   - Nomad Variables (23)
-//   - Vault KV (24)
-//   - Consul KV (25)
-//   - CLI flags (30)
+// Precedence order (lowest to highest):
+//   - Pack defaults
+//   - External sources (--var-source), in command-line order
+//   - Environment variables
+//   - Variable files (-f/--var-file)
+//   - CLI flags (--var)
+//
+// External sources rank below all local input: anything passed with --var,
+// --var-file, or the environment overrides a value read from Consul, Vault, or
+// Nomad. Each external source is assigned PriorityExternalBase plus its position
+// on the command line, so when two sources supply the same variable the one
+// given later wins.
 const (
-	PriorityEnv    = 10
-	PriorityFile   = 20
-	PriorityNomad  = 23
-	PriorityVault  = 24
-	PriorityConsul = 25
-	PriorityCLI    = 30
+	PriorityExternalBase = 10
+	PriorityEnv          = 1000
+	PriorityFile         = 2000
+	PriorityCLI          = 3000
 )
 
 // VariableSource represents a source of variables (CLI, file, env, external)

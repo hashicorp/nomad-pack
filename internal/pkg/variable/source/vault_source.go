@@ -16,9 +16,7 @@ import (
 )
 
 // VaultSource fetches variables from a Vault KV v2 secret. All variables for a
-// pack are stored as fields of a single secret at <mount>/<path>. Callers
-// include any per-pack namespacing in the path themselves
-// (for example, mount="secret", path="myapp/config").
+// pack are stored as fields of a single secret at <mount>/<path> (for example, mount="secret", path="myapp/config").
 type VaultSource struct {
 	name     string
 	priority int

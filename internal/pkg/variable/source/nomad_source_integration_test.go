@@ -57,7 +57,7 @@ func newNomadSourceForServer(t *testing.T, srv *testutil.TestServer, path string
 	t.Helper()
 	cfg := api.DefaultConfig()
 	cfg.Address = "http://" + srv.HTTPAddr
-	src, err := NewNomadSource(PriorityNomad, cfg, path)
+	src, err := NewNomadSource(PriorityExternalBase, cfg, path)
 	must.NoError(t, err)
 	return src
 }
@@ -209,7 +209,7 @@ func TestNomadSource_Fetch(t *testing.T) {
 	t.Run("nomad unavailable returns read error", func(t *testing.T) {
 		cfg := api.DefaultConfig()
 		cfg.Address = fmt.Sprintf("http://127.0.0.1:%d", ci.PortAllocator.One())
-		src, err := NewNomadSource(PriorityNomad, cfg, "any/path")
+		src, err := NewNomadSource(PriorityExternalBase, cfg, "any/path")
 		must.NoError(t, err)
 
 		_, err = src.Fetch(t.Context(), packID, schema)

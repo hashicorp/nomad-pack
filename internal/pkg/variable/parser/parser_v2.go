@@ -115,7 +115,7 @@ func (p *ParserV2) Parse() (*ParsedVariables, hcl.Diagnostics) {
 		return nil, diags
 	}
 
-	// Register sources with the registry in priority order
+	// Register all sources with the registry.
 	p.sourceRegistry.Register(source.NewEnvSource(source.PriorityEnv, p.envOverrideVars))
 	p.sourceRegistry.Register(source.NewFileSource(source.PriorityFile, p.fileOverrideVars))
 

@@ -37,7 +37,7 @@ func TestRegistry_Resolve(t *testing.T) {
 				{Name: "replicas", Value: cty.NumberIntVal(3)},
 			},
 		}
-		registry.Register(NewBaseSource("consul", PriorityConsul, consulVars))
+		registry.Register(NewBaseSource("consul", PriorityExternalBase, consulVars))
 
 		// CLI has higher priority
 		cliVars := map[pack.ID][]*variables.Variable{
@@ -80,7 +80,7 @@ func TestRegistry_Resolve(t *testing.T) {
 		consulVars := map[pack.ID][]*variables.Variable{
 			packID: {{Name: "app_name", Value: cty.StringVal("prod-app")}},
 		}
-		registry.Register(NewBaseSource("consul", PriorityConsul, consulVars))
+		registry.Register(NewBaseSource("consul", PriorityExternalBase, consulVars))
 
 		result, err := registry.Resolve(t.Context(), packID, schema)
 		must.NoError(t, err)

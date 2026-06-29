@@ -30,8 +30,12 @@ func parseVarSourceConfigs(urls []string) ([]source.SourceConfig, error) {
 
 	configs := make([]source.SourceConfig, 0, len(urls))
 
-	for _, urlStr := range urls {
-		cfg, err := parseVarSourceConfig(urlStr)
+	for i, urlStr := range urls {
+		// Each source's priority is its position on the command line, so a later
+		// --var-source overrides an earlier one for the same variable. The base
+		// keeps every external source below local input (env, files, CLI flags).
+		priority := source.PriorityExternalBase + i
+		cfg, err := parseVarSourceConfig(urlStr, priority)
 		if err != nil {
 			return nil, fmt.Errorf("var-source %q: %w", urlStr, err)
 		}
@@ -42,7 +46,8 @@ func parseVarSourceConfigs(urls []string) ([]source.SourceConfig, error) {
 }
 
 // parseVarSourceConfig parses a single variable source URL into a typed config.
-func parseVarSourceConfig(urlStr string) (source.SourceConfig, error) {
+// priority is the precedence assigned to the built source.
+func parseVarSourceConfig(urlStr string, priority int) (source.SourceConfig, error) {
 	u, err := url.Parse(urlStr)
 	if err != nil {
 		return nil, fmt.Errorf("invalid URL: %w", err)
@@ -53,11 +58,11 @@ func parseVarSourceConfig(urlStr string) (source.SourceConfig, error) {
 
 	switch u.Scheme {
 	case "consul":
-		return parseConsulSourceConfig(host, path)
+		return parseConsulSourceConfig(host, path, priority)
 	case "vault":
-		return parseVaultSourceConfig(host, path)
+		return parseVaultSourceConfig(host, path, priority)
 	case "nomad":
-		return parseNomadSourceConfig(host, path)
+		return parseNomadSourceConfig(host, path, priority)
 	default:
 		return nil, fmt.Errorf("unsupported scheme %q (supported: consul, vault, nomad)", u.Scheme)
 	}
@@ -71,13 +76,13 @@ func parseVarSourceConfig(urlStr string) (source.SourceConfig, error) {
 // when the source is built.
 //   - consul:///path/to/vars        -> host="",              path="path/to/vars"
 //   - consul://localhost:8500/path  -> host="localhost:8500", path="path"
-func parseConsulSourceConfig(host, path string) (source.SourceConfig, error) {
+func parseConsulSourceConfig(host, path string, priority int) (source.SourceConfig, error) {
 	if path == "" {
 		return nil, fmt.Errorf("consul URL must include a path (e.g., consul:///nomad-pack)")
 	}
 
 	return source.ConsulSourceConfig{
-		Priority: source.PriorityConsul,
+		Priority: priority,
 		Address:  host,
 		Path:     path,
 	}, nil
@@ -92,14 +97,14 @@ func parseConsulSourceConfig(host, path string) (source.SourceConfig, error) {
 // VAULT_TOKEN, and so on) when the source is built.
 //   - vault:///secret/path/to/vars        -> host="",               mount="secret", path="path/to/vars"
 //   - vault://localhost:8200/secret/path  -> host="localhost:8200", mount="secret", path="path"
-func parseVaultSourceConfig(host, path string) (source.SourceConfig, error) {
+func parseVaultSourceConfig(host, path string, priority int) (source.SourceConfig, error) {
 	mount, secretPath, ok := strings.Cut(path, "/")
 	if !ok || mount == "" || secretPath == "" {
 		return nil, fmt.Errorf("vault URL must include a mount and path (e.g., vault:///secret/nomad-pack)")
 	}
 
 	return source.VaultSourceConfig{
-		Priority: source.PriorityVault,
+		Priority: priority,
 		Address:  host,
 		Mount:    mount,
 		Path:     secretPath,
@@ -115,13 +120,13 @@ func parseVaultSourceConfig(host, path string) (source.SourceConfig, error) {
 // so on) when the source is built.
 //   - nomad:///path/to/vars        -> host="",               path="path/to/vars"
 //   - nomad://localhost:4646/path  -> host="localhost:4646", path="path"
-func parseNomadSourceConfig(host, path string) (source.SourceConfig, error) {
+func parseNomadSourceConfig(host, path string, priority int) (source.SourceConfig, error) {
 	if path == "" {
 		return nil, fmt.Errorf("nomad URL must include a path (e.g., nomad:///nomad-pack)")
 	}
 
 	return source.NomadSourceConfig{
-		Priority: source.PriorityNomad,
+		Priority: priority,
 		Address:  host,
 		Path:     path,
 	}, nil

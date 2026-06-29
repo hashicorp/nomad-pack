@@ -224,25 +224,31 @@ nomad-pack run hello_world \
 Variables map onto each source differently. For Consul, each variable is read
 from its own key at `<path>/<variable-name>`. For Vault, all variables are
 fields of the secret at `<mount>/<path>`. For Nomad, all variables are items of
-the Nomad Variable at `<path>`. The path is used as-is, so include any per-pack
-grouping in it yourself.
+the Nomad Variable at `<path>`.
 
-`NOMAD_ADDR` may point at a `unix://` socket, so Pack can run as a Nomad job and
-read variables over the task's API socket.
+A host given in the URL is always a TCP `host:port`. To read over a `unix://`
+socket instead :
+
+```
+NOMAD_ADDR=unix:///secrets/api.sock \
+  nomad-pack run hello_world --var-source nomad:///nomad-pack
+```
 
 ##### Precedence
 
 Variable values are applied in order of precedence, highest first:
 
 1. `--var`
-2. `--var-source`
-3. `-f/--var-file`
-4. environment variables
+2. `-f/--var-file`
+3. environment variables
+4. `--var-source`
+5. pack variable defaults
 
-A higher-precedence value overrides any lower one. When more than one
-`--var-source` provides the same variable, Consul wins over Vault, and Vault
-over Nomad. Sources are read only when a variable needs resolving, so a command
-that does not use them makes no connection.
+A higher-precedence value overrides any lower one. Explicit local input always
+wins over an external source. When more than one `--var-source` provides the
+same variable, the one given later on the command line wins. Sources are read
+only when a variable needs resolving, so a command that does not use them makes
+no connection.
 
 To see the type and description of each variable, run the `info` command.
 

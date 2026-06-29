@@ -84,7 +84,7 @@ func newVaultSourceForServer(t *testing.T, addr, mount, path string) *VaultSourc
 	t.Helper()
 	cfg := vaultapi.DefaultConfig()
 	cfg.Address = addr
-	src, err := NewVaultSource(PriorityVault, cfg, mount, path)
+	src, err := NewVaultSource(PriorityExternalBase, cfg, mount, path)
 	must.NoError(t, err)
 	src.client.SetToken(devRootToken)
 	return src
@@ -248,7 +248,7 @@ func TestVaultSource_Fetch(t *testing.T) {
 	t.Run("vault unavailable returns read error", func(t *testing.T) {
 		cfg := vaultapi.DefaultConfig()
 		cfg.Address = fmt.Sprintf("http://127.0.0.1:%d", ci.PortAllocator.One())
-		src, err := NewVaultSource(PriorityVault, cfg, "secret", "any/path")
+		src, err := NewVaultSource(PriorityExternalBase, cfg, "secret", "any/path")
 		must.NoError(t, err)
 		src.client.SetToken(devRootToken)
 

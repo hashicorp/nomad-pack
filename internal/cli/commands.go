@@ -293,16 +293,17 @@ func (c *baseCommand) flagSet(bit flagSetBit, f func(*flag.Sets)) *flag.Sets {
 						(consul:///<path>, vault:///<mount>/<path>, or nomad:///<path>)
 						to use the standard environment configuration for that tool,
 						such as CONSUL_HTTP_ADDR and CONSUL_HTTP_TOKEN, VAULT_ADDR and
-						VAULT_TOKEN, or NOMAD_ADDR and NOMAD_TOKEN. NOMAD_ADDR may point
-						at a unix:// socket, so Pack can run as a Nomad job and read
-						variables over the task's API socket. For Consul each variable
-						is read from <path>/<variable-name>; for Vault each variable is
-						a field of the secret at <mount>/<path>; for Nomad each variable
-						is an item of the Nomad Variable at <path>. Include
-						any per-pack grouping in the path yourself. Variable sources are
-						applied in order of precedence, highest first: --var, then
-						--var-source, then --var-file, then environment variables. A
-						higher-precedence source overrides any lower one.`,
+						VAULT_TOKEN, or NOMAD_ADDR and NOMAD_TOKEN. A host in the URL is
+						always a TCP host:port; to read over a unix:// socket instead,
+						such as a Nomad task's API socket, omit the host
+						(nomad:///<path>) and set NOMAD_ADDR to the socket. For Consul
+						each variable is read from <path>/<variable-name>; for Vault each
+						variable is a field of the secret at <mount>/<path>; for Nomad
+						each variable is an item of the Nomad Variable at <path>.
+						External sources rank below local input: values from --var,
+						--var-file, and the environment all override them. When more
+						than one --var-source provides the same variable, the one given
+						later on the command line wins.`,
 			})
 		}
 

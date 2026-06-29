@@ -39,7 +39,7 @@ func newSourceForServer(t *testing.T, srv *consultest.TestServer, path string) *
 	t.Helper()
 	cfg := api.DefaultConfig()
 	cfg.Address = srv.HTTPAddr
-	src, err := NewConsulSource(PriorityConsul, cfg, path)
+	src, err := NewConsulSource(PriorityExternalBase, cfg, path)
 	must.NoError(t, err)
 	return src
 }
@@ -164,7 +164,7 @@ func TestConsulSource_Fetch(t *testing.T) {
 	t.Run("consul unavailable returns list error", func(t *testing.T) {
 		cfg := api.DefaultConfig()
 		cfg.Address = "127.0.0.1:19998"
-		src, err := NewConsulSource(PriorityConsul, cfg, "any/path")
+		src, err := NewConsulSource(PriorityExternalBase, cfg, "any/path")
 		must.NoError(t, err)
 		_, err = src.Fetch(t.Context(), packID, schema)
 		must.ErrorContains(t, err, "failed to list Consul KV")
