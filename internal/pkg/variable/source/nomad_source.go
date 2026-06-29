@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/nomad-pack/sdk/pack/variables"
 	"github.com/hashicorp/nomad/api"
 	"github.com/zclconf/go-cty/cty"
-	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
 
 // NomadSource fetches variables from a Nomad Variable. All variables for a pack
@@ -98,7 +97,7 @@ func (n *NomadSource) Fetch(ctx context.Context, _ pack.ID, schema map[variables
 			expectedType = schemaVar.Type
 		}
 
-		value, err := n.convertValue([]byte(str), expectedType)
+		value, err := decodeValue("Nomad", []byte(str), expectedType)
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert value for %s: %w", rawKey, err)
 		}
@@ -111,19 +110,4 @@ func (n *NomadSource) Fetch(ctx context.Context, _ pack.ID, schema map[variables
 	}
 
 	return vars, nil
-}
-
-// convertValue converts a raw Nomad Variable item value into a cty.Value of the
-// expected type.
-func (n *NomadSource) convertValue(data []byte, expectedType cty.Type) (cty.Value, error) {
-	if expectedType == cty.String {
-		return cty.StringVal(string(data)), nil
-	}
-
-	val, err := ctyjson.Unmarshal(data, expectedType)
-	if err != nil {
-		return cty.NilVal, fmt.Errorf("decoding Nomad value as %s: %w", expectedType.FriendlyName(), err)
-	}
-
-	return val, nil
 }

@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/nomad-pack/sdk/pack"
 	"github.com/hashicorp/nomad-pack/sdk/pack/variables"
 	"github.com/zclconf/go-cty/cty"
-	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
 
 // ConsulSource fetches variables from Consul KV store. Each variable is read
@@ -142,7 +141,7 @@ func (c *ConsulSource) Fetch(ctx context.Context, _ pack.ID, schema map[variable
 		}
 
 		// Convert value using schema-aware conversion
-		value, err := c.convertValueWithSchema(pair.Value, expectedType)
+		value, err := decodeValue("Consul", pair.Value, expectedType)
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert value for %s: %w", varName, err)
 		}
@@ -155,20 +154,4 @@ func (c *ConsulSource) Fetch(ctx context.Context, _ pack.ID, schema map[variable
 	}
 
 	return vars, nil
-}
-
-// convertValueWithSchema converts raw Consul KV bytes into a cty.Value of the
-// expected type.
-func (c *ConsulSource) convertValueWithSchema(data []byte, expectedType cty.Type) (cty.Value, error) {
-	if expectedType == cty.String {
-		return cty.StringVal(string(data)), nil
-	}
-
-	// For every other type, let cty decode the JSON directly into the expected type.
-	val, err := ctyjson.Unmarshal(data, expectedType)
-	if err != nil {
-		return cty.NilVal, fmt.Errorf("decoding Consul value as %s: %w", expectedType.FriendlyName(), err)
-	}
-
-	return val, nil
 }

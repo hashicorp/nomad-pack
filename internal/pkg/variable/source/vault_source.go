@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/nomad-pack/sdk/pack/variables"
 	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/zclconf/go-cty/cty"
-	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
 
 // VaultSource fetches variables from a Vault KV v2 secret. All variables for a
@@ -122,7 +121,7 @@ func (v *VaultSource) Fetch(ctx context.Context, _ pack.ID, schema map[variables
 			expectedType = schemaVar.Type
 		}
 
-		value, err := v.convertValue([]byte(str), expectedType)
+		value, err := decodeValue("Vault", []byte(str), expectedType)
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert value for %s: %w", rawKey, err)
 		}
@@ -135,20 +134,4 @@ func (v *VaultSource) Fetch(ctx context.Context, _ pack.ID, schema map[variables
 	}
 
 	return vars, nil
-}
-
-// convertValue converts a raw Vault string value into a cty.Value of the
-// expected type.
-func (v *VaultSource) convertValue(data []byte, expectedType cty.Type) (cty.Value, error) {
-	if expectedType == cty.String {
-		return cty.StringVal(string(data)), nil
-	}
-
-	// For every other type, let cty decode the JSON directly into the expected type.
-	val, err := ctyjson.Unmarshal(data, expectedType)
-	if err != nil {
-		return cty.NilVal, fmt.Errorf("decoding Vault value as %s: %w", expectedType.FriendlyName(), err)
-	}
-
-	return val, nil
 }
