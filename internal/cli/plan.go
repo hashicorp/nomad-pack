@@ -54,7 +54,11 @@ func (c *PlanCommand) Run(args []string) int {
 		return c.exitCodeError
 	}
 
-	packManager := generatePackManager(c.baseCommand, client, c.packConfig)
+	packManager, err := generatePackManager(c.baseCommand, client, c.packConfig)
+	if err != nil {
+		c.ui.ErrorWithContext(err, "failed to generate pack manager", errorContext.GetAll()...)
+		return c.exitCodeError
+	}
 
 	// load pack
 	r, err := renderPack(
@@ -142,7 +146,7 @@ func (c *PlanCommand) Run(args []string) int {
 func (c *PlanCommand) Flags() *flag.Sets {
 	c.packConfig = &caching.PackConfig{}
 
-	return c.flagSet(flagSetOperation|flagSetNomadClient, func(set *flag.Sets) {
+	return c.flagSet(flagSetOperation|flagSetNomadClient|flagSetExternalVarSources, func(set *flag.Sets) {
 		f := set.NewSet("Plan Options")
 
 		c.jobConfig = &job.CLIConfig{

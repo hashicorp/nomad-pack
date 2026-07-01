@@ -81,7 +81,11 @@ func (c *StopCommand) Run(args []string) int {
 
 	var jobs []*api.Job
 
-	packManager := generatePackManager(c.baseCommand, client, c.packConfig)
+	packManager, err := generatePackManager(c.baseCommand, client, c.packConfig)
+	if err != nil {
+		c.ui.ErrorWithContext(err, "failed to generate pack manager", errorContext.GetAll()...)
+		return 1
+	}
 
 	var r *renderer.Rendered
 

@@ -193,6 +193,63 @@ app_resources = {
 }
 ```
 
+#### External Variable Sources
+
+In addition to `--var` and `-f/--var-file`, the `run`, `plan`, and `render`
+commands can read variable values from an external system at render time using
+the `--var-source` flag. Three source types are supported: Consul KV, Vault KV
+v2, and Nomad Variables.
+
+A source is given as a URL whose scheme selects the source type. The flag may be
+provided more than once to read from several sources, including several of the
+same type:
+
+```
+nomad-pack run hello_world \
+  --var-source consul://localhost:8500/nomad-pack \
+  --var-source vault://localhost:8200/secret/nomad-pack \
+  --var-source nomad://localhost:4646/nomad-pack
+```
+
+The host is optional. Omit it to use the standard environment configuration for
+that tool, including its address and token:
+
+```
+nomad-pack run hello_world \
+  --var-source consul:///nomad-pack \
+  --var-source vault:///secret/nomad-pack \
+  --var-source nomad:///nomad-pack
+```
+
+Variables map onto each source differently. For Consul, each variable is read
+from its own key at `<path>/<variable-name>`. For Vault, all variables are
+fields of the secret at `<mount>/<path>`. For Nomad, all variables are items of
+the Nomad Variable at `<path>`.
+
+A host given in the URL is always a TCP `host:port`. To read over a `unix://`
+socket instead :
+
+```
+NOMAD_ADDR=unix:///secrets/api.sock \
+  nomad-pack run hello_world --var-source nomad:///nomad-pack
+```
+
+##### Precedence
+
+Variable values are applied in order of precedence, highest first:
+
+1. `--var`
+2. `-f/--var-file`
+3. environment variables
+4. `--var-source`
+5. pack variable defaults
+
+A higher-precedence value overrides any lower one. Explicit local input always
+wins over an external source. When more than one `--var-source` provides the
+same variable, the one given later on the command line wins. Sources are read
+only when a variable needs resolving, so a command that does not use them makes
+no connection.
+
 To see the type and description of each variable, run the `info` command.
 
 ```

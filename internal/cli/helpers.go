@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/manager"
 	"github.com/hashicorp/nomad-pack/internal/pkg/renderer"
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser"
+	"github.com/hashicorp/nomad-pack/internal/pkg/variable/source"
 	"github.com/hashicorp/nomad-pack/internal/runner"
 	"github.com/hashicorp/nomad-pack/internal/runner/job"
 	"github.com/hashicorp/nomad-pack/sdk/pack/variables"
@@ -40,17 +41,28 @@ func initPackCommand(cfg *caching.PackConfig) (errorContext *errors.UIErrorConte
 }
 
 // generatePackManager is used to generate the pack manager for this Nomad Pack run.
-func generatePackManager(c *baseCommand, client *api.Client, packCfg *caching.PackConfig) *manager.PackManager {
+func generatePackManager(c *baseCommand, client *api.Client, packCfg *caching.PackConfig) (*manager.PackManager, error) {
+	// Parse external variable source configurations if provided.
+	var externalSourceConfigs []source.SourceConfig
+	if len(c.varSources) > 0 {
+		configs, err := parseVarSourceConfigs(c.varSources)
+		if err != nil {
+			return nil, err
+		}
+		externalSourceConfigs = configs
+	}
+
 	// TODO: Refactor to have manager use cache.
 	cfg := manager.Config{
-		Path:            packCfg.Path,
-		VariableFiles:   c.varFiles,
-		VariableCLIArgs: c.vars,
-		VariableEnvVars: c.envVars,
-		AllowUnsetVars:  c.allowUnsetVars,
-		UseParserV1:     c.useParserV1,
+		Path:                  packCfg.Path,
+		VariableFiles:         c.varFiles,
+		VariableCLIArgs:       c.vars,
+		VariableEnvVars:       c.envVars,
+		AllowUnsetVars:        c.allowUnsetVars,
+		UseParserV1:           c.useParserV1,
+		ExternalSourceConfigs: externalSourceConfigs,
 	}
-	return manager.NewPackManager(&cfg, client)
+	return manager.NewPackManager(&cfg, client), nil
 }
 
 // predictPackName is a complete.Predictor that suggests cached pack names.

@@ -71,6 +71,10 @@ type baseCommand struct {
 	// for defined input variables
 	varFiles []string
 
+	// varSources is a list of external variable source URLs
+	// (e.g., consul:///path)
+	varSources []string
+
 	// allowUnsetVars suppresses errors from variables with nil values,
 	// i.e. those that are not set and have no default
 	allowUnsetVars bool
@@ -267,6 +271,42 @@ func (c *baseCommand) flagSet(bit flagSetBit, f func(*flag.Sets)) *flag.Sets {
 			Shorthand: "f",
 		})
 
+		// --var-source performs remote reads (e.g. Consul KV) at render time, so
+		// it is only offered by commands that compute a fresh deployment
+		// (run/plan/render). Commands like stop operate on an already-deployed
+		// job and must not depend on a remote source still being reachable or
+		// its keys still existing.
+		if bit&flagSetExternalVarSources != 0 {
+			f.StringSliceVar(&flag.StringSliceVar{
+				Name:    "var-source",
+				Target:  &c.varSources,
+				Default: make([]string, 0),
+				Usage: `Specifies an external variable source as a URL, and may be
+						given more than once to read from several sources. Three source
+						types are supported. Consul KV uses the form
+						consul://<host>:<port>/<path>; for example,
+						consul://localhost:8500/nomad-pack. Vault KV v2 uses the form
+						vault://<host>:<port>/<mount>/<path>; for example,
+						vault://localhost:8200/secret/nomad-pack. Nomad Variables use
+						the form nomad://<host>:<port>/<path>; for example,
+						nomad://localhost:4646/nomad-pack. The host is optional: omit it
+						(consul:///<path>, vault:///<mount>/<path>, or nomad:///<path>)
+						to use the standard environment configuration for that tool,
+						such as CONSUL_HTTP_ADDR and CONSUL_HTTP_TOKEN, VAULT_ADDR and
+						VAULT_TOKEN, or NOMAD_ADDR and NOMAD_TOKEN. A host in the URL is
+						always a TCP host:port; to read over a unix:// socket instead,
+						such as a Nomad task's API socket, omit the host
+						(nomad:///<path>) and set NOMAD_ADDR to the socket. For Consul
+						each variable is read from <path>/<variable-name>; for Vault each
+						variable is a field of the secret at <mount>/<path>; for Nomad
+						each variable is an item of the Nomad Variable at <path>.
+						External sources rank below local input: values from --var,
+						--var-file, and the environment all override them. When more
+						than one --var-source provides the same variable, the one given
+						later on the command line wins.`,
+			})
+		}
+
 		f.BoolVar(&flag.BoolVar{
 			Name:    "allow-unset-vars",
 			Target:  &c.allowUnsetVars,
@@ -435,10 +475,11 @@ func (c *baseCommand) helpUsageMessage() string {
 type flagSetBit uint
 
 const (
-	flagSetNone          flagSetBit = 1 << iota // nolint:deadcode,varcheck,unused
-	flagSetOperation                            // shared flags for operations (run, plan, etc)
-	flagSetNeedsApproval                        // adds the -y flag for commands that require approval to run
-	flagSetNomadClient                          // adds client config flags
+	flagSetNone               flagSetBit = 1 << iota // nolint:deadcode,varcheck,unused
+	flagSetOperation                                 // shared flags for operations (run, plan, etc)
+	flagSetNeedsApproval                             // adds the -y flag for commands that require approval to run
+	flagSetNomadClient                               // adds client config flags
+	flagSetExternalVarSources                        // adds --var-source; only for commands that compute a fresh deployment (run, plan, render)
 )
 
 var (

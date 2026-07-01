@@ -64,7 +64,11 @@ func (c *RunCommand) run() int {
 		return 1
 	}
 
-	packManager := generatePackManager(c.baseCommand, client, c.packConfig)
+	packManager, err := generatePackManager(c.baseCommand, client, c.packConfig)
+	if err != nil {
+		c.ui.ErrorWithContext(err, "failed to generate pack manager", errorContext.GetAll()...)
+		return 1
+	}
 
 	// Render the pack now, before creating the deployer. If we get an error
 	// we won't make it to the deployer.
@@ -191,7 +195,7 @@ func (c *RunCommand) run() int {
 
 // Flags defines the flag.Sets for the operation.
 func (c *RunCommand) Flags() *flag.Sets {
-	return c.flagSet(flagSetOperation|flagSetNomadClient, func(set *flag.Sets) {
+	return c.flagSet(flagSetOperation|flagSetNomadClient|flagSetExternalVarSources, func(set *flag.Sets) {
 		f := set.NewSet("Run Options")
 
 		c.packConfig = &caching.PackConfig{}
