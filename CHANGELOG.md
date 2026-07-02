@@ -11,6 +11,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 * cli: Fix panic when calling status command with namespace wildcard [[GH-827](https://github.com/hashicorp/nomad-pack/pull/854)]
+* pack: Preserve pack metadata injection for job templates with top-level HCL blocks such as `locals`
 * cli: Fix `--ref` flag to support branch names with slashes and added documentation [[GH-891](https://github.com/hashicorp/nomad-pack/pull/891)]
 * renderer: Fixed output template rendering to respect --parser-v1 flag [[GH-875](https://github.com/hashicorp/nomad-pack/pull/875)]
 
