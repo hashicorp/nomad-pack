@@ -63,7 +63,7 @@ Each dependency is a field on the parent context. Pass it to `var` or `meta` in 
 [[ var "job_name" .child ]]
 ```
 
-Here `.` reads from the current pack and `.child` reads from a dependency named `child`. Dependencies can nest, and the `deps` function returns a pack's direct dependencies so you can loop over them.
+Here `.` reads the `job_name` variable from the current pack and `.child` reads the `job_name` variable from a dependency named `child`. Dependencies can nest, and the `deps` function returns a pack's direct dependencies so you can loop over them.
 
 ```
 [[ range $dep := deps . ]][[ var "job_name" $dep ]]
