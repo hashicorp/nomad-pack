@@ -183,6 +183,8 @@ Templates are written using [Go Template Syntax](https://learn.hashicorp.com/tut
 
 Unlike default Go Template syntax, Nomad Pack uses "[[" and "]]" as delimiters.
 
+If you are updating a pack written for an earlier version of Nomad Pack, see the [migration guide](./migration-to-v2-syntax.md) for details on converting the template syntax, such as changing `[[ .my.var ]]` to `[[ var "var" . ]]`.
+
 An example template using variables values from above:
 
 ```

@@ -156,6 +156,7 @@ Pull Requests and feedback on both repositories are welcome!
 
 - [Detailed Usage Guide](/docs/detailed-usage.md)
 - [How to Write Your Own Pack](/docs/writing-packs.md)
+- [Migrating Packs to the Current Template Syntax](/docs/migration-to-v2-syntax.md)
 - [Contributing](/docs/contributing.md)
 - [GitHub Action for Nomad Pack](https://github.com/marketplace/actions/setup-hashicorp-nomad-pack)
 
