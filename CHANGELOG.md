@@ -4,6 +4,7 @@ IMPROVEMENTS:
 * cli: Improved error message when pack lacks `.nomad.tpl` files to clearly explain naming requirements, show template naming convention, and list found template files [[GH-831](https://github.com/hashicorp/nomad-pack/pull/831)]
 * cli: Add registry now honors default main/master branch [[GH-843](https://github.com/hashicorp/nomad-pack/pull/843)]
 * cli: Fixed stale-job reconciliation so nomad-pack run no longer stops active parameterized/periodic child jobs [[GH-855](https://github.com/hashicorp/nomad-pack/pull/855)]
+* docs: Add a guide for migrating packs to the current template syntax [[GH-908](https://github.com/hashicorp/nomad-pack/pull/908)]
 * variable: Variables declaration now supports validation stanza [[GH-841](https://github.com/hashicorp/nomad-pack/pull/841)]
 * variable: Add support for `nomad_variable` blocks with automatic lifecycle management during pack deployment and destruction [[GH-409](https://github.com/hashicorp/nomad-pack/pull/853)]
 * variable: Add external variable sources via the `--var-source` flag for the `run`, `plan`, and `render` commands, reading values from Consul KV [[GH-898](https://github.com/hashicorp/nomad-pack/pull/898)], Vault KV v2 [[GH-903](https://github.com/hashicorp/nomad-pack/pull/903)], and Nomad Variables [[GH-905](https://github.com/hashicorp/nomad-pack/pull/905)]
