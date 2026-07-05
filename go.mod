@@ -1,6 +1,6 @@
 module github.com/hashicorp/nomad-pack
 
-go 1.25.8
+go 1.26
 
 replace (
 	// Use the same version of go-metrics as Nomad.
@@ -22,7 +22,7 @@ require (
 	github.com/fatih/color v1.19.0
 	github.com/go-git/go-git/v5 v5.19.1
 	github.com/hashicorp/consul/api v1.33.4
-	github.com/hashicorp/consul/sdk v0.17.2
+	github.com/hashicorp/consul/sdk v0.18.1
 	github.com/hashicorp/go-getter v1.8.6
 	github.com/hashicorp/go-hclog v1.6.3
 	github.com/hashicorp/go-multierror v1.1.1
