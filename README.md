@@ -11,7 +11,7 @@ Use Nomad Pack to:
 
 ## Documentation
 
-Find installation and user guides in the [Nomad Pack documentation](https://developer.hashicorp.com/nomad/tools/nomad-pack)
+Find installation and user guides in the [Nomad Pack documentation](https://developer.hashicorp.com/nomad/tools/nomad-pack).
 
 ## Documentation contributions
 
