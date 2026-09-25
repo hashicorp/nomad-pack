@@ -148,7 +148,7 @@ func NewGlintTerm(ctx context.Context, height, width int) (*glintTerm, error) {
 		defer term.wg.Done()
 
 		err := prs.Drive(term.ctx)
-		if err != nil && err != context.Canceled {
+		if err != context.Canceled {
 			term.parseErr = err
 		}
 	}()

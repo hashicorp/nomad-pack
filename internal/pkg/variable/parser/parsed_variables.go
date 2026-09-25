@@ -5,6 +5,7 @@ package parser
 
 import (
 	"errors"
+	"maps"
 	"slices"
 	"strings"
 
@@ -13,7 +14,6 @@ import (
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser/config"
 	"github.com/hashicorp/nomad-pack/sdk/pack"
 	"github.com/hashicorp/nomad-pack/sdk/pack/variables"
-	"golang.org/x/exp/maps"
 )
 
 // ParsedVariables wraps the parsed variables returned by parser.Parse and
@@ -203,13 +203,11 @@ func (pv *ParsedVariables) AsOverrideFile() string {
 	var out strings.Builder
 	out.WriteString(pv.varFileHeader())
 
-	packnames := maps.Keys(pv.v2Vars)
-	slices.Sort(packnames)
+	packnames := slices.Sorted(maps.Keys(pv.v2Vars))
 	for _, packname := range packnames {
 		vs := pv.v2Vars[packname]
 
-		varnames := maps.Keys(vs)
-		slices.Sort(varnames)
+		varnames := slices.Sorted(maps.Keys(vs))
 		for _, varname := range varnames {
 			v := vs[varname]
 			out.WriteString(v.AsOverrideString(packname))

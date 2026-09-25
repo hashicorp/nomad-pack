@@ -104,7 +104,7 @@ func (c *DocGenerateCommand) Run(args []string) int {
 		if i-offset > 0 {
 			sb.WriteString(",\n")
 		}
-		sb.WriteString(fmt.Sprintf(`{"title":%q,"path":%q}`, k, cleanName(k)))
+		fmt.Fprintf(&sb, `{"title":%q,"path":%q}`, k, cleanName(k))
 	}
 	sb.WriteString("\n]")
 	_, err = contentMap.WriteString(sb.String())

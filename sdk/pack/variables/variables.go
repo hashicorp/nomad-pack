@@ -152,7 +152,7 @@ func (v *Variable) AsOverrideString(pID pack.ID) string {
 	fqvn := strings.Join([]string{pID.String(), v.Name.String()}, ".")
 	_, rvn, _ := strings.Cut(fqvn, ".")
 
-	out.WriteString(fmt.Sprintf(`# variable "%s"`, rvn))
+	fmt.Fprintf(&out, `# variable "%s"`, rvn)
 	out.WriteByte('\n')
 	if v.hasDescription {
 		tmp := "description: " + v.Description
@@ -166,14 +166,14 @@ func (v *Variable) AsOverrideString(pID pack.ID) string {
 		out.WriteString("\n")
 	}
 	if v.hasType {
-		out.WriteString(fmt.Sprintf("#   type: %s\n", PrintType(v.Type)))
+		fmt.Fprintf(&out, "#   type: %s\n", PrintType(v.Type))
 	}
 
 	if v.hasDefault {
-		out.WriteString(fmt.Sprintf("#   default: %s\n", PrintDefault(v.Default)))
-		out.WriteString(fmt.Sprintf("#\n# %s=%s\n\n", rvn, PrintDefault(v.Default)))
+		fmt.Fprintf(&out, "#   default: %s\n", PrintDefault(v.Default))
+		fmt.Fprintf(&out, "#\n# %s=%s\n\n", rvn, PrintDefault(v.Default))
 	} else {
-		out.WriteString(fmt.Sprintf("#\n# %s=«required»\n\n", rvn))
+		fmt.Fprintf(&out, "#\n# %s=«required»\n\n", rvn)
 	}
 
 	out.WriteString("\n")
