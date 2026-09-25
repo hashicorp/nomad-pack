@@ -71,14 +71,14 @@ func (c *RegistryDeleteCommand) Run(args []string) int {
 func (c *RegistryDeleteCommand) formatOutput() string {
 	// Format output based on passed flags.
 	var output strings.Builder
-	output.WriteString(fmt.Sprintf("\nregistry %s", c.name))
+	fmt.Fprintf(&output, "\nregistry %s", c.name)
 
 	if c.target != "" {
-		output.WriteString(fmt.Sprintf(" pack %s", c.target))
+		fmt.Fprintf(&output, " pack %s", c.target)
 	}
 
 	if c.ref != "" {
-		output.WriteString(fmt.Sprintf(" at ref %s", c.ref))
+		fmt.Fprintf(&output, " at ref %s", c.ref)
 	}
 
 	output.WriteString(" deleted")

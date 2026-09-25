@@ -5,6 +5,7 @@ package renderer
 
 import (
 	"fmt"
+	"maps"
 	"os"
 	"strings"
 	"text/template"
@@ -13,7 +14,6 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/nomad-pack/internal/pkg/variable/parser"
 	"github.com/hashicorp/nomad/api"
-	"golang.org/x/exp/maps"
 )
 
 // funcMap instantiates our default template function map with populated
@@ -183,10 +183,10 @@ func toStringList(l any) (string, error) {
 			if i > 0 {
 				out.WriteString(", ")
 			}
-			out.WriteString(fmt.Sprintf("%q", v))
+			fmt.Fprintf(&out, "%q", v)
 		}
 	default:
-		out.WriteString(fmt.Sprintf("%q", l))
+		fmt.Fprintf(&out, "%q", l)
 	}
 	out.WriteRune(']')
 	o := out.String()

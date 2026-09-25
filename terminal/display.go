@@ -421,7 +421,7 @@ func NewTerm(ctx context.Context, d *DisplayEntry, height, width int) (*Term, er
 		defer term.wg.Done()
 
 		err := prs.Drive(term.ctx)
-		if err != nil && err != context.Canceled {
+		if err != context.Canceled {
 			term.parseErr = err
 		}
 	}()
