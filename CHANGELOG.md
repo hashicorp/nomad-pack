@@ -1,6 +1,7 @@
 ## UNRELEASED
 
 IMPROVEMENTS:
+* build: Update Nomad to 2.0.7 [[GH-944](https://github.com/hashicorp/nomad-pack/pull/944)]
 * build: Update Go version to 1.27.1 [[GH-939](https://github.com/hashicorp/nomad-pack/pull/939)]
 * cli: Improved error message when pack lacks `.nomad.tpl` files to clearly explain naming requirements, show template naming convention, and list found template files [[GH-831](https://github.com/hashicorp/nomad-pack/pull/831)]
 * cli: Add registry now honors default main/master branch [[GH-843](https://github.com/hashicorp/nomad-pack/pull/843)]
