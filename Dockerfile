@@ -24,7 +24,9 @@ RUN go build -o nomad-pack .
 # -----------------------------------
 FROM alpine:3.23.0 AS dev
 
-RUN apk add --no-cache git libc6-compat tzdata
+# Pull patched OpenSSL libraries
+# (fixes CVE-2026-72897, CVE-2026-84782, CVE-2026-54873, CVE-2026-14456: OpenSSL < 3.5.9).
+RUN apk add --no-cache --upgrade git libc6-compat tzdata libssl3 libcrypto3
 COPY --from=devbuild /build/nomad-pack /bin/
 COPY ./scripts/docker-entrypoint.sh /
 
@@ -59,7 +61,9 @@ LABEL maintainer="Nomad Team <nomad@hashicorp.com>" \
 RUN mkdir -p /usr/share/doc/nomad-pack
 COPY LICENSE /usr/share/doc/nomad-pack/LICENSE.txt
 
-RUN apk add --no-cache git libc6-compat tzdata
+# Pull patched OpenSSL libraries
+# (fixes CVE-2026-72897, CVE-2026-84782, CVE-2026-54873, CVE-2026-14456: OpenSSL < 3.5.9).
+RUN apk add --no-cache --upgrade git libc6-compat tzdata libssl3 libcrypto3
 
 COPY dist/$TARGETOS/$TARGETARCH/nomad-pack /bin/
 COPY ./scripts/docker-entrypoint.sh /
