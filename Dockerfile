@@ -62,7 +62,7 @@ RUN mkdir -p /usr/share/doc/nomad-pack
 COPY LICENSE /usr/share/doc/nomad-pack/LICENSE.txt
 
 # Pull patched OpenSSL libraries
-# (fixes CVE-2026-72897, CVE-2026-84782, CVE-2026-54873: OpenSSL < 3.5.9).
+# (fixes CVE-2026-72897, CVE-2026-84782, CVE-2026-54873, CVE-2026-14456: OpenSSL < 3.5.9).
 RUN apk add --no-cache --upgrade git libc6-compat tzdata libssl3 libcrypto3
 
 COPY dist/$TARGETOS/$TARGETARCH/nomad-pack /bin/
